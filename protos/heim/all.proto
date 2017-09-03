@@ -1,0 +1,219 @@
+syntax = "proto3";
+package heimdall;
+
+message Confirm {
+    bool success = 1;
+}
+
+message JunkRequest {
+    uint64 id = 1;
+    bytes crop = 2;
+}
+
+message JunkResponse {
+    uint64 id = 1;
+    bool target = 2;
+    float target_percentage = 3;
+}
+
+message SaliencyRequest {
+    uint64 full_id = 1;
+    bytes full_image = 2;
+    string full_filename = 3;
+    string full_path = 4;
+    float full_lat = 5;
+    float full_lng = 6;
+    float full_alt = 7;
+    float full_heading = 8;
+    string type = 9;
+}
+
+message SaliencyResponse {
+    bytes crop = 1;
+    float latitude = 2;
+    float longitude = 3;
+
+    uint64 full_id = 4;
+    string full_filename = 5;
+    float full_lat = 6;
+    float full_lng = 7;
+    float full_alt = 8;
+    float full_heading = 9;
+    string full_path = 10;
+    string type = 11;
+    uint64 id = 12;
+}
+
+message SegmentationRequest {
+    uint64 id = 1;
+    bytes crop = 2;
+}
+
+message SegmentationResponse {
+    uint64 id = 1;
+    bytes shape_seg = 2;
+    bytes char_seg = 3;
+    RGB shape_rgb = 4;
+    RGB char_rgb = 5;
+}
+
+message RGB {
+    float r = 1;
+    float g = 2;
+    float b = 3;
+}
+
+message ColorRequest {
+    uint64 id = 1;
+    RGB shape_rgb = 2;
+    RGB char_rgb = 3;
+}
+
+message ColorResponse {
+    uint64 id = 1;
+    string background_color = 2;
+    string alphanumeric_color = 3;
+}
+
+message ShapeRecRequest {
+    uint64 id = 1;
+    bytes crop = 2;
+    bytes shape_seg = 3;
+}
+
+message ShapeRecResponse {
+    uint64 id = 1;
+    string shape = 2;
+}
+
+message CharRecRequest {
+    uint64 id = 1;
+    uint64 char_seg = 2;
+    bytes crop = 3;
+    float full_heading = 4;
+}
+
+message CharRecResponse {
+    uint64 id = 1;
+    string alphanumeric = 2;
+    string orientation = 3;
+    float heading = 4;
+}
+ 
+message AggregatorSend {
+    uint64 id = 1;
+    string alphanumeric = 2;
+    string shape = 3;
+    string background_color = 4;
+    string alphanumeric_color = 5;
+    float latitude = 6;
+    float longitude = 7;
+    string orientation = 8;
+    string type = 9;
+    string description = 10;
+}
+
+message ManualOperatorSend {
+
+    uint64 id = 1;
+    bytes crop = 2;
+    float latitude = 3;
+    float longitude = 4;
+    string background_color = 5;
+    string alphanumeric_color = 6;
+
+    string shape = 7;
+
+    string alphanumeric = 8;
+
+    string orientation = 9;
+    float heading = 10;
+    string type = 11;
+    string description = 12;
+
+
+    string full_filename = 13;
+    float full_heading = 14;
+    string full_path = 15;
+
+    bool target = 16;
+    float target_percentage = 17;
+}
+
+message ResultsSend {
+    uint64 id = 1;
+    bytes crop = 2;
+
+    float latitude = 3;
+    float longitude = 4;
+
+    uint64 full_id = 5;
+    string full_filename = 6;
+    float full_lat = 7;
+    float full_lng = 8;
+    float full_alt = 9;
+    float full_heading = 10;
+    string full_path = 11;
+
+    bytes shape_seg = 12;
+    bytes char_seg = 13;
+    RGB shape_rgb = 14;
+    RGB char_rgb = 15;
+
+    string background_color = 16;
+    string alphanumeric_color = 17;
+
+    string shape = 18;
+
+    string alphanumeric = 19;
+
+    string orientation = 20;
+    float heading = 21;
+    string type = 22;
+    string description = 23;
+
+    bool target = 24;
+    float target_percentage = 25;
+}
+
+message ParseResponse {
+    enum Type { SaliencyResponse=0; JunkResponse=1; SegmentationResponse=2; ColorResponse=3; ShapeRecResponse=4; CharRecResponse=5;}
+
+    Type type = 1;
+
+    SaliencyResponse sr = 2;
+    JunkResponse jr = 3;
+    SegmentationResponse segr = 4; 
+    ColorResponse cr = 5;
+    ShapeRecResponse srr = 6;
+    CharRecResponse charr = 7;
+}
+
+message ParseRequest {
+    enum Type { SaliencyRequest=0; JunkRequest=1; SegmentationRequest=2; ColorRequest=3; ShapeRecRequest=4; CharRecRequest=5;}
+
+    Type type = 1;
+
+    SaliencyRequest sr = 2;
+    JunkRequest jr = 3;
+    SegmentationRequest segr = 4; 
+    ColorRequest cr = 5;
+    ShapeRecRequest srr = 6;
+    CharRecRequest charr = 7;
+}
+
+message All {
+    SaliencyRequest sr = 1;
+    JunkRequest jr = 2;
+    SegmentationRequest segr = 3; 
+    ColorRequest cr = 4;
+    ShapeRecRequest srr = 5;
+    CharRecRequest charr = 6;
+
+    SaliencyResponse rsr = 7;
+    JunkResponse rjr = 8;
+    SegmentationResponse rsegr = 9; 
+    ColorResponse rcr = 10;
+    ShapeRecResponse rsrr = 11;
+    CharRecResponse rcharr = 12;
+}
