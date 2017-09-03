@@ -1,0 +1,45 @@
+{
+    "moving_obstacles": [
+        {
+            "speed_avg": 5,
+            "sphere_radius": 150,
+            "waypoints": [
+                {
+                    "altitude_msl": 250,
+                    "latitude": 33.778063812,
+                    "longitude": -117.1917736530304,
+                    "order": 1
+                },
+                {
+                    "altitude_msl": 300,
+                    "latitude": 33.7813499668,
+                    "longitude": -117.19246029853821,
+                    "order": 1
+                }
+            ]
+        }
+    ],
+    "stationary_obstacles": [
+        {
+            "cylinder_height": 400,
+            "cylinder_radius": 100,
+            "latitude": 33.7787727884227,
+            "longitude": -117.1883511543274,
+            "order": 1
+        },
+        {
+            "cylinder_height": 400,
+            "cylinder_radius": 100,
+            "latitude": 33.77852309227033,
+            "longitude": -117.19283580780031,
+            "order": 2
+        },
+        {
+            "cylinder_height": 400,
+            "cylinder_radius": 100,
+            "latitude": 33.78201877216484,
+            "longitude": -117.1950674057007,
+            "order": 3
+        }
+    ]
+}

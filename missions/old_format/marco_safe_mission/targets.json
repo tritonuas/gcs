@@ -1,0 +1,60 @@
+{
+    "targets": [
+        {
+            "type": "standard",
+            "latitude": 33.779392,
+            "longitude": -117.192359,
+            "shape": "trapezoid",
+            "alphanumeric": "K",
+            "alpanumeric_color": "yellow",
+            "background_color": "white",
+            "description": "",
+    	    "orientation":"nw"
+        },
+        {
+            "type": "standard",
+            "latitude": 33.777405,
+            "longitude": -117.191304,
+            "shape": "rectangle",
+            "alphanumeric": "3",
+            "alpanumeric_color": "white",
+            "background_color": "black",
+            "description": "",
+	        "orientation":"n"
+
+        },
+        {
+            "type": "standard",
+            "latitude": 33.779515,
+            "longitude": -117.191164,
+            "shape": "hexagon",
+            "alphanumeric": "M",
+            "alpanumeric_color": "yellow",
+            "background_color": "red",
+            "description": "",
+	        "orientation":"w"
+        },
+        {
+            "type": "standard",
+            "latitude": 33.779428,
+            "longitude": -117.191236,
+            "shape": "octagon",
+            "alphanumeric": "A",
+            "alpanumeric_color": "black",
+            "background_color": "green",
+            "description": "",
+	        "orientation":"nw"
+        },
+        {
+            "type": "standard",
+            "latitude": 128.324,
+            "longitude": -117.43432,
+            "shape": "circle",
+            "alphanumeric": "V",
+            "alpanumeric_color": "brown",
+            "background_color": "red",
+            "description": "",
+    	    "orientation":"n"
+        }
+    ]
+}
