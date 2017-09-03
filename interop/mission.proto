@@ -1,0 +1,36 @@
+syntax = "proto3";
+package interop;
+
+message MissionList {
+    repeated Mission missions = 1;
+}
+
+message Mission {
+    uint32 id = 1;
+    bool active = 2;
+    GPS air_drop_pos = 3;
+    GPS home_pos = 4;
+    GPS off_axis_target_pos = 5;
+    GPS emergent_last_known_pos = 6;
+    repeated FlyZone fly_zones = 7;
+    repeated Waypoint mission_waypoints = 8;
+    repeated Waypoint search_grid_points = 9;
+}
+
+message GPS {
+    float latitude = 1;
+    float longitude = 2;
+}
+
+message Waypoint {
+    uint32 order = 1;
+    float latitude = 2;
+    float longitude = 3;
+    float altitude_msl = 4;
+}
+
+message FlyZone {
+    float altitude_msl_min = 1;
+    float altitude_msl_max = 2;
+    repeated Waypoint boundary_pts = 3;
+}

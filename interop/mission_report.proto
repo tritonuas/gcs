@@ -1,0 +1,15 @@
+syntax = "proto3";
+package interop;
+
+message MissionReportStatus {
+    repeated DistanceStatus mission_waypoints = 1;
+    DistanceStatus airdrop_pos = 2;
+    DistanceStatus emergent_pos = 3;
+    repeated DistanceStatus stationary_obstacles = 4;
+    repeated DistanceStatus moving_obstacles = 5;
+}
+
+message DistanceStatus {
+    float closest_dist = 1;
+    float current_dist = 2;
+}

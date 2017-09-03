@@ -1,0 +1,54 @@
+syntax = "proto3";
+package interop;
+
+import "google/api/annotations.proto";
+import "interop/mission.proto";
+import "interop/mission_edit.proto";
+import "interop/mission_report.proto";
+import "google/protobuf/empty.proto";
+
+// Defines endpoints that interact with the interop server
+service Interop {
+    // Get active mission
+    rpc GetActiveMission(google.protobuf.Empty) returns (Mission) {
+        option (google.api.http) = {
+            get: "/v1/interop/mission"
+        };
+    }
+
+    rpc StartServer(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/v1/interop/server"
+        };
+    }
+
+}
+
+service MissionReporting {
+    rpc Status(google.protobuf.Empty) returns (MissionReportStatus) {
+        option (google.api.http) = {
+            get: "/v1/interop/mission/status"
+        };
+    }
+}
+
+service MissionEdit {
+    rpc GetMissionList(google.protobuf.Empty) returns (MissionNameList) {
+        option (google.api.http) = {
+            get: "/v1/missionedit/mission_names"
+        };
+    }
+
+    rpc GetMission(MissionName) returns (CompleteMission) {
+        option (google.api.http) = {
+            get: "/v1/missionedit/mission/{mission_name}"
+        };
+    }
+
+    rpc PostMission(CompleteMission) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/missionedit/mission/{mission_name}",
+            body: "*"
+        };
+    }
+}

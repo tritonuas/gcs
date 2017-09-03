@@ -1,0 +1,9 @@
+syntax = "proto3";
+package interop;
+
+message Telemetry {
+    float latitude = 1;
+    float longitude = 2;
+    float altitude_msl = 3;
+    float uas_heading = 4;
+}

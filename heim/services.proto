@@ -1,0 +1,36 @@
+syntax = "proto3";
+package heimdall;
+
+import "heim/all.proto"
+
+service Color {
+    rpc ColorEndpoint (ColorRequest) returns (ColorResponse) {}
+}
+
+service Saliency {
+    rpc SaliencyEndpoint (SaliencyRequest) returns (stream SaliencyResponse) {}
+}
+
+service Junk {
+    rpc JunkEndpoint (JunkRequest) returns (JunkResponse) {}
+}
+
+service Segmentation {
+    rpc SegmentationEndpoint (SegmentationRequest) returns (SegmentationResponse) {}
+}
+
+service Ingress {
+    rpc IngressEndpoint (All) returns (Confirm) {}
+}
+
+service SaliencyIngress {
+    rpc SaliencyIngressEndpoint (SaliencyResponse) returns (Confirm) {}
+}
+
+service ManualOperator {
+    rpc ManualOperatorEndpoint (ManualOperatorSend) returns (Confirm) {}
+}
+
+service Results {
+    rpc ResultsEndpoint (ResultsSend) returns (Confirm) {}
+}
