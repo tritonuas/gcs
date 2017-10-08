@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/golang/protobuf/jsonpb"
-	pb "gitlab.com/tuas/tritongcs/hub/interop"
 	"os"
 	"path/filepath"
+
+	"github.com/golang/protobuf/jsonpb"
+	pb "github.com/tritonuas/hub/interop"
 )
 
 func get_missionlist(folder string) (output []string) {

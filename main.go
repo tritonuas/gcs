@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
 	//"log"
@@ -10,13 +11,12 @@ import (
 	//"golang.org/x/time/rate"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	pb "gitlab.com/tuas/tritongcs/hub/interop"
+	"github.com/rs/cors"
+	pb "github.com/tritonuas/hub/interop"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	//"gitlab.com/tuas/tritongcs/hub/certs"
 	//"crypto/tls"
 	//"crypto/x509"
 	//"google.golang.org/grpc/credentials"
@@ -24,7 +24,7 @@ import (
 
 var Log *logrus.Logger
 var addr = flag.String("addr", ":5001", "http service address")
-var hubpath = flag.String("hubpath", "../src/gitlab.com/tuas/tritongcs/hub/", "Path to hub folder")
+var hubpath = flag.String("hubpath", "../src/github.com/tritonuas/hub/", "Path to hub folder")
 var interop_ip = flag.String("interop_ip", "127.0.0.1", "ip of interop computer")
 var interop_port = flag.String("interop_port", "8000", "ip of interop computer")
 var interop_username = flag.String("interop_username", "ucsdauvsi", "ip of interop computer")
@@ -42,7 +42,7 @@ func main() {
 	// folders stuff
 	executable_folder, _ := osext.ExecutableFolder()
 
-	missionfolder := get_path(executable_folder, *hubpath, "../missions/")
+	missionfolder := get_path(executable_folder, *hubpath, "missions/")
 	obcfolder := get_path(executable_folder, *hubpath, "../client/PlaneOBC/build/")
 	controlfolder := get_path(executable_folder, *hubpath, "../client/MissionControl/build/")
 	imageoperatorfolder := get_path(executable_folder, *hubpath, "../client/ImageOperator/build/")
@@ -148,26 +148,6 @@ func main() {
 	swaggerassets := http.StripPrefix("/swagger/", http.FileServer(http.Dir(swaggerfolder)))
 	mux.Handle("/swagger/", swaggerassets)
 
-	/*err = http.ListenAndServe(*addr, nil)
-	if err != nil {
-		Log.Fatal("ListenAndServe: ", err)
-	}
-	*/
-	// load certs
-	/*pair, err := tls.X509KeyPair([]byte(certs.Cert), []byte(certs.Key))
-	if err != nil {
-		panic(err)
-	}
-	demoKeyPair := &pair
-	demoCertPool := x509.NewCertPool()
-	ok := demoCertPool.AppendCertsFromPEM([]byte(certs.Cert))
-	if !ok {
-		panic("bad certs")
-	}
-	opts := []grpc.ServerOption{
-		grpc.Creds(credentials.NewClientTLSFromCert(demoCertPool, *addr))}
-	*/
-
 	grpcServer := grpc.NewServer()
 	pb.RegisterMissionEditServer(grpcServer, &missionEditServer{mission_folder: missionfolder})
 
@@ -176,11 +156,7 @@ func main() {
 	defer cancel()
 
 	gwmux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: true}))
-	/*dcreds := credentials.NewTLS(&tls.Config{
-		ServerName: *addr,
-		RootCAs:    demoCertPool,
-	})
-	*/
+
 	mux.Handle("/", gwmux)
 	dopts := []grpc.DialOption{grpc.WithInsecure()}
 	err := pb.RegisterMissionEditHandlerFromEndpoint(ctx, gwmux, *addr, dopts)
@@ -188,31 +164,17 @@ func main() {
 		Log.Info(err)
 		return
 	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 5001))
 	if err != nil {
 		Log.Info("failed to listen: %v", err)
 	}
 	go grpcServer.Serve(lis)
-	http.ListenAndServe(":5000", allowCORS(mux))
+	handler := cors.Default().Handler(mux)
+	http.ListenAndServe(":5000", handler)
 
 	if err != nil {
 		Log.Fatal("ListenAndServe: ", err)
 	}
 
-}
-
-// grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
-// connections or otherHandler otherwise. Copied from cockroachdb.
-func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO(tamird): point to merged gRPC code rather than a PR.
-		// This is a partial recreation of gRPC's internal checks https://github.com/grpc/grpc-go/pull/514/files#diff-95e9a25b738459a2d3030e1e6fa2a718R61
-		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
-			Log.Info("grpc")
-			grpcServer.ServeHTTP(w, r)
-		} else {
-			Log.Info("other")
-			otherHandler.ServeHTTP(w, r)
-		}
-	})
 }

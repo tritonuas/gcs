@@ -1,36 +1,15 @@
 package main
 
 import (
-	//"github.com/Sirupsen/logrus"
+	"bytes"
 	"encoding/json"
 	"math"
 	"time"
+
+	"github.com/golang/protobuf/jsonpb"
+
+	pb "github.com/tritonuas/hub/interop"
 )
-
-type GPS struct {
-	lat float64
-	lng float64
-	alt float64
-}
-
-type MovingObstacle struct {
-	AltitudeMSL  float64 `json:"altitude_msl"`
-	Latitude     float64 `json:"latitude"`
-	Longitude    float64 `json:"longitude"`
-	SphereRadius float64 `json:"sphere_radius"`
-}
-
-type StationaryObstacle struct {
-	CylinderHeight float64 `json:"cylinder_height"`
-	CylinderRadius float64 `json:"cylinder_radius"`
-	Latitude       float64 `json:"latitude"`
-	Longitude      float64 `json:"longitude"`
-}
-
-type ObstacleRec struct {
-	MovingObstacles     []*MovingObstacle     `json:"moving_obstacles"`
-	StationaryObstacles []*StationaryObstacle `json:"stationary_obstacles"`
-}
 
 type MissionReportingBackend struct {
 	hub *Hub
@@ -39,54 +18,20 @@ type MissionReportingBackend struct {
 
 	name string
 
-	mission_set bool
+	mission *pb.Mission
 
-	waypoints []*Telemetry
+	obstacles *pb.Obstacles
 
-	airdrop *Telemetry
-
-	emergent *Telemetry
-
-	Obstacles *ObstacleRec
-
-	Waypoints_dist []*DistanceStruct `json:"waypoint_dist"`
-
-	Airdrop_dist *DistanceStruct `json:"airdrop_dist"`
-
-	Emergent_dist *DistanceStruct `json:"emergent_dist"`
-
-	Stationary_dist []*DistanceStruct `json:"stationary_obs_dist"`
-
-	Moving_dist []*DistanceStruct `json:"moving_obs_dist"`
+	missionReportStatus pb.MissionReportStatus
 }
 
-type DistanceStruct struct {
-	Closest float64 `json:"closest"`
-	Current float64 `json:"current"`
+func distanceMovingObstacle(t1 *pb.MovingObstacle, t2 IWaypoint) float32 {
+	return waypointDistanceRaw(t1.GetLatitude(), t1.GetLongitude(), t1.GetAltitudeMsl(), t2.GetLatitude(), t2.GetLongitude(), t2.GetAltitudeMsl()) - t1.GetSphereRadius()
 }
 
-type MissionReportingSend struct {
-	Type string                   `json:"type"`
-	Data *MissionReportingBackend `json:"data"`
-}
-
-func distance_to_telem(t1, t2 *Telemetry) float64 {
-	return distance_to(t1.latitude, t1.longitude, t1.altitude_msl, t2.latitude, t2.longitude, t2.altitude_msl)
-}
-
-func distance_to_gps_telem(t1, t2 *Telemetry) float64 {
-	return distance_to(t1.latitude, t1.longitude, 0, t2.latitude, t2.longitude, 0)
-}
-
-func distance_to_gps_telem_moving_obs(t1 *MovingObstacle, t2 *Telemetry) float64 {
-	return distance_to(t1.Latitude, t1.Longitude, t1.AltitudeMSL, t2.latitude, t2.longitude, t2.altitude_msl) - t1.SphereRadius
-}
-
-func distance_to_gps_telem_stationary_obs(obs *StationaryObstacle, plane *Telemetry) float64 {
-
-	calculated_circle_alt := math.Min(obs.CylinderHeight, plane.altitude_msl)
-
-	return distance_to(obs.Latitude, obs.Longitude, calculated_circle_alt, plane.latitude, plane.longitude, plane.altitude_msl) - obs.CylinderRadius
+func distanceStationaryObstacle(obs *pb.StationaryObstacle, wp IWaypoint) float32 {
+	circleAlt := float32(math.Min(float64(obs.GetCylinderHeight()), float64(wp.GetAltitudeMsl())))
+	return waypointDistanceRaw(obs.GetLatitude(), obs.GetLongitude(), circleAlt, wp.GetLatitude(), wp.GetLongitude(), wp.GetAltitudeMsl()) - obs.GetCylinderRadius()
 }
 
 func (u *MissionReportingBackend) Name() string {
@@ -108,10 +53,10 @@ func (u *MissionReportingBackend) Send(message []byte) bool {
 
 func (u *MissionReportingBackend) Sender() {
 	for {
-		s := MissionReportingSend{Type: "MISSION_REPORTING_STATUS", Data: u}
+		s := u.missionReportStatus
 		b, err := json.Marshal(s)
 		if err != nil {
-			Log.Info(err)
+			Log.Error(err)
 			continue
 		}
 		u.hub.sendEndpointMessage(b, "gcs")
@@ -119,127 +64,83 @@ func (u *MissionReportingBackend) Sender() {
 	}
 }
 
-func (u *MissionReportingBackend) SetMission(mission []byte) {
-	if u.mission_set == true {
-		return
+func createDistanceStatus(length int) []*pb.DistanceStatus {
+	output := make([]*pb.DistanceStatus, 0)
+	for i := 0; i < length; i++ {
+		output = append(output, &pb.DistanceStatus{ClosestDist: 1e8, CurrentDist: 1e8})
 	}
-	var loc map[string]interface{}
-	err := json.Unmarshal(mission, &loc)
-	if err != nil {
-		Log.Warning("MissionReportingBackend.Run(): json decode error - ", err)
-		return
+	return output
+}
+
+func (u *MissionReportingBackend) SetMission(mission *pb.Mission, obstacles *pb.Obstacles) {
+	// create correct distance status
+	missionReportStatus := pb.MissionReportStatus{
+		MissionWaypoints:    createDistanceStatus(len(mission.MissionWaypoints)),
+		MovingObstacles:     createDistanceStatus(len(obstacles.StationaryObstacles)),
+		StationaryObstacles: createDistanceStatus(len(obstacles.MovingObstacles)),
+		AirdropPos:          &pb.DistanceStatus{ClosestDist: 1e8, CurrentDist: 1e8},
+		EmergentPos:         &pb.DistanceStatus{ClosestDist: 1e8, CurrentDist: 1e8},
 	}
-	var dat map[string]interface{}
 
-	// set airdrop position
-	Log.Info(loc["airdrop_pos"])
-	dat = loc["air_drop_pos"].(map[string]interface{})
-	var telemData = new(Telemetry)
-	telemData.latitude = dat["latitude"].(float64)
-	telemData.longitude = dat["longitude"].(float64)
-	telemData.altitude_msl = 0
-	telemData.uas_heading = 0
-	u.airdrop = telemData
+	u.mission = mission
+	u.obstacles = obstacles
+	// race condition?
+	u.missionReportStatus = missionReportStatus
+}
 
-	dat = loc["emergent_last_known_pos"].(map[string]interface{})
-	var telemEmergent = new(Telemetry)
-	telemEmergent.latitude = dat["latitude"].(float64)
-	telemEmergent.longitude = dat["longitude"].(float64)
-	telemEmergent.altitude_msl = 0
-	telemEmergent.uas_heading = 0
-	u.emergent = telemEmergent
+func setDistanceWaypoint(distanceStatus *pb.DistanceStatus, element IWaypoint, waypoint IWaypoint) {
+	distanceStatus.CurrentDist = WaypointDistance(element, waypoint)
+	distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
+}
 
-	var wp []interface{}
+func setDistanceGps(distanceStatus *pb.DistanceStatus, element IGps, waypoint IGps) {
+	distanceStatus.CurrentDist = GpsDistance(element, waypoint)
+	distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
+}
 
-	wp = loc["mission_waypoints"].([]interface{})
-	for _, element := range wp {
-		var dat map[string]interface{}
-		dat = element.(map[string]interface{})
-		var telemData = new(Telemetry)
-		telemData.latitude = dat["latitude"].(float64)
-		telemData.longitude = dat["longitude"].(float64)
-		telemData.altitude_msl = dat["altitude_msl"].(float64)
-		telemData.uas_heading = 0
-		u.Waypoints_dist = append(u.Waypoints_dist, &DistanceStruct{Closest: 1e8, Current: 1e8})
-		u.waypoints = append(u.waypoints, telemData)
-
+func (u *MissionReportingBackend) UpdateDistances(telem *pb.Telemetry) {
+	// set waypoints and airdrop
+	for index, distanceStatus := range u.missionReportStatus.MissionWaypoints {
+		setDistanceWaypoint(distanceStatus, u.mission.MissionWaypoints[index], telem)
 	}
-	u.mission_set = true
+	setDistanceGps(u.missionReportStatus.AirdropPos, u.mission.AirDropPos, telem)
+	setDistanceGps(u.missionReportStatus.EmergentPos, u.mission.AirDropPos, telem)
+	for index, distanceStatus := range u.missionReportStatus.MissionWaypoints {
+		setDistanceWaypoint(distanceStatus, u.mission.MissionWaypoints[index], telem)
+	}
+	for index, distanceStatus := range u.missionReportStatus.StationaryObstacles {
+		distanceStatus.CurrentDist = distanceStationaryObstacle(u.obstacles.GetStationaryObstacles()[index], telem)
+		distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
+	}
+	for index, distanceStatus := range u.missionReportStatus.MovingObstacles {
+		distanceStatus.CurrentDist = distanceMovingObstacle(u.obstacles.GetMovingObstacles()[index], telem)
+		distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
+	}
 }
 
 func (u *MissionReportingBackend) Run() {
 	go u.Sender()
 	for {
 		select {
-		// Receive gps updates
 		case msg := <-u.send:
-			var loc map[string]interface{}
-			err := json.Unmarshal(msg, &loc)
-			if err != nil {
-				Log.Warning("MissionReportingBackend.Run(): json decode error - ", err)
+			if u.mission == nil {
 				continue
 			}
-			if _, ok := loc["data"]; ok {
-
-				var dat map[string]interface{}
-				dat = loc["data"].(map[string]interface{})
-				var telemData = new(Telemetry)
-				telemData.latitude = dat["lat"].(float64)
-				telemData.longitude = dat["lon"].(float64)
-				telemData.altitude_msl = dat["a_rel"].(float64)
-				telemData.uas_heading = dat["head"].(float64)
-
-				// set waypoints and airdrop
-				for index, element := range u.waypoints {
-					u.Waypoints_dist[index].Current = distance_to_telem(element, telemData)
-					u.Waypoints_dist[index].Closest = math.Min(u.Waypoints_dist[index].Current, u.Waypoints_dist[index].Closest)
-				}
-				if u.airdrop != nil {
-					u.Airdrop_dist.Current = distance_to_gps_telem(u.airdrop, telemData)
-					u.Airdrop_dist.Closest = math.Min(u.Airdrop_dist.Current, u.Airdrop_dist.Closest)
-				}
-				if u.emergent != nil {
-					u.Emergent_dist.Current = distance_to_gps_telem(u.emergent, telemData)
-					u.Emergent_dist.Closest = math.Min(u.Emergent_dist.Current, u.Emergent_dist.Closest)
-				}
-				if u.Obstacles != nil {
-					for index, element := range u.Obstacles.MovingObstacles {
-
-						u.Moving_dist[index].Current = distance_to_gps_telem_moving_obs(element, telemData)
-						u.Moving_dist[index].Closest = math.Min(u.Moving_dist[index].Current, u.Moving_dist[index].Closest)
-
-					}
-					// WORK ON THIS PART
-					for index, element := range u.Obstacles.StationaryObstacles {
-
-						u.Stationary_dist[index].Current = distance_to_gps_telem_stationary_obs(element, telemData)
-						u.Stationary_dist[index].Closest = math.Min(u.Stationary_dist[index].Current, u.Stationary_dist[index].Closest)
-					}
-				}
+			marshaller := jsonpb.Unmarshaler{AllowUnknownFields: false}
+			telem := &pb.Telemetry{}
+			err := marshaller.Unmarshal(bytes.NewReader(msg), telem)
+			if err == nil {
+				u.UpdateDistances(telem)
 			} else {
-				// Marshall into struct ObstacleRec
-				obstaclerec := &ObstacleRec{}
+				obstacles := &pb.Obstacles{}
 
 				// Check Error essage
-				err := json.Unmarshal(msg, obstaclerec)
+				err := marshaller.Unmarshal(bytes.NewReader(msg), obstacles)
 				if err != nil {
-					Log.Warning("parse error obstacles")
-					break
+					Log.Error("parse error obstacles")
+					continue
 				}
-
-				// Initialize distance list to same size as stationary obstacle list
-				if u.Obstacles == nil {
-					for _, _ = range obstaclerec.MovingObstacles {
-						u.Moving_dist = append(u.Moving_dist, &DistanceStruct{Closest: 1e8, Current: 1e8})
-					}
-
-					for _, _ = range obstaclerec.StationaryObstacles {
-						u.Stationary_dist = append(u.Stationary_dist, &DistanceStruct{Closest: 1e8, Current: 1e8})
-					}
-				}
-
-				u.Obstacles = obstaclerec
-
+				u.obstacles = obstacles
 			}
 		}
 	}
@@ -250,6 +151,6 @@ func (u *MissionReportingBackend) Close() {
 }
 
 func createMissionReportingBackend(name string, hub *Hub) *MissionReportingBackend {
-	backend := &MissionReportingBackend{name: name, hub: hub, Obstacles: nil, waypoints: make([]*Telemetry, 0), airdrop: nil, emergent: nil, mission_set: false, send: make(chan []byte, 1024), Waypoints_dist: make([]*DistanceStruct, 0), Stationary_dist: make([]*DistanceStruct, 0), Moving_dist: make([]*DistanceStruct, 0), Airdrop_dist: &DistanceStruct{Closest: 1e8, Current: 1e8}, Emergent_dist: &DistanceStruct{Closest: 1e8, Current: 1e8}}
+	backend := &MissionReportingBackend{name: name, hub: hub, send: make(chan []byte, 1024)}
 	return backend
 }

@@ -3,18 +3,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/eapache/channels"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/eapache/channels"
+	pb "github.com/tritonuas/hub/interop"
 )
 
 type ObstacleInfo struct {
-	MovingObstacles     []MovingObstacle     `json:"moving_obstacles"`
-	StationaryObstacles []StationaryObstacle `json:"stationary_obstacles"`
+	MovingObstacles     []pb.MovingObstacle     `json:"moving_obstacles"`
+	StationaryObstacles []pb.StationaryObstacle `json:"stationary_obstacles"`
 }
 
 type ServerMessage struct {
@@ -193,7 +195,7 @@ func (c *InteropClient) getMission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c.hub.missionreporting.SetMission(body)
+	// c.hub.missionreporting.SetMission(body)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)

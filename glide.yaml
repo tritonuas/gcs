@@ -1,0 +1,30 @@
+package: github.com/tritonuas/hub
+import:
+- package: github.com/Sirupsen/logrus
+  version: ^1.0.3
+- package: github.com/eapache/channels
+  version: ^1.1.0
+- package: github.com/golang/protobuf
+  subpackages:
+  - jsonpb
+  - proto
+  - ptypes/empty
+- package: github.com/gorilla/websocket
+  version: ^1.2.0
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: ^1.2.2
+  subpackages:
+  - runtime
+  - utilities
+- package: github.com/kardianos/osext
+- package: github.com/rs/cors
+- package: github.com/tritonuas/hub/interop
+- package: golang.org/x/net/context
+- package: golang.org/x/time/rate
+- package: google.golang.org/genproto/googleapis/api/annotations
+- package: google.golang.org/grpc
+  version: ^1.6.0
+  subpackages:
+  - codes
+  - grpclog
+  - status

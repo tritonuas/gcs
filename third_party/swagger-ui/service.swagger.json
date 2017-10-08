@@ -247,6 +247,14 @@
         }
       }
     },
+    "interopMissionName": {
+      "type": "object",
+      "properties": {
+        "mission_name": {
+          "type": "string"
+        }
+      }
+    },
     "interopMissionNameList": {
       "type": "object",
       "properties": {
