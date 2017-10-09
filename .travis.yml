@@ -1,0 +1,20 @@
+language: go
+
+go:
+  - 1.9
+
+sudo: true
+
+cache: vendor
+
+install:
+  - curl https://glide.sh/get | bash
+  - make dep
+
+script:
+  - make test
+
+after_script:
+  #- test -z "$(gofmt -s -l -w  | tee /dev/stderr)"
+  #- test -z "$(golint ./...     | tee /dev/stderr)"
+  #- go vet ./...

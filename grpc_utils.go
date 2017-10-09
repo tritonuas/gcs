@@ -1,9 +1,9 @@
 package main
 
 import (
+	"google.golang.org/grpc"
 	"net/http"
 	"strings"
-	"google.golang.org/grpc"
 )
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
