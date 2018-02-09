@@ -31,7 +31,7 @@ message SitlConfig {
 message CompleteMission {
     string mission_name = 1;
     Mission mission = 2;
-    Obstacles obstacles = 3;
+    ObstaclesEdit obstacles = 3;
     SitlConfig sitlconfig = 4;
     repeated Target targets = 5;
 }

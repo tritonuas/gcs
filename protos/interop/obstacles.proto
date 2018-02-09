@@ -1,6 +1,14 @@
 syntax = "proto3";
 package interop;
 
+import "interop/mission.proto";
+
+message MovingObstacleDefinition {
+    float sphere_radius = 1;
+    float speed_avg = 2;
+    repeated Waypoint waypoints = 3;
+}
+
 message MovingObstacle {
     float latitude = 1;
     float longitude = 2;
@@ -17,5 +25,10 @@ message StationaryObstacle {
 
 message Obstacles {
     repeated MovingObstacle moving_obstacles = 1;
+    repeated StationaryObstacle stationary_obstacles = 2;
+}
+
+message ObstaclesEdit{
+    repeated MovingObstacleDefinition moving_obstacles = 1;
     repeated StationaryObstacle stationary_obstacles = 2;
 }

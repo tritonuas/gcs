@@ -146,7 +146,7 @@
           "$ref": "#/definitions/interopMission"
         },
         "obstacles": {
-          "$ref": "#/definitions/interopObstacles"
+          "$ref": "#/definitions/interopObstaclesEdit"
         },
         "sitlconfig": {
           "$ref": "#/definitions/interopSitlConfig"
@@ -295,34 +295,32 @@
         }
       }
     },
-    "interopMovingObstacle": {
+    "interopMovingObstacleDefinition": {
       "type": "object",
       "properties": {
-        "latitude": {
-          "type": "number",
-          "format": "float"
-        },
-        "longitude": {
-          "type": "number",
-          "format": "float"
-        },
-        "altitude_msl": {
-          "type": "number",
-          "format": "float"
-        },
         "sphere_radius": {
           "type": "number",
           "format": "float"
+        },
+        "speed_avg": {
+          "type": "number",
+          "format": "float"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/interopWaypoint"
+          }
         }
       }
     },
-    "interopObstacles": {
+    "interopObstaclesEdit": {
       "type": "object",
       "properties": {
         "moving_obstacles": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/interopMovingObstacle"
+            "$ref": "#/definitions/interopMovingObstacleDefinition"
           }
         },
         "stationary_obstacles": {
