@@ -57,13 +57,13 @@
             {
                 "latitude": 32.99194,
                 "longitude": -117.129654,
-                "cylinder_height": 600,
+                "cylinder_height": 200,
                 "cylinder_radius": 100
             },
             {
                 "latitude": 32.99273,
                 "longitude": -117.12872,
-                "cylinder_height": 600,
+                "cylinder_height": 100,
                 "cylinder_radius": 100
             }
         ]
