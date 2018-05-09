@@ -5,7 +5,34 @@ import "google/api/annotations.proto";
 import "interop/mission.proto";
 import "interop/mission_edit.proto";
 import "interop/mission_report.proto";
+import "interop/obstacles.proto";
 import "google/protobuf/empty.proto";
+
+service Simulation {
+    rpc StartInteropServer(MissionName) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/v1/simulation/interop/start"
+        };
+    }
+
+    rpc StopInteropServer(MissionName) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/v1/simulation/interop/stop"
+        };
+    }
+
+    rpc StartSITL(MissionName) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/v1/simulation/start"
+        };
+    }
+
+    rpc StopSITL(MissionName) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/v1/simulation/stop"
+        };
+    }
+}
 
 // Defines endpoints that interact with the interop server
 service Interop {
@@ -16,18 +43,21 @@ service Interop {
         };
     }
 
-    rpc StartServer(google.protobuf.Empty) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-            get: "/v1/interop/server"
-        };
-    }
-
-}
-
-service MissionReporting {
     rpc Status(google.protobuf.Empty) returns (MissionReportStatus) {
         option (google.api.http) = {
             get: "/v1/interop/mission/status"
+        };
+    }
+
+    rpc GetObstacles(google.protobuf.Empty) returns (Obstacles) {
+        option (google.api.http) = {
+            get: "/v1/interop/obstacles"
+        };
+    }
+
+    rpc StartMission(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            get: "/v1/interop/start"
         };
     }
 }

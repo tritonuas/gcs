@@ -7,6 +7,7 @@ message MissionReportStatus {
     DistanceStatus emergent_pos = 3;
     repeated DistanceStatus stationary_obstacles = 4;
     repeated DistanceStatus moving_obstacles = 5;
+    float hz = 6;
 }
 
 message DistanceStatus {

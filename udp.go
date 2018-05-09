@@ -4,10 +4,12 @@ import (
 	//"github.com/Sirupsen/logrus"
 	"net"
 	"time"
+	hub "github.com/tritonuas/hub/hub_def"
+	
 )
 
 type UDPBackend struct {
-	hub                 *Hub
+	plane_obc_topic *hub.Topic
 	port                string
 	lastMessageRecieved time.Time
 }
@@ -49,13 +51,13 @@ func (u *UDPBackend) Run() {
 				break
 			}
 			u.lastMessageRecieved = time.Now()
-
-			u.hub.sendStreamMessage(buffer[:n], "plane_obc_data")
+			u.plane_obc_topic.Send(buffer[:n])
 		}
 	}
 }
 
-func createUDPBackend(hub *Hub, port string) *UDPBackend {
-	backend := &UDPBackend{hub: hub, port: port}
+func createUDPBackend(plane_obc_topic *hub.Topic, port string) *UDPBackend {
+	backend := &UDPBackend{port: port, plane_obc_topic:plane_obc_topic}
+	go backend.Run()
 	return backend
 }

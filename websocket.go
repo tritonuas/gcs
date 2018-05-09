@@ -3,8 +3,11 @@ package main
 import (
 	//"github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
-	"golang.org/x/time/rate"
+	//"golang.org/x/time/rate"
 	"net/http"
+	pb "github.com/tritonuas/hub/interop"
+	"github.com/golang/protobuf/jsonpb" 
+	
 )
 
 var upgrader = websocket.Upgrader{
@@ -16,25 +19,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type WebSocketClient struct {
-	hub    *Hub
-	topic  *Topic
+	//hub    *hub.Hub
 	conn   *websocket.Conn
-	client *StreamClient
-	send   chan []byte
+	mission_report_stream chan interface{}
+	plane_obc_stream chan interface{}
 	name   string
-}
-
-func (c *WebSocketClient) Send(message []byte) bool {
-	select {
-	case c.send <- message:
-		return true
-	default:
-		return false
-	}
-}
-
-func (c *WebSocketClient) Close() {
-	close(c.send)
 }
 
 func (c *WebSocketClient) readPump() {
@@ -43,14 +32,14 @@ func (c *WebSocketClient) readPump() {
 		c.conn.Close()
 	}()
 	for {
-		_, msg, err := c.conn.ReadMessage()
+		_, _, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				Log.Info("error: %v", err)
 			}
 			break
 		}
-		c.hub.handleMessage(msg)
+		//c.hub.handleMessage(msg)
 	}
 }
 
@@ -61,42 +50,60 @@ func (c *WebSocketClient) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.send:
-			if !ok {
-				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
+		case message := <-c.plane_obc_stream:
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				Log.Warning("write error")
 				return
 			}
-			w.Write(message)
+			w.Write(message.([]byte))
+		case message := <-c.mission_report_stream:
+			/*if !ok {
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}*/
+			w, err := c.conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				Log.Warning("write error")
+				return
+			}
+			sendee := message.(*pb.MissionReportStatus)
+
+			marshaler := jsonpb.Marshaler{
+				OrigName:     true,
+				EmitDefaults: true,
+				Indent:       "    ",
+			}
+			if err = marshaler.Marshal(w, sendee); err != nil {
+				Log.Error("error: %s", err.Error())
+			}
 
 			// write message from channel
-			n := len(c.send)
+			/*n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(message)
+				//data, err := jsonpb.Marshal(&message.(pb.MissionReportStatus))
+				//w.Write(data)
 				if err := w.Close(); err != nil {
 					Log.Warning(err)
 					return
 				}
 			}
+			*/
 		}
 	}
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, topic *Topic, w http.ResponseWriter, r *http.Request) {
+func serveWs(plane_obc_stream chan interface{}, mission_report_stream chan interface{}, w http.ResponseWriter, r *http.Request) {
 	Log.Info("Serve WS")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		Log.Warning(err)
 		return
 	}
-	client := &WebSocketClient{topic: topic, hub: hub, conn: conn, send: make(chan []byte, 1024)}
-	topic.register <- newStreamClient(client, rate.Inf)
-	go client.writePump()
-	client.readPump()
+	client := &WebSocketClient{conn: conn, mission_report_stream: mission_report_stream, plane_obc_stream:plane_obc_stream}
+	//topic.register <- newStreamClient(client, rate.Inf)
+	client.writePump()
+	//client.readPump()
 }

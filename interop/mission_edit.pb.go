@@ -31,6 +31,7 @@ It has these top-level messages:
 	Obstacles
 	ObstaclesEdit
 	Telemetry
+	GCSMessage
 */
 package interop
 

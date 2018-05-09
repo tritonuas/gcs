@@ -1,12 +1,15 @@
-package main
+package mission_edit
 
 import (
 	"os"
 	"path/filepath"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/Sirupsen/logrus"
 	pb "github.com/tritonuas/hub/interop"
 )
+
+var Log *logrus.Logger
 
 func get_missionlist(folder string) (output []string) {
 	files, _ := filepath.Glob(folder + "/*")

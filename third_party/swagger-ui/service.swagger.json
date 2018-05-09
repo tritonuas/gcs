@@ -44,13 +44,29 @@
           }
         },
         "tags": [
-          "MissionReporting"
+          "Interop"
         ]
       }
     },
-    "/v1/interop/server": {
+    "/v1/interop/obstacles": {
       "get": {
-        "operationId": "StartServer",
+        "operationId": "GetObstacles",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopObstacles"
+            }
+          }
+        },
+        "tags": [
+          "Interop"
+        ]
+      }
+    },
+    "/v1/interop/start": {
+      "get": {
+        "operationId": "StartMission",
         "responses": {
           "200": {
             "description": "",
@@ -131,6 +147,102 @@
         },
         "tags": [
           "MissionEdit"
+        ]
+      }
+    },
+    "/v1/simulation/interop/start": {
+      "get": {
+        "operationId": "StartInteropServer",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "mission_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Simulation"
+        ]
+      }
+    },
+    "/v1/simulation/interop/stop": {
+      "get": {
+        "operationId": "StopInteropServer",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "mission_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Simulation"
+        ]
+      }
+    },
+    "/v1/simulation/start": {
+      "get": {
+        "operationId": "StartSITL",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "mission_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Simulation"
+        ]
+      }
+    },
+    "/v1/simulation/stop": {
+      "get": {
+        "operationId": "StopSITL",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "mission_name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Simulation"
         ]
       }
     }
@@ -292,6 +404,31 @@
           "items": {
             "$ref": "#/definitions/interopDistanceStatus"
           }
+        },
+        "hz": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
+    "interopMovingObstacle": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "format": "float"
+        },
+        "longitude": {
+          "type": "number",
+          "format": "float"
+        },
+        "altitude_msl": {
+          "type": "number",
+          "format": "float"
+        },
+        "sphere_radius": {
+          "type": "number",
+          "format": "float"
         }
       }
     },
@@ -310,6 +447,23 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/interopWaypoint"
+          }
+        }
+      }
+    },
+    "interopObstacles": {
+      "type": "object",
+      "properties": {
+        "moving_obstacles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/interopMovingObstacle"
+          }
+        },
+        "stationary_obstacles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/interopStationaryObstacle"
           }
         }
       }

@@ -1,4 +1,4 @@
-package main
+package interopconn
 
 import (
 	"testing"
@@ -16,10 +16,10 @@ func TestSetMission(t *testing.T) {
 		StationaryObstacles: make([]*pb.StationaryObstacle, 5),
 	}
 
-	missionReporting := MissionReportingBackend{}
-	missionReporting.SetMission(mission, obstacles)
+	missionReporting := &MissionReport{}
+	missionReporting.setMission(mission, obstacles)
 
-	status := missionReporting.missionReportStatus
+	status, _ := missionReporting.Status()
 
 	if len(status.MissionWaypoints) != len(mission.MissionWaypoints) {
 		t.Errorf("Mission waypoint distance struct length incorrect: %d, want: %d.", len(status.MissionWaypoints), len(mission.MissionWaypoints))
