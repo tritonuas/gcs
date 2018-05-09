@@ -1,5 +1,5 @@
 {
-    "mission_name": "blackmtn1",
+    "mission_name": "blackmtn3",
     "mission": {
         "id": 0,
         "active": false,
@@ -30,14 +30,14 @@
             },
             {
                 "order": 1,
-                "latitude": 32.992855,
-                "longitude": -117.129684,
+                "latitude": 32.99316,
+                "longitude": -117.12974,
                 "altitude_msl": 300
             },
             {
                 "order": 2,
-                "latitude": 32.992928,
-                "longitude": -117.12744,
+                "latitude": 32.992718,
+                "longitude": -117.12773,
                 "altitude_msl": 300
             },
             {
@@ -55,15 +55,21 @@
         ],
         "stationary_obstacles": [
             {
-                "latitude": 32.99194,
-                "longitude": -117.129654,
-                "cylinder_height": 200,
+                "latitude": 32.992428,
+                "longitude": -117.12996,
+                "cylinder_height": 600,
                 "cylinder_radius": 100
             },
             {
                 "latitude": 32.99273,
                 "longitude": -117.12872,
-                "cylinder_height": 100,
+                "cylinder_height": 600,
+                "cylinder_radius": 100
+            },
+            {
+                "latitude": 32.99347,
+                "longitude": -117.12851,
+                "cylinder_height": 600,
                 "cylinder_radius": 100
             }
         ]

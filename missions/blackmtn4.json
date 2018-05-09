@@ -1,5 +1,5 @@
 {
-    "mission_name": "blackmtn1",
+    "mission_name": "blackmtn4",
     "mission": {
         "id": 0,
         "active": false,
@@ -55,16 +55,16 @@
         ],
         "stationary_obstacles": [
             {
-                "latitude": 32.99194,
-                "longitude": -117.129654,
-                "cylinder_height": 200,
-                "cylinder_radius": 100
+                "latitude": 32.992317,
+                "longitude": -117.126785,
+                "cylinder_height": 600,
+                "cylinder_radius": 200
             },
             {
-                "latitude": 32.99273,
-                "longitude": -117.12872,
-                "cylinder_height": 100,
-                "cylinder_radius": 100
+                "latitude": 32.99328,
+                "longitude": -117.12849,
+                "cylinder_height": 600,
+                "cylinder_radius": 200
             }
         ]
     },

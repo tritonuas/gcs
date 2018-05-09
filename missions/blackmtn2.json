@@ -42,8 +42,8 @@
             },
             {
                 "order": 3,
-                "latitude": 32.991486,
-                "longitude": -117.12742,
+                "latitude": 32.9914,
+                "longitude": -117.12737,
                 "altitude_msl": 300
             }
         ],
@@ -63,6 +63,12 @@
             {
                 "latitude": 32.99273,
                 "longitude": -117.12872,
+                "cylinder_height": 600,
+                "cylinder_radius": 100
+            },
+            {
+                "latitude": 32.99221,
+                "longitude": -117.1276,
                 "cylinder_height": 600,
                 "cylinder_radius": 100
             }
