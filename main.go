@@ -25,7 +25,7 @@ var Log *logrus.Logger
 var addr = flag.String("addr", ":5001", "http service address")
 var hubpath = flag.String("hubpath", "../src/github.com/tritonuas/hub/", "Path to hub folder")
 var interop_ip = flag.String("interop_ip", "127.0.0.1", "ip of interop computer")
-var interop_port = flag.String("interop_port", "8000", "ip of interop computer")
+var interop_port = flag.String("interop_port", "80", "ip of interop computer")
 var interop_username = flag.String("interop_username", "ucsdauvsi", "ip of interop computer")
 var interop_pass = flag.String("interop_pass", "tritons", "ip of interop computer")
 var sitl = flag.Bool("sitl", false, "running using only one computer/mavproxy")
@@ -62,7 +62,7 @@ func main() {
 	cur_hub.AddTopic("mission_status")
 	cur_hub.AddTopic("plane_obc_data")
 
-	go listenAndServe(":5760", cur_hub.Topics["telemetry"])
+	go listenAndServe(":5761", cur_hub.Topics["telemetry"])
 
 	createUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
 

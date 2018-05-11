@@ -26,25 +26,31 @@
                 "order": 0,
                 "latitude": 32.99098,
                 "longitude": -117.12974,
-                "altitude_msl": 300
+                "altitude_msl": 200
             },
             {
                 "order": 1,
                 "latitude": 32.992855,
                 "longitude": -117.129684,
-                "altitude_msl": 300
+                "altitude_msl": 200
             },
             {
                 "order": 2,
                 "latitude": 32.992928,
                 "longitude": -117.12744,
-                "altitude_msl": 300
+                "altitude_msl": 200
             },
             {
                 "order": 3,
                 "latitude": 32.9914,
                 "longitude": -117.12737,
-                "altitude_msl": 300
+                "altitude_msl": 200
+            },
+            {
+                "order": 4,
+                "latitude": 32.99108,
+                "longitude": -117.12836,
+                "altitude_msl": 200
             }
         ],
         "search_grid_points": [
