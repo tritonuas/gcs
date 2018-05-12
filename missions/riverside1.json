@@ -1,0 +1,136 @@
+{
+    "mission_name": "riverside1",
+    "mission": {
+        "id": 0,
+        "active": false,
+        "air_drop_pos": {
+            "latitude": 33.778023,
+            "longitude": -117.19309
+        },
+        "home_pos": {
+            "latitude": 33.777935,
+            "longitude": -117.19451
+        },
+        "off_axis_target_pos": {
+            "latitude": 33.77832,
+            "longitude": -117.19437
+        },
+        "emergent_last_known_pos": {
+            "latitude": 33.77832,
+            "longitude": -117.19437
+        },
+        "fly_zones": [
+            {
+                "altitude_msl_min": 100,
+                "altitude_msl_max": 800,
+                "boundary_pts": [
+                    {
+                        "order": 0,
+                        "latitude": 33.772263,
+                        "longitude": -117.19451,
+                        "altitude_msl": 200
+                    },
+                    {
+                        "order": 1,
+                        "latitude": 33.785534,
+                        "longitude": -117.1979,
+                        "altitude_msl": 300
+                    },
+                    {
+                        "order": 2,
+                        "latitude": 33.785763,
+                        "longitude": -117.18736,
+                        "altitude_msl": 300
+                    },
+                    {
+                        "order": 3,
+                        "latitude": 33.77344,
+                        "longitude": -117.1829,
+                        "altitude_msl": 300
+                    }
+                ]
+            }
+        ],
+        "mission_waypoints": [
+            {
+                "order": 0,
+                "latitude": 33.78275,
+                "longitude": -117.19365,
+                "altitude_msl": 250
+            },
+            {
+                "order": 1,
+                "latitude": 33.782948,
+                "longitude": -117.19045,
+                "altitude_msl": 300
+            },
+            {
+                "order": 2,
+                "latitude": 33.781948,
+                "longitude": -117.18848,
+                "altitude_msl": 300
+            },
+            {
+                "order": 3,
+                "latitude": 33.779488,
+                "longitude": -117.187965,
+                "altitude_msl": 300
+            }
+        ],
+        "search_grid_points": [
+            {
+                "order": 0,
+                "latitude": 33.776276,
+                "longitude": -117.18741,
+                "altitude_msl": 300
+            },
+            {
+                "order": 1,
+                "latitude": 33.77517,
+                "longitude": -117.19166,
+                "altitude_msl": 300
+            },
+            {
+                "order": 2,
+                "latitude": 33.78052,
+                "longitude": -117.19303,
+                "altitude_msl": 300
+            },
+            {
+                "order": 3,
+                "latitude": 33.780647,
+                "longitude": -117.18998,
+                "altitude_msl": 300
+            }
+        ]
+    },
+    "obstacles": {
+        "moving_obstacles": [
+        ],
+        "stationary_obstacles": [
+            {
+                "latitude": 33.782463,
+                "longitude": -117.191956,
+                "cylinder_height": 800,
+                "cylinder_radius": 200
+            },
+            {
+                "latitude": 33.780823,
+                "longitude": -117.18884,
+                "cylinder_height": 800,
+                "cylinder_radius": 200
+            },
+            {
+                "latitude": 33.776848,
+                "longitude": -117.189186,
+                "cylinder_height": 800,
+                "cylinder_radius": 200
+            }
+        ]
+    },
+    "sitlconfig": {
+        "takeoff_direction": 0
+    },
+    "targets": [
+    ]
+}
