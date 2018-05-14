@@ -10,7 +10,7 @@ message Mission {
     bool active = 2;
     GPS air_drop_pos = 3;
     GPS home_pos = 4;
-    GPS off_axis_target_pos = 5;
+    GPS off_axis_odlc_pos = 5;
     GPS emergent_last_known_pos = 6;
     repeated FlyZone fly_zones = 7;
     repeated Waypoint mission_waypoints = 8;
