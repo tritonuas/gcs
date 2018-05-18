@@ -24,32 +24,32 @@
         "mission_waypoints": [
             {
                 "order": 0,
-                "latitude": 32.99098,
-                "longitude": -117.12974,
+                "latitude": 32.991333,
+                "longitude": -117.128,
                 "altitude_msl": 200
             },
             {
                 "order": 1,
-                "latitude": 32.992855,
-                "longitude": -117.129684,
-                "altitude_msl": 200
+                "latitude": 32.99183,
+                "longitude": -117.13121,
+                "altitude_msl": 300
             },
             {
                 "order": 2,
-                "latitude": 32.992928,
-                "longitude": -117.12744,
-                "altitude_msl": 200
+                "latitude": 32.993446,
+                "longitude": -117.13114,
+                "altitude_msl": 300
             },
             {
                 "order": 3,
-                "latitude": 32.991486,
-                "longitude": -117.12742,
-                "altitude_msl": 200
+                "latitude": 32.993446,
+                "longitude": -117.12892,
+                "altitude_msl": 400
             },
             {
                 "order": 4,
-                "latitude": 32.991154,
-                "longitude": -117.12842,
+                "latitude": 32.99136,
+                "longitude": -117.12739,
                 "altitude_msl": 200
             }
         ],
@@ -61,14 +61,14 @@
         ],
         "stationary_obstacles": [
             {
-                "latitude": 32.99194,
-                "longitude": -117.129654,
+                "latitude": 32.991756,
+                "longitude": -117.129845,
                 "cylinder_height": 600,
                 "cylinder_radius": 100
             },
             {
-                "latitude": 32.99273,
-                "longitude": -117.12872,
+                "latitude": 32.992657,
+                "longitude": -117.128654,
                 "cylinder_height": 600,
                 "cylinder_radius": 100
             }

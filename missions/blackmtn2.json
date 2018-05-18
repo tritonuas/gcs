@@ -61,8 +61,8 @@
         ],
         "stationary_obstacles": [
             {
-                "latitude": 32.99194,
-                "longitude": -117.129654,
+                "latitude": 32.991947,
+                "longitude": -117.12959,
                 "cylinder_height": 600,
                 "cylinder_radius": 100
             },
