@@ -2,7 +2,7 @@ package mission_edit
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/tritonuas/hub/interop"
+	pb "github.com/tritonuas/god/hub/interop"
 	"golang.org/x/net/context"
 )
 

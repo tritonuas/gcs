@@ -4,7 +4,7 @@ import (
 	//"github.com/Sirupsen/logrus"
 	"net"
 	"time"
-	hub "github.com/tritonuas/hub/hub_def"
+	hub "github.com/tritonuas/god/hub/hub_def"
 	
 )
 
@@ -34,7 +34,7 @@ func (u *UDPBackend) Run() {
 		/* Now listen at selected port */
 		conn, err := net.ListenUDP("udp", addr)
 		if err != nil {
-			Log.Info("reconnecting")
+			//Log.Info("reconnecting")
 			continue
 		}
 

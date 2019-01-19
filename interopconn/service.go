@@ -2,7 +2,7 @@ package interopconn
 
 import (
 
-	pb "github.com/tritonuas/hub/interop"
+	pb "github.com/tritonuas/god/hub/interop"
 	"github.com/golang/protobuf/ptypes/empty"
 	"golang.org/x/net/context"
 )

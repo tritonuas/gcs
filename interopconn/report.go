@@ -5,21 +5,22 @@ import (
 	"math"
 	"time"
 
-	pb "github.com/tritonuas/hub/interop"
+	pb "github.com/tritonuas/god/hub/interop"
 	"errors"
 	"sync"
+	"fmt"
 
-	main "github.com/tritonuas/hub/hub_def"
+	main "github.com/tritonuas/god/hub/hub_def"
 	
 )
 
 func distanceMovingObstacle(t1 *pb.MovingObstacle, t2 IWaypoint) float32 {
-	return waypointDistanceRaw(t1.GetLatitude(), t1.GetLongitude(), t1.GetAltitudeMsl(), t2.GetLatitude(), t2.GetLongitude(), t2.GetAltitudeMsl()) - t1.GetSphereRadius()
+	return waypointDistanceRaw(float32(t1.GetLatitude()), float32(t1.GetLongitude()), float32(t1.GetAltitudeMsl()), float32(t2.GetLatitude()), float32(t2.GetLongitude()), float32(t2.GetAltitudeMsl())) - float32(t1.GetSphereRadius())
 }
 
 func distanceStationaryObstacle(obs *pb.StationaryObstacle, wp IWaypoint) float32 {
 	circleAlt := float32(math.Min(float64(obs.GetCylinderHeight()), float64(wp.GetAltitudeMsl())))
-	return waypointDistanceRaw(obs.GetLatitude(), obs.GetLongitude(), circleAlt, wp.GetLatitude(), wp.GetLongitude(), wp.GetAltitudeMsl()) - obs.GetCylinderRadius()
+	return waypointDistanceRaw(float32(obs.GetLatitude()), float32(obs.GetLongitude()), circleAlt, float32(wp.GetLatitude()), float32(wp.GetLongitude()), float32(wp.GetAltitudeMsl())) - float32(obs.GetCylinderRadius())
 }
 
 func createDistanceStatus(length int) []*pb.DistanceStatus {
@@ -48,6 +49,8 @@ type MissionReport struct {
 	gps_stream (chan interface{})
 
 	report_topic *main.Topic
+
+	obstacle_topic *main.Topic
 
 	mux sync.Mutex
 }
@@ -120,12 +123,12 @@ func (u *MissionReport) setMission(mission *pb.Mission, obstacles *pb.Obstacles)
 	u.started = true
 }
 
-func setDistanceWaypoint(distanceStatus *pb.DistanceStatus, element IWaypoint, waypoint IWaypoint) {
+func setDistanceWaypoint(distanceStatus *pb.DistanceStatus, element IWaypoint64, waypoint IWaypoint) {
 	distanceStatus.CurrentDist = WaypointDistance(element, waypoint)
 	distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
 }
 
-func setDistanceGps(distanceStatus *pb.DistanceStatus, element IGps, waypoint IGps) {
+func setDistanceGps(distanceStatus *pb.DistanceStatus, element IGps64, waypoint IGps) {
 	distanceStatus.CurrentDist = GpsDistance(element, waypoint)
 	distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
 }
@@ -147,8 +150,6 @@ func (u *MissionReport) updateDistances(telem *pb.Telemetry) {
 		distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
 	}
 
-	Log.Warning(len(u.obstacles.GetMovingObstacles()))
-	Log.Warning(len(u.missionReportStatus.MovingObstacles))
 	for index, distanceStatus := range u.missionReportStatus.MovingObstacles {
 		distanceStatus.CurrentDist = distanceMovingObstacle(u.obstacles.GetMovingObstacles()[index], telem)
 		distanceStatus.ClosestDist = float32(math.Min(float64(distanceStatus.ClosestDist), float64(distanceStatus.CurrentDist)))
@@ -162,13 +163,13 @@ func (u *MissionReport) run() {
 	for {
 		select {
 			case obs_update:=  <- u.obstacle_stream:
+				u.obstacle_topic.Send(obs_update)
 				if !u.started {
 					continue
 				}
 				u.obstacles = obs_update
 
 			case gps_update:= <- u.gps_stream:
-				
 				
 				gps := gps_update.(*pb.Telemetry)
 				if u.started {
@@ -182,14 +183,17 @@ func (u *MissionReport) run() {
 	}
 }
 
-func CreateMissionReportFull(urlBase string, username string, password string, obstacleRate int, gps_stream chan interface{}, report_topic *main.Topic) (*MissionReport){
+func CreateMissionReportFull(urlBase string, username string, password string, obstacleRate int, gps_stream chan interface{}, report_topic *main.Topic, obstacle_topic *main.Topic) (*MissionReport){
+	fmt.Println(urlBase)
+	fmt.Println(username)
+	fmt.Println(password)
 	report := NewInteropReport(urlBase, username, password, obstacleRate)
-	return createMissionReport(report, gps_stream, report_topic)
+	return createMissionReport(report, gps_stream, report_topic, obstacle_topic)
 }
 
-func createMissionReport(interop *InteropReport, gps_stream (chan interface{}), report_topic *main.Topic) *MissionReport {
+func createMissionReport(interop *InteropReport, gps_stream (chan interface{}), report_topic *main.Topic, obstacle_topic *main.Topic) *MissionReport {
 	stream, _ := interop.ObstacleStream()
-	backend := &MissionReport{interop: interop, obstacle_stream: stream, gps_stream: gps_stream, report_topic:report_topic}
+	backend := &MissionReport{interop: interop, obstacle_stream: stream, gps_stream: gps_stream, report_topic:report_topic, obstacle_topic:obstacle_topic}
 	go backend.run()
 	return backend
 }

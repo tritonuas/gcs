@@ -7,13 +7,16 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
 	pb "github.com/tritonuas/god/hub/interop"
+	"fmt"
 )
 
 var Log *logrus.Logger
 
-func get_missionlist(folder string) (output []string) {
+func get_pathlist(folder string) (output []string) {
+	fmt.Println(folder)
 	files, _ := filepath.Glob(folder + "/*")
 	for _, element := range files {
+		fmt.Println(element)
 		filename := filepath.Base(element)
 		extension := filepath.Ext(filename)
 		if info, err := os.Stat(element); err == nil && !info.IsDir() && extension == ".json" {
@@ -23,21 +26,21 @@ func get_missionlist(folder string) (output []string) {
 	return output
 }
 
-func get_mission(mission_folder string, mission_name string) (*pb.CompleteMission, error) {
-	mission := &pb.CompleteMission{}
+func get_path(mission_folder string, mission_name string) (*pb.Path, error) {
+	mission := &pb.Path{}
 	reader, err := os.Open(mission_folder + "/" + mission_name + ".json")
 	if err != nil {
 		return nil, err
 	}
 	if err = jsonpb.Unmarshal(reader, mission); err != nil {
-		Log.Error("error: %s", err.Error())
+		//Log.Error("error: %s", err.Error())
 		return nil, err
 	}
 	return mission, nil
 }
 
-func edit_mission(mission_folder string, mission *pb.CompleteMission) error {
-	mission_name := mission.GetMissionName()
+func edit_path(mission_folder string, mission *pb.Path) error {
+	mission_name := mission.GetPathName()
 	writer, err := os.Create(mission_folder + "/" + mission_name + ".json")
 	if err != nil {
 		return err
