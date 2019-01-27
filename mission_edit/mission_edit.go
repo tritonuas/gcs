@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/sirupsen/logrus"
-	pb "github.com/tritonuas/god/hub/interop"
+	"github.com/Sirupsen/logrus"
+	pb "github.com/tritonuas/hub/interop"
 )
 
 var Log *logrus.Logger

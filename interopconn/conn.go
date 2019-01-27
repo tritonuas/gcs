@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 	"strconv"
-	pb "github.com/tritonuas/god/hub/interop"
+	pb "github.com/tritonuas/hub/interop"
 )
 
 func NewInteropClient(urlBase string, username string, password string) (*interopClient){

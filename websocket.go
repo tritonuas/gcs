@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/websocket"
 	//"golang.org/x/time/rate"
 	"net/http"
-	pb "github.com/tritonuas/god/hub/interop"
+	pb "github.com/tritonuas/hub/interop"
 	"github.com/golang/protobuf/jsonpb" 
 	
 )

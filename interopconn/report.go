@@ -5,12 +5,12 @@ import (
 	"math"
 	"time"
 
-	pb "github.com/tritonuas/god/hub/interop"
+	pb "github.com/tritonuas/hub/interop"
 	"errors"
 	"sync"
 	"fmt"
 
-	main "github.com/tritonuas/god/hub/hub_def"
+	main "github.com/tritonuas/hub/hub_def"
 	
 )
 

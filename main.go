@@ -5,22 +5,22 @@ import (
 	
 
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	//"github.com/kardianos/osext"
 	"net"
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
-	pb "github.com/tritonuas/god/hub/interop"
-	//pb "github.com/tritonuas/god/protos/interop"
+	pb "github.com/tritonuas/hub/interop"
+	//pb "github.com/tritonuas/protos/interop"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	interopconn "github.com/tritonuas/god/hub/interopconn"
-	missionedit "github.com/tritonuas/god/hub/mission_edit"
-	pathplan "github.com/tritonuas/god/hub/path_plan"
-	hub "github.com/tritonuas/god/hub/hub_def"
+	interopconn "github.com/tritonuas/hub/interopconn"
+	missionedit "github.com/tritonuas/hub/mission_edit"
+	pathplan "github.com/tritonuas/hub/path_plan"
+	hub "github.com/tritonuas/hub/hub_def"
 )
 
 var Log *logrus.Logger

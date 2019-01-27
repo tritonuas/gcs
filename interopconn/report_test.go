@@ -3,7 +3,7 @@ package interopconn
 import (
 	"testing"
 
-	pb "github.com/tritonuas/god/hub/interop"
+	pb "github.com/tritonuas/hub/interop"
 )
 
 func TestSetMission(t *testing.T) {

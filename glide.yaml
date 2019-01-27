@@ -18,13 +18,21 @@ import:
   - utilities
 - package: github.com/kardianos/osext
 - package: github.com/rs/cors
-- package: github.com/tritonuas/hub/interop
-- package: golang.org/x/net/context
-- package: golang.org/x/time/rate
-- package: google.golang.org/genproto/googleapis/api/annotations
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: golang.org/x/time
+  subpackages:
+  - rate
+- package: google.golang.org/genproto
+  subpackages:
+  - googleapis/api/annotations
 - package: google.golang.org/grpc
   version: ^1.6.0
   subpackages:
   - codes
   - grpclog
   - status
+- package: github.com/tritonuas/go-mavlink
+- package: github.com/pebbe/zmq4
+  version: ^1.0.0

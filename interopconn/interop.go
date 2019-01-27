@@ -1,9 +1,9 @@
 package interopconn;
 
 import (
-	pb "github.com/tritonuas/god/hub/interop"
+	pb "github.com/tritonuas/hub/interop"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"time"
 )
 

@@ -12,7 +12,7 @@ go_library(
         "service.pb.gw.go",
         "telemetry.pb.go",
     ],
-    importpath = "github.com/tritonuas/god/hub/interop",
+    importpath = "github.com/tritonuas/hub/interop",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_golang_protobuf//proto:go_default_library",

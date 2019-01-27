@@ -4,7 +4,7 @@ import (
 	//"github.com/Sirupsen/logrus"
 	"net"
 	"time"
-	hub "github.com/tritonuas/god/hub/hub_def"
+	hub "github.com/tritonuas/hub/hub_def"
 	
 )
 

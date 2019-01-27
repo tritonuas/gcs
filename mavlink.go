@@ -5,9 +5,9 @@ import (
 	"time"
 	//"fmt"
 
-	"github.com/tritonuas/god/go-mavlink/mavlink"
-	pb "github.com/tritonuas/god/hub/interop"
-	hub "github.com/tritonuas/god/hub/hub_def"
+	"github.com/tritonuas/go-mavlink/mavlink"
+	pb "github.com/tritonuas/hub/interop"
+	hub "github.com/tritonuas/hub/hub_def"
 	
 )
 
