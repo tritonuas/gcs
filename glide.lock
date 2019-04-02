@@ -1,15 +1,16 @@
-hash: e804772958c8e6b92f6cb5e650a7f11583752ff25fad260366db3f75f798f60e
-updated: 2019-01-26T19:33:00.312279-08:00
+hash: 0915e7916fa8395f3d5a3e252b2e9c243c31bbb81697bb4e0d20155ccf60b46f
+updated: 2019-04-02T14:42:45.95699-07:00
 imports:
 - name: github.com/eapache/channels
   version: 47238d5aae8c0fefd518ef2bee46290909cf8263
 - name: github.com/golang/protobuf
-  version: ab9f9a6dab164b7d1246e0e688b0ab7b94d8553e
+  version: b5d812f8a3706043e23a9cd5babf2e5423744d30
   subpackages:
   - jsonpb
   - proto
   - protoc-gen-go/descriptor
   - protoc-gen-go/generator
+  - protoc-gen-go/generator/internal/remap
   - protoc-gen-go/plugin
   - ptypes
   - ptypes/any
@@ -21,15 +22,15 @@ imports:
 - name: github.com/gorilla/websocket
   version: 66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d
 - name: github.com/grpc-ecosystem/grpc-gateway
-  version: b7a5640779183161e8d6c3e51f60f0859b5559ba
+  version: 20f268a412e5b342ebfb1a0eef7c3b7bd6c260ea
   subpackages:
   - internal
   - runtime
   - utilities
 - name: github.com/kardianos/osext
-  version: ae77be60afb1dcacde03767a8c37337fad28ac14
+  version: 2bc1f35cddc0cc527b4bc3dce8578fc2a6c11384
 - name: github.com/konsorten/go-windows-terminal-sequences
-  version: 5c8c8bd35d3832f5d134ae1e1e375b69a4d25242
+  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
 - name: github.com/liamstask/go-mavlink
   version: 10d700b824870f636f6494d00d232c9a6a78885b
   subpackages:
@@ -39,51 +40,47 @@ imports:
 - name: github.com/pebbe/zmq4
   version: 5b443b6471cea4b4f9f85025530c04c93233f76a
 - name: github.com/rs/cors
-  version: eabcc6af4bbe5ad3a949d36450326a2b0b9894b8
+  version: 76f58f330d76a55c5badc74f6212e8a15e742c77
 - name: github.com/Sirupsen/logrus
-  version: e1e72e9de974bd926e5c56f83753fba2df402ce5
+  version: 8bdbc7bcc01dcbb8ec23dc8a28e332258d25251f
 - name: github.com/tritonuas/go-mavlink
-  version: bb0412fed679599c10b358e1a240e5ec301740c0
+  version: f852cd83db831f30ccee9cd6a59886ca220245a1
   subpackages:
   - mavlink
-- name: golang.org/x/crypto
-  version: eb71ad9bd329b5ac0fd0148dd99bd62e8be8e035
-  subpackages:
-  - ssh/terminal
 - name: golang.org/x/net
-  version: 1c05540f6879653db88113bc4a2b70aec4bd491f
+  version: 74de082e2cca95839e88aa0aeee5aadf6ce7710f
   subpackages:
   - context
+  - http/httpguts
   - http2
   - http2/hpack
   - idna
   - internal/timeseries
-  - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 07c182904dbd53199946ba614a412c61d3c548f5
+  version: baf5eb976a8cd65845293cd814ea151018552292
   subpackages:
   - unix
-  - windows
 - name: golang.org/x/text
-  version: e56139fd9c5bc7244c76116c68e500765bb6db6b
+  version: e3703dcdd614d2d7488fff034c75c551ea25da95
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: golang.org/x/time
-  version: 8be79e1e0910c292df4e79c241bb7e8f7e725959
+  version: 9d24e82272b4f38b78bc8cff74fa936d31ccd8ef
   subpackages:
   - rate
 - name: google.golang.org/genproto
-  version: ee236bd376b077c7a89f260c026c4735b195e459
+  version: f467c93bbac2133ff463e1f93d18d8f9f3f04451
   subpackages:
   - googleapis/api/annotations
+  - googleapis/api/httpbody
   - googleapis/rpc/status
   - protobuf/field_mask
 - name: google.golang.org/grpc
-  version: a02b0774206b209466313a0b525d2c738fe407eb
+  version: 3507fb8e1a5ad030303c106fef3a47c9fdad16ad
   subpackages:
   - balancer
   - balancer/base
