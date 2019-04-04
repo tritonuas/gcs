@@ -34,6 +34,7 @@ var interop_pass = flag.String("interop_pass", "tritons", "ip of interop compute
 var mav_device = flag.String("mav_device", ":5761", "mav device")
 var ip = flag.String("ip", "*", "ip of interop computer")
 var debug = flag.Bool("debug", false, "a bool")
+var socket_addr = flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq")
 
 func main() {
 	flag.Parse()
@@ -68,7 +69,7 @@ func main() {
 	cur_hub.AddTopic("mission_status")
 	cur_hub.AddTopic("plane_obc_data")
 
-	go listenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"])
+	go listenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
 
 	createUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
 

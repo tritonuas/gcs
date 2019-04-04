@@ -3,21 +3,42 @@ package main
 import (
 	"net"
 	"time"
-	//"fmt"
+	"fmt"
 
 	"github.com/tritonuas/go-mavlink/mavlink"
 	pb "github.com/tritonuas/hub/interop"
 	hub "github.com/tritonuas/hub/hub_def"
-	
+    zmq "github.com/pebbe/zmq4"
+	"github.com/golang/protobuf/jsonpb" 
 )
 
 func metersToFeet(item float32) float32 {
 	return float32(3.280839895)*item
 }
 
-func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, status_topic *hub.Topic) {
+func publishZmq(socket *zmq.Socket, msg *pb.PlaneLoc) {
+    convert := &pb.GCSMessage {
+	    GcsMessage: &pb.GCSMessage_Loc{
+    		Loc: msg,
+    	},
+	}
+	marshaler := jsonpb.Marshaler{
+		OrigName:     true,
+		EmitDefaults: true,
+		Indent:       "    ",
+	}
+    message, err := marshaler.MarshalToString(convert)
+    if  err != nil {
+        Log.Error("error: ", err.Error())
+    }
+    socket.Send(message, 0)
+}
+
+func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, status_topic *hub.Topic, zmqAddr string) {
 	locStatus := pb.PlaneLoc{}
 	planeStatus := pb.PlaneStatus{}
+    pubSocket, _ := zmq.NewSocket(zmq.PUB)
+    pubSocket.Bind(zmqAddr) 
 	for {
 		planeStatus.Connected = false
 		time.Sleep(time.Millisecond * 500)
@@ -117,6 +138,8 @@ func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, s
 					telem := &pb.Telemetry{Latitude: lat, Longitude: lon, AltitudeMsl: alt, UasHeading:heading}
 					telem_topic.Send(telem)
 					loc_topic.Send(&locStatus)
+                    //TODO ADD ZMQ Here
+                    publishZmq(pubSocket, &locStatus)
 				}
 			case mavlink.MSG_ID_VFR_HUD:
 				var vh mavlink.VfrHud
@@ -136,6 +159,8 @@ func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, s
 				var mi mavlink.MissionItemReached 
 				if err := mi.Unpack(pkt); err == nil{
 					planeStatus.CurrentWp = int32(mi.Seq)
+                    pubSocket.Send("hit_waypoint", zmq.SNDMORE)
+                    pubSocket.Send(fmt.Sprintf("{current_wp: %d}", planeStatus.CurrentWp), 0)
 				}
 			case mavlink.MSG_ID_NAV_CONTROLLER_OUTPUT:
 				var mi mavlink.NavControllerOutput 
