@@ -7,5 +7,6 @@ COPY glide.lock .
 # install dependencies with glide
 #RUN glide install -s -v
 ADD . /go/src/github.com/tritonuas/hub
+RUN apt-get update && apt-get install -y libzmq3-dev
 RUN go install 
 CMD ["/go/bin/hub"]
