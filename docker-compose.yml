@@ -1,0 +1,14 @@
+version: '3'
+services:
+  hub:
+    image: tritonuas/hub
+    environment:
+      - INTEROP_IP=127.0.0.1
+      - INTEROP_PORT=8000
+      - INTEROP_USER=ucsdauvsi
+      - INTEROP_PASS=tritons
+      - MAV_DEVICE=:5762
+      - HUB_PATH=hub/image.binary.runfiles/__main__/
+    network_mode: host
+    volumes:
+      - /home/broach/tritonuas/god/missions:/app/hub/image.binary.runfiles/__main__/missions
