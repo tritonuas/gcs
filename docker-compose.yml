@@ -8,7 +8,7 @@ services:
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
       - MAV_DEVICE=:5762
-      - HUB_PATH=hub/image.binary.runfiles/__main__/
+      - HUB_PATH=/go/src/github.com/tritonuas/hub
     network_mode: host
     volumes:
-      - /home/broach/tritonuas/god/missions:/app/hub/image.binary.runfiles/__main__/missions
+      - /home/broach/tritonuas/god/missions:/go/src/github.com/tritonuas/hub/missions

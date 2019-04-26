@@ -20,6 +20,15 @@ down:
 
 restart: down run
 
+local-all: local-build local-run
+
+local-build:
+	cp -rf . ${GOPATH}/src/github.com/tritonuas/hub/
+	cd ${GOPATH}/src/github.com/tritonuas/hub/ && make install
+
+local-run:
+	${GOPATH}/bin/hub -hub_path=/home/broach/tritonuas/god
+
 .PHONY: dep
 dep:
 	glide --version || curl https://glide.sh/get | sh
@@ -27,6 +36,7 @@ dep:
 
 .PHONY: install
 install:
+	glide install
 	go install
 
 .PHONY: test
