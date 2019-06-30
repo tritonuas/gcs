@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/namsral/flag"
-	
-
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	//"github.com/kardianos/osext"
