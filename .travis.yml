@@ -8,6 +8,7 @@ sudo: true
 cache: vendor
 
 install:
+  - sudo apt-get install -y libzmq3-dev
   - curl https://glide.sh/get | bash
   - make dep
 

@@ -11,7 +11,8 @@ import (
 	"fmt"
 
 	main "github.com/tritonuas/hub/hub_def"
-	
+	zmq "github.com/pebbe/zmq4"
+	"github.com/golang/protobuf/jsonpb" 
 )
 
 func distanceMovingObstacle(t1 *pb.MovingObstacle, t2 IWaypoint) float32 {
@@ -159,7 +160,9 @@ func (u *MissionReport) updateDistances(telem *pb.Telemetry) {
 func (u *MissionReport) run() {
 	Log.Warning("start")
 	ticker := time.NewTicker(time.Second)
-	
+
+    pubSocket, _ := zmq.NewSocket(zmq.PUB)
+    pubSocket.Bind("127.0.0.1:6666")
 	for {
 		select {
 			case obs_update:=  <- u.obstacle_stream:
@@ -168,7 +171,6 @@ func (u *MissionReport) run() {
 					continue
 				}
 				u.obstacles = obs_update
-
 			case gps_update:= <- u.gps_stream:
 				
 				gps := gps_update.(*pb.Telemetry)
@@ -179,6 +181,25 @@ func (u *MissionReport) run() {
 			
 			case <- ticker.C:
 				u.report_topic.Send(&u.missionReportStatus)
+                //Add zmq here to send to py-planner
+			    convert := &pb.GCSMessage {
+			    	GcsMessage: &pb.GCSMessage_MissionReport{
+			    		MissionReport: &u.missionReportStatus,
+			    	},
+			    }
+
+			    marshaler := jsonpb.Marshaler{
+			    	OrigName:     true,
+			    	EmitDefaults: true,
+			    	Indent:       "    ",
+			    }
+                msg, err := marshaler.MarshalToString(convert)
+			    if err != nil {
+			    	Log.Error("error: ", err.Error())
+			    }
+
+                pubSocket.Send("mission_report", zmq.SNDMORE)
+                pubSocket.Send(msg, 0)
 		}
 	}
 }
