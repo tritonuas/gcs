@@ -12,17 +12,45 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type Telemetry struct {
-	Latitude    float32 `protobuf:"fixed32,1,opt,name=latitude" json:"latitude,omitempty"`
-	Longitude   float32 `protobuf:"fixed32,2,opt,name=longitude" json:"longitude,omitempty"`
-	AltitudeMsl float32 `protobuf:"fixed32,3,opt,name=altitude_msl,json=altitudeMsl" json:"altitude_msl,omitempty"`
-	UasHeading  float32 `protobuf:"fixed32,4,opt,name=uas_heading,json=uasHeading" json:"uas_heading,omitempty"`
+	Latitude             float32  `protobuf:"fixed32,1,opt,name=latitude" json:"latitude,omitempty"`
+	Longitude            float32  `protobuf:"fixed32,2,opt,name=longitude" json:"longitude,omitempty"`
+	AltitudeMsl          float32  `protobuf:"fixed32,3,opt,name=altitude_msl,json=altitudeMsl" json:"altitude_msl,omitempty"`
+	UasHeading           float32  `protobuf:"fixed32,4,opt,name=uas_heading,json=uasHeading" json:"uas_heading,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Telemetry) Reset()                    { *m = Telemetry{} }
-func (m *Telemetry) String() string            { return proto.CompactTextString(m) }
-func (*Telemetry) ProtoMessage()               {}
-func (*Telemetry) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
+func (m *Telemetry) Reset()         { *m = Telemetry{} }
+func (m *Telemetry) String() string { return proto.CompactTextString(m) }
+func (*Telemetry) ProtoMessage()    {}
+func (*Telemetry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_telemetry_d8e30d61d80ddd34, []int{0}
+}
+func (m *Telemetry) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Telemetry.Unmarshal(m, b)
+}
+func (m *Telemetry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Telemetry.Marshal(b, m, deterministic)
+}
+func (dst *Telemetry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Telemetry.Merge(dst, src)
+}
+func (m *Telemetry) XXX_Size() int {
+	return xxx_messageInfo_Telemetry.Size(m)
+}
+func (m *Telemetry) XXX_DiscardUnknown() {
+	xxx_messageInfo_Telemetry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Telemetry proto.InternalMessageInfo
 
 func (m *Telemetry) GetLatitude() float32 {
 	if m != nil {
@@ -56,13 +84,38 @@ type GCSMessage struct {
 	// Types that are valid to be assigned to GcsMessage:
 	//	*GCSMessage_Telem
 	//	*GCSMessage_MissionReport
-	GcsMessage isGCSMessage_GcsMessage `protobuf_oneof:"gcs_message"`
+	//	*GCSMessage_Loc
+	//	*GCSMessage_Status
+	//	*GCSMessage_Obs
+	GcsMessage           isGCSMessage_GcsMessage `protobuf_oneof:"gcs_message"`
+	XXX_NoUnkeyedLiteral struct{}                `json:"-"`
+	XXX_unrecognized     []byte                  `json:"-"`
+	XXX_sizecache        int32                   `json:"-"`
 }
 
-func (m *GCSMessage) Reset()                    { *m = GCSMessage{} }
-func (m *GCSMessage) String() string            { return proto.CompactTextString(m) }
-func (*GCSMessage) ProtoMessage()               {}
-func (*GCSMessage) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
+func (m *GCSMessage) Reset()         { *m = GCSMessage{} }
+func (m *GCSMessage) String() string { return proto.CompactTextString(m) }
+func (*GCSMessage) ProtoMessage()    {}
+func (*GCSMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_telemetry_d8e30d61d80ddd34, []int{1}
+}
+func (m *GCSMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GCSMessage.Unmarshal(m, b)
+}
+func (m *GCSMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GCSMessage.Marshal(b, m, deterministic)
+}
+func (dst *GCSMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GCSMessage.Merge(dst, src)
+}
+func (m *GCSMessage) XXX_Size() int {
+	return xxx_messageInfo_GCSMessage.Size(m)
+}
+func (m *GCSMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_GCSMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GCSMessage proto.InternalMessageInfo
 
 type isGCSMessage_GcsMessage interface {
 	isGCSMessage_GcsMessage()
@@ -74,9 +127,21 @@ type GCSMessage_Telem struct {
 type GCSMessage_MissionReport struct {
 	MissionReport *MissionReportStatus `protobuf:"bytes,2,opt,name=mission_report,json=missionReport,oneof"`
 }
+type GCSMessage_Loc struct {
+	Loc *PlaneLoc `protobuf:"bytes,3,opt,name=loc,oneof"`
+}
+type GCSMessage_Status struct {
+	Status *PlaneStatus `protobuf:"bytes,4,opt,name=status,oneof"`
+}
+type GCSMessage_Obs struct {
+	Obs *Obstacles `protobuf:"bytes,5,opt,name=obs,oneof"`
+}
 
 func (*GCSMessage_Telem) isGCSMessage_GcsMessage()         {}
 func (*GCSMessage_MissionReport) isGCSMessage_GcsMessage() {}
+func (*GCSMessage_Loc) isGCSMessage_GcsMessage()           {}
+func (*GCSMessage_Status) isGCSMessage_GcsMessage()        {}
+func (*GCSMessage_Obs) isGCSMessage_GcsMessage()           {}
 
 func (m *GCSMessage) GetGcsMessage() isGCSMessage_GcsMessage {
 	if m != nil {
@@ -99,11 +164,35 @@ func (m *GCSMessage) GetMissionReport() *MissionReportStatus {
 	return nil
 }
 
+func (m *GCSMessage) GetLoc() *PlaneLoc {
+	if x, ok := m.GetGcsMessage().(*GCSMessage_Loc); ok {
+		return x.Loc
+	}
+	return nil
+}
+
+func (m *GCSMessage) GetStatus() *PlaneStatus {
+	if x, ok := m.GetGcsMessage().(*GCSMessage_Status); ok {
+		return x.Status
+	}
+	return nil
+}
+
+func (m *GCSMessage) GetObs() *Obstacles {
+	if x, ok := m.GetGcsMessage().(*GCSMessage_Obs); ok {
+		return x.Obs
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*GCSMessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _GCSMessage_OneofMarshaler, _GCSMessage_OneofUnmarshaler, _GCSMessage_OneofSizer, []interface{}{
 		(*GCSMessage_Telem)(nil),
 		(*GCSMessage_MissionReport)(nil),
+		(*GCSMessage_Loc)(nil),
+		(*GCSMessage_Status)(nil),
+		(*GCSMessage_Obs)(nil),
 	}
 }
 
@@ -119,6 +208,21 @@ func _GCSMessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	case *GCSMessage_MissionReport:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.MissionReport); err != nil {
+			return err
+		}
+	case *GCSMessage_Loc:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Loc); err != nil {
+			return err
+		}
+	case *GCSMessage_Status:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Status); err != nil {
+			return err
+		}
+	case *GCSMessage_Obs:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Obs); err != nil {
 			return err
 		}
 	case nil:
@@ -147,6 +251,30 @@ func _GCSMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buf
 		err := b.DecodeMessage(msg)
 		m.GcsMessage = &GCSMessage_MissionReport{msg}
 		return true, err
+	case 3: // gcs_message.loc
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PlaneLoc)
+		err := b.DecodeMessage(msg)
+		m.GcsMessage = &GCSMessage_Loc{msg}
+		return true, err
+	case 4: // gcs_message.status
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PlaneStatus)
+		err := b.DecodeMessage(msg)
+		m.GcsMessage = &GCSMessage_Status{msg}
+		return true, err
+	case 5: // gcs_message.obs
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Obstacles)
+		err := b.DecodeMessage(msg)
+		m.GcsMessage = &GCSMessage_Obs{msg}
+		return true, err
 	default:
 		return false, nil
 	}
@@ -158,12 +286,27 @@ func _GCSMessage_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.GcsMessage.(type) {
 	case *GCSMessage_Telem:
 		s := proto.Size(x.Telem)
-		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *GCSMessage_MissionReport:
 		s := proto.Size(x.MissionReport)
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *GCSMessage_Loc:
+		s := proto.Size(x.Loc)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *GCSMessage_Status:
+		s := proto.Size(x.Status)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *GCSMessage_Obs:
+		s := proto.Size(x.Obs)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -173,29 +316,254 @@ func _GCSMessage_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+type PlaneLoc struct {
+	Lat                  float32  `protobuf:"fixed32,1,opt,name=lat" json:"lat,omitempty"`
+	Lon                  float32  `protobuf:"fixed32,2,opt,name=lon" json:"lon,omitempty"`
+	AMsl                 float32  `protobuf:"fixed32,3,opt,name=a_msl,json=aMsl" json:"a_msl,omitempty"`
+	ARel                 float32  `protobuf:"fixed32,4,opt,name=a_rel,json=aRel" json:"a_rel,omitempty"`
+	Head                 float32  `protobuf:"fixed32,5,opt,name=head" json:"head,omitempty"`
+	Aspeed               float32  `protobuf:"fixed32,6,opt,name=aspeed" json:"aspeed,omitempty"`
+	Gspeed               float32  `protobuf:"fixed32,7,opt,name=gspeed" json:"gspeed,omitempty"`
+	Throttle             float32  `protobuf:"fixed32,8,opt,name=throttle" json:"throttle,omitempty"`
+	Climb                float32  `protobuf:"fixed32,9,opt,name=climb" json:"climb,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PlaneLoc) Reset()         { *m = PlaneLoc{} }
+func (m *PlaneLoc) String() string { return proto.CompactTextString(m) }
+func (*PlaneLoc) ProtoMessage()    {}
+func (*PlaneLoc) Descriptor() ([]byte, []int) {
+	return fileDescriptor_telemetry_d8e30d61d80ddd34, []int{2}
+}
+func (m *PlaneLoc) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PlaneLoc.Unmarshal(m, b)
+}
+func (m *PlaneLoc) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PlaneLoc.Marshal(b, m, deterministic)
+}
+func (dst *PlaneLoc) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PlaneLoc.Merge(dst, src)
+}
+func (m *PlaneLoc) XXX_Size() int {
+	return xxx_messageInfo_PlaneLoc.Size(m)
+}
+func (m *PlaneLoc) XXX_DiscardUnknown() {
+	xxx_messageInfo_PlaneLoc.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PlaneLoc proto.InternalMessageInfo
+
+func (m *PlaneLoc) GetLat() float32 {
+	if m != nil {
+		return m.Lat
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetLon() float32 {
+	if m != nil {
+		return m.Lon
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetAMsl() float32 {
+	if m != nil {
+		return m.AMsl
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetARel() float32 {
+	if m != nil {
+		return m.ARel
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetHead() float32 {
+	if m != nil {
+		return m.Head
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetAspeed() float32 {
+	if m != nil {
+		return m.Aspeed
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetGspeed() float32 {
+	if m != nil {
+		return m.Gspeed
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetThrottle() float32 {
+	if m != nil {
+		return m.Throttle
+	}
+	return 0
+}
+
+func (m *PlaneLoc) GetClimb() float32 {
+	if m != nil {
+		return m.Climb
+	}
+	return 0
+}
+
+type PlaneStatus struct {
+	Connected            bool     `protobuf:"varint,1,opt,name=connected" json:"connected,omitempty"`
+	SystemStatus         string   `protobuf:"bytes,2,opt,name=system_status,json=systemStatus" json:"system_status,omitempty"`
+	Mode                 string   `protobuf:"bytes,3,opt,name=mode" json:"mode,omitempty"`
+	Armed                bool     `protobuf:"varint,4,opt,name=armed" json:"armed,omitempty"`
+	CurrentWp            int32    `protobuf:"varint,5,opt,name=current_wp,json=currentWp" json:"current_wp,omitempty"`
+	WpDist               float32  `protobuf:"fixed32,6,opt,name=wp_dist,json=wpDist" json:"wp_dist,omitempty"`
+	AltError             float32  `protobuf:"fixed32,7,opt,name=alt_error,json=altError" json:"alt_error,omitempty"`
+	XtrackError          float32  `protobuf:"fixed32,8,opt,name=xtrack_error,json=xtrackError" json:"xtrack_error,omitempty"`
+	TargetBearing        float32  `protobuf:"fixed32,9,opt,name=target_bearing,json=targetBearing" json:"target_bearing,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PlaneStatus) Reset()         { *m = PlaneStatus{} }
+func (m *PlaneStatus) String() string { return proto.CompactTextString(m) }
+func (*PlaneStatus) ProtoMessage()    {}
+func (*PlaneStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptor_telemetry_d8e30d61d80ddd34, []int{3}
+}
+func (m *PlaneStatus) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PlaneStatus.Unmarshal(m, b)
+}
+func (m *PlaneStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PlaneStatus.Marshal(b, m, deterministic)
+}
+func (dst *PlaneStatus) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PlaneStatus.Merge(dst, src)
+}
+func (m *PlaneStatus) XXX_Size() int {
+	return xxx_messageInfo_PlaneStatus.Size(m)
+}
+func (m *PlaneStatus) XXX_DiscardUnknown() {
+	xxx_messageInfo_PlaneStatus.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PlaneStatus proto.InternalMessageInfo
+
+func (m *PlaneStatus) GetConnected() bool {
+	if m != nil {
+		return m.Connected
+	}
+	return false
+}
+
+func (m *PlaneStatus) GetSystemStatus() string {
+	if m != nil {
+		return m.SystemStatus
+	}
+	return ""
+}
+
+func (m *PlaneStatus) GetMode() string {
+	if m != nil {
+		return m.Mode
+	}
+	return ""
+}
+
+func (m *PlaneStatus) GetArmed() bool {
+	if m != nil {
+		return m.Armed
+	}
+	return false
+}
+
+func (m *PlaneStatus) GetCurrentWp() int32 {
+	if m != nil {
+		return m.CurrentWp
+	}
+	return 0
+}
+
+func (m *PlaneStatus) GetWpDist() float32 {
+	if m != nil {
+		return m.WpDist
+	}
+	return 0
+}
+
+func (m *PlaneStatus) GetAltError() float32 {
+	if m != nil {
+		return m.AltError
+	}
+	return 0
+}
+
+func (m *PlaneStatus) GetXtrackError() float32 {
+	if m != nil {
+		return m.XtrackError
+	}
+	return 0
+}
+
+func (m *PlaneStatus) GetTargetBearing() float32 {
+	if m != nil {
+		return m.TargetBearing
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*Telemetry)(nil), "interop.Telemetry")
 	proto.RegisterType((*GCSMessage)(nil), "interop.GCSMessage")
+	proto.RegisterType((*PlaneLoc)(nil), "interop.PlaneLoc")
+	proto.RegisterType((*PlaneStatus)(nil), "interop.PlaneStatus")
 }
 
-func init() { proto.RegisterFile("interop/telemetry.proto", fileDescriptor5) }
+func init() { proto.RegisterFile("interop/telemetry.proto", fileDescriptor_telemetry_d8e30d61d80ddd34) }
 
-var fileDescriptor5 = []byte{
-	// 243 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x90, 0xbd, 0x4e, 0xc3, 0x30,
-	0x14, 0x85, 0x9b, 0xf2, 0xdb, 0x6b, 0xca, 0xe0, 0x85, 0xa8, 0x8a, 0x04, 0x74, 0x42, 0x0c, 0x41,
-	0x2a, 0x6f, 0x00, 0x42, 0x64, 0xc9, 0x92, 0xb2, 0x47, 0x86, 0x5e, 0x05, 0x4b, 0x76, 0x1c, 0xf9,
-	0x5e, 0x0f, 0x3c, 0x02, 0x0b, 0xcf, 0x8c, 0x64, 0x37, 0x81, 0x8e, 0x3e, 0xdf, 0x77, 0xa5, 0x73,
-	0x0c, 0x57, 0xba, 0x67, 0xf4, 0x6e, 0x78, 0x60, 0x34, 0x68, 0x91, 0xfd, 0x57, 0x39, 0x78, 0xc7,
-	0x4e, 0x9e, 0xed, 0xc1, 0xaa, 0x18, 0x0d, 0xab, 0x89, 0xb4, 0xeb, 0x5b, 0x8f, 0x83, 0xf3, 0x9c,
-	0xb4, 0xf5, 0x77, 0x06, 0x8b, 0xb7, 0xf1, 0x54, 0xae, 0xe0, 0xdc, 0x28, 0xd6, 0x1c, 0x76, 0x98,
-	0x67, 0x37, 0xd9, 0xdd, 0xbc, 0x99, 0xde, 0xb2, 0x80, 0x85, 0x71, 0x7d, 0x97, 0xe0, 0x3c, 0xc2,
-	0xbf, 0x40, 0xde, 0xc2, 0x85, 0x32, 0xc9, 0x6c, 0x2d, 0x99, 0xfc, 0x28, 0x0a, 0x62, 0xcc, 0x6a,
-	0x32, 0xf2, 0x1a, 0x44, 0x50, 0xd4, 0x7e, 0xa2, 0xda, 0xe9, 0xbe, 0xcb, 0x8f, 0xa3, 0x01, 0x41,
-	0x51, 0x95, 0x92, 0xf5, 0x4f, 0x06, 0xf0, 0xfa, 0xbc, 0xad, 0x91, 0x48, 0x75, 0x28, 0xef, 0xe1,
-	0x24, 0x8e, 0x8a, 0x4d, 0xc4, 0x46, 0x96, 0xfb, 0x21, 0xe5, 0xd4, 0xb7, 0x9a, 0x35, 0x49, 0x91,
-	0x2f, 0x70, 0x79, 0x38, 0x2f, 0x36, 0x14, 0x9b, 0x62, 0x3a, 0xaa, 0x13, 0x6e, 0x22, 0xdd, 0xb2,
-	0xe2, 0x40, 0xd5, 0xac, 0x59, 0xda, 0xff, 0xf1, 0xd3, 0x12, 0x44, 0xf7, 0x41, 0xad, 0x4d, 0x0d,
-	0xde, 0x4f, 0xe3, 0x1f, 0x3d, 0xfe, 0x06, 0x00, 0x00, 0xff, 0xff, 0x77, 0x4d, 0x23, 0xa9, 0x65,
-	0x01, 0x00, 0x00,
+var fileDescriptor_telemetry_d8e30d61d80ddd34 = []byte{
+	// 550 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x53, 0xdd, 0x6e, 0xd4, 0x3c,
+	0x10, 0xed, 0xfe, 0x36, 0x99, 0x74, 0xab, 0xef, 0x33, 0x15, 0x8d, 0x4a, 0x11, 0xb0, 0xa8, 0x08,
+	0x71, 0xb1, 0x48, 0xcb, 0x1b, 0x14, 0x2a, 0xf6, 0x82, 0x0a, 0xe4, 0x22, 0x71, 0x19, 0x39, 0xc9,
+	0x28, 0x8d, 0x70, 0xe2, 0xc8, 0x9e, 0xd5, 0xd2, 0x47, 0xe0, 0x82, 0x07, 0xe0, 0xa5, 0x78, 0x26,
+	0xe4, 0x9f, 0xa4, 0x5b, 0xee, 0x3c, 0xe7, 0x1c, 0x4f, 0xe6, 0x1c, 0x4f, 0xe0, 0xb4, 0x6e, 0x09,
+	0xb5, 0xea, 0xde, 0x12, 0x4a, 0x6c, 0x90, 0xf4, 0xdd, 0xaa, 0xd3, 0x8a, 0x14, 0x3b, 0x0c, 0xc4,
+	0xd9, 0x79, 0xaf, 0x68, 0x6a, 0x63, 0x6a, 0xd5, 0x66, 0x1a, 0x3b, 0xa5, 0xc9, 0xcb, 0xce, 0x86,
+	0xfb, 0x2a, 0x37, 0x24, 0x0a, 0x89, 0xc6, 0x13, 0xcb, 0x9f, 0x23, 0x88, 0xbf, 0xf6, 0x3d, 0xd9,
+	0x19, 0x44, 0x52, 0x50, 0x4d, 0xdb, 0x12, 0xd3, 0xd1, 0xf3, 0xd1, 0xeb, 0x31, 0x1f, 0x6a, 0x76,
+	0x0e, 0xb1, 0x54, 0x6d, 0xe5, 0xc9, 0xb1, 0x23, 0xef, 0x01, 0xf6, 0x02, 0x8e, 0x84, 0xf4, 0xca,
+	0xac, 0x31, 0x32, 0x9d, 0x38, 0x41, 0xd2, 0x63, 0xd7, 0x46, 0xb2, 0x67, 0x90, 0x6c, 0x85, 0xc9,
+	0x6e, 0x51, 0x94, 0x75, 0x5b, 0xa5, 0x53, 0xa7, 0x80, 0xad, 0x30, 0x1b, 0x8f, 0x2c, 0x7f, 0x8d,
+	0x01, 0x3e, 0xbe, 0xbf, 0xb9, 0x46, 0x63, 0x44, 0x85, 0xec, 0x0d, 0xcc, 0x9c, 0x5b, 0x37, 0x49,
+	0xb2, 0x66, 0xab, 0xe0, 0x61, 0x35, 0xcc, 0xbb, 0x39, 0xe0, 0x5e, 0xc2, 0xae, 0xe0, 0xf8, 0xa1,
+	0x6f, 0x37, 0x61, 0xb2, 0x3e, 0x1f, 0x2e, 0x5d, 0x7b, 0x9a, 0x3b, 0xf6, 0x86, 0x04, 0x6d, 0xcd,
+	0xe6, 0x80, 0x2f, 0x9a, 0x7d, 0x98, 0x5d, 0xc0, 0x44, 0xaa, 0xc2, 0x0d, 0x9f, 0xac, 0xff, 0x1f,
+	0xee, 0x7e, 0x91, 0xa2, 0xc5, 0x4f, 0xaa, 0xd8, 0x1c, 0x70, 0xcb, 0xb3, 0x15, 0xcc, 0x8d, 0xeb,
+	0xe0, 0x4c, 0x24, 0xeb, 0x93, 0x87, 0xca, 0xa1, 0x7b, 0x50, 0xb1, 0x57, 0x30, 0x51, 0xb9, 0x49,
+	0x67, 0xff, 0xf8, 0xf8, 0xdc, 0xbf, 0x85, 0xed, 0xab, 0x72, 0x73, 0xb9, 0x80, 0xa4, 0x2a, 0x4c,
+	0xd6, 0xf8, 0x00, 0x96, 0x7f, 0x46, 0x10, 0xf5, 0x9f, 0x66, 0xff, 0xc1, 0x44, 0x0a, 0x0a, 0xaf,
+	0x62, 0x8f, 0x0e, 0x51, 0x6d, 0x78, 0x0a, 0x7b, 0x64, 0x8f, 0x60, 0x26, 0xf6, 0xd2, 0x9f, 0x0a,
+	0x1b, 0xbb, 0x03, 0x35, 0xca, 0x10, 0xf8, 0x54, 0x70, 0x94, 0x8c, 0xc1, 0xd4, 0xbe, 0x83, 0x1b,
+	0x69, 0xcc, 0xdd, 0x99, 0x3d, 0x86, 0xb9, 0x30, 0x1d, 0x62, 0x99, 0xce, 0x1d, 0x1a, 0x2a, 0x8b,
+	0x57, 0x1e, 0x3f, 0xf4, 0xb8, 0xaf, 0xec, 0xb2, 0xd0, 0xad, 0x56, 0x44, 0x12, 0xd3, 0xc8, 0x2f,
+	0x4b, 0x5f, 0xb3, 0x13, 0x98, 0x15, 0xb2, 0x6e, 0xf2, 0x34, 0x76, 0x84, 0x2f, 0x96, 0xbf, 0xc7,
+	0x90, 0xec, 0x25, 0x64, 0x57, 0xaa, 0x50, 0x6d, 0x8b, 0x05, 0x61, 0xe9, 0x9c, 0x45, 0xfc, 0x1e,
+	0x60, 0x2f, 0x61, 0x61, 0xee, 0x0c, 0x61, 0x93, 0x85, 0xb0, 0xad, 0xd3, 0x98, 0x1f, 0x79, 0x30,
+	0xb4, 0x60, 0x30, 0x6d, 0x54, 0x89, 0xce, 0x71, 0xcc, 0xdd, 0xd9, 0x7e, 0x5c, 0xe8, 0x06, 0x4b,
+	0xe7, 0x38, 0xe2, 0xbe, 0x60, 0x4f, 0x01, 0x8a, 0xad, 0xd6, 0xd8, 0x52, 0xb6, 0xeb, 0x9c, 0xf1,
+	0x19, 0x8f, 0x03, 0xf2, 0xad, 0x63, 0xa7, 0x70, 0xb8, 0xeb, 0xb2, 0xb2, 0x36, 0xd4, 0xdb, 0xdf,
+	0x75, 0x1f, 0x6a, 0x43, 0xec, 0x09, 0xc4, 0x42, 0x52, 0x86, 0x5a, 0x2b, 0x1d, 0x12, 0x88, 0x84,
+	0xa4, 0x2b, 0x5b, 0xdb, 0xb5, 0xff, 0x41, 0x5a, 0x14, 0xdf, 0x03, 0xef, 0x73, 0x48, 0x3c, 0xe6,
+	0x25, 0x17, 0x70, 0x4c, 0x42, 0x57, 0x48, 0x59, 0x8e, 0x42, 0xdb, 0xcd, 0xf7, 0x99, 0x2c, 0x3c,
+	0x7a, 0xe9, 0xc1, 0x7c, 0xee, 0xfe, 0xc7, 0x77, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x94, 0x86,
+	0x10, 0x62, 0xea, 0x03, 0x00, 0x00,
 }

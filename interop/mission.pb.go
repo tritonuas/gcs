@@ -12,14 +12,42 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type MissionList struct {
-	Missions []*Mission `protobuf:"bytes,1,rep,name=missions" json:"missions,omitempty"`
+	Missions             []*Mission `protobuf:"bytes,1,rep,name=missions" json:"missions,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
-func (m *MissionList) Reset()                    { *m = MissionList{} }
-func (m *MissionList) String() string            { return proto.CompactTextString(m) }
-func (*MissionList) ProtoMessage()               {}
-func (*MissionList) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+func (m *MissionList) Reset()         { *m = MissionList{} }
+func (m *MissionList) String() string { return proto.CompactTextString(m) }
+func (*MissionList) ProtoMessage()    {}
+func (*MissionList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_94f8d438818b2f4b, []int{0}
+}
+func (m *MissionList) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MissionList.Unmarshal(m, b)
+}
+func (m *MissionList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MissionList.Marshal(b, m, deterministic)
+}
+func (dst *MissionList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MissionList.Merge(dst, src)
+}
+func (m *MissionList) XXX_Size() int {
+	return xxx_messageInfo_MissionList.Size(m)
+}
+func (m *MissionList) XXX_DiscardUnknown() {
+	xxx_messageInfo_MissionList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MissionList proto.InternalMessageInfo
 
 func (m *MissionList) GetMissions() []*Mission {
 	if m != nil {
@@ -38,12 +66,34 @@ type Mission struct {
 	FlyZones             []*FlyZone  `protobuf:"bytes,7,rep,name=fly_zones,json=flyZones" json:"fly_zones,omitempty"`
 	MissionWaypoints     []*Waypoint `protobuf:"bytes,8,rep,name=mission_waypoints,json=missionWaypoints" json:"mission_waypoints,omitempty"`
 	SearchGridPoints     []*Waypoint `protobuf:"bytes,9,rep,name=search_grid_points,json=searchGridPoints" json:"search_grid_points,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *Mission) Reset()                    { *m = Mission{} }
-func (m *Mission) String() string            { return proto.CompactTextString(m) }
-func (*Mission) ProtoMessage()               {}
-func (*Mission) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
+func (m *Mission) Reset()         { *m = Mission{} }
+func (m *Mission) String() string { return proto.CompactTextString(m) }
+func (*Mission) ProtoMessage()    {}
+func (*Mission) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_94f8d438818b2f4b, []int{1}
+}
+func (m *Mission) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Mission.Unmarshal(m, b)
+}
+func (m *Mission) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Mission.Marshal(b, m, deterministic)
+}
+func (dst *Mission) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Mission.Merge(dst, src)
+}
+func (m *Mission) XXX_Size() int {
+	return xxx_messageInfo_Mission.Size(m)
+}
+func (m *Mission) XXX_DiscardUnknown() {
+	xxx_messageInfo_Mission.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Mission proto.InternalMessageInfo
 
 func (m *Mission) GetId() uint32 {
 	if m != nil {
@@ -109,23 +159,45 @@ func (m *Mission) GetSearchGridPoints() []*Waypoint {
 }
 
 type GPS struct {
-	Latitude  float32 `protobuf:"fixed32,1,opt,name=latitude" json:"latitude,omitempty"`
-	Longitude float32 `protobuf:"fixed32,2,opt,name=longitude" json:"longitude,omitempty"`
+	Latitude             float64  `protobuf:"fixed64,1,opt,name=latitude" json:"latitude,omitempty"`
+	Longitude            float64  `protobuf:"fixed64,2,opt,name=longitude" json:"longitude,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GPS) Reset()                    { *m = GPS{} }
-func (m *GPS) String() string            { return proto.CompactTextString(m) }
-func (*GPS) ProtoMessage()               {}
-func (*GPS) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
+func (m *GPS) Reset()         { *m = GPS{} }
+func (m *GPS) String() string { return proto.CompactTextString(m) }
+func (*GPS) ProtoMessage()    {}
+func (*GPS) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_94f8d438818b2f4b, []int{2}
+}
+func (m *GPS) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GPS.Unmarshal(m, b)
+}
+func (m *GPS) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GPS.Marshal(b, m, deterministic)
+}
+func (dst *GPS) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GPS.Merge(dst, src)
+}
+func (m *GPS) XXX_Size() int {
+	return xxx_messageInfo_GPS.Size(m)
+}
+func (m *GPS) XXX_DiscardUnknown() {
+	xxx_messageInfo_GPS.DiscardUnknown(m)
+}
 
-func (m *GPS) GetLatitude() float32 {
+var xxx_messageInfo_GPS proto.InternalMessageInfo
+
+func (m *GPS) GetLatitude() float64 {
 	if m != nil {
 		return m.Latitude
 	}
 	return 0
 }
 
-func (m *GPS) GetLongitude() float32 {
+func (m *GPS) GetLongitude() float64 {
 	if m != nil {
 		return m.Longitude
 	}
@@ -133,16 +205,38 @@ func (m *GPS) GetLongitude() float32 {
 }
 
 type Waypoint struct {
-	Order       uint32  `protobuf:"varint,1,opt,name=order" json:"order,omitempty"`
-	Latitude    float32 `protobuf:"fixed32,2,opt,name=latitude" json:"latitude,omitempty"`
-	Longitude   float32 `protobuf:"fixed32,3,opt,name=longitude" json:"longitude,omitempty"`
-	AltitudeMsl float32 `protobuf:"fixed32,4,opt,name=altitude_msl,json=altitudeMsl" json:"altitude_msl,omitempty"`
+	Order                uint32   `protobuf:"varint,1,opt,name=order" json:"order,omitempty"`
+	Latitude             float64  `protobuf:"fixed64,2,opt,name=latitude" json:"latitude,omitempty"`
+	Longitude            float64  `protobuf:"fixed64,3,opt,name=longitude" json:"longitude,omitempty"`
+	AltitudeMsl          float64  `protobuf:"fixed64,4,opt,name=altitude_msl,json=altitudeMsl" json:"altitude_msl,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Waypoint) Reset()                    { *m = Waypoint{} }
-func (m *Waypoint) String() string            { return proto.CompactTextString(m) }
-func (*Waypoint) ProtoMessage()               {}
-func (*Waypoint) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
+func (m *Waypoint) Reset()         { *m = Waypoint{} }
+func (m *Waypoint) String() string { return proto.CompactTextString(m) }
+func (*Waypoint) ProtoMessage()    {}
+func (*Waypoint) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_94f8d438818b2f4b, []int{3}
+}
+func (m *Waypoint) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Waypoint.Unmarshal(m, b)
+}
+func (m *Waypoint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Waypoint.Marshal(b, m, deterministic)
+}
+func (dst *Waypoint) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Waypoint.Merge(dst, src)
+}
+func (m *Waypoint) XXX_Size() int {
+	return xxx_messageInfo_Waypoint.Size(m)
+}
+func (m *Waypoint) XXX_DiscardUnknown() {
+	xxx_messageInfo_Waypoint.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Waypoint proto.InternalMessageInfo
 
 func (m *Waypoint) GetOrder() uint32 {
 	if m != nil {
@@ -151,21 +245,21 @@ func (m *Waypoint) GetOrder() uint32 {
 	return 0
 }
 
-func (m *Waypoint) GetLatitude() float32 {
+func (m *Waypoint) GetLatitude() float64 {
 	if m != nil {
 		return m.Latitude
 	}
 	return 0
 }
 
-func (m *Waypoint) GetLongitude() float32 {
+func (m *Waypoint) GetLongitude() float64 {
 	if m != nil {
 		return m.Longitude
 	}
 	return 0
 }
 
-func (m *Waypoint) GetAltitudeMsl() float32 {
+func (m *Waypoint) GetAltitudeMsl() float64 {
 	if m != nil {
 		return m.AltitudeMsl
 	}
@@ -173,24 +267,46 @@ func (m *Waypoint) GetAltitudeMsl() float32 {
 }
 
 type FlyZone struct {
-	AltitudeMslMin float32     `protobuf:"fixed32,1,opt,name=altitude_msl_min,json=altitudeMslMin" json:"altitude_msl_min,omitempty"`
-	AltitudeMslMax float32     `protobuf:"fixed32,2,opt,name=altitude_msl_max,json=altitudeMslMax" json:"altitude_msl_max,omitempty"`
-	BoundaryPts    []*Waypoint `protobuf:"bytes,3,rep,name=boundary_pts,json=boundaryPts" json:"boundary_pts,omitempty"`
+	AltitudeMslMin       float64     `protobuf:"fixed64,1,opt,name=altitude_msl_min,json=altitudeMslMin" json:"altitude_msl_min,omitempty"`
+	AltitudeMslMax       float64     `protobuf:"fixed64,2,opt,name=altitude_msl_max,json=altitudeMslMax" json:"altitude_msl_max,omitempty"`
+	BoundaryPts          []*Waypoint `protobuf:"bytes,3,rep,name=boundary_pts,json=boundaryPts" json:"boundary_pts,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *FlyZone) Reset()                    { *m = FlyZone{} }
-func (m *FlyZone) String() string            { return proto.CompactTextString(m) }
-func (*FlyZone) ProtoMessage()               {}
-func (*FlyZone) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{4} }
+func (m *FlyZone) Reset()         { *m = FlyZone{} }
+func (m *FlyZone) String() string { return proto.CompactTextString(m) }
+func (*FlyZone) ProtoMessage()    {}
+func (*FlyZone) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_94f8d438818b2f4b, []int{4}
+}
+func (m *FlyZone) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FlyZone.Unmarshal(m, b)
+}
+func (m *FlyZone) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FlyZone.Marshal(b, m, deterministic)
+}
+func (dst *FlyZone) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FlyZone.Merge(dst, src)
+}
+func (m *FlyZone) XXX_Size() int {
+	return xxx_messageInfo_FlyZone.Size(m)
+}
+func (m *FlyZone) XXX_DiscardUnknown() {
+	xxx_messageInfo_FlyZone.DiscardUnknown(m)
+}
 
-func (m *FlyZone) GetAltitudeMslMin() float32 {
+var xxx_messageInfo_FlyZone proto.InternalMessageInfo
+
+func (m *FlyZone) GetAltitudeMslMin() float64 {
 	if m != nil {
 		return m.AltitudeMslMin
 	}
 	return 0
 }
 
-func (m *FlyZone) GetAltitudeMslMax() float32 {
+func (m *FlyZone) GetAltitudeMslMax() float64 {
 	if m != nil {
 		return m.AltitudeMslMax
 	}
@@ -212,9 +328,9 @@ func init() {
 	proto.RegisterType((*FlyZone)(nil), "interop.FlyZone")
 }
 
-func init() { proto.RegisterFile("interop/mission.proto", fileDescriptor1) }
+func init() { proto.RegisterFile("interop/mission.proto", fileDescriptor_mission_94f8d438818b2f4b) }
 
-var fileDescriptor1 = []byte{
+var fileDescriptor_mission_94f8d438818b2f4b = []byte{
 	// 468 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x93, 0x41, 0x6f, 0xd3, 0x30,
 	0x1c, 0xc5, 0x95, 0x84, 0x35, 0xe9, 0x3f, 0xa5, 0x6a, 0xad, 0x01, 0x11, 0xe2, 0x50, 0x72, 0x21,
@@ -237,13 +353,13 @@ var fileDescriptor1 = []byte{
 	0x64, 0x5b, 0x2b, 0x2e, 0xad, 0x49, 0xa2, 0x36, 0x36, 0xdd, 0xc5, 0xbe, 0x3a, 0xa7, 0x98, 0x38,
 	0xb6, 0x17, 0x0c, 0x3a, 0x06, 0x64, 0x18, 0xd1, 0xab, 0x73, 0xbc, 0xd6, 0x9c, 0x62, 0x57, 0x30,
 	0xbc, 0xb5, 0xa0, 0x83, 0x17, 0x9a, 0xd3, 0xbc, 0x45, 0xd3, 0x63, 0x08, 0x16, 0xf9, 0x29, 0x7a,
-	0x0c, 0x91, 0x20, 0x96, 0xdb, 0x0b, 0xca, 0xda, 0xdd, 0xf9, 0xc5, 0xee, 0x8c, 0x9e, 0xc0, 0x50,
+	0x0c, 0x91, 0x20, 0x96, 0xdb, 0x0b, 0xca, 0xda, 0xdd, 0x79, 0xc5, 0xee, 0x8c, 0x9e, 0xc0, 0x50,
 	0x28, 0xb9, 0xee, 0x4c, 0xbf, 0x35, 0xff, 0x09, 0xe9, 0x2f, 0x88, 0xfa, 0x7a, 0x74, 0x08, 0x07,
 	0x4a, 0x53, 0xa6, 0xdd, 0xfa, 0xbb, 0xc3, 0xb5, 0x6e, 0xff, 0xae, 0xee, 0xe0, 0x46, 0x37, 0x7a,
-	0x0a, 0x23, 0x22, 0x3a, 0x12, 0x57, 0x46, 0xb4, 0x7b, 0xf7, 0x8b, 0xb8, 0xd7, 0x96, 0x46, 0xa4,
+	0x0a, 0x23, 0x22, 0x3a, 0x12, 0x57, 0x46, 0xb4, 0x7b, 0xf7, 0x8a, 0xb8, 0xd7, 0x96, 0x46, 0xa4,
 	0xbf, 0x3d, 0x08, 0xdd, 0x58, 0x51, 0x06, 0x93, 0xab, 0x38, 0xae, 0xb8, 0x74, 0x2f, 0x33, 0xbe,
 	0x12, 0x59, 0x72, 0xf9, 0x3f, 0x49, 0x36, 0xee, 0xd1, 0xae, 0x91, 0x64, 0x83, 0x5e, 0xc3, 0xe8,
 	0x4c, 0x5d, 0x48, 0x4a, 0xf4, 0x16, 0xd7, 0xb6, 0xf9, 0x4c, 0x6f, 0x19, 0x6d, 0xdc, 0x63, 0xb9,
-	0x35, 0x67, 0x83, 0xf6, 0xef, 0x7a, 0xf5, 0x37, 0x00, 0x00, 0xff, 0xff, 0xd6, 0x68, 0x6a, 0x2b,
+	0x35, 0x67, 0x83, 0xf6, 0xef, 0x7a, 0xf5, 0x37, 0x00, 0x00, 0xff, 0xff, 0x22, 0xe0, 0x09, 0xf0,
 	0x76, 0x03, 0x00, 0x00,
 }

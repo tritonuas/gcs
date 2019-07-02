@@ -34,7 +34,7 @@ func (u *UDPBackend) Run() {
 		/* Now listen at selected port */
 		conn, err := net.ListenUDP("udp", addr)
 		if err != nil {
-			Log.Info("reconnecting")
+			//Log.Info("reconnecting")
 			continue
 		}
 

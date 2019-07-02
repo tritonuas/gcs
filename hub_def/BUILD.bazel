@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["hub.go"],
+    importpath = "github.com/tritonuas/hub/hub_def",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_Sirupsen_logrus//:go_default_library",
+        "@org_golang_x_time//rate:go_default_library",
+    ],
+)

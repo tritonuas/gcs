@@ -12,19 +12,47 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type MissionReportStatus struct {
-	MissionWaypoints    []*DistanceStatus `protobuf:"bytes,1,rep,name=mission_waypoints,json=missionWaypoints" json:"mission_waypoints,omitempty"`
-	AirdropPos          *DistanceStatus   `protobuf:"bytes,2,opt,name=airdrop_pos,json=airdropPos" json:"airdrop_pos,omitempty"`
-	EmergentPos         *DistanceStatus   `protobuf:"bytes,3,opt,name=emergent_pos,json=emergentPos" json:"emergent_pos,omitempty"`
-	StationaryObstacles []*DistanceStatus `protobuf:"bytes,4,rep,name=stationary_obstacles,json=stationaryObstacles" json:"stationary_obstacles,omitempty"`
-	MovingObstacles     []*DistanceStatus `protobuf:"bytes,5,rep,name=moving_obstacles,json=movingObstacles" json:"moving_obstacles,omitempty"`
-	Hz                  float32           `protobuf:"fixed32,6,opt,name=hz" json:"hz,omitempty"`
+	MissionWaypoints     []*DistanceStatus `protobuf:"bytes,1,rep,name=mission_waypoints,json=missionWaypoints" json:"mission_waypoints,omitempty"`
+	AirdropPos           *DistanceStatus   `protobuf:"bytes,2,opt,name=airdrop_pos,json=airdropPos" json:"airdrop_pos,omitempty"`
+	EmergentPos          *DistanceStatus   `protobuf:"bytes,3,opt,name=emergent_pos,json=emergentPos" json:"emergent_pos,omitempty"`
+	StationaryObstacles  []*DistanceStatus `protobuf:"bytes,4,rep,name=stationary_obstacles,json=stationaryObstacles" json:"stationary_obstacles,omitempty"`
+	MovingObstacles      []*DistanceStatus `protobuf:"bytes,5,rep,name=moving_obstacles,json=movingObstacles" json:"moving_obstacles,omitempty"`
+	Hz                   float32           `protobuf:"fixed32,6,opt,name=hz" json:"hz,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
-func (m *MissionReportStatus) Reset()                    { *m = MissionReportStatus{} }
-func (m *MissionReportStatus) String() string            { return proto.CompactTextString(m) }
-func (*MissionReportStatus) ProtoMessage()               {}
-func (*MissionReportStatus) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{0} }
+func (m *MissionReportStatus) Reset()         { *m = MissionReportStatus{} }
+func (m *MissionReportStatus) String() string { return proto.CompactTextString(m) }
+func (*MissionReportStatus) ProtoMessage()    {}
+func (*MissionReportStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_report_1a1b3a80310cd043, []int{0}
+}
+func (m *MissionReportStatus) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MissionReportStatus.Unmarshal(m, b)
+}
+func (m *MissionReportStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MissionReportStatus.Marshal(b, m, deterministic)
+}
+func (dst *MissionReportStatus) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MissionReportStatus.Merge(dst, src)
+}
+func (m *MissionReportStatus) XXX_Size() int {
+	return xxx_messageInfo_MissionReportStatus.Size(m)
+}
+func (m *MissionReportStatus) XXX_DiscardUnknown() {
+	xxx_messageInfo_MissionReportStatus.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MissionReportStatus proto.InternalMessageInfo
 
 func (m *MissionReportStatus) GetMissionWaypoints() []*DistanceStatus {
 	if m != nil {
@@ -69,14 +97,36 @@ func (m *MissionReportStatus) GetHz() float32 {
 }
 
 type DistanceStatus struct {
-	ClosestDist float32 `protobuf:"fixed32,1,opt,name=closest_dist,json=closestDist" json:"closest_dist,omitempty"`
-	CurrentDist float32 `protobuf:"fixed32,2,opt,name=current_dist,json=currentDist" json:"current_dist,omitempty"`
+	ClosestDist          float32  `protobuf:"fixed32,1,opt,name=closest_dist,json=closestDist" json:"closest_dist,omitempty"`
+	CurrentDist          float32  `protobuf:"fixed32,2,opt,name=current_dist,json=currentDist" json:"current_dist,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DistanceStatus) Reset()                    { *m = DistanceStatus{} }
-func (m *DistanceStatus) String() string            { return proto.CompactTextString(m) }
-func (*DistanceStatus) ProtoMessage()               {}
-func (*DistanceStatus) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{1} }
+func (m *DistanceStatus) Reset()         { *m = DistanceStatus{} }
+func (m *DistanceStatus) String() string { return proto.CompactTextString(m) }
+func (*DistanceStatus) ProtoMessage()    {}
+func (*DistanceStatus) Descriptor() ([]byte, []int) {
+	return fileDescriptor_mission_report_1a1b3a80310cd043, []int{1}
+}
+func (m *DistanceStatus) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DistanceStatus.Unmarshal(m, b)
+}
+func (m *DistanceStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DistanceStatus.Marshal(b, m, deterministic)
+}
+func (dst *DistanceStatus) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DistanceStatus.Merge(dst, src)
+}
+func (m *DistanceStatus) XXX_Size() int {
+	return xxx_messageInfo_DistanceStatus.Size(m)
+}
+func (m *DistanceStatus) XXX_DiscardUnknown() {
+	xxx_messageInfo_DistanceStatus.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DistanceStatus proto.InternalMessageInfo
 
 func (m *DistanceStatus) GetClosestDist() float32 {
 	if m != nil {
@@ -97,9 +147,11 @@ func init() {
 	proto.RegisterType((*DistanceStatus)(nil), "interop.DistanceStatus")
 }
 
-func init() { proto.RegisterFile("interop/mission_report.proto", fileDescriptor2) }
+func init() {
+	proto.RegisterFile("interop/mission_report.proto", fileDescriptor_mission_report_1a1b3a80310cd043)
+}
 
-var fileDescriptor2 = []byte{
+var fileDescriptor_mission_report_1a1b3a80310cd043 = []byte{
 	// 273 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0xd1, 0x41, 0x4b, 0xc3, 0x30,
 	0x14, 0xc0, 0x71, 0x9a, 0xe9, 0x84, 0xd7, 0x31, 0x67, 0x26, 0xd8, 0x83, 0x87, 0xb9, 0xd3, 0x4e,

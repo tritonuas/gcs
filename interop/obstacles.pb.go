@@ -12,25 +12,53 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type MovingObstacleDefinition struct {
-	SphereRadius float32     `protobuf:"fixed32,1,opt,name=sphere_radius,json=sphereRadius" json:"sphere_radius,omitempty"`
-	SpeedAvg     float32     `protobuf:"fixed32,2,opt,name=speed_avg,json=speedAvg" json:"speed_avg,omitempty"`
-	Waypoints    []*Waypoint `protobuf:"bytes,3,rep,name=waypoints" json:"waypoints,omitempty"`
+	SphereRadius         float64     `protobuf:"fixed64,1,opt,name=sphere_radius,json=sphereRadius" json:"sphere_radius,omitempty"`
+	SpeedAvg             float64     `protobuf:"fixed64,2,opt,name=speed_avg,json=speedAvg" json:"speed_avg,omitempty"`
+	Waypoints            []*Waypoint `protobuf:"bytes,3,rep,name=waypoints" json:"waypoints,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *MovingObstacleDefinition) Reset()                    { *m = MovingObstacleDefinition{} }
-func (m *MovingObstacleDefinition) String() string            { return proto.CompactTextString(m) }
-func (*MovingObstacleDefinition) ProtoMessage()               {}
-func (*MovingObstacleDefinition) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
+func (m *MovingObstacleDefinition) Reset()         { *m = MovingObstacleDefinition{} }
+func (m *MovingObstacleDefinition) String() string { return proto.CompactTextString(m) }
+func (*MovingObstacleDefinition) ProtoMessage()    {}
+func (*MovingObstacleDefinition) Descriptor() ([]byte, []int) {
+	return fileDescriptor_obstacles_84fa7428e4274da5, []int{0}
+}
+func (m *MovingObstacleDefinition) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MovingObstacleDefinition.Unmarshal(m, b)
+}
+func (m *MovingObstacleDefinition) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MovingObstacleDefinition.Marshal(b, m, deterministic)
+}
+func (dst *MovingObstacleDefinition) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MovingObstacleDefinition.Merge(dst, src)
+}
+func (m *MovingObstacleDefinition) XXX_Size() int {
+	return xxx_messageInfo_MovingObstacleDefinition.Size(m)
+}
+func (m *MovingObstacleDefinition) XXX_DiscardUnknown() {
+	xxx_messageInfo_MovingObstacleDefinition.DiscardUnknown(m)
+}
 
-func (m *MovingObstacleDefinition) GetSphereRadius() float32 {
+var xxx_messageInfo_MovingObstacleDefinition proto.InternalMessageInfo
+
+func (m *MovingObstacleDefinition) GetSphereRadius() float64 {
 	if m != nil {
 		return m.SphereRadius
 	}
 	return 0
 }
 
-func (m *MovingObstacleDefinition) GetSpeedAvg() float32 {
+func (m *MovingObstacleDefinition) GetSpeedAvg() float64 {
 	if m != nil {
 		return m.SpeedAvg
 	}
@@ -45,39 +73,61 @@ func (m *MovingObstacleDefinition) GetWaypoints() []*Waypoint {
 }
 
 type MovingObstacle struct {
-	Latitude     float32 `protobuf:"fixed32,1,opt,name=latitude" json:"latitude,omitempty"`
-	Longitude    float32 `protobuf:"fixed32,2,opt,name=longitude" json:"longitude,omitempty"`
-	AltitudeMsl  float32 `protobuf:"fixed32,3,opt,name=altitude_msl,json=altitudeMsl" json:"altitude_msl,omitempty"`
-	SphereRadius float32 `protobuf:"fixed32,4,opt,name=sphere_radius,json=sphereRadius" json:"sphere_radius,omitempty"`
+	Latitude             float64  `protobuf:"fixed64,1,opt,name=latitude" json:"latitude,omitempty"`
+	Longitude            float64  `protobuf:"fixed64,2,opt,name=longitude" json:"longitude,omitempty"`
+	AltitudeMsl          float64  `protobuf:"fixed64,3,opt,name=altitude_msl,json=altitudeMsl" json:"altitude_msl,omitempty"`
+	SphereRadius         float64  `protobuf:"fixed64,4,opt,name=sphere_radius,json=sphereRadius" json:"sphere_radius,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *MovingObstacle) Reset()                    { *m = MovingObstacle{} }
-func (m *MovingObstacle) String() string            { return proto.CompactTextString(m) }
-func (*MovingObstacle) ProtoMessage()               {}
-func (*MovingObstacle) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
+func (m *MovingObstacle) Reset()         { *m = MovingObstacle{} }
+func (m *MovingObstacle) String() string { return proto.CompactTextString(m) }
+func (*MovingObstacle) ProtoMessage()    {}
+func (*MovingObstacle) Descriptor() ([]byte, []int) {
+	return fileDescriptor_obstacles_84fa7428e4274da5, []int{1}
+}
+func (m *MovingObstacle) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MovingObstacle.Unmarshal(m, b)
+}
+func (m *MovingObstacle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MovingObstacle.Marshal(b, m, deterministic)
+}
+func (dst *MovingObstacle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MovingObstacle.Merge(dst, src)
+}
+func (m *MovingObstacle) XXX_Size() int {
+	return xxx_messageInfo_MovingObstacle.Size(m)
+}
+func (m *MovingObstacle) XXX_DiscardUnknown() {
+	xxx_messageInfo_MovingObstacle.DiscardUnknown(m)
+}
 
-func (m *MovingObstacle) GetLatitude() float32 {
+var xxx_messageInfo_MovingObstacle proto.InternalMessageInfo
+
+func (m *MovingObstacle) GetLatitude() float64 {
 	if m != nil {
 		return m.Latitude
 	}
 	return 0
 }
 
-func (m *MovingObstacle) GetLongitude() float32 {
+func (m *MovingObstacle) GetLongitude() float64 {
 	if m != nil {
 		return m.Longitude
 	}
 	return 0
 }
 
-func (m *MovingObstacle) GetAltitudeMsl() float32 {
+func (m *MovingObstacle) GetAltitudeMsl() float64 {
 	if m != nil {
 		return m.AltitudeMsl
 	}
 	return 0
 }
 
-func (m *MovingObstacle) GetSphereRadius() float32 {
+func (m *MovingObstacle) GetSphereRadius() float64 {
 	if m != nil {
 		return m.SphereRadius
 	}
@@ -85,39 +135,61 @@ func (m *MovingObstacle) GetSphereRadius() float32 {
 }
 
 type StationaryObstacle struct {
-	Latitude       float32 `protobuf:"fixed32,1,opt,name=latitude" json:"latitude,omitempty"`
-	Longitude      float32 `protobuf:"fixed32,2,opt,name=longitude" json:"longitude,omitempty"`
-	CylinderHeight float32 `protobuf:"fixed32,3,opt,name=cylinder_height,json=cylinderHeight" json:"cylinder_height,omitempty"`
-	CylinderRadius float32 `protobuf:"fixed32,4,opt,name=cylinder_radius,json=cylinderRadius" json:"cylinder_radius,omitempty"`
+	Latitude             float64  `protobuf:"fixed64,1,opt,name=latitude" json:"latitude,omitempty"`
+	Longitude            float64  `protobuf:"fixed64,2,opt,name=longitude" json:"longitude,omitempty"`
+	CylinderHeight       float64  `protobuf:"fixed64,3,opt,name=cylinder_height,json=cylinderHeight" json:"cylinder_height,omitempty"`
+	CylinderRadius       float64  `protobuf:"fixed64,4,opt,name=cylinder_radius,json=cylinderRadius" json:"cylinder_radius,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StationaryObstacle) Reset()                    { *m = StationaryObstacle{} }
-func (m *StationaryObstacle) String() string            { return proto.CompactTextString(m) }
-func (*StationaryObstacle) ProtoMessage()               {}
-func (*StationaryObstacle) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
+func (m *StationaryObstacle) Reset()         { *m = StationaryObstacle{} }
+func (m *StationaryObstacle) String() string { return proto.CompactTextString(m) }
+func (*StationaryObstacle) ProtoMessage()    {}
+func (*StationaryObstacle) Descriptor() ([]byte, []int) {
+	return fileDescriptor_obstacles_84fa7428e4274da5, []int{2}
+}
+func (m *StationaryObstacle) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StationaryObstacle.Unmarshal(m, b)
+}
+func (m *StationaryObstacle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StationaryObstacle.Marshal(b, m, deterministic)
+}
+func (dst *StationaryObstacle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StationaryObstacle.Merge(dst, src)
+}
+func (m *StationaryObstacle) XXX_Size() int {
+	return xxx_messageInfo_StationaryObstacle.Size(m)
+}
+func (m *StationaryObstacle) XXX_DiscardUnknown() {
+	xxx_messageInfo_StationaryObstacle.DiscardUnknown(m)
+}
 
-func (m *StationaryObstacle) GetLatitude() float32 {
+var xxx_messageInfo_StationaryObstacle proto.InternalMessageInfo
+
+func (m *StationaryObstacle) GetLatitude() float64 {
 	if m != nil {
 		return m.Latitude
 	}
 	return 0
 }
 
-func (m *StationaryObstacle) GetLongitude() float32 {
+func (m *StationaryObstacle) GetLongitude() float64 {
 	if m != nil {
 		return m.Longitude
 	}
 	return 0
 }
 
-func (m *StationaryObstacle) GetCylinderHeight() float32 {
+func (m *StationaryObstacle) GetCylinderHeight() float64 {
 	if m != nil {
 		return m.CylinderHeight
 	}
 	return 0
 }
 
-func (m *StationaryObstacle) GetCylinderRadius() float32 {
+func (m *StationaryObstacle) GetCylinderRadius() float64 {
 	if m != nil {
 		return m.CylinderRadius
 	}
@@ -125,14 +197,36 @@ func (m *StationaryObstacle) GetCylinderRadius() float32 {
 }
 
 type Obstacles struct {
-	MovingObstacles     []*MovingObstacle     `protobuf:"bytes,1,rep,name=moving_obstacles,json=movingObstacles" json:"moving_obstacles,omitempty"`
-	StationaryObstacles []*StationaryObstacle `protobuf:"bytes,2,rep,name=stationary_obstacles,json=stationaryObstacles" json:"stationary_obstacles,omitempty"`
+	MovingObstacles      []*MovingObstacle     `protobuf:"bytes,1,rep,name=moving_obstacles,json=movingObstacles" json:"moving_obstacles,omitempty"`
+	StationaryObstacles  []*StationaryObstacle `protobuf:"bytes,2,rep,name=stationary_obstacles,json=stationaryObstacles" json:"stationary_obstacles,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
 }
 
-func (m *Obstacles) Reset()                    { *m = Obstacles{} }
-func (m *Obstacles) String() string            { return proto.CompactTextString(m) }
-func (*Obstacles) ProtoMessage()               {}
-func (*Obstacles) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
+func (m *Obstacles) Reset()         { *m = Obstacles{} }
+func (m *Obstacles) String() string { return proto.CompactTextString(m) }
+func (*Obstacles) ProtoMessage()    {}
+func (*Obstacles) Descriptor() ([]byte, []int) {
+	return fileDescriptor_obstacles_84fa7428e4274da5, []int{3}
+}
+func (m *Obstacles) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Obstacles.Unmarshal(m, b)
+}
+func (m *Obstacles) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Obstacles.Marshal(b, m, deterministic)
+}
+func (dst *Obstacles) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Obstacles.Merge(dst, src)
+}
+func (m *Obstacles) XXX_Size() int {
+	return xxx_messageInfo_Obstacles.Size(m)
+}
+func (m *Obstacles) XXX_DiscardUnknown() {
+	xxx_messageInfo_Obstacles.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Obstacles proto.InternalMessageInfo
 
 func (m *Obstacles) GetMovingObstacles() []*MovingObstacle {
 	if m != nil {
@@ -149,14 +243,36 @@ func (m *Obstacles) GetStationaryObstacles() []*StationaryObstacle {
 }
 
 type ObstaclesEdit struct {
-	MovingObstacles     []*MovingObstacleDefinition `protobuf:"bytes,1,rep,name=moving_obstacles,json=movingObstacles" json:"moving_obstacles,omitempty"`
-	StationaryObstacles []*StationaryObstacle       `protobuf:"bytes,2,rep,name=stationary_obstacles,json=stationaryObstacles" json:"stationary_obstacles,omitempty"`
+	MovingObstacles      []*MovingObstacleDefinition `protobuf:"bytes,1,rep,name=moving_obstacles,json=movingObstacles" json:"moving_obstacles,omitempty"`
+	StationaryObstacles  []*StationaryObstacle       `protobuf:"bytes,2,rep,name=stationary_obstacles,json=stationaryObstacles" json:"stationary_obstacles,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
+	XXX_unrecognized     []byte                      `json:"-"`
+	XXX_sizecache        int32                       `json:"-"`
 }
 
-func (m *ObstaclesEdit) Reset()                    { *m = ObstaclesEdit{} }
-func (m *ObstaclesEdit) String() string            { return proto.CompactTextString(m) }
-func (*ObstaclesEdit) ProtoMessage()               {}
-func (*ObstaclesEdit) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
+func (m *ObstaclesEdit) Reset()         { *m = ObstaclesEdit{} }
+func (m *ObstaclesEdit) String() string { return proto.CompactTextString(m) }
+func (*ObstaclesEdit) ProtoMessage()    {}
+func (*ObstaclesEdit) Descriptor() ([]byte, []int) {
+	return fileDescriptor_obstacles_84fa7428e4274da5, []int{4}
+}
+func (m *ObstaclesEdit) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ObstaclesEdit.Unmarshal(m, b)
+}
+func (m *ObstaclesEdit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ObstaclesEdit.Marshal(b, m, deterministic)
+}
+func (dst *ObstaclesEdit) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ObstaclesEdit.Merge(dst, src)
+}
+func (m *ObstaclesEdit) XXX_Size() int {
+	return xxx_messageInfo_ObstaclesEdit.Size(m)
+}
+func (m *ObstaclesEdit) XXX_DiscardUnknown() {
+	xxx_messageInfo_ObstaclesEdit.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ObstaclesEdit proto.InternalMessageInfo
 
 func (m *ObstaclesEdit) GetMovingObstacles() []*MovingObstacleDefinition {
 	if m != nil {
@@ -180,9 +296,9 @@ func init() {
 	proto.RegisterType((*ObstaclesEdit)(nil), "interop.ObstaclesEdit")
 }
 
-func init() { proto.RegisterFile("interop/obstacles.proto", fileDescriptor3) }
+func init() { proto.RegisterFile("interop/obstacles.proto", fileDescriptor_obstacles_84fa7428e4274da5) }
 
-var fileDescriptor3 = []byte{
+var fileDescriptor_obstacles_84fa7428e4274da5 = []byte{
 	// 362 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x93, 0x4d, 0x4e, 0xfb, 0x30,
 	0x10, 0xc5, 0xe5, 0xf6, 0xaf, 0x3f, 0xcd, 0xf4, 0x0b, 0x0c, 0xa8, 0x51, 0xcb, 0xa2, 0x0d, 0x0b,
@@ -192,19 +308,19 @@ var fileDescriptor3 = []byte{
 	0x13, 0x15, 0x4f, 0xd5, 0x1c, 0x35, 0x5b, 0x84, 0x1c, 0x27, 0x71, 0xa2, 0xb4, 0xa2, 0x7b, 0x59,
 	0xa3, 0x7f, 0x9c, 0x3b, 0x22, 0x81, 0x28, 0x94, 0x4c, 0xfb, 0xce, 0x2b, 0x01, 0x7b, 0xa6, 0xd6,
 	0x42, 0x06, 0x0f, 0xd9, 0x97, 0xd7, 0xfc, 0x59, 0x48, 0xa1, 0x85, 0x92, 0xf4, 0x14, 0xda, 0x18,
-	0x2f, 0x79, 0xc2, 0xbd, 0x84, 0xf9, 0x62, 0x85, 0x36, 0x19, 0x92, 0x71, 0xcd, 0x6d, 0xa5, 0xa2,
-	0x6b, 0x34, 0x3a, 0x00, 0x0b, 0x63, 0xce, 0x7d, 0x8f, 0xad, 0x03, 0xbb, 0x66, 0x0c, 0x0d, 0x23,
-	0x5c, 0xae, 0x03, 0x3a, 0x05, 0xeb, 0x85, 0x6d, 0x62, 0x25, 0xa4, 0x46, 0xbb, 0x3e, 0xac, 0x8f,
-	0x9b, 0xe7, 0x07, 0x93, 0x8c, 0x64, 0xf2, 0x94, 0x75, 0xdc, 0xad, 0xc7, 0x79, 0x23, 0xd0, 0x29,
-	0xf3, 0xd0, 0x3e, 0x34, 0x42, 0xa6, 0x85, 0x5e, 0xf9, 0x3c, 0x03, 0x28, 0x6a, 0x7a, 0x02, 0x56,
-	0xa8, 0x64, 0x90, 0x36, 0xd3, 0x9f, 0x6f, 0x05, 0x3a, 0x82, 0x16, 0x0b, 0x53, 0xa7, 0x17, 0x61,
-	0x68, 0xd7, 0x8d, 0xa1, 0x99, 0x6b, 0x33, 0x0c, 0xab, 0x2b, 0xfe, 0xab, 0xae, 0xe8, 0x7c, 0x10,
-	0xa0, 0x8f, 0x9a, 0x7d, 0x67, 0xc2, 0x92, 0xcd, 0x2f, 0x80, 0x9d, 0x41, 0x77, 0xb1, 0x09, 0x85,
-	0xf4, 0x79, 0xe2, 0x2d, 0xb9, 0x08, 0x96, 0x3a, 0x63, 0xeb, 0xe4, 0xf2, 0xad, 0x51, 0x4b, 0xc6,
-	0x12, 0x60, 0x61, 0xcc, 0x10, 0xdf, 0x09, 0x58, 0x39, 0x18, 0xd2, 0x2b, 0xd8, 0x8f, 0x4c, 0x88,
-	0x5e, 0x71, 0x0f, 0x36, 0x31, 0xe9, 0xf7, 0x8a, 0xf4, 0xcb, 0x29, 0xbb, 0xdd, 0xa8, 0x54, 0x23,
-	0xbd, 0x87, 0x23, 0x2c, 0x76, 0xfe, 0x31, 0xa7, 0x66, 0xe6, 0x0c, 0x8a, 0x39, 0xd5, 0x60, 0xdc,
-	0x43, 0xac, 0x68, 0xe8, 0x7c, 0x12, 0x68, 0x17, 0xd5, 0x8d, 0x2f, 0x34, 0xbd, 0xdb, 0x49, 0x39,
-	0xda, 0x41, 0xb9, 0xbd, 0xcd, 0x3f, 0xe7, 0x9d, 0xff, 0x37, 0x0f, 0xe4, 0xe2, 0x2b, 0x00, 0x00,
-	0xff, 0xff, 0x31, 0x92, 0x7c, 0x98, 0x5b, 0x03, 0x00, 0x00,
+	0x2f, 0x79, 0xc2, 0xbd, 0x84, 0xf9, 0x62, 0x85, 0x36, 0x19, 0x92, 0x31, 0x71, 0x5b, 0xa9, 0xe8,
+	0x1a, 0x8d, 0x0e, 0xc0, 0xc2, 0x98, 0x73, 0xdf, 0x63, 0xeb, 0xc0, 0xae, 0x19, 0x43, 0xc3, 0x08,
+	0x97, 0xeb, 0x80, 0x4e, 0xc1, 0x7a, 0x61, 0x9b, 0x58, 0x09, 0xa9, 0xd1, 0xae, 0x0f, 0xeb, 0xe3,
+	0xe6, 0xf9, 0xc1, 0x24, 0x23, 0x99, 0x3c, 0x65, 0x1d, 0x77, 0xeb, 0x71, 0xde, 0x08, 0x74, 0xca,
+	0x3c, 0xb4, 0x0f, 0x8d, 0x90, 0x69, 0xa1, 0x57, 0x3e, 0xcf, 0x00, 0x8a, 0x9a, 0x9e, 0x80, 0x15,
+	0x2a, 0x19, 0xa4, 0xcd, 0xf4, 0xe7, 0x5b, 0x81, 0x8e, 0xa0, 0xc5, 0xc2, 0xd4, 0xe9, 0x45, 0x18,
+	0xda, 0x75, 0x63, 0x68, 0xe6, 0xda, 0x0c, 0xc3, 0xea, 0x8a, 0xff, 0xaa, 0x2b, 0x3a, 0x1f, 0x04,
+	0xe8, 0xa3, 0x66, 0xdf, 0x99, 0xb0, 0x64, 0xf3, 0x0b, 0x60, 0x67, 0xd0, 0x5d, 0x6c, 0x42, 0x21,
+	0x7d, 0x9e, 0x78, 0x4b, 0x2e, 0x82, 0xa5, 0xce, 0xd8, 0x3a, 0xb9, 0x7c, 0x6b, 0xd4, 0x92, 0xb1,
+	0x04, 0x58, 0x18, 0x33, 0xc4, 0x77, 0x02, 0x56, 0x0e, 0x86, 0xf4, 0x0a, 0xf6, 0x23, 0x13, 0xa2,
+	0x57, 0xdc, 0x83, 0x4d, 0x4c, 0xfa, 0xbd, 0x22, 0xfd, 0x72, 0xca, 0x6e, 0x37, 0x2a, 0xd5, 0x48,
+	0xef, 0xe1, 0x08, 0x8b, 0x9d, 0x7f, 0xcc, 0xa9, 0x99, 0x39, 0x83, 0x62, 0x4e, 0x35, 0x18, 0xf7,
+	0x10, 0x2b, 0x1a, 0x3a, 0x9f, 0x04, 0xda, 0x45, 0x75, 0xe3, 0x0b, 0x4d, 0xef, 0x76, 0x52, 0x8e,
+	0x76, 0x50, 0x6e, 0x6f, 0xf3, 0xcf, 0x79, 0xe7, 0xff, 0xcd, 0x03, 0xb9, 0xf8, 0x0a, 0x00, 0x00,
+	0xff, 0xff, 0x38, 0x53, 0x1a, 0xa7, 0x5b, 0x03, 0x00, 0x00,
 }

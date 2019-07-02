@@ -71,7 +71,7 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/googleprotobufEmpty"
             }
           }
         },
@@ -109,7 +109,7 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/googleprotobufEmpty"
             }
           }
         },
@@ -150,6 +150,178 @@
         ]
       }
     },
+    "/v1/pathplanner/path/start": {
+      "post": {
+        "operationId": "StartPathPlanner",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopGCSAction"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/interopMission"
+            }
+          }
+        ],
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
+    "/v1/pathplanner/path/{mission_name}": {
+      "get": {
+        "operationId": "GetPath",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopPath"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "mission_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
+    "/v1/pathplanner/path/{path_name}": {
+      "post": {
+        "operationId": "SendPath",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopGCSAction"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "path_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/interopPath"
+            }
+          }
+        ],
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
+    "/v1/pathplanner/path_names": {
+      "get": {
+        "operationId": "GetPathList",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopMissionNameList"
+            }
+          }
+        },
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
+    "/v1/pathplanner/pathfinal": {
+      "get": {
+        "operationId": "GetPathFinal",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopPath"
+            }
+          }
+        },
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
+    "/v1/pathplanner/pathlocal/{path_name}": {
+      "post": {
+        "operationId": "PostPath",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/googleprotobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "path_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/interopPath"
+            }
+          }
+        ],
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
+    "/v1/pathplanner/plan_path": {
+      "post": {
+        "operationId": "PlanPath",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/interopPath"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/interopObstacles"
+            }
+          }
+        ],
+        "tags": [
+          "PathPlanner"
+        ]
+      }
+    },
     "/v1/simulation/interop/start": {
       "get": {
         "operationId": "StartInteropServer",
@@ -157,7 +329,7 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/googleprotobufEmpty"
             }
           }
         },
@@ -181,7 +353,7 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/googleprotobufEmpty"
             }
           }
         },
@@ -205,7 +377,7 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/googleprotobufEmpty"
             }
           }
         },
@@ -229,7 +401,7 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/googleprotobufEmpty"
             }
           }
         },
@@ -248,6 +420,11 @@
     }
   },
   "definitions": {
+    "googleprotobufEmpty": {
+      "type": "object",
+      "description": "service Foo {\n      rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty);\n    }\n\nThe JSON representation for `Empty` is empty JSON object `{}`.",
+      "title": "A generic empty message that you can re-use to avoid defining duplicated\nempty messages in your APIs. A typical example is to use it as the request\nor the response type of an API method. For instance:"
+    },
     "interopCompleteMission": {
       "type": "object",
       "properties": {
@@ -284,16 +461,31 @@
         }
       }
     },
+    "interopFlownWaypoint": {
+      "type": "object",
+      "properties": {
+        "point": {
+          "$ref": "#/definitions/interopPoint"
+        },
+        "type": {
+          "$ref": "#/definitions/interopWaypointType"
+        },
+        "wpradius": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
     "interopFlyZone": {
       "type": "object",
       "properties": {
         "altitude_msl_min": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "altitude_msl_max": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "boundary_pts": {
           "type": "array",
@@ -303,16 +495,26 @@
         }
       }
     },
+    "interopGCSAction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "title": "TODO"
+    },
     "interopGPS": {
       "type": "object",
       "properties": {
         "latitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "longitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         }
       }
     },
@@ -356,14 +558,6 @@
           "items": {
             "$ref": "#/definitions/interopWaypoint"
           }
-        }
-      }
-    },
-    "interopMissionName": {
-      "type": "object",
-      "properties": {
-        "mission_name": {
-          "type": "string"
         }
       }
     },
@@ -416,19 +610,19 @@
       "properties": {
         "latitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "longitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "altitude_msl": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "sphere_radius": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         }
       }
     },
@@ -437,11 +631,11 @@
       "properties": {
         "sphere_radius": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "speed_avg": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "waypoints": {
           "type": "array",
@@ -485,6 +679,57 @@
         }
       }
     },
+    "interopPath": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/interopFlownWaypoint"
+          }
+        },
+        "partial": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "start": {
+          "type": "string",
+          "format": "int64"
+        },
+        "reference_id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "errorCode": {
+          "type": "string",
+          "format": "int64"
+        },
+        "path_name": {
+          "type": "string"
+        }
+      }
+    },
+    "interopPoint": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "longitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "altitude": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
     "interopSitlConfig": {
       "type": "object",
       "properties": {
@@ -499,19 +744,19 @@
       "properties": {
         "latitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "longitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "cylinder_height": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "cylinder_radius": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         }
       }
     },
@@ -558,22 +803,28 @@
         },
         "latitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "longitude": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         },
         "altitude_msl": {
           "type": "number",
-          "format": "float"
+          "format": "double"
         }
       }
     },
-    "protobufEmpty": {
-      "type": "object",
-      "description": "service Foo {\n      rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty);\n    }\n\nThe JSON representation for `Empty` is empty JSON object `{}`.",
-      "title": "A generic empty message that you can re-use to avoid defining duplicated\nempty messages in your APIs. A typical example is to use it as the request\nor the response type of an API method. For instance:"
+    "interopWaypointType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "TAKEOFF",
+        "LAND",
+        "LAND_START",
+        "NAV"
+      ],
+      "default": "HOME"
     }
   }
 }

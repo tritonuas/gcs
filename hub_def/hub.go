@@ -83,9 +83,9 @@ func CreateHub() *Hub {
 	return &Hub{Topics: make(map[string]*Topic), endpoints: make(map[string]Endpoint)}
 }
 
-func (h* Topic) Subscriber(rate int) (chan interface{}){
+func (h* Topic) Subscriber(rate rate.Limit) (chan interface{}){
 	channel := make(chan interface{}, 1024)
-	h.register <- newStreamClient(channel, 3.0)
+	h.register <- newStreamClient(channel, rate)
 	return channel
 }
 
@@ -121,8 +121,6 @@ func (h *Topic) Run() {
 					continue
 				}
 				client.send <-(message) 
-				Log.Info("send")
-				Log.Info(client)
 				/*{
 					delete(h.clients, client)
 				}*/

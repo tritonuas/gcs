@@ -45,10 +45,6 @@ func (c *interopClient) setCredentials(urlBase string, username string, password
 }
 
 func (c *interopClient) PostTelemetry(telem *pb.Telemetry) (error) {
-	fmt.Printf("%s\n",float64ToStr(telem.GetLatitude()))
-	fmt.Printf("%s\n",float64ToStr(telem.GetLongitude()))
-	fmt.Printf("%s\n",float64ToStr(telem.GetAltitudeMsl()))
-	fmt.Printf("%s\n",float64ToStr(telem.GetUasHeading()))
 	resp, err := c.client.PostForm(c.urlBase+"/api/telemetry", url.Values{
 		"latitude":     {float64ToStr(telem.GetLatitude())},
 		"longitude":    {float64ToStr(telem.GetLongitude())},
@@ -108,6 +104,9 @@ func (c *interopClient) run() {
 
 		if err != nil || resp.StatusCode != 200 {
 			Log.Warning("Login error, attempting reconnect")
+			Log.Warning(c.urlBase)
+			Log.Warning(c.username)
+			Log.Warning(c.password)
 			time.Sleep(time.Second)
 			if err == nil {
 				resp.Body.Close()

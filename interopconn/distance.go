@@ -49,12 +49,12 @@ func waypointDistanceRaw(lat1, lon1, alt1, lat2, lon2, alt2 float32) float32 {
 	return float32(math.Hypot(float64(gpsDistFt), AltDistFt))
 }
 
-func GpsDistance(gps1, gps2 IGps) float32 {
-	return gpsDistanceRaw(gps1.GetLatitude(), gps1.GetLongitude(), gps2.GetLatitude(), gps2.GetLongitude())
+func GpsDistance(gps1 IGps64, gps2 IGps) float32 {
+	return gpsDistanceRaw(float32(gps1.GetLatitude()), float32(gps1.GetLongitude()), gps2.GetLatitude(), gps2.GetLongitude())
 }
 
-func WaypointDistance(wp1, wp2 IWaypoint) float32 {
-	return waypointDistanceRaw(wp1.GetLatitude(), wp1.GetLongitude(), wp1.GetAltitudeMsl(), wp2.GetLatitude(), wp2.GetLongitude(), wp2.GetAltitudeMsl())
+func WaypointDistance(wp1 IWaypoint64, wp2 IWaypoint) float32 {
+	return waypointDistanceRaw(float32(wp1.GetLatitude()), float32(wp1.GetLongitude()), float32(wp1.GetAltitudeMsl()), wp2.GetLatitude(), wp2.GetLongitude(), wp2.GetAltitudeMsl())
 }
 
 // IWaypoint waypoint interface
@@ -68,4 +68,17 @@ type IWaypoint interface {
 type IGps interface {
 	GetLongitude() float32
 	GetLatitude() float32
+}
+
+// IWaypoint waypoint interface
+type IWaypoint64 interface {
+	GetLongitude() float64
+	GetLatitude() float64
+	GetAltitudeMsl() float64
+}
+
+// IGps gps interface
+type IGps64 interface {
+	GetLongitude() float64
+	GetLatitude() float64
 }
