@@ -1,21 +1,26 @@
 PACKAGES := $(shell glide novendor)
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
+.PHONY: all
 all: build run
 
-build-docker: install
+.PHONY: docker-build
+docker-build: install
 	docker build . -t tritonuas/hub
 
 .PHONY: build
-build: build-hub
+build: docker-build
 
+.PHONY: docker-run
 docker-run:
 	docker run tritonuas/hub
 
+.PHONY: local-build
 local-build:
 	cp -rf . ${GOPATH}/src/github.com/tritonuas/hub/
 	cd ${GOPATH}/src/github.com/tritonuas/hub/ && make install
 
+.PHONY: local-run
 local-run:
 	${GOPATH}/bin/hub
 
