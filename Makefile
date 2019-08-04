@@ -13,7 +13,8 @@ build: docker-build
 
 .PHONY: docker-run
 docker-run:
-	docker run tritonuas/hub
+	docker container run -e INTEROP_IP=127.0.0.1 -e INTEROP_PORT=8000 -e INTEROP_USER=ucsdauvsi -e INTEROP_PASS=tritons -e MAV_DEVICE=:5762 -e HUB_PATH=/go/src/github.com/tritonuas/hub --network host tritonuas/hub
+	#docker-compose up
 
 .PHONY: local-build
 local-build:
