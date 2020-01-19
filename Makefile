@@ -43,3 +43,10 @@ test:
 .PHONY: fmt
 fmt:
 	gofmt -w -l $(GOFILES_NOVENDOR)
+
+
+# GO MODULES
+.PHONY: getdeps
+getdeps:
+	export GOPRIVATE="github.com/tritonuas"
+	go get

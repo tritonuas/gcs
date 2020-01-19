@@ -41,7 +41,7 @@ imports:
   version: 5b443b6471cea4b4f9f85025530c04c93233f76a
 - name: github.com/rs/cors
   version: 33ffc0734c60052d8b609f1e2d8ebbadc6cd80d8
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: 839c75faf7f98a33d445d181f3018b5c3409a45e
 - name: github.com/tritonuas/go-mavlink
   version: f852cd83db831f30ccee9cd6a59886ca220245a1
