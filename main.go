@@ -4,7 +4,7 @@ import (
 	"github.com/namsral/flag"
         "os"
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	//"github.com/kardianos/osext"
 	"net"
 	"net/http"

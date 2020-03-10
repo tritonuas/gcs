@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	pb "github.com/tritonuas/hub/interop"
 )
 

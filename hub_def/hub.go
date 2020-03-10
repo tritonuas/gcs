@@ -1,7 +1,7 @@
 package hub_def
 
 import "encoding/json"
-import "github.com/Sirupsen/logrus"
+import "github.com/sirupsen/logrus"
 import "golang.org/x/time/rate"
 import "time"
 import "os/exec"
