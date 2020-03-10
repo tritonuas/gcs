@@ -6,7 +6,7 @@ all: build run
 
 .PHONY: docker-build
 docker-build: install
-	docker build . -t tritonuas/hub
+	docker build . -t tritonuas/hub -f Dockerfile
 
 .PHONY: build
 build: docker-build
@@ -18,6 +18,7 @@ docker-run:
 
 .PHONY: local-build
 local-build:
+	mkdir -p ${GOPATH}/src/github.com/tritonuas/
 	cp -rf . ${GOPATH}/src/github.com/tritonuas/hub/
 	cd ${GOPATH}/src/github.com/tritonuas/hub/ && make install
 
