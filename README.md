@@ -6,6 +6,10 @@
 make dep
 make install
 ```
+## Swagger UI
+To view the Swagger-UI docs without running the server, go into the third_party/swagger-ui folder and run `python3 -m http.server`
+
+![swagger-screenshot](./screenshots/swagger.png)
 
 ## Ports and Stuff
 Hub interface to houston currently runs on port `5000` or `5001`
