@@ -4,27 +4,34 @@ As of now, it does NOT deal with computer vision stuff; for that, see [matts-new
 
 The hub is currently hosted on [Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
 
+## Dependencies
+
+- [go 1.14](https://golang.org/)
+
 ## Install
+
 ### Local Install
-To install hub locally without Docker:
-1. Install [Golang](https://golang.org/)
-2. Run the command below. These will install the [glide](https://github.com/Masterminds/glide) dependency manager and install all dependencies.
+
+```sh
+# Configure global git url to use ssh method:
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+# Build go application
+go build
 ```
-make dep
-make install
-```   
-3. Run the command below. This will copy the current repo to the correct location on $GOPATH and create an executable in `$GOPATH/bin/hub`. To confirm that it works correctly, check the folder for a new file called `hub`.  
-4. Run either of the below commands. Both simply run the created executable.
+
+or 
+
+```sh
+# Runs above commands
+make 
 ```
-cd $GOPATH/bin/hub
-./hub
-```
-```
-make local-run
-```  
-You will know that hub is running if you see logs printed out, like below.
+
+hub is running if you see logs printed out, like below.
+
 ![logs](./screenshots/logs.png)  
-NOTE: Glide is now deprecated, and the Golang community has moved to Go Modules. We will soon move over too.  
+
+
+# WARNING everything below this may need fixing
 
 ### Docker Build
 To create a Docker image of hub and push it to Dockerhub:
