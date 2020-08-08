@@ -1,40 +1,29 @@
-PACKAGES := $(shell glide novendor)
-GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+#PACKAGES := $(shell glide novendor)
+#GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: all
 all: build run
 
-.PHONY: docker-build
-docker-build: install
-	docker build . -t tritonuas/hub -f Dockerfile
+#.PHONY: docker-build
+#docker-build: install
+#  docker build . -t tritonuas/hub -f Dockerfile
 
-.PHONY: build
-build: docker-build
+#.PHONY: build
+#build: docker-build
 
 .PHONY: docker-run
-docker-run:
-	docker container run -e INTEROP_IP=127.0.0.1 -e INTEROP_PORT=8000 -e INTEROP_USER=ucsdauvsi -e INTEROP_PASS=tritons -e MAV_DEVICE=:5762 -e HUB_PATH=/go/src/github.com/tritonuas/hub --network host tritonuas/hub
+#docker-run:
+#  docker container run -e INTEROP_IP=127.0.0.1 -e INTEROP_PORT=8000 -e INTEROP_USER=ucsdauvsi -e INTEROP_PASS=tritons -e MAV_DEVICE=:5762 -e HUB_PATH=/go/src/github.com/tritonuas/hub --network host tritonuas/hub
 	#docker-compose up
 
-.PHONY: local-build
-local-build:
-	mkdir -p ${GOPATH}/src/github.com/tritonuas/
-	cp -rf . ${GOPATH}/src/github.com/tritonuas/hub/
-	cd ${GOPATH}/src/github.com/tritonuas/hub/ && make install
+.PHONY: run
+run:
+	./hub
 
-.PHONY: local-run
-local-run:
-	${GOPATH}/bin/hub
-
-.PHONY: dep
-dep:
-	glide --version || curl https://glide.sh/get | sh
-	glide install
-
-.PHONY: install
-install:
-	glide install
-	go install
+.PHONY: build
+build:
+	git config --global url."git@github.com:".insteadOf "https://github.com/"
+	go build
 
 .PHONY: test
 test:
