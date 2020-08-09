@@ -1,8 +1,17 @@
-FROM golang:1.12
-RUN mkdir -p /go/src/github.com/tritonuas/hub
-WORKDIR /go/src/github.com/tritonuas/hub
-COPY glide.yaml .
-ADD . /go/src/github.com/tritonuas/hub
-RUN apt-get update && apt-get install -y libzmq3-dev
-RUN go install 
-CMD ["/go/bin/hub", "-env_var"]
+FROM golang:1.14
+
+# Move to working directory /build
+WORKDIR /build
+COPY . .
+
+# Install some necessary dependencies
+RUN apt-get update
+RUN apt-get -y install git libzmq3-dev
+
+# Setup git to use ssh for private go modules
+ARG GITHUB_TOKEN
+RUN git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+
+RUN go build
+
+CMD ["./hub"]
