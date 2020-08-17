@@ -75,4 +75,4 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v1
       - name: Lint Yaml
-        uses: ibiqlik/action-yamllint@v1u
+        uses: ibiqlik/action-yamllint@v1
