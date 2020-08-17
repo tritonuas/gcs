@@ -1,4 +1,11 @@
-# Hub &middot; [![Build Status](https://travis-ci.com/tritonuas/hub.svg?token=BPP6sv3rYx9yar3Cqdmy&branch=master)](https://travis-ci.com/tritonuas/hub)
+# Hub
+
+[![Linting](https://github.com/tritonuas/hub/workflows/Linting/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ALinting)
+[![Tests](https://github.com/tritonuas/hub/workflows/Tests/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ATests)
+[![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
+
+
+
 Hub is a backend webserver that faciliates communication between many other modules in the TUAS system, including [Houston](https://github.com/tritonuas/houston), [OBC](https://github.com/tritonuas/planeobc), Mavproxy, and more. It also communicates with the [Interop Judging Server](https://github.com/auvsi-suas/interop) to grab the mission plans and submit waypoints.  
 As of now, it does NOT deal with computer vision stuff; for that, see [matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).  
 
@@ -25,6 +32,10 @@ or
 # Runs above commands
 make 
 ```
+
+NOTE: changing git url is only necesssary when [go-mavlink](https://github.com/tritonuas/go-mavlink) 
+is private. This causes authentication issues when pulling the private module
+
 
 hub is running if you see logs printed out, like below.
 
