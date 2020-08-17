@@ -14,13 +14,16 @@ jobs:
     name: Dockerfile dockerfilelint
     runs-on: ubuntu-latest
     steps:
+      - name: Setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12'
       - name: Checkout Repo
         uses: actions/checkout@master
-      - name: lint
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET: Dockerfile
+      - name: Install dockerfilelint
+        run: npm install -g dockerfilelint
+      - name: Lint Dockerfile
+        run: dockerfilelint Dockerfile
 
   # Go linting
   go:
