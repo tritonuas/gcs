@@ -1,12 +1,12 @@
 package mission_edit
 
 import (
-	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/tritonuas/hub/interop"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	"fmt"
 	"errors"
+	"github.com/golang/protobuf/ptypes/empty"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 type PathPlanServer struct {
@@ -52,7 +52,7 @@ func (s *PathPlanServer) PlanPath(ctx context.Context, obstacles *pb.Obstacles) 
 	path, err := client.PlanPath(context.Background(), obstacles)
 	if err != nil {
 		return nil, err
-	}	
+	}
 	conn.Close()
 	return path, nil
 }

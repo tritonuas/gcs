@@ -2,8 +2,8 @@ package mission_edit
 
 import (
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/tritonuas/hub/interop"
 	"golang.org/x/net/context"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 type MissionEditServer struct {

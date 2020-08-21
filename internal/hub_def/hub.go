@@ -6,8 +6,7 @@ import "golang.org/x/time/rate"
 import "time"
 import "os/exec"
 
-var Log *logrus.Logger
-
+var Log = logrus.New()
 
 type Sender interface {
 	Send(interface{}) bool
@@ -120,7 +119,7 @@ func (h *Topic) Run() {
 				if !client.rate.Allow() {
 					continue
 				}
-				client.send <-(message) 
+				client.send <-(message)
 				/*{
 					delete(h.clients, client)
 				}*/

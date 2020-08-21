@@ -5,14 +5,14 @@ import (
 	"math"
 	"time"
 
-	pb "github.com/tritonuas/hub/interop"
 	"errors"
 	"sync"
 	"fmt"
 
-	main "github.com/tritonuas/hub/hub_def"
+	main "github.com/tritonuas/hub/internal/hub_def"
+	pb "github.com/tritonuas/hub/internal/interop"
 	zmq "github.com/pebbe/zmq4"
-	"github.com/golang/protobuf/jsonpb" 
+	"github.com/golang/protobuf/jsonpb"
 )
 
 func distanceMovingObstacle(t1 *pb.MovingObstacle, t2 IWaypoint) float32 {
@@ -172,13 +172,13 @@ func (u *MissionReport) run() {
 				}
 				u.obstacles = obs_update
 			case gps_update:= <- u.gps_stream:
-				
+
 				gps := gps_update.(*pb.Telemetry)
 				if u.started {
 					u.updateDistances(gps)
 				}
 				go u.interop.PostTelemetry(gps)
-			
+
 			case <- ticker.C:
 				u.report_topic.Send(&u.missionReportStatus)
                 //Add zmq here to send to py-planner

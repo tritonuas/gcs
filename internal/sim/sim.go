@@ -1,4 +1,4 @@
-package main
+package sim
 
 import (
 	"encoding/json"
@@ -8,9 +8,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+  "github.com/sirupsen/logrus"
 )
+var Log = logrus.New()
 
-func setupHelpers(p string) {
+func SetupHelpers(p string) {
 	http.HandleFunc("/judgingserver/start", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		judgingHandle("start", p, w, r)

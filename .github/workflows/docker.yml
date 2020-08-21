@@ -26,3 +26,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           build_args: GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           repository: tritonuas/hub
+          dockerfile: build/package/Dockerfile
+          workdir: .
