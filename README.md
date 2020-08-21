@@ -39,7 +39,7 @@ is private. This causes authentication issues when pulling the private module
 
 hub is running if you see logs printed out, like below.
 
-![logs](./screenshots/logs.png)  
+![logs](./assets/logs.png)  
 
 ### Docker
 
@@ -62,7 +62,7 @@ docker push tritonuas/hub:1.x.x
 
 To view the Swagger-UI docs without running the server, go into the third_party/swagger-ui folder and run `python3 -m http.server`. Then, go to localhost:8000 on your browser.
 
-![swagger-screenshot](./screenshots/swagger.png)
+![swagger-screenshot](./assets/swagger.png)
 
 ## Ports and Stuff
 
