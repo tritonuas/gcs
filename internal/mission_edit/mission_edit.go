@@ -9,7 +9,7 @@ import (
 	pb "github.com/tritonuas/hub/internal/interop"
 )
 
-var Log *logrus.Logger
+var Log = logrus.New()
 
 func get_missionlist(folder string) (output []string) {
 	files, _ := filepath.Glob(folder + "/*")

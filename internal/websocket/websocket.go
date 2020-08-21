@@ -17,7 +17,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var Log *logrus.Logger
+var Log = logrus.New()
 
 type WebSocketClient struct {
 	//hub    *hub.Hub
@@ -154,7 +154,7 @@ func (c *WebSocketClient) writePump() {
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(plane_obc_stream chan interface{}, mission_report_stream chan interface{}, plane_loc_stream chan interface{}, plane_status_stream chan interface{},obstacle_stream chan interface{}, w http.ResponseWriter, r *http.Request) {
+func ServeWs(plane_obc_stream chan interface{}, mission_report_stream chan interface{}, plane_loc_stream chan interface{}, plane_status_stream chan interface{},obstacle_stream chan interface{}, w http.ResponseWriter, r *http.Request) {
 	Log.Info("Serve WS")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

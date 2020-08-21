@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 )
 
-var Log *logrus.Logger
+var Log = logrus.New()
 
 func metersToFeet(item float32) float32 {
 	return float32(3.280839895)*item
@@ -37,7 +37,7 @@ func publishZmq(socket *zmq.Socket, msg *pb.PlaneLoc) {
     socket.Send(message, 0)
 }
 
-func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, status_topic *hub.Topic, zmqAddr string) {
+func ListenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, status_topic *hub.Topic, zmqAddr string) {
 	locStatus := pb.PlaneLoc{}
 	planeStatus := pb.PlaneStatus{}
     pubSocket, _ := zmq.NewSocket(zmq.PUB)

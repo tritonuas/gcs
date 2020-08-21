@@ -8,8 +8,11 @@ import (
 	"net/url"
 	"time"
 	"strconv"
+	"github.com/sirupsen/logrus"
 	pb "github.com/tritonuas/hub/internal/interop"
 )
+
+var Log = logrus.New()
 
 func NewInteropClient(urlBase string, username string, password string) (*interopClient){
 	cookieJar, _ := cookiejar.New(nil)

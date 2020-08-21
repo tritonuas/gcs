@@ -76,11 +76,11 @@ func main() {
 	Log.Info("MARCO")
 	//_, _ := osext.ExecutableFolder()
 	Log.Warning(*hub_path)
-	missionfolder := utils.get_path("", *hub_path, "/missions/")
-	pathfolder := utils.get_path("", *hub_path, "/paths/")
-	swaggerfolder := utils.get_path("", *hub_path, "/third_party/swagger-ui/")
+	missionfolder := utils.Get_path("", *hub_path, "/missions/")
+	pathfolder := utils.Get_path("", *hub_path, "/paths/")
+	swaggerfolder := utils.Get_path("", *hub_path, "/third_party/swagger-ui/")
 	Log.Warning(missionfolder)
-	sim.setupHelpers(missionfolder)
+	sim.SetupHelpers(missionfolder)
 
 	Log.Info("Start Hub")
 
@@ -96,18 +96,18 @@ func main() {
 	cur_hub.AddTopic("mission_status")
 	cur_hub.AddTopic("plane_obc_data")
 
-	go mav.listenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
+	go mav.ListenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
 
-	udp.createUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
+	udp.CreateUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/websocket/gcs", func(w http.ResponseWriter, r *http.Request) {
-		ws.serveWs(nil, cur_hub.Topics["mission_status"].Subscriber(100), cur_hub.Topics["plane_loc"].Subscriber(3), cur_hub.Topics["plane_status"].Subscriber(1),cur_hub.Topics["obstacle_data"].Subscriber(1), w, r)
+		ws.ServeWs(nil, cur_hub.Topics["mission_status"].Subscriber(100), cur_hub.Topics["plane_loc"].Subscriber(3), cur_hub.Topics["plane_status"].Subscriber(1),cur_hub.Topics["obstacle_data"].Subscriber(1), w, r)
 	})
 
 	mux.HandleFunc("/websocket/obc", func(w http.ResponseWriter, r *http.Request) {
-		ws.serveWs(cur_hub.Topics["plane_obc_data"].Subscriber(100), nil, nil, nil,nil, w, r)
+		ws.ServeWs(cur_hub.Topics["plane_obc_data"].Subscriber(100), nil, nil, nil,nil, w, r)
 	})
 
 	Log.Info("hello")

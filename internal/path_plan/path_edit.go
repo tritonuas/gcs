@@ -10,7 +10,7 @@ import (
 	pb "github.com/tritonuas/hub/internal/interop"
 )
 
-var Log *logrus.Logger
+var Log = logrus.New()
 
 func get_pathlist(folder string) (output []string) {
 	fmt.Println(folder)

@@ -7,7 +7,7 @@ import (
 	hub "github.com/tritonuas/hub/internal/hub_def"
 )
 
-var Log *logrus.Logger
+var Log = logrus.New()
 
 type UDPBackend struct {
 	plane_obc_topic *hub.Topic
@@ -57,7 +57,7 @@ func (u *UDPBackend) Run() {
 	}
 }
 
-func createUDPBackend(plane_obc_topic *hub.Topic, port string) *UDPBackend {
+func CreateUDPBackend(plane_obc_topic *hub.Topic, port string) *UDPBackend {
 	backend := &UDPBackend{port: port, plane_obc_topic:plane_obc_topic}
 	go backend.Run()
 	return backend
