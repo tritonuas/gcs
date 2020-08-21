@@ -1,13 +1,10 @@
 package interopconn;
 
 import (
-	pb "github.com/tritonuas/hub/interop"
+	pb "github.com/tritonuas/hub/internal/interop"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/sirupsen/logrus"
 	"time"
 )
-
-var Log *logrus.Logger
 
 // Needs Renaming and cleanup
 func NewInteropReport(urlBase string, username string, password string, obstacleRate int) (*InteropReport) {

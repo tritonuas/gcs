@@ -11,15 +11,20 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
-	pb "github.com/tritonuas/hub/interop"
 	//pb "github.com/tritonuas/protos/interop"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	interopconn "github.com/tritonuas/hub/interopconn"
-	missionedit "github.com/tritonuas/hub/mission_edit"
-	pathplan "github.com/tritonuas/hub/path_plan"
-	hub "github.com/tritonuas/hub/hub_def"
+	interopconn "github.com/tritonuas/hub/internal/interopconn"
+	missionedit "github.com/tritonuas/hub/internal/mission_edit"
+	pathplan "github.com/tritonuas/hub/internal/path_plan"
+	hub "github.com/tritonuas/hub/internal/hub_def"
+	pb "github.com/tritonuas/hub/internal/interop"
+  sim "github.com/tritonuas/hub/internal/sim"
+  mav "github.com/tritonuas/hub/internal/mavlink"
+  udp "github.com/tritonuas/hub/internal/udp"
+  ws "github.com/tritonuas/hub/internal/websocket"
+  utils "github.com/tritonuas/hub/internal/utils"
 )
 
 var Log *logrus.Logger
@@ -71,16 +76,16 @@ func main() {
 	Log.Info("MARCO")
 	//_, _ := osext.ExecutableFolder()
 	Log.Warning(*hub_path)
-	missionfolder := get_path("", *hub_path, "/missions/")
-	pathfolder := get_path("", *hub_path, "/paths/")
-	swaggerfolder := get_path("", *hub_path, "/third_party/swagger-ui/")
+	missionfolder := utils.Get_path("", *hub_path, "/missions/")
+	pathfolder := utils.Get_path("", *hub_path, "/paths/")
+	swaggerfolder := utils.Get_path("", *hub_path, "/third_party/swagger-ui/")
 	Log.Warning(missionfolder)
-	setupHelpers(missionfolder)
+	sim.SetupHelpers(missionfolder)
 
 	Log.Info("Start Hub")
 
 	cur_hub := hub.CreateHub()
-	
+
 	// Create Topics
 	Log.Info("hello")
 	cur_hub.AddTopic("telemetry")
@@ -91,18 +96,18 @@ func main() {
 	cur_hub.AddTopic("mission_status")
 	cur_hub.AddTopic("plane_obc_data")
 
-	go listenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
+	go mav.ListenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
 
-	createUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
+	udp.CreateUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/websocket/gcs", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(nil, cur_hub.Topics["mission_status"].Subscriber(100), cur_hub.Topics["plane_loc"].Subscriber(3), cur_hub.Topics["plane_status"].Subscriber(1),cur_hub.Topics["obstacle_data"].Subscriber(1), w, r)
+		ws.ServeWs(nil, cur_hub.Topics["mission_status"].Subscriber(100), cur_hub.Topics["plane_loc"].Subscriber(3), cur_hub.Topics["plane_status"].Subscriber(1),cur_hub.Topics["obstacle_data"].Subscriber(1), w, r)
 	})
 
 	mux.HandleFunc("/websocket/obc", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(cur_hub.Topics["plane_obc_data"].Subscriber(100), nil, nil, nil,nil, w, r)
+		ws.ServeWs(cur_hub.Topics["plane_obc_data"].Subscriber(100), nil, nil, nil,nil, w, r)
 	})
 
 	Log.Info("hello")

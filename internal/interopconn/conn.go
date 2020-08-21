@@ -8,8 +8,11 @@ import (
 	"net/url"
 	"time"
 	"strconv"
-	pb "github.com/tritonuas/hub/interop"
+	"github.com/sirupsen/logrus"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
+
+var Log = logrus.New()
 
 func NewInteropClient(urlBase string, username string, password string) (*interopClient){
 	cookieJar, _ := cookiejar.New(nil)
@@ -56,7 +59,7 @@ func (c *interopClient) PostTelemetry(telem *pb.Telemetry) (error) {
 		c.refreshConn = true
 		if err == nil {
 			resp.Body.Close()
-		} 
+		}
 		return err
 	}
 
