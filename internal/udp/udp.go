@@ -1,11 +1,13 @@
 package udp
 
 import (
-	//"github.com/sirupsen/logrus"
+  "github.com/sirupsen/logrus"
 	"net"
 	"time"
 	hub "github.com/tritonuas/hub/internal/hub_def"
 )
+
+var Log *logrus.Logger
 
 type UDPBackend struct {
 	plane_obc_topic *hub.Topic

@@ -8,7 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+  "github.com/sirupsen/logrus"
 )
+
+var Log *logrus.Logger
 
 func setupHelpers(p string) {
 	http.HandleFunc("/judgingserver/start", func(w http.ResponseWriter, r *http.Request) {

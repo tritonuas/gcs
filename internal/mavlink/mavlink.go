@@ -5,12 +5,15 @@ import (
 	"time"
 	"fmt"
 
+  "github.com/sirupsen/logrus"
 	"github.com/tritonuas/go-mavlink/mavlink"
 	pb "github.com/tritonuas/hub/internal/interop"
 	hub "github.com/tritonuas/hub/internal/hub_def"
   zmq "github.com/pebbe/zmq4"
 	"github.com/golang/protobuf/jsonpb"
 )
+
+var Log *logrus.Logger
 
 func metersToFeet(item float32) float32 {
 	return float32(3.280839895)*item

@@ -1,7 +1,7 @@
 package ws
 
 import (
-	//"github.com/sirupsen/logrus"
+  "github.com/sirupsen/logrus"
 	"github.com/gorilla/websocket"
 	//"golang.org/x/time/rate"
 	"net/http"
@@ -16,6 +16,8 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
+
+var Log *logrus.Logger
 
 type WebSocketClient struct {
 	//hub    *hub.Hub
