@@ -4,8 +4,7 @@ import (
 	//"github.com/sirupsen/logrus"
 	"net"
 	"time"
-	hub "github.com/tritonuas/hub/hub_def"
-	
+	hub "github.com/tritonuas/hub/internal/hub_def"
 )
 
 type UDPBackend struct {

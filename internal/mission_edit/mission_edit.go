@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
-	pb "github.com/tritonuas/hub/interop"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 var Log *logrus.Logger

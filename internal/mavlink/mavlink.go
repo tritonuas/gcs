@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/tritonuas/go-mavlink/mavlink"
-	pb "github.com/tritonuas/hub/interop"
-	hub "github.com/tritonuas/hub/hub_def"
-    zmq "github.com/pebbe/zmq4"
-	"github.com/golang/protobuf/jsonpb" 
+	pb "github.com/tritonuas/hub/internal/interop"
+	hub "github.com/tritonuas/hub/internal/hub_def"
+  zmq "github.com/pebbe/zmq4"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 func metersToFeet(item float32) float32 {
@@ -38,7 +38,7 @@ func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, s
 	locStatus := pb.PlaneLoc{}
 	planeStatus := pb.PlaneStatus{}
     pubSocket, _ := zmq.NewSocket(zmq.PUB)
-    pubSocket.Bind(zmqAddr) 
+    pubSocket.Bind(zmqAddr)
 	for {
 		planeStatus.Connected = false
 		time.Sleep(time.Millisecond * 500)
@@ -149,28 +149,28 @@ func listenAndServe(addr string, telem_topic *hub.Topic, loc_topic *hub.Topic, s
 					locStatus.Aspeed = float32(vh.Airspeed)
 					locStatus.Gspeed = float32(vh.Groundspeed)
 					continue
-				}		
+				}
 			case mavlink.MSG_ID_SYS_STATUS:
 				var ss mavlink.SysStatus
 				if err := ss.Unpack(pkt); err == nil{
 					continue
 				}
 			case mavlink.MSG_ID_MISSION_ITEM_REACHED:
-				var mi mavlink.MissionItemReached 
+				var mi mavlink.MissionItemReached
 				if err := mi.Unpack(pkt); err == nil{
 					planeStatus.CurrentWp = int32(mi.Seq)
                     pubSocket.Send("hit_waypoint", zmq.SNDMORE)
                     pubSocket.Send(fmt.Sprintf("{current_wp: %d}", planeStatus.CurrentWp), 0)
 				}
 			case mavlink.MSG_ID_NAV_CONTROLLER_OUTPUT:
-				var mi mavlink.NavControllerOutput 
+				var mi mavlink.NavControllerOutput
 				if err := mi.Unpack(pkt); err == nil{
 					planeStatus.WpDist = metersToFeet(float32(mi.WpDist))
 					planeStatus.AltError = metersToFeet(mi.AltError)
 					planeStatus.XtrackError = metersToFeet(mi.XtrackError)
 					planeStatus.TargetBearing = float32(mi.TargetBearing)
 				}
-			
+
 			}
 		}
 	}

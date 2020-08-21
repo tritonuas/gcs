@@ -5,9 +5,8 @@ import (
 	"github.com/gorilla/websocket"
 	//"golang.org/x/time/rate"
 	"net/http"
-	pb "github.com/tritonuas/hub/interop"
-	"github.com/golang/protobuf/jsonpb" 
-	
+	"github.com/golang/protobuf/jsonpb"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 var upgrader = websocket.Upgrader{
@@ -79,7 +78,7 @@ func (c *WebSocketClient) writePump() {
 				Indent:       "    ",
 			}
 			if err = marshaler.Marshal(w, convert); err != nil {
-				
+
 				Log.Error("error: %s", err.Error())
 			}
 		case message := <-c.plane_loc_stream:
@@ -101,7 +100,7 @@ func (c *WebSocketClient) writePump() {
 				Indent:       "    ",
 			}
 			if err = marshaler.Marshal(w, convert); err != nil {
-				
+
 				Log.Error("error: %s", err.Error())
 			}
 		case message := <-c.plane_status_stream:
@@ -123,7 +122,7 @@ func (c *WebSocketClient) writePump() {
 				Indent:       "    ",
 			}
 			if err = marshaler.Marshal(w, convert); err != nil {
-				
+
 				Log.Error("error: %s", err.Error())
 			}
 		case message := <-c.obstacle_stream:
@@ -145,7 +144,7 @@ func (c *WebSocketClient) writePump() {
 				Indent:       "    ",
 			}
 			if err = marshaler.Marshal(w, convert); err != nil {
-				
+
 				Log.Error("error: %s", err.Error())
 			}
 		}

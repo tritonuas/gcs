@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 	"strconv"
-	pb "github.com/tritonuas/hub/interop"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 func NewInteropClient(urlBase string, username string, password string) (*interopClient){
@@ -56,7 +56,7 @@ func (c *interopClient) PostTelemetry(telem *pb.Telemetry) (error) {
 		c.refreshConn = true
 		if err == nil {
 			resp.Body.Close()
-		} 
+		}
 		return err
 	}
 

@@ -2,12 +2,12 @@ package mission_edit
 
 import (
 	"os"
+	"fmt"
 	"path/filepath"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/sirupsen/logrus"
-	pb "github.com/tritonuas/hub/interop"
-	"fmt"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 var Log *logrus.Logger

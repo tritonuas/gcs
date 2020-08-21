@@ -11,15 +11,15 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
-	pb "github.com/tritonuas/hub/interop"
 	//pb "github.com/tritonuas/protos/interop"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	interopconn "github.com/tritonuas/hub/interopconn"
-	missionedit "github.com/tritonuas/hub/mission_edit"
-	pathplan "github.com/tritonuas/hub/path_plan"
-	hub "github.com/tritonuas/hub/hub_def"
+	interopconn "github.com/tritonuas/hub/internal/interopconn"
+	missionedit "github.com/tritonuas/hub/internal/mission_edit"
+	pathplan "github.com/tritonuas/hub/internal/path_plan"
+	hub "github.com/tritonuas/hub/internal/hub_def"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 var Log *logrus.Logger
@@ -80,7 +80,7 @@ func main() {
 	Log.Info("Start Hub")
 
 	cur_hub := hub.CreateHub()
-	
+
 	// Create Topics
 	Log.Info("hello")
 	cur_hub.AddTopic("telemetry")
