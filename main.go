@@ -24,6 +24,7 @@ import (
   mav "github.com/tritonuas/hub/internal/mavlink"
   udp "github.com/tritonuas/hub/internal/udp"
   ws "github.com/tritonuas/hub/internal/websocket"
+  utils "github.com/tritonuas/hub/internal/utils"
 )
 
 var Log *logrus.Logger
@@ -75,11 +76,11 @@ func main() {
 	Log.Info("MARCO")
 	//_, _ := osext.ExecutableFolder()
 	Log.Warning(*hub_path)
-	missionfolder := get_path("", *hub_path, "/missions/")
-	pathfolder := get_path("", *hub_path, "/paths/")
-	swaggerfolder := get_path("", *hub_path, "/third_party/swagger-ui/")
+	missionfolder := utils.get_path("", *hub_path, "/missions/")
+	pathfolder := utils.get_path("", *hub_path, "/paths/")
+	swaggerfolder := utils.get_path("", *hub_path, "/third_party/swagger-ui/")
 	Log.Warning(missionfolder)
-	setupHelpers(missionfolder)
+	sim.setupHelpers(missionfolder)
 
 	Log.Info("Start Hub")
 
@@ -95,18 +96,18 @@ func main() {
 	cur_hub.AddTopic("mission_status")
 	cur_hub.AddTopic("plane_obc_data")
 
-	go listenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
+	go mav.listenAndServe(*mav_device, cur_hub.Topics["telemetry"], cur_hub.Topics["plane_loc"], cur_hub.Topics["plane_status"], *socket_addr)
 
-	createUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
+	udp.createUDPBackend(cur_hub.Topics["plane_obc_data"], ":5555")
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/websocket/gcs", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(nil, cur_hub.Topics["mission_status"].Subscriber(100), cur_hub.Topics["plane_loc"].Subscriber(3), cur_hub.Topics["plane_status"].Subscriber(1),cur_hub.Topics["obstacle_data"].Subscriber(1), w, r)
+		ws.serveWs(nil, cur_hub.Topics["mission_status"].Subscriber(100), cur_hub.Topics["plane_loc"].Subscriber(3), cur_hub.Topics["plane_status"].Subscriber(1),cur_hub.Topics["obstacle_data"].Subscriber(1), w, r)
 	})
 
 	mux.HandleFunc("/websocket/obc", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(cur_hub.Topics["plane_obc_data"].Subscriber(100), nil, nil, nil,nil, w, r)
+		ws.serveWs(cur_hub.Topics["plane_obc_data"].Subscriber(100), nil, nil, nil,nil, w, r)
 	})
 
 	Log.Info("hello")
