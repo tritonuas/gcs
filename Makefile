@@ -6,7 +6,7 @@ all: build run
 
 .PHONY: docker-build
 docker-build:
-	docker build -t tritonuas/hub --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} .
+	docker build -t tritonuas/hub --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -f build/package/Dockerfile .
 
 .PHONY: docker-run
 docker-run:
