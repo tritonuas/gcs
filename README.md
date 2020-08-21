@@ -24,6 +24,8 @@ The hub is currently hosted on [Dockerhub](https://hub.docker.com/repository/doc
 git config --global url."git@github.com:".insteadOf "https://github.com/"
 # Build go application
 go build
+# Run hub
+./hub
 ```
 
 or 
