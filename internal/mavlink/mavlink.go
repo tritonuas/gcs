@@ -1,4 +1,4 @@
-package main
+package mav
 
 import (
 	"net"

@@ -20,6 +20,10 @@ import (
 	pathplan "github.com/tritonuas/hub/internal/path_plan"
 	hub "github.com/tritonuas/hub/internal/hub_def"
 	pb "github.com/tritonuas/hub/internal/interop"
+  sim "github.com/tritonuas/hub/internal/sim"
+  mav "github.com/tritonuas/hub/internal/mavlink"
+  udp "github.com/tritonuas/hub/internal/udp"
+  ws "github.com/tritonuas/hub/internal/websocket"
 )
 
 var Log *logrus.Logger
