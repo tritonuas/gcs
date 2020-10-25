@@ -6,14 +6,23 @@
 
 
 
-Hub is a backend webserver that faciliates communication between many other modules in the TUAS system, including [Houston](https://github.com/tritonuas/houston), [OBC](https://github.com/tritonuas/planeobc), Mavproxy, and more. It also communicates with the [Interop Judging Server](https://github.com/auvsi-suas/interop) to grab the mission plans and submit waypoints.  
-As of now, it does NOT deal with computer vision stuff; for that, see [matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).  
+Hub is a backend webserver that faciliates communication between many
+other modules in the TUAS system, including
+[Houston](https://github.com/tritonuas/houston),
+[OBC](https://github.com/tritonuas/planeobc), Mavproxy, and more. It
+also communicates with the [Interop Judging
+Server](https://github.com/auvsi-suas/interop) to grab the mission
+plans and submit waypoints.
+As of now, it does NOT deal with computer vision stuff; for that, see
+[matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).
 
-The hub is currently hosted on [Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
+The hub is currently hosted on
+[Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
 
 ## Dependencies
 
 - [go 1.14](https://golang.org/)
+- [libzmq](https://zeromq.org/download/)
 
 ## Usage
 
@@ -28,27 +37,27 @@ go build
 ./hub
 ```
 
-or 
+or
 
 ```sh
 # Runs above commands
-make 
+make
 ```
 
-NOTE: changing git url is only necesssary when [go-mavlink](https://github.com/tritonuas/go-mavlink) 
+NOTE: changing git url is only necesssary when [go-mavlink](https://github.com/tritonuas/go-mavlink)
 is private. This causes authentication issues when pulling the private module
 
 
 hub is running if you see logs printed out, like below.
 
-![logs](./assets/logs.png)  
+![logs](./assets/logs.png)
 
 ### Docker
 
 ```sh
 # build docker image
-docker build -t tritonuas/hub --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} . 
-or 
+docker build -t tritonuas/hub --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} .
+or
 make docker-build
 
 # Run docker container
@@ -82,5 +91,3 @@ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' con
 ```
 make test
 ```
-
-
