@@ -8,16 +8,16 @@ import (
 	"net/url"
 	"time"
 	"strconv"
-	"github.com/sirupsen/logrus"
+	// "github.com/sirupsen/logrus"
 	pb "github.com/tritonuas/hub/internal/interop"
 )
 
-var Log = logrus.New()
+// var Log = logrus.New()
 
 func NewInteropClient(urlBase string, username string, password string) (*interopClient){
 	cookieJar, _ := cookiejar.New(nil)
 	client := &interopClient{username: username, urlBase: urlBase, password: password, client:&http.Client{Jar: cookieJar}}
-	go client.run()
+ go client.Run()
 	return client
 }
 
@@ -48,7 +48,8 @@ func (c *interopClient) setCredentials(urlBase string, username string, password
 }
 
 func (c *interopClient) PostTelemetry(telem *pb.Telemetry) (error) {
-	resp, err := c.client.PostForm(c.urlBase+"/api/telemetry", url.Values{
+	url_telemetry := c.urlBase + "/api/telemetry"
+	resp, err := c.client.PostForm(url_telemetry, url.Values{
 		"latitude":     {float64ToStr(telem.GetLatitude())},
 		"longitude":    {float64ToStr(telem.GetLongitude())},
 		"altitude_msl": {float64ToStr(telem.GetAltitudeMsl())},
@@ -66,7 +67,7 @@ func (c *interopClient) PostTelemetry(telem *pb.Telemetry) (error) {
 	return nil
 }
 
-func (c *interopClient) makeRequest(request string) ([]byte, error) {
+func (c *interopClient) MakeRequest(request string) ([]byte, error) {
 	res, err := c.client.Get(c.urlBase + request)
 	if err != nil {
 		Log.Warning("HTTP execute Request error")
@@ -89,10 +90,9 @@ func (c *interopClient) makeRequest(request string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *interopClient) run() {
+func (c *interopClient) Run() {
 	//go c.GetObstacles()
 	//go c.updateTelemetry()
-	Log.Warning("interopclient run")
 	for {
 		c.refreshConn = false
 		c.connected = false
