@@ -39,7 +39,7 @@ func (c *InteropReport) runStream() {
 }
 
 func (c *InteropReport) GetMission() (*pb.Mission, error) {
-	body, err := c.client.makeRequest("/api/missions/1")
+	body, err := c.client.MakeRequest("/api/missions/1")
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (c *InteropReport) GetMission() (*pb.Mission, error) {
 }
 
 func (c *InteropReport) GetObstacles() (*pb.Obstacles, error) {
-	body, err := c.client.makeRequest("/api/obstacles")
+	body, err := c.client.MakeRequest("/api/obstacles")
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,3 @@ func (c *InteropReport) ObstacleStream() (chan *pb.Obstacles, error) {
 	c.clients[ch] = true
 	return ch, nil
 }
-
-
-
-

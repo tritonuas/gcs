@@ -100,3 +100,44 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, error){
 
 	return body, nil
 }
+
+// TODO: all of this stuff with actually methods that work
+func (c *Client) Put(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) Delete(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) GetTeams(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) GetMission(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) PostTelemetry(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) GetODLCs(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) GetODLC(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) PutODLC(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) DeleteODLC(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) GetODLCImage(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) PostODLCImage(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) PutODLCImage(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
+func (c *Client) DeleteODLCImage(uri string) ([]byte, error){
+	return []byte("-1"), errors.New("TODO")
+}
