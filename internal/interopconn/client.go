@@ -347,17 +347,52 @@ func (c *Client) DeleteODLC(id int) error {
 
 	return err
 }
-func (c *Client) GetODLCImage(uri string) ([]byte, error) {
-	return []byte("-1"), errors.New("TODO")
+
+// GetODLCImage gets the raw binary image content of a specified ODLC that has
+// already had image data uploaded to the server
+func (c *Client) GetODLCImage(id int) ([]byte, error) {
+	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+
+	body, err := c.Get(url)
+
+	if err != nil {
+		Log.Error("ERROR in GetODLCImage(int) in c.Get:")
+		Log.Error(err)
+	}
+
+	return body, err
 }
 
-func (c *Client) PostODLCImage(uri string) ([]byte, error) {
-	return []byte("-1"), errors.New("TODO")
+// PostODLCImage is equivalent to PutODLCImage`
+func (c *Client) PostODLCImage(id int, data []byte) error {
+	return c.PutODLCImage(id, data)
 }
 
-func (c *Client) PutODLCImage(uri string) ([]byte, error) {
-	return []byte("-1"), errors.New("TODO")
+// PutODLCImage puts the binary image content of the ODLC to the server for the
+// specified ODLC id
+func (c *Client) PutODLCImage(id int, image []byte) error {
+	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+
+	_, err := c.Put(url, bytes.NewReader(image))
+
+	if err != nil {
+		Log.Error("ERROR in PutODLCImage(int, []byte) in c.Put:")
+		Log.Error(err)
+	}
+
+	return err
 }
-func (c *Client) DeleteODLCImage(uri string) ([]byte, error) {
-	return []byte("-1"), errors.New("TODO")
+
+// DeleteODLCImage deletes the image saved at the specified ODLC
+func (c *Client) DeleteODLCImage(id int) error {
+	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+
+	_, err := c.Delete(url)
+
+	if err != nil {
+		Log.Error("ERROR in DeleteODLCImage(int) in c.Delete:")
+		Log.Error(err)
+	}
+
+	return err
 }

@@ -3,7 +3,7 @@ module github.com/tritonuas/hub
 go 1.14
 
 require (
-	github.com/golang/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.1
 	github.com/gorilla/websocket v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.3
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
@@ -14,6 +14,7 @@ require (
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	google.golang.org/genproto v0.0.0-20190627203621-eb59cef1c072
-	google.golang.org/grpc v1.21.1
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
+	google.golang.org/grpc v1.27.0
+	google.golang.org/protobuf v1.25.0
 )
