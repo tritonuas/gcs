@@ -35,7 +35,7 @@ type Client struct {
 // NewClient creates creates an instance of the interop Client struct
 // to make requests with the interop server.
 // func NewClient(url string, username string, password string, timeout int, max_concurrent int, max_retries int) *Client{
-func NewClient(url string, username string, password string) *Client {
+func NewClient(url string, username string, password string) (*Client, error) {
 	client := &Client{
 		url:      "http://" + url,
 		username: username,
@@ -57,9 +57,9 @@ func NewClient(url string, username string, password string) *Client {
 	auth_json, _ := json.Marshal(auth)
 
 	// All endpoints are authenticated, so always login
-	client.Post("/api/login", bytes.NewBuffer(auth_json))
+	_, err := client.Post("/api/login", bytes.NewBuffer(auth_json))
 
-	return client
+	return client, err
 }
 
 // Get makes a GET request to server.
