@@ -1,20 +1,25 @@
 package interopconn
 
 type InteropError struct {
-	get             bool
-	post            bool
-	put             bool
-	delete          bool
-	getTeams        bool
-	getMission      bool
-	postTelem       bool
-	getODLCs        bool
-	getODLC         bool
-	postODLC        bool
-	putODLC         bool
-	deleteODLC      bool
-	getODLCImage    bool
-	postODLCImage   bool
-	putODLCImage    bool
-	deleteODLCImage bool
+	get    bool // Signifies error from a get request
+	post   bool // Signifies error from a post request
+	put    bool // Signifies error from a put request
+	delete bool // Signifies error from a delete request
+	output bool // Signifies that the output of the func was invalid
+	input  bool // Signifies that the input(params) to the func was invalid
+}
+
+// NewInteropError creates an InteropError object with all error flags set to
+// false.
+func NewInteropError() *InteropError {
+	err := &InteropError{
+		get:    false,
+		post:   false,
+		put:    false,
+		delete: false,
+		output: false,
+		input:  false,
+	}
+
+	return err
 }
