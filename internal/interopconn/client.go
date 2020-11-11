@@ -171,22 +171,13 @@ func (c *Client) GetMission(id int) (*Mission, InteropError) {
 
 // PostTelemetry posts the ship's telemetry data to the server
 func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
-	intErr := NewInteropError()
-
 	// Convert telemetry data to json
-	telemJSON, err := json.Marshal(telem)
-
-	if err != nil {
-		intErr.input = true
-	}
+	telemJSON, _ := json.Marshal(telem)
 
 	// Post telemetry to server
-	_, tempIntErr := c.Post("/api/telemetry", bytes.NewReader(telemJSON))
+	_, intErr := c.Post("/api/telemetry", bytes.NewReader(telemJSON))
 
-	// Update original intErr object with the post error status from the func call
-	intErr.post = tempIntErr.post
-
-	return *intErr
+	return intErr
 }
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
@@ -233,91 +224,59 @@ func (c *Client) GetODLC(id int) (*Odlc, InteropError) {
 // PostODLC posts the ODLC object to the server and then updates the original
 // odlc object parameter with the odlc id and the user
 func (c *Client) PostODLC(odlc *Odlc) InteropError {
-	intErr := NewInteropError()
-
 	// Convert ODLC to json format
-	odlcJSON, err := json.Marshal(odlc)
-
-	if err != nil {
-		intErr.input = true
-	}
+	odlcJSON, _ := json.Marshal(odlc)
 
 	// Post the json to the server
-	updatedODLC, tempIntErr := c.Post("/api/odlcs", bytes.NewReader(odlcJSON))
-
-	intErr.post = tempIntErr.post
+	updatedODLC, intErr := c.Post("/api/odlcs", bytes.NewReader(odlcJSON))
 
 	// Update the original parameter with the new values passed through
-	err = json.Unmarshal(updatedODLC, &odlc)
+	err := json.Unmarshal(updatedODLC, &odlc)
 
 	if err != nil {
 		intErr.output = true
 	}
 
-	return *intErr
+	return intErr
 }
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
 // specific ODLC with the values passed through.
 func (c *Client) PutODLC(id int, odlc *Odlc) InteropError {
-	intErr := NewInteropError()
-
 	// Convert ODLC to json format
-	odlcJSON, err := json.Marshal(odlc)
-
-	if err != nil {
-		intErr.input = true
-	}
+	odlcJSON, _ := json.Marshal(odlc)
 
 	url := "/api/odlcs/" + strconv.Itoa(id)
 
 	// Put the json to the server
-	updatedODLC, tempIntErr := c.Put(url, bytes.NewReader(odlcJSON))
-
-	intErr.put = tempIntErr.put
+	updatedODLC, intErr := c.Put(url, bytes.NewReader(odlcJSON))
 
 	// Update the original parameter with the new values passed through
-	err = json.Unmarshal(updatedODLC, &odlc)
+	err := json.Unmarshal(updatedODLC, &odlc)
 
 	if err != nil {
 		intErr.output = true
 	}
 
-	return *intErr
+	return intErr
 }
 
 // DeleteODLC deletes the ODLC at the specified id number
 func (c *Client) DeleteODLC(id int) InteropError {
-	intErr := NewInteropError()
-
-	if id < 1 {
-		intErr.input = true
-	}
-
 	url := "/api/odlcs/" + strconv.Itoa(id)
-	_, tempIntErr := c.Delete(url)
+	_, intErr := c.Delete(url)
 
-	intErr.delete = tempIntErr.delete
-
-	return *intErr
+	return intErr
 }
 
 // GetODLCImage gets the raw binary image content of a specified ODLC that has
 // already had image data uploaded to the server
 func (c *Client) GetODLCImage(id int) ([]byte, InteropError) {
-	intErr := NewInteropError()
-
-	if id < 1 {
-		intErr.input = true
-	}
-
 	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
 
-	body, tempIntErr := c.Get(url)
+	body, intErr := c.Get(url)
 
-	intErr.get = tempIntErr.get
-
-	return body, *intErr
+	return body, intErr
 }
 
 // PostODLCImage is equivalent to PutODLCImage`
@@ -328,36 +287,18 @@ func (c *Client) PostODLCImage(id int, data []byte) InteropError {
 // PutODLCImage puts the binary image content of the ODLC to the server for the
 // specified ODLC id
 func (c *Client) PutODLCImage(id int, image []byte) InteropError {
-	intErr := NewInteropError()
-
-	if id < 1 {
-		intErr.input = true
-	}
-	// TODO: Potentially check to make sure that the image passed through is
-	// 		 correct and set an input error if not?
-
 	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
 
-	_, tempIntErr := c.Put(url, bytes.NewReader(image))
+	_, intErr := c.Put(url, bytes.NewReader(image))
 
-	intErr.put = tempIntErr.put
-
-	return *intErr
+	return intErr
 }
 
 // DeleteODLCImage deletes the image saved at the specified ODLC
 func (c *Client) DeleteODLCImage(id int) InteropError {
-	intErr := NewInteropError()
-
-	if id < 1 {
-		intErr.input = true
-	}
-
 	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
 
-	_, tempIntErr := c.Delete(url)
+	_, intErr := c.Delete(url)
 
-	intErr.delete = tempIntErr.delete
-
-	return *intErr
+	return intErr
 }

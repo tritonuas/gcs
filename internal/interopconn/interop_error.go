@@ -6,7 +6,6 @@ type InteropError struct {
 	put    bool // Signifies error from a put request
 	delete bool // Signifies error from a delete request
 	output bool // Signifies that the output of the func was invalid
-	input  bool // Signifies that the input(params) to the func was invalid
 }
 
 // NewInteropError creates an InteropError object with all error flags set to
@@ -18,7 +17,6 @@ func NewInteropError() *InteropError {
 		put:    false,
 		delete: false,
 		output: false,
-		input:  false,
 	}
 
 	return err
