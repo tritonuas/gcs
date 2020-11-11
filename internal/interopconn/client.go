@@ -68,7 +68,10 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 	Log.Debug(c.url + uri)
 	resp, err := c.client.Get(c.url + uri)
 
-	if err != nil {
+	// We have to also check the status code because for some reason the Get
+	// function only will return an error object on 2xx error codes, so to catch
+	// a 4xx error we need to check the status code directly
+	if err != nil || resp.StatusCode != 200 {
 		intErr.get = true
 	}
 
@@ -88,7 +91,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 	Log.Debug(c.url + uri)
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
-	if err != nil {
+	if err != nil || resp.StatusCode != 200 {
 		intErr.post = true
 	}
 
@@ -110,7 +113,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 	// set the request header Content-Type for json
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
-	if err != nil {
+	if err != nil || resp.StatusCode != 200 {
 		intErr.put = true
 	}
 
@@ -128,7 +131,7 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
 
 	resp, err := c.client.Do(req)
-	if err != nil {
+	if err != nil || resp.StatusCode != 200 {
 		intErr.delete = true
 	}
 
