@@ -50,8 +50,18 @@ func TestGetTeams(t *testing.T) {
 	if len(teams) != 1 {
 		t.Errorf("Expected length of teams array to be 1, was %d", len(teams))
 	}
-	if intErr.get {
-		t.Error("Get Error")
+	if intErr.output {
+		t.Error("Output Error")
+	}
+}
+
+// TestGetMission tests to make sure that the mission gotten from the server
+// is correctly set
+func TestGetMission(t *testing.T) {
+	mission, intErr := client.GetMission(1)
+
+	if mission.GetId() != 1 {
+		t.Errorf("Expected id of mission to be 1, was %d", mission.GetId())
 	}
 	if intErr.output {
 		t.Error("Output Error")
