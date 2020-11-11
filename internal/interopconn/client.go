@@ -53,10 +53,10 @@ func NewClient(url string, username string, password string) (*Client, InteropEr
 
 	// jsonify authentication
 	auth := map[string]string{"username": username, "password": password}
-	auth_json, _ := json.Marshal(auth)
+	authJSON, _ := json.Marshal(auth)
 
 	// All endpoints are authenticated, so always login
-	_, intErr := client.Post("/api/login", bytes.NewBuffer(auth_json))
+	_, intErr := client.Post("/api/login", bytes.NewBuffer(authJSON))
 
 	return client, intErr
 }
