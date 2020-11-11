@@ -68,4 +68,28 @@ func TestGetMission(t *testing.T) {
 	}
 }
 
+// TestPostTelemetry tests to make sure that posting correct telemtry can be
+// uploaded to the server
+func TestPostTelemetry(t *testing.T) {
+	var lat float64 = 38
+	var long float64 = -76
+	var alt float64 = 100
+	var head float64 = 90
+	telem := Telemetry{
+		Latitude:  &lat,
+		Longitude: &long,
+		Altitude:  &alt,
+		Heading:   &head,
+	}
+
+	intErr := client.PostTelemetry(&telem)
+
+	if intErr.post {
+		t.Error("Expected post error to be false, but it was true")
+	}
+	if intErr.input {
+		t.Error("Expected input error to be false, but it was true")
+	}
+}
+
 // TODO: rest of unit tests for client functionality
