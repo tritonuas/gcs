@@ -41,6 +41,9 @@ func TestNewClientSuccess(t *testing.T) {
 
 // TODO: add method to test timout functionality once that is added to the
 // client struct
+
+// TestGetTeams tests to make sure the array of team statuses from the server
+// are correctly set
 func TestGetTeams(t *testing.T) {
 	teams, intErr := client.GetTeams()
 
