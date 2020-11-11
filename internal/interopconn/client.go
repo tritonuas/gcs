@@ -72,7 +72,7 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 	// function only will return an error object on 2xx error codes, so to catch
 	// a 4xx error we need to check the status code directly
 	if err != nil || resp.StatusCode != 200 {
-		intErr.get = true
+		intErr.Get = true
 	}
 
 	defer resp.Body.Close()
@@ -92,7 +92,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
 	if err != nil || resp.StatusCode != 200 {
-		intErr.post = true
+		intErr.Post = true
 	}
 
 	defer resp.Body.Close()
@@ -114,7 +114,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
-		intErr.put = true
+		intErr.Put = true
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -132,7 +132,7 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 
 	resp, err := c.client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
-		intErr.delete = true
+		intErr.Delete = true
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -149,7 +149,7 @@ func (c *Client) GetTeams() ([]TeamStatus, InteropError) {
 	err := json.Unmarshal(data, &teams)
 
 	if err != nil {
-		intErr.output = true
+		intErr.Output = true
 	}
 
 	return teams, intErr
@@ -163,7 +163,7 @@ func (c *Client) GetMission(id int32) (*Mission, InteropError) {
 	err := json.Unmarshal(data, &mission)
 
 	if err != nil {
-		intErr.output = true
+		intErr.Output = true
 	}
 
 	return mission, intErr
@@ -197,7 +197,7 @@ func (c *Client) GetODLCs(mission int32) ([]Odlc, InteropError) {
 	err := json.Unmarshal(data, &odlcList)
 
 	if err != nil {
-		intErr.output = true
+		intErr.Output = true
 	}
 
 	return odlcList, intErr
@@ -215,7 +215,7 @@ func (c *Client) GetODLC(id int32) (*Odlc, InteropError) {
 	err := json.Unmarshal(data, &odlc)
 
 	if err != nil {
-		intErr.output = true
+		intErr.Output = true
 	}
 
 	return &odlc, intErr
@@ -234,7 +234,7 @@ func (c *Client) PostODLC(odlc *Odlc) InteropError {
 	err := json.Unmarshal(updatedODLC, &odlc)
 
 	if err != nil {
-		intErr.output = true
+		intErr.Output = true
 	}
 
 	return intErr
@@ -255,7 +255,7 @@ func (c *Client) PutODLC(id int32, odlc *Odlc) InteropError {
 	err := json.Unmarshal(updatedODLC, &odlc)
 
 	if err != nil {
-		intErr.output = true
+		intErr.Output = true
 	}
 
 	return intErr
