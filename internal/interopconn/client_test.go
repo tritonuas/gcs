@@ -112,7 +112,36 @@ func TestPostBadTelemetry(t *testing.T) {
 
 // TestODLCs tests the whole workflow dealing with ODLCs
 func TestODLCs(t *testing.T) {
-	// Testing psot
+	// Test posting an odlc
+	odlcMission := int32(1)
+	odlcType := Odlc_STANDARD
+	postODLC := &Odlc{
+		Mission: &odlcMission,
+		Type:    &odlcType,
+	}
+
+	intErr := client.PostODLC(postODLC)
+	if intErr.post {
+		t.Error("Expected post error to be false, but it was true")
+	}
+	if intErr.output {
+		t.Error("Expected output error to be false, but it was true")
+	}
+	if postODLC.GetId() == 0 {
+		t.Error("Expected to have an updated odlc ID, but it was still 0")
+	}
+
+	// Test getting an odlc
+
+	// Test updating an odlc
+
+	// Test uploading an image
+
+	// Test getting an image
+
+	// Test deleting an image
+
+	// Test deleting an odlc
 }
 
 // TODO: rest of unit tests for client functionality
