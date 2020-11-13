@@ -137,7 +137,7 @@ func TestODLCs(t *testing.T) {
 	}
 
 	// Test getting an odlc
-	getODLC, intErr := client.GetODLC(int(postODLC.GetId()))
+	getODLC, intErr := client.GetODLC(postODLC.GetId())
 	if intErr.get {
 		t.Error("Expected GetODLC get error to be false, but it was true")
 	}
@@ -208,7 +208,7 @@ func TestODLCs(t *testing.T) {
 	// Test updating an odlc
 	putShape := Odlc_CIRCLE
 	postODLC.Shape = &putShape
-	intErr = client.PutODLC(int(postODLC.GetId()), postODLC)
+	intErr = client.PutODLC(postODLC.GetId(), postODLC)
 	if intErr.get {
 		t.Error("Expected PutODLC get error to be false, but it was true")
 	}
@@ -236,13 +236,13 @@ func TestODLCs(t *testing.T) {
 	png.Encode(buff, img)
 	b := []byte(fmt.Sprint(buff))
 	// Actually put the image to the server
-	intErr = client.PutODLCImage(int(postODLC.GetId()), b)
+	intErr = client.PutODLCImage(postODLC.GetId(), b)
 	if intErr.put {
 		t.Error("Expected PutODLCIMage put error to be false, but it was true")
 	}
 
 	// Test getting an image
-	getImage, intErr := client.GetODLCImage(int(postODLC.GetId()))
+	getImage, intErr := client.GetODLCImage(postODLC.GetId())
 	if intErr.get {
 		t.Error("Expected GetODLCImage get error to be false, but it was true")
 	}
@@ -251,13 +251,13 @@ func TestODLCs(t *testing.T) {
 	}
 
 	// Test deleting an image
-	intErr = client.DeleteODLCImage(int(postODLC.GetId()))
+	intErr = client.DeleteODLCImage(postODLC.GetId())
 	if intErr.delete {
 		t.Error("Expected DeleteODLCImage delete error to be false, but it was true")
 	}
 
 	// Test deleting an odlc
-	intErr = client.DeleteODLC(int(postODLC.GetId()))
+	intErr = client.DeleteODLC(postODLC.GetId())
 	if intErr.delete {
 		t.Error("Expected DeleteODLC delete error to be false, but it was true")
 	}
