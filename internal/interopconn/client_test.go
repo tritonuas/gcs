@@ -22,7 +22,7 @@ func TestNewClientFailure(t *testing.T) {
 
 	_, intErr := NewClient(url, badInteropUser, badInteropPass)
 
-	if !intErr.post {
+	if !intErr.Post {
 		t.Error("Expected unsuccessful login, but login was successfull.")
 	}
 }
@@ -39,7 +39,7 @@ func TestNewClientSuccess(t *testing.T) {
 	var intErr InteropError
 	client, intErr = NewClient(url, interopUser, interopPass)
 
-	if intErr.post {
+	if intErr.Post {
 		t.Error("Expected successful login, but login was unsuccessful.")
 	}
 }
@@ -55,7 +55,7 @@ func TestGetTeams(t *testing.T) {
 	if len(teams) != 1 {
 		t.Errorf("Expected length of teams array to be 1, was %d", len(teams))
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Output Error")
 	}
 }
@@ -68,7 +68,7 @@ func TestGetMission(t *testing.T) {
 	if mission.GetId() != 1 {
 		t.Errorf("Expected id of mission to be 1, was %d", mission.GetId())
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Output Error")
 	}
 }
@@ -89,7 +89,7 @@ func TestPostTelemetry(t *testing.T) {
 
 	intErr := client.PostTelemetry(&telem)
 
-	if intErr.post {
+	if intErr.Post {
 		t.Error("Expected post error to be false, but it was true")
 	}
 }
@@ -110,7 +110,7 @@ func TestPostBadTelemetry(t *testing.T) {
 
 	intErr := client.PostTelemetry(&telem)
 
-	if !intErr.post {
+	if !intErr.Post {
 		t.Error("Expected post error to be true, but it was false")
 	}
 }
@@ -126,10 +126,10 @@ func TestODLCs(t *testing.T) {
 	}
 
 	intErr := client.PostODLC(postODLC)
-	if intErr.post {
+	if intErr.Post {
 		t.Error("Expected PostODLC post error to be false, but it was true")
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Expected PostODLC output error to be false, but it was true")
 	}
 	if postODLC.GetId() == 0 {
@@ -138,10 +138,10 @@ func TestODLCs(t *testing.T) {
 
 	// Test getting an odlc
 	getODLC, intErr := client.GetODLC(postODLC.GetId())
-	if intErr.get {
+	if intErr.Get {
 		t.Error("Expected GetODLC get error to be false, but it was true")
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Expected GetODLC output error to be false, but it was true")
 	}
 	if !compareODLCs(getODLC, postODLC) {
@@ -149,10 +149,10 @@ func TestODLCs(t *testing.T) {
 	}
 
 	getODLCs, intErr := client.GetODLCs(-1)
-	if intErr.get {
+	if intErr.Get {
 		t.Error("Expected GetODLCs get error to be false, but it was true")
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Expected GetODLCs output error to be false, but it was true")
 	}
 	// check if the posted odlc is in the list of odlcs
@@ -168,10 +168,10 @@ func TestODLCs(t *testing.T) {
 	}
 
 	getODLCsMission, intErr := client.GetODLCs(1)
-	if intErr.get {
+	if intErr.Get {
 		t.Error("Expected GetODLCsMission get error to be false, but it was true")
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Expected GetODLCsMission output error to be false, but it was true")
 	}
 	// check if the posted odlc is also in this list of odlcs
@@ -187,10 +187,10 @@ func TestODLCs(t *testing.T) {
 	}
 
 	getODLCsBadMission, intErr := client.GetODLCs(2)
-	if intErr.get {
+	if intErr.Get {
 		t.Error("Expected getODLCsBadMission get error to be false, but it was true")
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Expected getODLCsBadMission output error to be false, but it was true")
 	}
 	// check to make sure that the posted odlc is not also in this list of odlcs
@@ -209,10 +209,10 @@ func TestODLCs(t *testing.T) {
 	putShape := Odlc_CIRCLE
 	postODLC.Shape = &putShape
 	intErr = client.PutODLC(postODLC.GetId(), postODLC)
-	if intErr.get {
+	if intErr.Get {
 		t.Error("Expected PutODLC get error to be false, but it was true")
 	}
-	if intErr.output {
+	if intErr.Output {
 		t.Error("Expected PutODLC output error to be false, but it was true")
 	}
 
@@ -237,13 +237,13 @@ func TestODLCs(t *testing.T) {
 	b := []byte(fmt.Sprint(buff))
 	// Actually put the image to the server
 	intErr = client.PutODLCImage(postODLC.GetId(), b)
-	if intErr.put {
+	if intErr.Put {
 		t.Error("Expected PutODLCIMage put error to be false, but it was true")
 	}
 
 	// Test getting an image
 	getImage, intErr := client.GetODLCImage(postODLC.GetId())
-	if intErr.get {
+	if intErr.Get {
 		t.Error("Expected GetODLCImage get error to be false, but it was true")
 	}
 	if !bytes.Equal(getImage, b) {
@@ -252,13 +252,13 @@ func TestODLCs(t *testing.T) {
 
 	// Test deleting an image
 	intErr = client.DeleteODLCImage(postODLC.GetId())
-	if intErr.delete {
+	if intErr.Delete {
 		t.Error("Expected DeleteODLCImage delete error to be false, but it was true")
 	}
 
 	// Test deleting an odlc
 	intErr = client.DeleteODLC(postODLC.GetId())
-	if intErr.delete {
+	if intErr.Delete {
 		t.Error("Expected DeleteODLC delete error to be false, but it was true")
 	}
 
