@@ -1,13 +1,14 @@
-package interopconn;
+package interopconn
 
 import (
-	pb "github.com/tritonuas/hub/internal/interop"
-	"github.com/golang/protobuf/jsonpb"
 	"time"
+
+	"github.com/golang/protobuf/jsonpb"
+	pb "github.com/tritonuas/hub/internal/interop"
 )
 
 // Needs Renaming and cleanup
-func NewInteropReport(urlBase string, username string, password string, obstacleRate int) (*InteropReport) {
+func NewInteropReport(urlBase string, username string, password string, obstacleRate int) *InteropReport {
 	client := NewInteropClient(urlBase, username, password)
 	report := &InteropReport{client: client, obstacleRate: obstacleRate, clients: make(map[chan *pb.Obstacles]bool)}
 	go report.Run()
@@ -46,7 +47,7 @@ func (c *InteropReport) GetMission() (*pb.Mission, error) {
 
 	mission := &pb.Mission{}
 	if err = jsonpb.UnmarshalString(string(body), mission); err != nil {
-		Log.Error("error: %s", err.Error())
+		Log.Errorf("error: %s", err.Error())
 		return nil, err
 	}
 	return mission, nil
@@ -60,13 +61,13 @@ func (c *InteropReport) GetObstacles() (*pb.Obstacles, error) {
 
 	obstacles := &pb.Obstacles{}
 	if err = jsonpb.UnmarshalString(string(body), obstacles); err != nil {
-		Log.Error("error: %s", err.Error())
+		Log.Errorf("error: %s", err.Error())
 		return nil, err
 	}
 	return obstacles, nil
 }
 
-func (c *InteropReport) PostTelemetry(telem *pb.Telemetry) (error) {
+func (c *InteropReport) PostTelemetry(telem *pb.Telemetry) error {
 	return c.client.PostTelemetry(telem)
 }
 
