@@ -182,11 +182,11 @@ func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
-func (c *Client) GetODLCs(mission int32) ([]Odlc, InteropError) {
+func (c *Client) GetODLCs(missionID int32) ([]Odlc, InteropError) {
 	url := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
-	if mission > -1 {
-		url += "?mission=" + strconv.Itoa(int(mission))
+	if missionID > -1 {
+		url += "?mission=" + strconv.Itoa(int(missionID))
 	}
 
 	// Get request to the server
