@@ -183,14 +183,14 @@ func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
 func (c *Client) GetODLCs(missionID int32) ([]Odlc, InteropError) {
-	url := "/api/odlcs"
+	uri := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
 	if missionID > -1 {
-		url += "?mission=" + strconv.Itoa(int(missionID))
+		uri += "?mission=" + strconv.Itoa(int(missionID))
 	}
 
 	// Get request to the server
-	data, intErr := c.Get(url)
+	data, intErr := c.Get(uri)
 
 	// List to hold all of the ODLC objects we receive
 	var odlcList []Odlc
@@ -205,10 +205,10 @@ func (c *Client) GetODLCs(missionID int32) ([]Odlc, InteropError) {
 
 // GetODLC gets a single ODLC with the ODLC's id
 func (c *Client) GetODLC(id int32) (*Odlc, InteropError) {
-	url := "/api/odlcs/" + strconv.Itoa(int(id))
+	uri := "/api/odlcs/" + strconv.Itoa(int(id))
 
 	// Get byte array from the server
-	data, intErr := c.Get(url)
+	data, intErr := c.Get(uri)
 
 	// Convert byte array into the Odlc object
 	var odlc Odlc
@@ -246,10 +246,10 @@ func (c *Client) PutODLC(id int32, odlc *Odlc) InteropError {
 	// Convert ODLC to json format
 	odlcJSON, _ := json.Marshal(odlc)
 
-	url := "/api/odlcs/" + strconv.Itoa(int(id))
+	uri := "/api/odlcs/" + strconv.Itoa(int(id))
 
 	// Put the json to the server
-	updatedODLC, intErr := c.Put(url, bytes.NewReader(odlcJSON))
+	updatedODLC, intErr := c.Put(uri, bytes.NewReader(odlcJSON))
 
 	// Update the original parameter with the new values passed through
 	err := json.Unmarshal(updatedODLC, &odlc)
@@ -263,8 +263,8 @@ func (c *Client) PutODLC(id int32, odlc *Odlc) InteropError {
 
 // DeleteODLC deletes the ODLC at the specified id number
 func (c *Client) DeleteODLC(id int32) InteropError {
-	url := "/api/odlcs/" + strconv.Itoa(int(id))
-	_, intErr := c.Delete(url)
+	uri := "/api/odlcs/" + strconv.Itoa(int(id))
+	_, intErr := c.Delete(uri)
 
 	return intErr
 }
@@ -272,9 +272,9 @@ func (c *Client) DeleteODLC(id int32) InteropError {
 // GetODLCImage gets the raw binary image content of a specified ODLC that has
 // already had image data uploaded to the server
 func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
-	url := "/api/odlcs/" + strconv.Itoa(int(id)) + "/image"
+	uri := "/api/odlcs/" + strconv.Itoa(int(id)) + "/image"
 
-	body, intErr := c.Get(url)
+	body, intErr := c.Get(uri)
 
 	return body, intErr
 }
@@ -287,18 +287,18 @@ func (c *Client) PostODLCImage(id int32, data []byte) InteropError {
 // PutODLCImage puts the binary image content of the ODLC to the server for the
 // specified ODLC id
 func (c *Client) PutODLCImage(id int32, image []byte) InteropError {
-	url := "/api/odlcs/" + strconv.Itoa(int(id)) + "/image"
+	uri := "/api/odlcs/" + strconv.Itoa(int(id)) + "/image"
 
-	_, intErr := c.Put(url, bytes.NewReader(image))
+	_, intErr := c.Put(uri, bytes.NewReader(image))
 
 	return intErr
 }
 
 // DeleteODLCImage deletes the image saved at the specified ODLC
 func (c *Client) DeleteODLCImage(id int32) InteropError {
-	url := "/api/odlcs/" + strconv.Itoa(int(id)) + "/image"
+	uri := "/api/odlcs/" + strconv.Itoa(int(id)) + "/image"
 
-	_, intErr := c.Delete(url)
+	_, intErr := c.Delete(uri)
 
 	return intErr
 }
