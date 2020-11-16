@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	ic "github.com/tritonuas/hub/internal/interopconn"
+	ic "github.com/tritonuas/hub/internal/interop"
 )
 
 var log = logrus.New()

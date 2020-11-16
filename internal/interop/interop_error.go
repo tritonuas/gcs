@@ -1,4 +1,4 @@
-package interopconn
+package interop
 
 type InteropError struct {
 	Get    bool // Signifies error from a get request

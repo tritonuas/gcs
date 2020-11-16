@@ -5,7 +5,7 @@ This module provides a Go interface to the SUAS interoperability API.
 This module is designed to mimic the official python interface found
 here: https://github.com/auvsi-suas/interop/blob/master/client/auvsi_suas/client/client.py
 */
-package interopconn
+package interop
 
 import (
 	"bytes"
