@@ -1,4 +1,4 @@
-package interopconn
+package interop
 
 import (
 	"math"
