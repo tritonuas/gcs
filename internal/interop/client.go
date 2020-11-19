@@ -181,6 +181,9 @@ func (c *Client) GetTeams() ([]TeamStatus, InteropError) {
 
 	if err != nil {
 		intErr.Output = true
+		Log.Error("An error occurred retrieving Team Status information.")
+	} else {
+		Log.Info("Successfully retrieved Team Status information.")
 	}
 
 	return teams, intErr
@@ -196,6 +199,9 @@ func (c *Client) GetMission(id int32) (*Mission, InteropError) {
 
 	if err != nil {
 		intErr.Output = true
+		Log.Error("An error occurred retrieving Mission information.")
+	} else {
+		Log.Info("Successfully retrieved Mission information.")
 	}
 
 	return mission, intErr
@@ -208,6 +214,12 @@ func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
 
 	// Post telemetry to server
 	_, intErr := c.Post("/api/telemetry", bytes.NewReader(telemJSON))
+
+	if intErr.Post {
+		Log.Error("An error occurred submitting our Telemetry data")
+	} else {
+		Log.Info("Successfully submitted our Telemetry data")
+	}
 
 	return intErr
 }
@@ -230,6 +242,9 @@ func (c *Client) GetODLCs(missionID int32) ([]Odlc, InteropError) {
 
 	if err != nil {
 		intErr.Output = true
+		Log.Error("An error occurred retrieving ODLCs' information.")
+	} else {
+		Log.Info("Successfully retrieved ODLCs' information")
 	}
 
 	return odlcList, intErr
@@ -248,6 +263,9 @@ func (c *Client) GetODLC(id int32) (*Odlc, InteropError) {
 
 	if err != nil {
 		intErr.Output = true
+		Log.Error("An error occurred retrieving an ODLC's information")
+	} else {
+		Log.Info("Successfully retrieved an ODLC's information")
 	}
 
 	return &odlc, intErr
@@ -267,6 +285,9 @@ func (c *Client) PostODLC(odlc *Odlc) InteropError {
 
 	if err != nil {
 		intErr.Output = true
+		Log.Error("An error occurred submitting an ODLC's information")
+	} else {
+		Log.Info("Successfully submitted an ODLC's information")
 	}
 
 	return intErr
@@ -288,6 +309,9 @@ func (c *Client) PutODLC(id int32, odlc *Odlc) InteropError {
 
 	if err != nil {
 		intErr.Output = true
+		Log.Error("An error occurred updating an ODLC's information")
+	} else {
+		Log.Info("Successfully updated an ODLC's information")
 	}
 
 	return intErr
@@ -298,6 +322,12 @@ func (c *Client) DeleteODLC(id int32) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 	_, intErr := c.Delete(uri)
 
+	if intErr.Delete {
+		Log.Error("An error occurred deleting an uploaded ODLC")
+	} else {
+		Log.Info("Successfully deleted an uploaded ODLC")
+	}
+
 	return intErr
 }
 
@@ -307,6 +337,12 @@ func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	body, intErr := c.Get(uri)
+
+	if intErr.Get {
+		Log.Error("An error occurred retreiving an ODLC's image")
+	} else {
+		Log.Info("Successfully retrieved an ODLC's image")
+	}
 
 	return body, intErr
 }
@@ -323,6 +359,12 @@ func (c *Client) PutODLCImage(id int32, image []byte) InteropError {
 
 	_, intErr := c.Put(uri, bytes.NewReader(image))
 
+	if intErr.Put {
+		Log.Error("An error occurred submitting an ODLC's image")
+	} else {
+		Log.Info("Successfully submitted an ODLC's image")
+	}
+
 	return intErr
 }
 
@@ -331,6 +373,12 @@ func (c *Client) DeleteODLCImage(id int32) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	_, intErr := c.Delete(uri)
+
+	if intErr.Delete {
+		Log.Error("An error occurred deleting an ODLC's image")
+	} else {
+		Log.Info("Successfully submitted an ODLC's image")
+	}
 
 	return intErr
 }
