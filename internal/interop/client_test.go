@@ -14,7 +14,7 @@ var client *Client
 // TestNewClientFailure tests invalid authentication values and makes sure
 // the client isn't able to authenticate itself with the interop server
 func TestNewClientFailure(t *testing.T) {
-	_, intErr := NewClient("127.0.0.1:8000", "Joe_Biden", "RidinWithBiden#46")
+	_, intErr := NewClient("127.0.0.1:8000", "Joe_Biden", "RidinWithBiden#46", 10)
 
 	if !intErr.Post {
 		t.Error("Expected unsuccessful login, but login was successfull.")
@@ -25,7 +25,7 @@ func TestNewClientFailure(t *testing.T) {
 // the client is able to authenticate itself with the interop server
 func TestNewClientSuccess(t *testing.T) {
 	var intErr InteropError
-	client, intErr = NewClient("127.0.0.1:8000", "testuser", "testpass")
+	client, intErr = NewClient("127.0.0.1:8000", "testuser", "testpass", 10)
 
 	if intErr.Post {
 		t.Error("Expected successful login, but login was unsuccessful.")
