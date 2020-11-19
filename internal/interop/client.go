@@ -216,9 +216,9 @@ func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
 	_, intErr := c.Post("/api/telemetry", bytes.NewReader(telemJSON))
 
 	if intErr.Post {
-		Log.Error("An error occurred submitting our Telemetry data")
+		Log.Error("An error occurred submitting our Telemetry information")
 	} else {
-		Log.Info("Successfully submitted our Telemetry data")
+		Log.Info("Successfully submitted our Telemetry information")
 	}
 
 	return intErr
@@ -345,11 +345,6 @@ func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
 	}
 
 	return body, intErr
-}
-
-// PostODLCImage is equivalent to PutODLCImage`
-func (c *Client) PostODLCImage(id int32, data []byte) InteropError {
-	return c.PutODLCImage(id, data)
 }
 
 // PutODLCImage puts the binary image content of the ODLC to the server for the
