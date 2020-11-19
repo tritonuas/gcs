@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	ic "github.com/tritonuas/hub/internal/interop"
@@ -43,6 +44,28 @@ func setLoggers() {
 	ic.Log = log
 }
 
+// establishInteropConnection keeps trying to connect to the interop server
+// every waitTime seconds, and exits once it has connected
+func establishInteropConnection(waitTime int, c chan *ic.Client) {
+	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
+
+	var client *ic.Client
+	var err ic.InteropError
+	for {
+		client, err = ic.NewClient(interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], 10)
+
+		if err.Post {
+			log.Warningf("Client to Interop failed. Retrying in %d seconds.", waitTime)
+			time.Sleep(time.Duration(waitTime) * time.Second)
+		} else {
+			log.Info("Interop Client successfully authenticated.")
+			break
+		}
+	}
+
+	c <- client
+}
+
 func main() {
 	setLoggers()
 
@@ -56,15 +79,13 @@ func main() {
 	}
 
 	// create client to interop
-	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
-	client, err := ic.NewClient(interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"])
+	interopChannel := make(chan *ic.Client)
+	go establishInteropConnection(5, interopChannel)
 
-	if err.Post {
-		log.Warning("Client to Interop failed")
-	} else {
-		log.Info("Interop Client authenticated correctly.")
-	}
+	// Do other things...
 
-	// Testing
+	// Once we need to access the interop client
+	log.Debug("Waiting for interop connection to be established")
+	client := <-interopChannel
 	client.Get("/api/missions/1")
 }
