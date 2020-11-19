@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,29 +27,26 @@ type Client struct {
 	url      string
 	username string
 	password string
-	// timeout int `default:10`
-	// max_concurrent int `default:128`
-	// max_retries int `default:10`
+	timeout  int
 }
 
 // NewClient creates creates an instance of the interop Client struct
 // to make requests with the interop server.
 // func NewClient(url string, username string, password string, timeout int, max_concurrent int, max_retries int) *Client{
-func NewClient(url string, username string, password string) (*Client, InteropError) {
+func NewClient(url string, username string, password string, timeout int) (*Client, InteropError) {
 	client := &Client{
 		url:      "http://" + url,
 		username: username,
 		password: password,
-		// timeout: timeout,
-		// max_concurrent: max_concurrent,
-		// max_retries: max_retries,
+		timeout:  timeout,
 	}
 
 	// setup client with cookies
 	Log.Info("Creating Interop Client connected to: ", url)
 	cookieJar, _ := cookiejar.New(nil)
 	client.client = &http.Client{
-		Jar: cookieJar,
+		Jar:     cookieJar,
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 
 	// jsonify authentication
