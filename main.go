@@ -52,8 +52,11 @@ func establishInteropConnection(waitTime int, c chan *ic.Client) {
 	var client *ic.Client
 	var err ic.InteropError
 	for {
+		// Try creating a new client and authenticating it
 		client, err = ic.NewClient(interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], 10)
 
+		// Only break out of the loop if there was no error in authenticating the client
+		// Otherwise, wait for waitTime seconds and try again.
 		if err.Post {
 			log.Warningf("Client to Interop failed. Retrying in %d seconds.", waitTime)
 			time.Sleep(time.Duration(waitTime) * time.Second)
