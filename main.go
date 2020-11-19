@@ -56,12 +56,13 @@ func main() {
 	}
 
 	// create client to interop
-	interop_url := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
-	client, err := ic.NewClient(interop_url, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"])
+	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
+	client, err := ic.NewClient(interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"])
 
 	if err.Post {
-		// TODO: decide how to handle failed authentication
 		log.Warning("Client to Interop failed")
+	} else {
+		log.Info("Interop Client authenticated correctly.")
 	}
 
 	// Testing
