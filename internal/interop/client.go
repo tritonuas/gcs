@@ -65,21 +65,25 @@ func NewClient(url string, username string, password string) (*Client, InteropEr
 func (c *Client) Get(uri string) ([]byte, InteropError) {
 	intErr := NewInteropError()
 
-	Log.Debug(c.url + uri)
 	resp, err := c.client.Get(c.url + uri)
 
-	// We have to also check the status code because for some reason the Get
-	// function only will return an error object on 2xx error codes, so to catch
-	// a 4xx error we need to check the status code directly
-	if err != nil || resp.StatusCode != 200 {
+	// If err is not nil, then the server is not online and we need to back out
+	// so that nothing crashes
+	if err != nil {
+		Log.Debug(err)
+		intErr.Get = true
+		return nil, *intErr
+	}
+
+	// The server is online, but we need to check the status code directly to
+	// see if there was a 4xx error
+	if resp.StatusCode != 200 {
 		intErr.Get = true
 	}
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-
-	Log.Info("GET - "+uri+" - ", resp.StatusCode)
-	Log.Debug(string(body))
+	Log.Debugf("GET - %s - %d", uri, resp.StatusCode)
 
 	return body, *intErr
 }
@@ -88,17 +92,25 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 	intErr := NewInteropError()
 
-	Log.Debug(c.url + uri)
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
-	if err != nil || resp.StatusCode != 200 {
+	// If err is not nil, then the server is not online and we need to back out
+	// so that nothing crashes
+	if err != nil {
+		Log.Debug(err)
+		intErr.Post = true
+		return nil, *intErr
+	}
+
+	// The server is online, but we need to check the status code directly to
+	// see if there was a 4xx error
+	if resp.StatusCode != 200 {
 		intErr.Post = true
 	}
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-
-	Log.Info("POST - "+uri+" - ", resp.StatusCode)
+	Log.Debugf("POST - %s - %d", uri, resp.StatusCode)
 
 	return body, *intErr
 }
@@ -113,13 +125,24 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 	// set the request header Content-Type for json
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
-	if err != nil || resp.StatusCode != 200 {
+
+	// If err is not nil, then the server is not online and we need to back out
+	// so that nothing crashes
+	if err != nil {
+		Log.Debug(err)
+		intErr.Put = true
+		return nil, *intErr
+	}
+
+	// The server is online, but we need to check the status code directly to
+	// see if there was a 4xx error
+	if resp.StatusCode != 200 {
 		intErr.Put = true
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Info("PUT - "+uri+" - ", resp.StatusCode)
+	Log.Debugf("PUT - %s - %d", uri, resp.StatusCode)
 	return body, *intErr
 }
 
@@ -129,15 +152,25 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
-
 	resp, err := c.client.Do(req)
-	if err != nil || resp.StatusCode != 200 {
+
+	// If err is not nil, then the server is not online and we need to back out
+	// so that nothing crashes
+	if err != nil {
+		Log.Debug(err)
+		intErr.Delete = true
+		return nil, *intErr
+	}
+
+	// The server is online, but we need to check the status code directly to
+	// see if there was a 4xx error
+	if resp.StatusCode != 200 {
 		intErr.Delete = true
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Info("DELETE- "+uri+" - ", resp.StatusCode)
+	Log.Debugf("DELETE - %s - %d", uri, resp.StatusCode)
 	return body, *intErr
 }
 
