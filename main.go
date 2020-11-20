@@ -49,6 +49,8 @@ func setLoggers() {
 func establishInteropConnection(waitTime int, c chan *ic.Client) {
 	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
 
+	log.Infof("Creating Interop Client connected to %s", interopURL)
+
 	var client *ic.Client
 	var err ic.InteropError
 	for {

@@ -42,7 +42,6 @@ func NewClient(url string, username string, password string, timeout int) (*Clie
 	}
 
 	// setup client with cookies
-	Log.Infof("Creating Interop Client connected to: %s", url)
 	cookieJar, _ := cookiejar.New(nil)
 	client.client = &http.Client{
 		Jar:     cookieJar,
