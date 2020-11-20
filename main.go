@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	ic "github.com/tritonuas/hub/internal/interop"
@@ -13,16 +13,18 @@ import (
 
 var log = logrus.New()
 var ENVS = map[string]*string{
-	"HUB_ADDR":     flag.String("hub_addr", "5001", "http service hub_address"),
-	"HUB_PATH":     flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
-	"INTEROP_IP":   flag.String("interop_ip", "127.0.0.1", "ip of interop computer"),
-	"INTEROP_PORT": flag.String("interop_port", "8000", "port of interop computer"),
-	"INTEROP_USER": flag.String("interop_user", "ucsdauvsi", "username on interop computer"),
-	"INTEROP_PASS": flag.String("interop_pass", "tritons", "password to interop computer"),
-	"MAV_DEVICE":   flag.String("mav_device", ":5761", "mav device"),
-	"IP":           flag.String("ip", "*", "ip of interop computer"),
-	"SOCKET_ADDR":  flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
-	"DEBUG_MODE":   flag.String("debug", "False", "Boolean to determine logging mode"),
+	"HUB_ADDR":           flag.String("hub_addr", "5001", "http service hub_address"),
+	"HUB_PATH":           flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
+	"INTEROP_IP":         flag.String("interop_ip", "127.0.0.1", "ip of interop computer"),
+	"INTEROP_PORT":       flag.String("interop_port", "8000", "port of interop computer"),
+	"INTEROP_USER":       flag.String("interop_user", "ucsdauvsi", "username on interop computer"),
+	"INTEROP_PASS":       flag.String("interop_pass", "tritons", "password to interop computer"),
+	"INTEROP_TIMEOUT":    flag.String("interop_timeout", "10", "time limit in seconds on http requests to interop server"),
+	"INTEROP_RETRY_TIME": flag.String("interop_retry_time", "5", "how many seconds to wait after unsuccessful interop authentication"),
+	"MAV_DEVICE":         flag.String("mav_device", ":5761", "mav device"),
+	"IP":                 flag.String("ip", "*", "ip of interop computer"),
+	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
+	"DEBUG_MODE":         flag.String("debug", "False", "Boolean to determine logging mode"),
 }
 
 // setEnvVars will check for any hub related environment variables and
@@ -44,33 +46,6 @@ func setLoggers() {
 	ic.Log = log
 }
 
-// establishInteropConnection keeps trying to connect to the interop server
-// every waitTime seconds, and exits once it has connected
-func establishInteropConnection(waitTime int, c chan *ic.Client) {
-	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
-
-	log.Infof("Creating Interop Client connected to %s", interopURL)
-
-	var client *ic.Client
-	var err ic.InteropError
-	for {
-		// Try creating a new client and authenticating it
-		client, err = ic.NewClient(interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], 10)
-
-		// Only break out of the loop if there was no error in authenticating the client
-		// Otherwise, wait for waitTime seconds and try again.
-		if err.Post {
-			log.Warningf("Client to Interop failed. Retrying in %d seconds.", waitTime)
-			time.Sleep(time.Duration(waitTime) * time.Second)
-		} else {
-			log.Info("Interop Client successfully authenticated.")
-			break
-		}
-	}
-
-	c <- client
-}
-
 func main() {
 	setLoggers()
 
@@ -84,8 +59,11 @@ func main() {
 	}
 
 	// create client to interop
+	interopRetryTime, _ := strconv.Atoi(*ENVS["INTEROP_RETRY_TIME"])
+	interopTimeout, _ := strconv.Atoi(*ENVS["INTEROP_TIMEOUT"])
+	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
 	interopChannel := make(chan *ic.Client)
-	go establishInteropConnection(5, interopChannel)
+	go ic.EstablishInteropConnection(interopRetryTime, interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], interopTimeout, interopChannel)
 
 	// Do other things...
 

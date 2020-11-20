@@ -30,6 +30,31 @@ type Client struct {
 	timeout  int
 }
 
+// EstablishInteropConnection keeps trying to connect to the interop server
+// every waitTime seconds, and exits once it has connected
+func EstablishInteropConnection(waitTime int, interopURL string, user string, pass string, timeout int, c chan *Client) {
+	Log.Infof("Creating Interop Client connected to %s", interopURL)
+
+	var client *Client
+	var err InteropError
+	for {
+		// Try creating a new client and authenticating it
+		client, err = NewClient(interopURL, user, pass, timeout)
+
+		// Only break out of the loop if there was no error in authenticating the client
+		// Otherwise, wait for waitTime seconds and try again.
+		if err.Post {
+			Log.Warningf("Client to Interop failed. Retrying in %d seconds.", waitTime)
+			time.Sleep(time.Duration(waitTime) * time.Second)
+		} else {
+			Log.Info("Interop Client successfully authenticated.")
+			break
+		}
+	}
+
+	c <- client
+}
+
 // NewClient creates creates an instance of the interop Client struct
 // to make requests with the interop server.
 // func NewClient(url string, username string, password string, timeout int, max_concurrent int, max_retries int) *Client{
