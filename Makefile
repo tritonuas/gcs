@@ -7,11 +7,10 @@ all: build run
 # Build
 # --------------------------------------------------------------------
 .PHONY: build configure-git compile-protos build-go docker-build
-build: configure-git compile-protos build-go
+build: configure-git submodulesupdate compile-protos build-go
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
-	git submodule update --init
 
 PROTOS_SRC_DIR = ./protos/interop
 PROTOS_DST_DIR = ./internal/interop
@@ -32,8 +31,8 @@ run:
 
 docker-run:
 	docker run tritonuas/hub
-	#docker container run -e INTEROP_IP=127.0.0.1 -e INTEROP_PORT=8000 -e INTEROP_USER=ucsdauvsi -e INTEROP_PASS=tritons -e MAV_DEVICE=:5762 -e HUB_PATH=/go/src/github.com/tritonuas/hub --network host tritonuas/hub
-	#docker-compose up
+#docker container run -e INTEROP_IP=127.0.0.1 -e INTEROP_PORT=8000 -e INTEROP_USER=ucsdauvsi -e INTEROP_PASS=tritons -e MAV_DEVICE=:5762 -e HUB_PATH=/go/src/github.com/tritonuas/hub --network host tritonuas/hub
+#docker-compose up
 
 # Cleanup
 # --------------------------------------------------------------------
