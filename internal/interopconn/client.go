@@ -151,10 +151,16 @@ func (c *Client) Delete(uri string) ([]byte, error) {
 
 // GetTeams gets the statuses of all the teams registered in the server
 func (c *Client) GetTeams() ([]TeamStatus, error) {
-	data, _ := c.Get("/api/teams")
+	data, err := c.Get("/api/teams")
+
+	if err != nil {
+		Log.Error("ERROR in GetTeams() in c.Get:")
+		Log.Error(err)
+		return nil, err
+	}
 
 	var teams []TeamStatus
-	err := json.Unmarshal(data, &teams)
+	err = json.Unmarshal(data, &teams)
 
 	if err != nil {
 		Log.Error("ERROR in GetTeams() in json.Unmarshal:")
@@ -166,10 +172,16 @@ func (c *Client) GetTeams() ([]TeamStatus, error) {
 
 // GetMission gets the mission at the given mission id value
 func (c *Client) GetMission(id int) (*Mission, error) {
-	data, _ := c.Get("/api/missions/" + strconv.Itoa(id))
+	data, err := c.Get("/api/missions/" + strconv.Itoa(id))
+
+	if err != nil {
+		Log.Error("ERROR in GetMission(int) in c.Get:")
+		Log.Error(err)
+		return nil, err
+	}
 
 	var mission *Mission
-	err := json.Unmarshal(data, &mission)
+	err = json.Unmarshal(data, &mission)
 
 	if err != nil {
 		Log.Error("ERROR in GetMission(int) in json.Unmarshal:")
@@ -180,17 +192,30 @@ func (c *Client) GetMission(id int) (*Mission, error) {
 }
 
 // PostTelemetry posts the ship's telemetry data to the server
-func (c *Client) PostTelemetry(telem *Telemetry) {
+func (c *Client) PostTelemetry(telem *Telemetry) error {
 	// Convert telemetry data to json
-	telemJSON, _ := json.Marshal(telem)
+	telemJSON, err := json.Marshal(telem)
+
+	if err != nil {
+		Log.Error("ERROR in PostTelemetry(*Telemetry) in json.Marshal:")
+		Log.Error(err)
+		return err
+	}
 
 	// Post telemetry to server
-	c.Post("/api/telemetry", bytes.NewReader(telemJSON))
+	_, err = c.Post("/api/telemetry", bytes.NewReader(telemJSON))
+
+	if err != nil {
+		Log.Error("ERROR in PostTelemtry(*Telemetry) in c.Post:")
+		Log.Error(err)
+	}
+
+	return err
 }
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
-func (c *Client) GetODLCs(mission int) []Odlc {
+func (c *Client) GetODLCs(mission int) ([]Odlc, error) {
 	url := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
 	if mission > -1 {
@@ -198,41 +223,50 @@ func (c *Client) GetODLCs(mission int) []Odlc {
 	}
 
 	// Get request to the server
-	data, _ := c.Get(url)
+	data, err := c.Get(url)
 
-	Log.Info(data)
+	if err != nil {
+		Log.Error("ERROR in GetODLCs(int) in c.Get:")
+		Log.Error(err)
+		return nil, err
+	}
 
 	// List to hold all of the ODLC objects we receive
 	var odlcList []Odlc
-	err := json.Unmarshal(data, &odlcList)
-
-	Log.Info(len(odlcList))
+	err = json.Unmarshal(data, &odlcList)
 
 	if err != nil {
 		Log.Error("ERROR in GetODLCs(int) in json.Unmarshal")
 		Log.Error(err)
+		return nil, err
 	}
 
-	return odlcList
+	return odlcList, err
 }
 
 // GetODLC gets a single ODLC with the ODLC's id
-func (c *Client) GetODLC(id int) Odlc {
+func (c *Client) GetODLC(id int) (*Odlc, error) {
 	url := "/api/odlcs/" + strconv.Itoa(id)
 
 	// Get byte array from the server
-	data, _ := c.Get(url)
+	data, err := c.Get(url)
+
+	if err != nil {
+		Log.Error("ERROR in GetODLC(int) in c.Get:")
+		Log.Error(err)
+	}
 
 	// Convert byte array into the Odlc object
 	var odlc Odlc
-	err := json.Unmarshal(data, &odlc)
+	err = json.Unmarshal(data, &odlc)
 
 	if err != nil {
 		Log.Error("ERROR in GETODLC(int) in json.Unmarshal")
 		Log.Error(err)
+		return nil, err
 	}
 
-	return odlc
+	return &odlc, err
 }
 
 // PostODLC posts the ODLC object to the server and then updates the original
@@ -257,9 +291,14 @@ func (c *Client) PostODLC(odlc *Odlc) error {
 	}
 
 	// Update the original parameter with the new values passed through
-	json.Unmarshal(updatedODLC, &odlc)
+	err = json.Unmarshal(updatedODLC, &odlc)
 
-	return nil
+	if err != nil {
+		Log.Error("ERROR in PostODLC(*Odlc) in json.Unmarshal:")
+		Log.Error(err)
+	}
+
+	return err
 }
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
@@ -280,15 +319,20 @@ func (c *Client) PutODLC(id int, odlc *Odlc) error {
 	updatedODLC, err := c.Put(url, bytes.NewReader(odlcJSON))
 
 	if err != nil {
-		Log.Error("ERROR in PutODLC(int, *ODlc in c.Put:")
+		Log.Error("ERROR in PutODLC(int, *ODlc) in c.Put:")
 		Log.Error(err)
 		return err
 	}
 
 	// Update the original parameter with the new values passed through
-	json.Unmarshal(updatedODLC, &odlc)
+	err = json.Unmarshal(updatedODLC, &odlc)
 
-	return nil
+	if err != nil {
+		Log.Error("ERROR in PutOdlc(int, *Odlc) in json.Unmarshal:")
+		Log.Error(err)
+	}
+
+	return err
 }
 
 // DeleteODLC deletes the ODLC at the specified id number
