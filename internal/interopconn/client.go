@@ -245,7 +245,7 @@ func (c *Client) GetODLCs(mission int) ([]Odlc, error) {
 }
 
 // GetODLC gets a single ODLC with the ODLC's id
-func (c *Client) GetODLC(id int) (*Odlc, error) {
+func (c *Client) GetODLC(id int) *Odlc {
 	url := "/api/odlcs/" + strconv.Itoa(id)
 
 	// Get byte array from the server
@@ -266,7 +266,7 @@ func (c *Client) GetODLC(id int) (*Odlc, error) {
 		return nil, err
 	}
 
-	return &odlc, err
+	return &odlc
 }
 
 // PostODLC posts the ODLC object to the server and then updates the original
