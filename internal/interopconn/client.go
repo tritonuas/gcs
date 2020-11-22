@@ -10,7 +10,6 @@ package interopconn
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,7 +34,7 @@ type Client struct {
 // NewClient creates creates an instance of the interop Client struct
 // to make requests with the interop server.
 // func NewClient(url string, username string, password string, timeout int, max_concurrent int, max_retries int) *Client{
-func NewClient(url string, username string, password string) (*Client, error) {
+func NewClient(url string, username string, password string) (*Client, InteropError) {
 	client := &Client{
 		url:      "http://" + url,
 		username: username,
@@ -57,20 +56,20 @@ func NewClient(url string, username string, password string) (*Client, error) {
 	auth_json, _ := json.Marshal(auth)
 
 	// All endpoints are authenticated, so always login
-	_, err := client.Post("/api/login", bytes.NewBuffer(auth_json))
+	_, intErr := client.Post("/api/login", bytes.NewBuffer(auth_json))
 
-	return client, err
+	return client, intErr
 }
 
 // Get makes a GET request to server.
-func (c *Client) Get(uri string) ([]byte, error) {
+func (c *Client) Get(uri string) ([]byte, InteropError) {
+	intErr := NewInteropError()
+
 	Log.Debug(c.url + uri)
 	resp, err := c.client.Get(c.url + uri)
 
 	if err != nil {
-		// custom error struct to handle interop error
-		Log.Error("TODO: REPLACE THIS GET ERROR")
-		return []byte("-1"), errors.New("TODO: Replace this error")
+		intErr.get = true
 	}
 
 	defer resp.Body.Close()
@@ -79,18 +78,18 @@ func (c *Client) Get(uri string) ([]byte, error) {
 	Log.Info("GET - "+uri+" - ", resp.StatusCode)
 	Log.Debug(string(body))
 
-	return body, nil
+	return body, *intErr
 }
 
 // Post makes a POST request to server.
-func (c *Client) Post(uri string, msg io.Reader) ([]byte, error) {
+func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
+	intErr := NewInteropError()
+
 	Log.Debug(c.url + uri)
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
 	if err != nil {
-		// custom error struct to handle interop error
-		Log.Error("TODO: Replace this POST ERROR")
-		return []byte("-1"), errors.New("TODO: Replace this error")
+		intErr.post = true
 	}
 
 	defer resp.Body.Close()
@@ -98,124 +97,98 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, error) {
 
 	Log.Info("POST - "+uri+" - ", resp.StatusCode)
 
-	return body, nil
+	return body, *intErr
 }
 
 // Put makes a PUT request to the server
-func (c *Client) Put(uri string, msg io.Reader) ([]byte, error) {
+func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
+	intErr := NewInteropError()
+
 	// set the HTTP method, url, and request body
-	req, err := http.NewRequest(http.MethodPut, c.url+uri, msg)
-	if err != nil {
-		// custom error struct to handle interop error
-		Log.Error("TODO: Replace this PUT ERROR")
-		return []byte("-1"), errors.New("TODO: Replace this error")
-	}
+	req, _ := http.NewRequest(http.MethodPut, c.url+uri, msg)
 
 	// set the request header Content-Type for json
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
-		// custom error struct to handle interop error
-		Log.Error("TODO: Replace this (2nd) PUT ERROR")
-		return []byte("-1"), errors.New("TODO: Replace this error")
+		intErr.put = true
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	Log.Info("PUT - "+uri+" - ", resp.StatusCode)
-	return body, nil
+	return body, *intErr
 }
 
 // Delete makes a DELETE request to the server
-func (c *Client) Delete(uri string) ([]byte, error) {
+func (c *Client) Delete(uri string) ([]byte, InteropError) {
+	intErr := NewInteropError()
+
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
-	if err != nil {
-		// custom error struct to handle interop error
-		Log.Error("TODO: Replace this DELETE ERROR")
-		return []byte("-1"), errors.New("TODO: Replace this error")
-	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		// custom error struct to handle interop error
-		Log.Error("TODO: Replace this (2nd) DELETE ERROR")
-		return []byte("-1"), errors.New("TODO: Replace this error")
+		intErr.delete = true
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
 	Log.Info("DELETE- "+uri+" - ", resp.StatusCode)
-	return body, nil
+	return body, *intErr
 }
 
 // GetTeams gets the statuses of all the teams registered in the server
-func (c *Client) GetTeams() ([]TeamStatus, error) {
-	data, err := c.Get("/api/teams")
-
-	if err != nil {
-		Log.Error("ERROR in GetTeams() in c.Get:")
-		Log.Error(err)
-		return nil, err
-	}
+func (c *Client) GetTeams() ([]TeamStatus, InteropError) {
+	data, intErr := c.Get("/api/teams")
 
 	var teams []TeamStatus
-	err = json.Unmarshal(data, &teams)
+	err := json.Unmarshal(data, &teams)
 
 	if err != nil {
-		Log.Error("ERROR in GetTeams() in json.Unmarshal:")
-		Log.Error(err)
+		intErr.output = true
 	}
 
-	return teams, err
+	return teams, intErr
 }
 
 // GetMission gets the mission at the given mission id value
-func (c *Client) GetMission(id int) (*Mission, error) {
-	data, err := c.Get("/api/missions/" + strconv.Itoa(id))
-
-	if err != nil {
-		Log.Error("ERROR in GetMission(int) in c.Get:")
-		Log.Error(err)
-		return nil, err
-	}
+func (c *Client) GetMission(id int) (*Mission, InteropError) {
+	data, intErr := c.Get("/api/missions/" + strconv.Itoa(id))
 
 	var mission *Mission
-	err = json.Unmarshal(data, &mission)
+	err := json.Unmarshal(data, &mission)
 
 	if err != nil {
-		Log.Error("ERROR in GetMission(int) in json.Unmarshal:")
-		Log.Error(err)
+		intErr.output = true
 	}
 
-	return mission, err
+	return mission, intErr
 }
 
 // PostTelemetry posts the ship's telemetry data to the server
-func (c *Client) PostTelemetry(telem *Telemetry) error {
+func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
+	intErr := NewInteropError()
+
 	// Convert telemetry data to json
 	telemJSON, err := json.Marshal(telem)
 
 	if err != nil {
-		Log.Error("ERROR in PostTelemetry(*Telemetry) in json.Marshal:")
-		Log.Error(err)
-		return err
+		intErr.input = true
 	}
 
 	// Post telemetry to server
-	_, err = c.Post("/api/telemetry", bytes.NewReader(telemJSON))
+	_, tempIntErr := c.Post("/api/telemetry", bytes.NewReader(telemJSON))
 
-	if err != nil {
-		Log.Error("ERROR in PostTelemtry(*Telemetry) in c.Post:")
-		Log.Error(err)
-	}
+	// Update original intErr object with the post error status from the func call
+	intErr.post = tempIntErr.post
 
-	return err
+	return *intErr
 }
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
-func (c *Client) GetODLCs(mission int) ([]Odlc, error) {
+func (c *Client) GetODLCs(mission int) ([]Odlc, InteropError) {
 	url := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
 	if mission > -1 {
@@ -223,176 +196,165 @@ func (c *Client) GetODLCs(mission int) ([]Odlc, error) {
 	}
 
 	// Get request to the server
-	data, err := c.Get(url)
-
-	if err != nil {
-		Log.Error("ERROR in GetODLCs(int) in c.Get:")
-		Log.Error(err)
-		return nil, err
-	}
+	data, intErr := c.Get(url)
 
 	// List to hold all of the ODLC objects we receive
 	var odlcList []Odlc
-	err = json.Unmarshal(data, &odlcList)
+	err := json.Unmarshal(data, &odlcList)
 
 	if err != nil {
-		Log.Error("ERROR in GetODLCs(int) in json.Unmarshal")
-		Log.Error(err)
-		return nil, err
+		intErr.output = true
 	}
 
-	return odlcList, err
+	return odlcList, intErr
 }
 
 // GetODLC gets a single ODLC with the ODLC's id
-func (c *Client) GetODLC(id int) *Odlc {
+func (c *Client) GetODLC(id int) (*Odlc, InteropError) {
 	url := "/api/odlcs/" + strconv.Itoa(id)
 
 	// Get byte array from the server
-	data, err := c.Get(url)
-
-	if err != nil {
-		Log.Error("ERROR in GetODLC(int) in c.Get:")
-		Log.Error(err)
-	}
+	data, intErr := c.Get(url)
 
 	// Convert byte array into the Odlc object
 	var odlc Odlc
-	err = json.Unmarshal(data, &odlc)
+	err := json.Unmarshal(data, &odlc)
 
 	if err != nil {
-		Log.Error("ERROR in GETODLC(int) in json.Unmarshal")
-		Log.Error(err)
-		return nil, err
+		intErr.output = true
 	}
 
-	return &odlc
+	return &odlc, intErr
 }
 
 // PostODLC posts the ODLC object to the server and then updates the original
 // odlc object parameter with the odlc id and the user
-func (c *Client) PostODLC(odlc *Odlc) error {
+func (c *Client) PostODLC(odlc *Odlc) InteropError {
+	intErr := NewInteropError()
+
 	// Convert ODLC to json format
 	odlcJSON, err := json.Marshal(odlc)
 
 	if err != nil {
-		Log.Error("ERROR in PostODLC(*Odlc) in json.Marshal:")
-		Log.Error(err)
-		return err
+		intErr.input = true
 	}
 
 	// Post the json to the server
-	updatedODLC, err := c.Post("/api/odlcs", bytes.NewReader(odlcJSON))
+	updatedODLC, tempIntErr := c.Post("/api/odlcs", bytes.NewReader(odlcJSON))
 
-	if err != nil {
-		Log.Error("ERROR in PostODLC(*Odlc) in c.Post:")
-		Log.Error(err)
-		return err
-	}
+	intErr.post = tempIntErr.post
 
 	// Update the original parameter with the new values passed through
 	err = json.Unmarshal(updatedODLC, &odlc)
 
 	if err != nil {
-		Log.Error("ERROR in PostODLC(*Odlc) in json.Unmarshal:")
-		Log.Error(err)
+		intErr.output = true
 	}
 
-	return err
+	return *intErr
 }
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
 // specific ODLC with the values passed through.
-func (c *Client) PutODLC(id int, odlc *Odlc) error {
+func (c *Client) PutODLC(id int, odlc *Odlc) InteropError {
+	intErr := NewInteropError()
+
 	// Convert ODLC to json format
 	odlcJSON, err := json.Marshal(odlc)
 
 	if err != nil {
-		Log.Error("ERROR in PutODLC(int, *Odlc) in json.Marshal:")
-		Log.Error(err)
-		return err
+		intErr.input = true
 	}
 
 	url := "/api/odlcs/" + strconv.Itoa(id)
 
 	// Put the json to the server
-	updatedODLC, err := c.Put(url, bytes.NewReader(odlcJSON))
+	updatedODLC, tempIntErr := c.Put(url, bytes.NewReader(odlcJSON))
 
-	if err != nil {
-		Log.Error("ERROR in PutODLC(int, *ODlc) in c.Put:")
-		Log.Error(err)
-		return err
-	}
+	intErr.put = tempIntErr.put
 
 	// Update the original parameter with the new values passed through
 	err = json.Unmarshal(updatedODLC, &odlc)
 
 	if err != nil {
-		Log.Error("ERROR in PutOdlc(int, *Odlc) in json.Unmarshal:")
-		Log.Error(err)
+		intErr.output = true
 	}
 
-	return err
+	return *intErr
 }
 
 // DeleteODLC deletes the ODLC at the specified id number
-func (c *Client) DeleteODLC(id int) error {
-	url := "/api/odlcs/" + strconv.Itoa(id)
-	_, err := c.Delete(url)
+func (c *Client) DeleteODLC(id int) InteropError {
+	intErr := NewInteropError()
 
-	if err != nil {
-		Log.Error("ERROR in DeleteODLC in c.Delete:")
-		Log.Error(err)
+	if id < 1 {
+		intErr.input = true
 	}
 
-	return err
+	url := "/api/odlcs/" + strconv.Itoa(id)
+	_, tempIntErr := c.Delete(url)
+
+	intErr.delete = tempIntErr.delete
+
+	return *intErr
 }
 
 // GetODLCImage gets the raw binary image content of a specified ODLC that has
 // already had image data uploaded to the server
-func (c *Client) GetODLCImage(id int) ([]byte, error) {
-	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+func (c *Client) GetODLCImage(id int) ([]byte, InteropError) {
+	intErr := NewInteropError()
 
-	body, err := c.Get(url)
-
-	if err != nil {
-		Log.Error("ERROR in GetODLCImage(int) in c.Get:")
-		Log.Error(err)
+	if id < 1 {
+		intErr.input = true
 	}
 
-	return body, err
+	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+
+	body, tempIntErr := c.Get(url)
+
+	intErr.get = tempIntErr.get
+
+	return body, *intErr
 }
 
 // PostODLCImage is equivalent to PutODLCImage`
-func (c *Client) PostODLCImage(id int, data []byte) error {
+func (c *Client) PostODLCImage(id int, data []byte) InteropError {
 	return c.PutODLCImage(id, data)
 }
 
 // PutODLCImage puts the binary image content of the ODLC to the server for the
 // specified ODLC id
-func (c *Client) PutODLCImage(id int, image []byte) error {
+func (c *Client) PutODLCImage(id int, image []byte) InteropError {
+	intErr := NewInteropError()
+
+	if id < 1 {
+		intErr.input = true
+	}
+	// TODO: Potentially check to make sure that the image passed through is
+	// 		 correct and set an input error if not?
+
 	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
 
-	_, err := c.Put(url, bytes.NewReader(image))
+	_, tempIntErr := c.Put(url, bytes.NewReader(image))
 
-	if err != nil {
-		Log.Error("ERROR in PutODLCImage(int, []byte) in c.Put:")
-		Log.Error(err)
-	}
+	intErr.put = tempIntErr.put
 
-	return err
+	return *intErr
 }
 
 // DeleteODLCImage deletes the image saved at the specified ODLC
-func (c *Client) DeleteODLCImage(id int) error {
-	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+func (c *Client) DeleteODLCImage(id int) InteropError {
+	intErr := NewInteropError()
 
-	_, err := c.Delete(url)
-
-	if err != nil {
-		Log.Error("ERROR in DeleteODLCImage(int) in c.Delete:")
-		Log.Error(err)
+	if id < 1 {
+		intErr.input = true
 	}
 
-	return err
+	url := "/api/odlcs/" + strconv.Itoa(id) + "/image"
+
+	_, tempIntErr := c.Delete(url)
+
+	intErr.delete = tempIntErr.delete
+
+	return *intErr
 }
