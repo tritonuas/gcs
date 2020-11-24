@@ -16,7 +16,11 @@ fi
 echo -e "${RED}${COMMAND} could not be found"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 		echo -e "${BLUE}Installing protobuf compiler on ${OSTYPE}${NC}"
-		sudo apt install -y protobuf-compiler
+		if grep docker /proc/1/cgroup -qa; then
+				apt install -y protobuf-compiler
+		else
+				sudo apt install -y protobuf-compiler
+		fi
 elif [[ "$OSTYPE" == "darwin"* ]]; then
 		echo -e "${BLUE}Installing protobuf compiler on ${OSTYPE}${NC}"
 		brew install protobuf

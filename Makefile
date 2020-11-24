@@ -4,9 +4,16 @@ PACKAGES = $(shell go list -f '{{ join .Imports "\n" }}' )
 .PHONY: all
 all: build run
 
+# Dependencies
+# --------------------------------------------------------------------
+.PHONY: install-dependencies
+install-dependencies:
+	./scripts/install-go.sh
+	./scripts/install-protoc.sh
+
 # Build
 # --------------------------------------------------------------------
-.PHONY: build configure-git compile-protos build-go docker-build
+.PHONY: build install-dependencies configure-git compile-protos build-go docker-build
 build: configure-git submodulesupdate compile-protos build-go
 
 configure-git:
@@ -21,7 +28,7 @@ build-go:
 	go build
 
 docker-build:
-	docker build -t tritonuas/hub --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -f build/package/Dockerfile .
+	docker build -t tritonuas/hub -f build/package/Dockerfile .
 
 # Run
 # --------------------------------------------------------------------

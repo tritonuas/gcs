@@ -34,7 +34,7 @@ func setEnvVars() {
 		pair := strings.SplitN(element, "=", 2)
 		if _, ok := ENVS[pair[0]]; ok {
 			log.Info(fmt.Sprintf("Setting ENVS[%s] = %s", pair[0], pair[1]))
-			ENVS[element] = &pair[1]
+			ENVS[pair[0]] = &pair[1]
 		}
 	}
 }
@@ -48,9 +48,8 @@ func setLoggers() {
 
 func main() {
 	setLoggers()
-
-	// prioritize command line flags over environment variables
 	setEnvVars()
+	// prioritize command line flags over environment variables
 	flag.Parse()
 
 	if *ENVS["DEBUG_MODE"] == "True" {
