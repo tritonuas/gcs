@@ -37,9 +37,7 @@ run:
 	./hub -interop_user=testuser -interop_pass=testpass
 
 docker-run:
-	docker run tritonuas/hub
-#docker container run -e INTEROP_IP=127.0.0.1 -e INTEROP_PORT=8000 -e INTEROP_USER=ucsdauvsi -e INTEROP_PASS=tritons -e MAV_DEVICE=:5762 -e HUB_PATH=/go/src/github.com/tritonuas/hub --network host tritonuas/hub
-#docker-compose up
+	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host tritonuas/hub
 
 # Cleanup
 # --------------------------------------------------------------------

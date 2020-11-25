@@ -48,7 +48,7 @@ make run
 # docker build
 make docker-build
 # run
-docker run tritonuas/hub -interop_user=testuser -interop_pass=testpass
+make docker-run
 ```
 
 ## Swagger UI
