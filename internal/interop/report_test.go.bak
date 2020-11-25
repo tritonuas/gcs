@@ -1,9 +1,9 @@
-package interopconn
+package interop
 
 import (
 	"testing"
 
-	pb "github.com/tritonuas/hub/internal/interop"
+	// pb "github.com/tritonuas/hub/internal/interop"
 )
 
 func TestSetMission(t *testing.T) {

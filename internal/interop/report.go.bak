@@ -1,4 +1,4 @@
-package interopconn
+package interop
 
 import (
 	//"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	main "github.com/tritonuas/hub/internal/hub_def"
-	pb "github.com/tritonuas/hub/internal/interop"
+	// pb "github.com/tritonuas/hub/internal/interop"
 	zmq "github.com/pebbe/zmq4"
 	"github.com/golang/protobuf/jsonpb"
 )
@@ -161,8 +161,8 @@ func (u *MissionReport) run() {
 	Log.Warning("start")
 	ticker := time.NewTicker(time.Second)
 
-    pubSocket, _ := zmq.NewSocket(zmq.PUB)
-    pubSocket.Bind("127.0.0.1:6666")
+		pubSocket, _ := zmq.NewSocket(zmq.PUB)
+		pubSocket.Bind("127.0.0.1:6666")
 	for {
 		select {
 			case obs_update:=  <- u.obstacle_stream:
@@ -181,25 +181,25 @@ func (u *MissionReport) run() {
 
 			case <- ticker.C:
 				u.report_topic.Send(&u.missionReportStatus)
-                //Add zmq here to send to py-planner
-			    convert := &pb.GCSMessage {
-			    	GcsMessage: &pb.GCSMessage_MissionReport{
-			    		MissionReport: &u.missionReportStatus,
-			    	},
-			    }
+								//Add zmq here to send to py-planner
+					convert := &pb.GCSMessage {
+						GcsMessage: &pb.GCSMessage_MissionReport{
+							MissionReport: &u.missionReportStatus,
+						},
+					}
 
-			    marshaler := jsonpb.Marshaler{
-			    	OrigName:     true,
-			    	EmitDefaults: true,
-			    	Indent:       "    ",
-			    }
-                msg, err := marshaler.MarshalToString(convert)
-			    if err != nil {
-			    	Log.Error("error: ", err.Error())
-			    }
+					marshaler := jsonpb.Marshaler{
+						OrigName:     true,
+						EmitDefaults: true,
+						Indent:       "    ",
+					}
+								msg, err := marshaler.MarshalToString(convert)
+					if err != nil {
+						Log.Error("error: ", err.Error())
+					}
 
-                pubSocket.Send("mission_report", zmq.SNDMORE)
-                pubSocket.Send(msg, 0)
+								pubSocket.Send("mission_report", zmq.SNDMORE)
+								pubSocket.Send(msg, 0)
 		}
 	}
 }

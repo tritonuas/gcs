@@ -1,1 +1,3 @@
 hub
+*.env
+**/*.pb.go
