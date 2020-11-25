@@ -21,52 +21,34 @@ The hub is currently hosted on
 
 ## Dependencies
 
-- [go 1.14](https://golang.org/)
-- [libzmq](https://zeromq.org/download/)
+- go 1.14
+- protobuf-compiler
+
+Both of these should be handled with this script
+
+```sh
+# install go and protobuf-compiler
+make install-dependencies
+```
 
 ## Usage
 
 ### Local
 
 ```sh
-# Configure global git url to use ssh method:
-git config --global url."git@github.com:".insteadOf "https://github.com/"
-# Build go application
-go build
-# Run hub
-./hub
+# build hub
+make build
+# run hub with testuser
+make run
 ```
-
-or
-
-```sh
-# Runs above commands
-make
-```
-
-NOTE: changing git url is only necesssary when [go-mavlink](https://github.com/tritonuas/go-mavlink)
-is private. This causes authentication issues when pulling the private module
-
-
-hub is running if you see logs printed out, like below.
-
-![logs](./assets/logs.png)
 
 ### Docker
 
 ```sh
-# build docker image
-docker build -t tritonuas/hub --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} .
-or
+# docker build
 make docker-build
-
-# Run docker container
-docker run tritonuas/hub
-or
-make docker-run
-
-# push to dockerhub; replace 1.x.x with the version you want to create.
-docker push tritonuas/hub:1.x.x
+# run
+docker run tritonuas/hub -interop_user=testuser -interop_pass=testpass
 ```
 
 ## Swagger UI

@@ -34,7 +34,7 @@ docker-build:
 # --------------------------------------------------------------------
 .PHONY: run docker-run
 run:
-	./hub
+	./hub -interop_user=testuser -interop_pass=testpass
 
 docker-run:
 	docker run tritonuas/hub
