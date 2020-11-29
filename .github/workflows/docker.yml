@@ -16,15 +16,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@master
-
-      - name: Build and Push to dockerhub
-        uses: docker/build-push-action@v1
+      -
+        name: Checkout Repo
+        uses: actions/checkout@v2
+      -
+        name: clone submodule
+        uses: actions/checkout@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          build_args: GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-          repository: tritonuas/hub
-          dockerfile: build/package/Dockerfile
-          workdir: .
+          repository: tritonuas/protos
+          path: protos
+          token: ${{ secrets.SSH_TOKEN }}
+          persist-credentials: true
+      -
+        name: checkout submodule
+        run: |
+          git submodule init
+          git submodule update
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and Push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: build/package/Dockerfile
+          push: true
+          tags: tritonuas/hub:latest
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
