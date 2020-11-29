@@ -197,60 +197,49 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 }
 
 // GetTeams gets the statuses of all the teams registered in the server
-func (c *Client) GetTeams() ([]TeamStatus, InteropError) {
-	data, intErr := c.Get("/api/teams")
+func (c *Client) GetTeams() ([]byte, InteropError) {
+	data, err := c.Get("/api/teams")
 
-	var teams []TeamStatus
-	err := json.Unmarshal(data, &teams)
-
-	if err != nil {
-		intErr.Output = true
+	if err.Get {
 		Log.Error("An error occurred retrieving Team Status information.")
 	} else {
 		Log.Info("Successfully retrieved Team Status information.")
 	}
 
-	return teams, intErr
+	return data, err
 }
 
 // GetMission gets the mission at the given mission id value
-func (c *Client) GetMission(id int32) (*Mission, InteropError) {
+func (c *Client) GetMission(id int32) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/missions/%d", id)
-	data, intErr := c.Get(uri)
+	data, err := c.Get(uri)
 
-	var mission *Mission
-	err := json.Unmarshal(data, &mission)
-
-	if err != nil {
-		intErr.Output = true
+	if err.Get {
 		Log.Error("An error occurred retrieving Mission information.")
 	} else {
 		Log.Info("Successfully retrieved Mission information.")
 	}
 
-	return mission, intErr
+	return data, err
 }
 
 // PostTelemetry posts the ship's telemetry data to the server
-func (c *Client) PostTelemetry(telem *Telemetry) InteropError {
-	// Convert telemetry data to json
-	telemJSON, _ := json.Marshal(telem)
-
+func (c *Client) PostTelemetry(telem []byte) InteropError {
 	// Post telemetry to server
-	_, intErr := c.Post("/api/telemetry", bytes.NewReader(telemJSON))
+	_, err := c.Post("/api/telemetry", bytes.NewReader(telem))
 
-	if intErr.Post {
+	if err.Post {
 		Log.Error("An error occurred submitting our Telemetry information")
 	} else {
 		Log.Info("Successfully submitted our Telemetry information")
 	}
 
-	return intErr
+	return err
 }
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
-func (c *Client) GetODLCs(missionID int32) ([]Odlc, InteropError) {
+func (c *Client) GetODLCs(missionID int32) ([]byte, InteropError) {
 	uri := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
 	if missionID > -1 {
@@ -258,101 +247,77 @@ func (c *Client) GetODLCs(missionID int32) ([]Odlc, InteropError) {
 	}
 
 	// Get request to the server
-	data, intErr := c.Get(uri)
+	data, err := c.Get(uri)
 
-	// List to hold all of the ODLC objects we receive
-	var odlcList []Odlc
-	err := json.Unmarshal(data, &odlcList)
-
-	if err != nil {
-		intErr.Output = true
+	if err.Get {
 		Log.Error("An error occurred retrieving ODLCs' information.")
 	} else {
 		Log.Info("Successfully retrieved ODLCs' information")
 	}
 
-	return odlcList, intErr
+	return data, err
 }
 
 // GetODLC gets a single ODLC with the ODLC's id
-func (c *Client) GetODLC(id int32) (*Odlc, InteropError) {
+func (c *Client) GetODLC(id int32) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Get byte array from the server
-	data, intErr := c.Get(uri)
+	data, err := c.Get(uri)
 
-	// Convert byte array into the Odlc object
-	var odlc Odlc
-	err := json.Unmarshal(data, &odlc)
-
-	if err != nil {
-		intErr.Output = true
+	if err.Get {
 		Log.Error("An error occurred retrieving an ODLC's information")
 	} else {
 		Log.Info("Successfully retrieved an ODLC's information")
 	}
 
-	return &odlc, intErr
+	return data, err
 }
 
-// PostODLC posts the ODLC object to the server and then updates the original
-// odlc object parameter with the odlc id and the user
-func (c *Client) PostODLC(odlc *Odlc) InteropError {
-	// Convert ODLC to json format
-	odlcJSON, _ := json.Marshal(odlc)
-
+// PostODLC posts the ODLC object to the server and then returns the data
+// of an odlc with the id parameter filled in
+func (c *Client) PostODLC(odlc []byte) ([]byte, InteropError) {
 	// Post the json to the server
-	updatedODLC, intErr := c.Post("/api/odlcs", bytes.NewReader(odlcJSON))
+	updatedODLC, err := c.Post("/api/odlcs", bytes.NewReader(odlc))
 
-	// Update the original parameter with the new values passed through
-	err := json.Unmarshal(updatedODLC, &odlc)
-
-	if err != nil {
-		intErr.Output = true
+	if err.Post {
 		Log.Error("An error occurred submitting an ODLC's information")
 	} else {
 		Log.Info("Successfully submitted an ODLC's information")
 	}
 
-	return intErr
+	return updatedODLC, err
 }
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
 // specific ODLC with the values passed through.
-func (c *Client) PutODLC(id int32, odlc *Odlc) InteropError {
-	// Convert ODLC to json format
-	odlcJSON, _ := json.Marshal(odlc)
-
+func (c *Client) PutODLC(id int32, odlc []byte) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Put the json to the server
-	updatedODLC, intErr := c.Put(uri, bytes.NewReader(odlcJSON))
+	_, err := c.Put(uri, bytes.NewReader(odlc))
 
-	// Update the original parameter with the new values passed through
-	err := json.Unmarshal(updatedODLC, &odlc)
-
-	if err != nil {
-		intErr.Output = true
+	if err.Put {
 		Log.Error("An error occurred updating an ODLC's information")
 	} else {
 		Log.Info("Successfully updated an ODLC's information")
 	}
 
-	return intErr
+	return err
 }
 
 // DeleteODLC deletes the ODLC at the specified id number
 func (c *Client) DeleteODLC(id int32) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
-	_, intErr := c.Delete(uri)
+	_, err := c.Delete(uri)
 
-	if intErr.Delete {
+	if err.Delete {
 		Log.Error("An error occurred deleting an uploaded ODLC")
 	} else {
 		Log.Info("Successfully deleted an uploaded ODLC")
 	}
 
-	return intErr
+	return err
 }
 
 // GetODLCImage gets the raw binary image content of a specified ODLC that has
@@ -360,15 +325,15 @@ func (c *Client) DeleteODLC(id int32) InteropError {
 func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
-	body, intErr := c.Get(uri)
+	body, err := c.Get(uri)
 
-	if intErr.Get {
+	if err.Get {
 		Log.Error("An error occurred retreiving an ODLC's image")
 	} else {
 		Log.Info("Successfully retrieved an ODLC's image")
 	}
 
-	return body, intErr
+	return body, err
 }
 
 // PutODLCImage puts the binary image content of the ODLC to the server for the
@@ -376,28 +341,28 @@ func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
 func (c *Client) PutODLCImage(id int32, image []byte) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
-	_, intErr := c.Put(uri, bytes.NewReader(image))
+	_, err := c.Put(uri, bytes.NewReader(image))
 
-	if intErr.Put {
+	if err.Put {
 		Log.Error("An error occurred submitting an ODLC's image")
 	} else {
 		Log.Info("Successfully submitted an ODLC's image")
 	}
 
-	return intErr
+	return err
 }
 
 // DeleteODLCImage deletes the image saved at the specified ODLC
 func (c *Client) DeleteODLCImage(id int32) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
-	_, intErr := c.Delete(uri)
+	_, err := c.Delete(uri)
 
-	if intErr.Delete {
+	if err.Delete {
 		Log.Error("An error occurred deleting an ODLC's image")
 	} else {
 		Log.Info("Successfully submitted an ODLC's image")
 	}
 
-	return intErr
+	return err
 }
