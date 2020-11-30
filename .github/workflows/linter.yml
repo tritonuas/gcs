@@ -1,5 +1,5 @@
 ---
-name: Lint Code Base
+name: Linting
 
 on:
   pull_request:
