@@ -60,7 +60,7 @@ jobs:
             tritonuas/hub:latest
             ghcr.io/tritonuas/hub:latest
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            GIT_AUTH_TOKEN=${{ secrets.CR_PAT }}
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
