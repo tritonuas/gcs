@@ -46,7 +46,7 @@ jobs:
         run: make install-dependencies
       -
         name: Compile protobufs
-        run: make compile-protobufs
+        run: make compile-protos
       -
         name: Test
         run: make test
