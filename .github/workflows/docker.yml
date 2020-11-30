@@ -62,5 +62,12 @@ jobs:
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.CR_PAT }}
       -
+        name: Update repo description
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: tritonuas/hub
+      -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
