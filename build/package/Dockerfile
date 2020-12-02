@@ -5,8 +5,11 @@ WORKDIR /build
 COPY . .
 
 # Install some necessary dependencies
-RUN apt-get update
-RUN apt-get -y install git libzmq3-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	git \
+	libzmq3-dev \
+	&& rm -rf /var/lib/apt/lists/*
+
 
 # Setup git to use ssh for private go modules
 # ARG GITHUB_TOKEN
