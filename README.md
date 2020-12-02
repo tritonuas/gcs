@@ -64,6 +64,6 @@ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' con
 
 ## Test
 
-```
+```sh
 make test
 ```
