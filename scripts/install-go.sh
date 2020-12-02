@@ -8,21 +8,19 @@ VERSION=1.15.5
 
 if command -v  $COMMAND &> /dev/null; then
     echo -e "${BLUE}${COMMAND} already installed${NC}"
-		exit
+    exit
 fi
 
 echo -e "${RED}${COMMAND} could not be found${NC}"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-		OS=linux-amd-64.tar.gz
-		GOFILE=go${VERSION}.linux-amd-64.tar.gz
-		curl https://golang.org/dl/${GOFILE}
-		tar -C /usr/local -xzf ${GOFILE}
-		echo 'export PATH=$PATH:/usr/local/go/bin' >> $HOME/.profile
+    GOFILE=go${VERSION}.linux-amd-64.tar.gz
+    curl https://golang.org/dl/${GOFILE}
+    tar -C /usr/local -xzf ${GOFILE}
+    echo "export PATH=$PATH:/usr/local/go/bin" >> "$HOME/.profile"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-		OS=darwin-amd64.pkg
-		echo -e "${RED}$OSTYPE not currently supported for script install ${NC}"
-		# Test on OSX for go install
+    echo -e "${RED}$OSTYPE not currently supported for script install ${NC}"
+    # Test on OSX for go install
 else
-		echo -e "${RED}$OSTYPE not currently supported for script install ${NC}"
-		exit
+    echo -e "${RED}$OSTYPE not currently supported for script install ${NC}"
+    exit
 fi

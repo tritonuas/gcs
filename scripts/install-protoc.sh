@@ -34,4 +34,4 @@ echo -e "${BLUE}Installing protoc-gen-go${NC}"
 go get google.golang.org/protobuf/cmd/protoc-gen-go
 
 echo -e "${BLUE}Setting PATH for protoc-gen-go${NC}"
-echo "export PATH=$PATH:$(go env GOPATH)/bin" >> $HOME/.profile
+echo "export PATH=$PATH:$(go env GOPATH)/bin" >> "$HOME/.profile"
