@@ -51,12 +51,6 @@ make docker-build
 make docker-run
 ```
 
-## Swagger UI
-
-To view the Swagger-UI docs without running the server, go into the third_party/swagger-ui folder and run `python3 -m http.server`. Then, go to localhost:8000 on your browser.
-
-![swagger-screenshot](./assets/swagger.png)
-
 ## Ports and Stuff
 
 Check [houston](https://github.com/tritonuas/houston) for usage instructions

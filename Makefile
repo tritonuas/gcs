@@ -1,5 +1,4 @@
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-PACKAGES = $(shell go list -f '{{ join .Imports "\n" }}' )
 
 .PHONY: all
 all: build run
@@ -59,6 +58,8 @@ submodulesupdate:
 # Testing
 # --------------------------------------------------------------------
 .PHONY: test
+
+PACKAGES = $(shell go list -f '{{ join .Imports "\n" }}' )
 test:
 	go test -race $(PACKAGES)
 
