@@ -210,7 +210,7 @@ func (c *Client) GetTeams() ([]byte, InteropError) {
 }
 
 // GetMission gets the mission at the given mission id value
-func (c *Client) GetMission(id int32) ([]byte, InteropError) {
+func (c *Client) GetMission(id int) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/missions/%d", id)
 	data, err := c.Get(uri)
 
@@ -239,7 +239,7 @@ func (c *Client) PostTelemetry(telem []byte) InteropError {
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
-func (c *Client) GetODLCs(missionID int32) ([]byte, InteropError) {
+func (c *Client) GetODLCs(missionID int) ([]byte, InteropError) {
 	uri := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
 	if missionID > -1 {
@@ -259,7 +259,7 @@ func (c *Client) GetODLCs(missionID int32) ([]byte, InteropError) {
 }
 
 // GetODLC gets a single ODLC with the ODLC's id
-func (c *Client) GetODLC(id int32) ([]byte, InteropError) {
+func (c *Client) GetODLC(id int) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Get byte array from the server
@@ -291,7 +291,7 @@ func (c *Client) PostODLC(odlc []byte) ([]byte, InteropError) {
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
 // specific ODLC with the values passed through.
-func (c *Client) PutODLC(id int32, odlc []byte) InteropError {
+func (c *Client) PutODLC(id int, odlc []byte) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Put the json to the server
@@ -307,7 +307,7 @@ func (c *Client) PutODLC(id int32, odlc []byte) InteropError {
 }
 
 // DeleteODLC deletes the ODLC at the specified id number
-func (c *Client) DeleteODLC(id int32) InteropError {
+func (c *Client) DeleteODLC(id int) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 	_, err := c.Delete(uri)
 
@@ -322,7 +322,7 @@ func (c *Client) DeleteODLC(id int32) InteropError {
 
 // GetODLCImage gets the raw binary image content of a specified ODLC that has
 // already had image data uploaded to the server
-func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
+func (c *Client) GetODLCImage(id int) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	body, err := c.Get(uri)
@@ -338,7 +338,7 @@ func (c *Client) GetODLCImage(id int32) ([]byte, InteropError) {
 
 // PutODLCImage puts the binary image content of the ODLC to the server for the
 // specified ODLC id
-func (c *Client) PutODLCImage(id int32, image []byte) InteropError {
+func (c *Client) PutODLCImage(id int, image []byte) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	_, err := c.Put(uri, bytes.NewReader(image))
@@ -353,7 +353,7 @@ func (c *Client) PutODLCImage(id int32, image []byte) InteropError {
 }
 
 // DeleteODLCImage deletes the image saved at the specified ODLC
-func (c *Client) DeleteODLCImage(id int32) InteropError {
+func (c *Client) DeleteODLCImage(id int) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	_, err := c.Delete(uri)
