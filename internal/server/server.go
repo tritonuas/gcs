@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ func (s *Server) Run(port string, c *ic.Client) {
 	s.port = fmt.Sprintf(":%s", port)
 	http.Handle("/api/teams", &teamHandler{client: c})
 	http.Handle("/api/missions/", &missionHandler{client: c})
+	http.Handle("/api/telemetry", &telemHandler{client: c})
 
 	http.ListenAndServe(s.port, nil)
 }
@@ -37,8 +39,8 @@ func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Make the GET request to the Interop Server
 		teams, err := t.client.GetTeams()
 		if err.Get {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 - Error getting team statuses"))
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
 		} else {
 			w.Write(teams)
 		}
@@ -69,8 +71,8 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// Make the GET request to the interop server
 			mission, err := m.client.GetMission(missionID)
 			if err.Get {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500 - Error getting mission data"))
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
 			} else {
 				w.Write(mission)
 			}
@@ -80,4 +82,27 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+}
+
+// Handles POST requests to the server that upload telemetry data
+type telemHandler struct {
+	client *ic.Client
+}
+
+func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST":
+		telemData, _ := ioutil.ReadAll(r.Body)
+		// Make the POST request to the interop server
+		err := t.client.PostTelemetry(telemData)
+		if err.Post {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+		} else {
+			w.Write([]byte("200 - Telemetry successfully uploaded"))
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("501 - Not Implemented"))
+	}
 }
