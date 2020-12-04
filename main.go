@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	ic "github.com/tritonuas/hub/internal/interop"
+	hs "github.com/tritonuas/hub/internal/server"
 )
 
 var log = logrus.New()
@@ -69,5 +70,7 @@ func main() {
 	// Once we need to access the interop client
 	log.Debug("Waiting for interop connection to be established")
 	client := <-interopChannel
-	client.Get("/api/missions/1")
+	log.Debug("Creating Hub Server")
+	var server hs.Server
+	server.Run("8080", client)
 }
