@@ -26,6 +26,7 @@ func (s *Server) Run(port string, c *ic.Client) {
 	http.ListenAndServe(s.port, nil)
 }
 
+// Handles GET requests that ask for Team Status information
 type teamHandler struct {
 	client *ic.Client
 }
@@ -47,6 +48,7 @@ func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Handles GET requests that ask for the mission parameters
 type missionHandler struct {
 	client *ic.Client
 }
