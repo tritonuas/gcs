@@ -93,14 +93,15 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.Get = true
+		intErr.SetError("GET", []byte("Interop Server Offline"), resp.StatusCode)
 		return nil, *intErr
 	}
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
 	if resp.StatusCode != 200 {
-		intErr.Get = true
+		errMsg, _ := ioutil.ReadAll(resp.Body)
+		intErr.SetError("GET", errMsg, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -120,14 +121,15 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.Post = true
+		intErr.SetError("POST", []byte("Interop Server Offline"), resp.StatusCode)
 		return nil, *intErr
 	}
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
 	if resp.StatusCode != 200 {
-		intErr.Post = true
+		errMsg, _ := ioutil.ReadAll(resp.Body)
+		intErr.SetError("POST", errMsg, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -152,14 +154,15 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.Put = true
+		intErr.SetError("PUT", []byte("Interop Server Offline"), resp.StatusCode)
 		return nil, *intErr
 	}
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
 	if resp.StatusCode != 200 {
-		intErr.Put = true
+		errMsg, _ := ioutil.ReadAll(resp.Body)
+		intErr.SetError("PUT", errMsg, resp.StatusCode)
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -180,14 +183,15 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.Delete = true
+		intErr.SetError("DELETE", []byte("Interop Server Offline"), resp.StatusCode)
 		return nil, *intErr
 	}
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
 	if resp.StatusCode != 200 {
-		intErr.Delete = true
+		errMsg, _ := ioutil.ReadAll(resp.Body)
+		intErr.SetError("DELETE", errMsg, resp.StatusCode)
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
