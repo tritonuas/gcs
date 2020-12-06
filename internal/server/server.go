@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/cors"
+
 	ic "github.com/tritonuas/hub/internal/interop"
 )
 
@@ -19,13 +21,19 @@ type Server struct {
 
 // Run starts the hub http server and establishes all of the uri's that it
 // will receive
-func (s *Server) Run(port string, c *ic.Client) {
+func (s *Server) Run(port string, cli *ic.Client) {
 	s.port = fmt.Sprintf(":%s", port)
-	http.Handle("/api/teams", &teamHandler{client: c})
-	http.Handle("/api/missions/", &missionHandler{client: c})
-	http.Handle("/api/telemetry", &telemHandler{client: c})
+	mux := http.NewServeMux()
+	mux.Handle("/api/teams", &teamHandler{client: cli})
+	mux.Handle("/api/missions/", &missionHandler{client: cli})
+	mux.Handle("/api/telemetry", &telemHandler{client: cli})
 
-	http.ListenAndServe(s.port, nil)
+	c := cors.New(cors.Options{
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+	})
+
+	handler := c.Handler(mux)
+	http.ListenAndServe(s.port, handler)
 }
 
 // Handles GET requests that ask for Team Status information
