@@ -27,6 +27,7 @@ func (s *Server) Run(port string, cli *ic.Client) {
 	mux.Handle("/api/teams", &teamHandler{client: cli})
 	mux.Handle("/api/missions/", &missionHandler{client: cli})
 	mux.Handle("/api/telemetry", &telemHandler{client: cli})
+	mux.Handle("/api/odlcs/", &odlcHandler{client: cli})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -112,5 +113,132 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("501 - Not Implemented"))
+	}
+}
+
+// Handles all requests related to ODLCs
+type odlcHandler struct {
+	client *ic.Client
+}
+
+func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.Method)
+	// Here are all the URI possibilities we expect to see
+	// GET /api/odlcs --> get list of all odlcs
+	// GET /api/odlcs?mission=X --> get list of all odlcs for mission X
+	// GET /api/odlcs/X --> get one specific odlc with id X
+	// POST /api/odlcs --> upload the initial copy of an odlc, get back the odlc with id param filled in
+	// PUT /api/odlcs/X --> update params of the odlc with id X
+	// DELETE /api/odlcs/X --> delete the odlc with id X
+
+	// initialize this value to -99, and update if the user specifies a mission
+	const noMission int = -99
+	missionID := noMission
+	// This split string array should be in the format ["", "api", "odlcs" ]
+	// OR ["", "api", "odlcs", "X"] where X is the mission value
+	splitURI := strings.Split(r.URL.Path, "/")
+	if len(splitURI) == 4 {
+		// update mission to the value they want it to be
+		var err error
+		missionID, err = strconv.Atoi(splitURI[3])
+		if err != nil {
+			// Either the user didn't supply a mission, or they provided a non integer
+			// value. Either way, we will assume they didn't try to specifiy an ID
+			// and override whatever junk value was placed into missionID
+			missionID = noMission
+		}
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Bad Request Format"))
+		return
+	}
+
+	fmt.Println(r.Method)
+
+	switch r.Method {
+	case "GET":
+		// Check for ?mission=X query param
+		if len(r.URL.Query()) > 0 {
+			if val, ok := r.URL.Query()["mission"]; ok {
+				// Verify that mission wasn't also set in the URI
+				if missionID == noMission {
+					var err error
+					missionID, err = strconv.Atoi(val[0])
+					if err != nil {
+						w.WriteHeader(http.StatusBadRequest)
+						w.Write([]byte("Bad Request Format - Expected valid integer X in query parameter ?mission=X"))
+						return
+					}
+					odlcsData, intErr := o.client.GetODLCs(missionID)
+					if intErr.Get {
+						w.WriteHeader(intErr.Status)
+						w.Write(intErr.Message)
+					} else {
+						// Everything is OK!
+						// This Write statement corresponds to a successful GET request in the format:
+						// GET /api/odlcs?mission=X where X is a valid integer
+						w.Write(odlcsData)
+					}
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}"))
+				}
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Bad Request Format - Cannot provide query parameters other than ?mission"))
+			}
+		} else {
+			// There was no query param
+			if missionID == noMission {
+				// The user didn't provide a specific mission, so they want a list of all the odlcs
+				// (We still pass through missionID since a negative number parameter to this function
+				// signifies that we don't want to restrict it to a specific mission)
+				odlcsData, intErr := o.client.GetODLCs(missionID)
+				if intErr.Get {
+					w.WriteHeader(intErr.Status)
+					w.Write(intErr.Message)
+				} else {
+					// Everything is OK!
+					// This Write statement corresponds to a successful GET request in the format:
+					// GET /api/odlcs/
+					w.Write(odlcsData)
+				}
+			} else {
+				// The user wants the odlc data from a specific ODLC, and the id of that odlc
+				// is stored in missionID
+				odlcData, intErr := o.client.GetODLC(missionID)
+				if intErr.Get {
+					w.WriteHeader(intErr.Status)
+					w.Write(intErr.Message)
+				} else {
+					// Everything is OK!
+					// This Write statment corresponds to a successful GET request in the format:
+					// GET /api/odlcs/X where X is a valid integer
+					w.Write(odlcData)
+				}
+			}
+		}
+	case "POST":
+		if missionID == noMission {
+			odlcData, _ := ioutil.ReadAll(r.Body)
+			// Make the POST request to the interop server
+			updatedODLC, err := o.client.PostODLC(odlcData)
+			if err.Post {
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
+			} else {
+				// This Write statement corresponds to a successful POST request in the format:
+				// POST /api/odlcs
+				w.Write(updatedODLC)
+			}
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request"))
+		}
+	case "PUT":
+	case "DELETE":
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
 	}
 }
