@@ -295,11 +295,11 @@ func (c *Client) PostODLC(odlc []byte) ([]byte, InteropError) {
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
 // specific ODLC with the values passed through.
-func (c *Client) PutODLC(id int, odlc []byte) InteropError {
+func (c *Client) PutODLC(id int, odlc []byte) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Put the json to the server
-	_, err := c.Put(uri, bytes.NewReader(odlc))
+	newOdlc, err := c.Put(uri, bytes.NewReader(odlc))
 
 	if err.Put {
 		Log.Error("An error occurred updating an ODLC's information")
@@ -307,7 +307,7 @@ func (c *Client) PutODLC(id int, odlc []byte) InteropError {
 		Log.Info("Successfully updated an ODLC's information")
 	}
 
-	return err
+	return newOdlc, err
 }
 
 // DeleteODLC deletes the ODLC at the specified id number

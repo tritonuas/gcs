@@ -122,7 +122,6 @@ type odlcHandler struct {
 }
 
 func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Method)
 	// Here are all the URI possibilities we expect to see
 	// GET /api/odlcs --> get list of all odlcs
 	// GET /api/odlcs?mission=X --> get list of all odlcs for mission X
@@ -152,8 +151,6 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Bad Request Format"))
 		return
 	}
-
-	fmt.Println(r.Method)
 
 	switch r.Method {
 	case "GET":
@@ -236,6 +233,21 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request"))
 		}
 	case "PUT":
+		if missionID == noMission {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Must provide a mission ID for a PUT request"))
+		} else {
+			odlcData, _ := ioutil.ReadAll(r.Body)
+			updatedOdlc, err := o.client.PutODLC(missionID, odlcData)
+			if err.Put {
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
+			} else {
+				// This Write statement corresponds to a successful PUT request in the format:
+				// PUT /api/odlcs/X where X is a valid integer
+				w.Write(updatedOdlc)
+			}
+		}
 	case "DELETE":
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
