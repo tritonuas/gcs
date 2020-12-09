@@ -249,6 +249,18 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	case "DELETE":
+		if missionID == noMission {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Must provide a mission ID for a DELETE request"))
+		} else {
+			err := o.client.DeleteODLC(missionID)
+			if err.Delete {
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
+			} else {
+				w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
+			}
+		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented"))
