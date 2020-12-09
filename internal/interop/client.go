@@ -93,7 +93,7 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.SetError("GET", []byte("Interop Server Offline"), resp.StatusCode)
+		intErr.SetError("GET", []byte("Interop Server Offline"), http.StatusBadGateway)
 		return nil, *intErr
 	}
 
@@ -121,7 +121,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.SetError("POST", []byte("Interop Server Offline"), resp.StatusCode)
+		intErr.SetError("POST", []byte("Interop Server Offline"), http.StatusBadGateway)
 		return nil, *intErr
 	}
 
@@ -154,7 +154,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.SetError("PUT", []byte("Interop Server Offline"), resp.StatusCode)
+		intErr.SetError("PUT", []byte("Interop Server Offline"), http.StatusBadGateway)
 		return nil, *intErr
 	}
 
@@ -183,7 +183,7 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		intErr.SetError("DELETE", []byte("Interop Server Offline"), resp.StatusCode)
+		intErr.SetError("DELETE", []byte("Interop Server Offline"), http.StatusBadGateway)
 		return nil, *intErr
 	}
 
