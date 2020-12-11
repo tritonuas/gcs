@@ -24,10 +24,10 @@ type Server struct {
 func (s *Server) Run(port string, cli *ic.Client) {
 	s.port = fmt.Sprintf(":%s", port)
 	mux := http.NewServeMux()
-	mux.Handle("/api/teams", &teamHandler{client: cli})
-	mux.Handle("/api/missions/", &missionHandler{client: cli})
-	mux.Handle("/api/telemetry", &telemHandler{client: cli})
-	mux.Handle("/api/odlcs/", &odlcHandler{client: cli})
+	mux.Handle("/interop/teams", &teamHandler{client: cli})
+	mux.Handle("/interop/missions/", &missionHandler{client: cli})
+	mux.Handle("/interop/telemetry", &telemHandler{client: cli})
+	mux.Handle("/interop/odlcs/", &odlcHandler{client: cli})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
