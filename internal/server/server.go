@@ -55,7 +55,7 @@ func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 - Not Implemented"))
+		w.Write([]byte("Not Implemented"))
 	}
 }
 
@@ -73,7 +73,7 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If there is an error, then the user messed up in creating the request
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("400 - Bad request format"))
+		w.Write([]byte("Bad request format"))
 	} else { // If no error, check the message method and do appropriate actions
 		switch r.Method {
 		case "GET":
@@ -87,7 +87,7 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		default:
 			w.WriteHeader(http.StatusNotImplemented)
-			w.Write([]byte("501 - Not Implemented"))
+			w.Write([]byte("Not Implemented"))
 		}
 	}
 
@@ -108,11 +108,11 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
 		} else {
-			w.Write([]byte("200 - Telemetry successfully uploaded"))
+			w.Write([]byte("Telemetry successfully uploaded"))
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("501 - Not Implemented"))
+		w.Write([]byte("Not Implemented"))
 	}
 }
 
