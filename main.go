@@ -72,5 +72,5 @@ func main() {
 	client := <-interopChannel
 	log.Debug("Creating Hub Server")
 	var server hs.Server
-	server.Run("8080", client)
+	server.Run("5000", client)
 }
