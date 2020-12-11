@@ -153,8 +153,12 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// and override whatever junk value was placed into missionID
 			missionID = noMission
 		}
-		if len(splitURI) == 5 { // Check if it wants to be an image
+		if len(splitURI) == 5 && splitURI[len(splitURI)-1] == "image" { // Check if user trying to do something with images
 			imageRequest = true
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format"))
+			return
 		}
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
