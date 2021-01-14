@@ -155,15 +155,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if len(splitURI) == 5 && splitURI[len(splitURI)-1] == "image" { // Check if user trying to do something with images
 			imageRequest = true
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Bad Request Format"))
-			return
 		}
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad Request Format"))
-		return
 	}
 
 	if imageRequest {
