@@ -122,16 +122,8 @@ type odlcHandler struct {
 }
 
 func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Here are all the URI possibilities we expect to see
-	// GET /api/odlcs --> get list of all odlcs
-	// GET /api/odlcs?mission=X --> get list of all odlcs for mission X
-	// GET /api/odlcs/X --> get one specific odlc with id X
-	// POST /api/odlcs --> upload the initial copy of an odlc, get back the odlc with id param filled in
-	// PUT /api/odlcs/X --> update params of the odlc with id X
-	// DELETE /api/odlcs/X --> delete the odlc with id X
-	// GET /api/odlcs/X/image --> get the image data for the odlc with id X
-	// PUT /api/odlcs/X/image --> upload the image data for the odlc with id X
-	// DELETE /api/odlcs/X/image --> delete the image data for the odlc with id X
+	// To view a full documentation of these endpoints, please view the endpoints page on the
+	// wiki
 
 	// initialize this value to -99, and update if the user specifies a mission
 	const noMission int = -99
@@ -171,7 +163,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.Write(err.Message)
 				} else {
 					// This Write statement corresponds to a successful request in the format
-					// GET /api/odlcs/X/image
+					// GET /interop/odlcs/X/image
 					w.Write(image)
 				}
 			case "PUT":
@@ -182,7 +174,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.Write(err.Message)
 				} else {
 					// This Write statement corresponds to a successful request in the format
-					// PUT /api/odlcs/X/image
+					// PUT /interop/odlcs/X/image
 					w.Write([]byte(fmt.Sprintf("Successfully uploaded odlc image for odlc %d", missionID)))
 				}
 			case "DELETE":
@@ -192,7 +184,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.Write(err.Message)
 				} else {
 					// This Write statement corresponds to a successful request in the format
-					// DELETE /api/odlcs/X/image
+					// DELETE /interop/odlcs/X/image
 					w.Write([]byte(fmt.Sprintf("Successfully deleted odlc image for odlc %d", missionID)))
 				}
 			default:
@@ -222,7 +214,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						} else {
 							// Everything is OK!
 							// This Write statement corresponds to a successful GET request in the format:
-							// GET /api/odlcs?mission=X where X is a valid integer
+							// GET /interop/odlcs?mission=X where X is a valid integer
 							w.Write(odlcsData)
 						}
 					} else {
@@ -246,7 +238,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					} else {
 						// Everything is OK!
 						// This Write statement corresponds to a successful GET request in the format:
-						// GET /api/odlcs/
+						// GET /interop/odlcs/
 						w.Write(odlcsData)
 					}
 				} else {
@@ -259,7 +251,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					} else {
 						// Everything is OK!
 						// This Write statment corresponds to a successful GET request in the format:
-						// GET /api/odlcs/X where X is a valid integer
+						// GET /interop/odlcs/X where X is a valid integer
 						w.Write(odlcData)
 					}
 				}
@@ -274,7 +266,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.Write(err.Message)
 				} else {
 					// This Write statement corresponds to a successful POST request in the format:
-					// POST /api/odlcs
+					// POST /interop/odlcs
 					w.Write(updatedODLC)
 				}
 			} else {
@@ -293,7 +285,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.Write(err.Message)
 				} else {
 					// This Write statement corresponds to a successful PUT request in the format:
-					// PUT /api/odlcs/X where X is a valid integer
+					// PUT /interop/odlcs/X where X is a valid integer
 					w.Write(updatedOdlc)
 				}
 			}
@@ -307,6 +299,8 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
 				} else {
+					// This Write statement corresponds to a successful DELETE request in the format:
+					// DELETE /interop/odlcs/X where X is a valid integer
 					w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
 				}
 			}
