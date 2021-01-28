@@ -2,6 +2,7 @@ package interop
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
@@ -40,24 +41,30 @@ func TestNewClientSuccess(t *testing.T) {
 func TestGetTeams(t *testing.T) {
 	teams, intErr := client.GetTeams()
 
-	if len(teams) != 1 {
-		t.Errorf("Expected length of teams array to be 1, was %d", len(teams))
+	var teamList []TeamStatus
+	json.Unmarshal(teams, &teamList)
+
+	if len(teamList) != 1 {
+		t.Errorf("Expected length of teams array to be 1, was %d", len(teamList))
 	}
-	if intErr.Output {
-		t.Error("Output Error")
+	if intErr.Get {
+		t.Error("Get Error")
 	}
 }
 
 // TestGetMission tests to make sure that the mission gotten from the server
 // is correctly set
 func TestGetMission(t *testing.T) {
-	mission, intErr := client.GetMission(1)
+	missionData, intErr := client.GetMission(1)
+
+	var mission Mission
+	json.Unmarshal(missionData, &mission)
 
 	if mission.GetId() != 1 {
 		t.Errorf("Expected id of mission to be 1, was %d", mission.GetId())
 	}
-	if intErr.Output {
-		t.Error("Output Error")
+	if intErr.Get {
+		t.Error("Get Error")
 	}
 }
 
@@ -75,9 +82,11 @@ func TestPostTelemetry(t *testing.T) {
 		Heading:   &head,
 	}
 
-	intErr := client.PostTelemetry(&telem)
+	telemJSON, _ := json.Marshal(telem)
 
-	if intErr.Post {
+	err := client.PostTelemetry(telemJSON)
+
+	if err.Post {
 		t.Error("Expected post error to be false, but it was true")
 	}
 }
@@ -96,9 +105,11 @@ func TestPostBadTelemetry(t *testing.T) {
 		Heading:   &head,
 	}
 
-	intErr := client.PostTelemetry(&telem)
+	telemJSON, _ := json.Marshal(telem)
 
-	if !intErr.Post {
+	err := client.PostTelemetry(telemJSON)
+
+	if !err.Post {
 		t.Error("Expected post error to be true, but it was false")
 	}
 }
@@ -113,36 +124,39 @@ func TestODLCs(t *testing.T) {
 		Type:    &odlcType,
 	}
 
-	intErr := client.PostODLC(postODLC)
+	postOdlcJSON, _ := json.Marshal(postODLC)
+
+	postOdlcJSON, intErr := client.PostODLC(postOdlcJSON)
 	if intErr.Post {
 		t.Error("Expected PostODLC post error to be false, but it was true")
 	}
-	if intErr.Output {
-		t.Error("Expected PostODLC output error to be false, but it was true")
-	}
+	// sorry
+	json.Unmarshal(postOdlcJSON, &postODLC)
 	if postODLC.GetId() == 0 {
 		t.Error("Expected to have an updated odlc ID, but it was still 0")
 	}
 
 	// Test getting an odlc
-	getODLC, intErr := client.GetODLC(postODLC.GetId())
+	getOdlcJSON, intErr := client.GetODLC(postODLC.GetId())
 	if intErr.Get {
 		t.Error("Expected GetODLC get error to be false, but it was true")
 	}
-	if intErr.Output {
-		t.Error("Expected GetODLC output error to be false, but it was true")
-	}
+
+	var getODLC *Odlc
+	json.Unmarshal(getOdlcJSON, &getODLC)
+
 	if !compareODLCs(getODLC, postODLC) {
 		t.Error("Expected getODLC and postODLC to be equal, but they were not")
 	}
 
-	getODLCs, intErr := client.GetODLCs(-1)
+	getODLCsJSON, intErr := client.GetODLCs(-1)
 	if intErr.Get {
 		t.Error("Expected GetODLCs get error to be false, but it was true")
 	}
-	if intErr.Output {
-		t.Error("Expected GetODLCs output error to be false, but it was true")
-	}
+
+	var getODLCs []Odlc
+	json.Unmarshal(getODLCsJSON, &getODLCs)
+
 	// check if the posted odlc is in the list of odlcs
 	containsPostODLC := false
 	for _, tempODLC := range getODLCs {
@@ -155,13 +169,14 @@ func TestODLCs(t *testing.T) {
 		t.Error("Expected getODLCs to contain postODLC, but it did not")
 	}
 
-	getODLCsMission, intErr := client.GetODLCs(1)
+	getODLCsMissionJSON, intErr := client.GetODLCs(1)
 	if intErr.Get {
 		t.Error("Expected GetODLCsMission get error to be false, but it was true")
 	}
-	if intErr.Output {
-		t.Error("Expected GetODLCsMission output error to be false, but it was true")
-	}
+
+	var getODLCsMission []Odlc
+	json.Unmarshal(getODLCsMissionJSON, &getODLCsMission)
+
 	// check if the posted odlc is also in this list of odlcs
 	containsPostODLC = false
 	for _, tempODLC := range getODLCsMission {
@@ -174,13 +189,14 @@ func TestODLCs(t *testing.T) {
 		t.Error("Expected getODLCsMission to contain postODLC, but it did not")
 	}
 
-	getODLCsBadMission, intErr := client.GetODLCs(2)
+	getODLCsBadMissionJSON, intErr := client.GetODLCs(2)
 	if intErr.Get {
 		t.Error("Expected getODLCsBadMission get error to be false, but it was true")
 	}
-	if intErr.Output {
-		t.Error("Expected getODLCsBadMission output error to be false, but it was true")
-	}
+
+	var getODLCsBadMission []Odlc
+	json.Unmarshal(getODLCsBadMissionJSON, &getODLCsBadMission)
+
 	// check to make sure that the posted odlc is not also in this list of odlcs
 	containsPostODLC = false
 	for _, tempODLC := range getODLCsBadMission {
@@ -196,12 +212,9 @@ func TestODLCs(t *testing.T) {
 	// Test updating an odlc
 	putShape := Odlc_CIRCLE
 	postODLC.Shape = &putShape
-	intErr = client.PutODLC(postODLC.GetId(), postODLC)
+	intErr = client.PutODLC(postODLC.GetId(), postOdlcJSON)
 	if intErr.Get {
 		t.Error("Expected PutODLC get error to be false, but it was true")
-	}
-	if intErr.Output {
-		t.Error("Expected PutODLC output error to be false, but it was true")
 	}
 
 	// Test uploading an image
@@ -250,7 +263,11 @@ func TestODLCs(t *testing.T) {
 		t.Error("Expected DeleteODLC delete error to be false, but it was true")
 	}
 
-	newODLCsList, intErr := client.GetODLCs(-1)
+	newODLCsListJSON, intErr := client.GetODLCs(-1)
+
+	var newODLCsList []Odlc
+	json.Unmarshal(newODLCsListJSON, &newODLCsList)
+
 	containsDeletedODLC := false
 	for _, tempODLC := range newODLCsList {
 		if compareODLCs(&tempODLC, postODLC) {
