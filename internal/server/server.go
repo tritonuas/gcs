@@ -16,8 +16,9 @@ import (
 // Server provides the implementation for the hub server that communicates
 // with other parts of the plane's system and houston
 type Server struct {
-	port   string
-	client *ic.Client
+	port      string
+	client    *ic.Client
+	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 }
 
 // Run starts the hub http server and establishes all of the uri's that it
@@ -27,8 +28,10 @@ func (s *Server) Run(port string, cli *ic.Client) {
 	mux := http.NewServeMux()
 	mux.Handle("/interop/teams", &teamHandler{client: cli})
 	mux.Handle("/interop/missions/", &missionHandler{client: cli})
-	mux.Handle("/interop/telemetry", &telemHandler{client: cli})
+	mux.Handle("/interop/telemetry", &telemHandler{client: cli, server: s})
 	mux.Handle("/interop/odlcs/", &odlcHandler{client: cli})
+
+	mux.Handle("/plane/telemetry", &planeTelemHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -36,6 +39,27 @@ func (s *Server) Run(port string, cli *ic.Client) {
 
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+// Handles GET requests that ask for our Plane's telemetry data
+type planeTelemHandler struct {
+	server *Server
+}
+
+func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if t.server.telemetry == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("No telemetry found. Is the plane flying?"))
+			break
+		}
+
+		w.Write(t.server.telemetry)
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 // Handles GET requests that ask for Team Status information
@@ -97,6 +121,7 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Handles POST requests to the server that upload telemetry data
 type telemHandler struct {
 	client *ic.Client
+	server *Server
 }
 
 func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +165,13 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
 		} else {
+			// TEMPORARY WORKAROUND since the plane mavlink integration is not complete at the moment
+			// TODO: change this to cache the telemetry data as it comes in from the plane directly
+			// 		 instead of here
+
+			// Cache the telemetry data so it can be retrieved by hub
+			t.server.telemetry = telemData
+
 			w.Write([]byte("Telemetry successfully uploaded"))
 		}
 	default:
