@@ -83,6 +83,11 @@ func NewClient(url string, username string, password string, timeout int) (*Clie
 	return client, intErr
 }
 
+// GetUsername returns the username for our interop connection
+func (c *Client) GetUsername() string {
+	return c.username
+}
+
 // Get makes a GET request to server.
 func (c *Client) Get(uri string) ([]byte, InteropError) {
 	intErr := NewInteropError()

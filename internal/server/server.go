@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -100,6 +101,37 @@ type telemHandler struct {
 
 func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case "GET":
+		// We want to parse the teams data to find all of the telemetry of the other planes
+		teamsData, _ := t.client.GetTeams()
+		var teamsList []ic.TeamStatus
+		json.Unmarshal(teamsData, &teamsList)
+
+		// We have a list of TeamStatuses in teamsList, now convert to a list of
+		// Telemetry, and return that back into json
+		var telemList []ic.Telemetry
+		for i := 0; i < len(teamsList); i++ {
+			team := &teamsList[i]
+
+			// We don't want to get our own telemety or telemetry from planes
+			// not in the air, so filter out those
+			if team.GetTeam().GetUsername() != t.client.GetUsername() && team.GetInAir() {
+				// To prevent a crash if a team has taken off but not uploaded any telemetry
+				if team.GetTelemetry() != nil {
+					telemList = append(telemList, *team.GetTelemetry())
+				}
+			}
+		}
+
+		// Now telemlist should have all the other teams telemetry, so lets turn it back into
+		// a []byte
+		telemData, _ := json.Marshal(telemList)
+		if len(telemList) > 0 {
+			w.Write(telemData)
+		} else {
+			w.Write([]byte("There are no other teams in the air transmitting telemetry."))
+		}
+
 	case "POST":
 		telemData, _ := ioutil.ReadAll(r.Body)
 		// Make the POST request to the interop server
