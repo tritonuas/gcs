@@ -45,6 +45,7 @@ func setEnvVars() {
 // Add in other loggers for modules as needed
 func setLoggers() {
 	ic.Log = log
+	hs.Log = log
 }
 
 func main() {

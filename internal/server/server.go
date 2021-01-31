@@ -9,16 +9,22 @@ import (
 	"strings"
 
 	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
 )
 
+var Log = logrus.New()
+
 // Server provides the implementation for the hub server that communicates
 // with other parts of the plane's system and houston
 type Server struct {
-	port      string
-	client    *ic.Client
+	port   string
+	client *ic.Client
+
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
+
+	path *Path // Holds the path of the plane, see the definition of the struct for more details
 }
 
 // Run starts the hub http server and establishes all of the uri's that it
@@ -32,6 +38,7 @@ func (s *Server) Run(port string, cli *ic.Client) {
 	mux.Handle("/interop/odlcs/", &odlcHandler{client: cli})
 
 	mux.Handle("/plane/telemetry", &planeTelemHandler{server: s})
+	mux.Handle("/plane/path", &planePathHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -39,6 +46,43 @@ func (s *Server) Run(port string, cli *ic.Client) {
 
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+// Handles POST requests
+type planePathHandler struct {
+	server *Server
+}
+
+func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST":
+		pathData, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Error processing path data: " + err.Error()))
+			break
+		}
+
+		Log.Debugf("Attempting to create a path")
+
+		p.server.path, err = CreatePath(pathData)
+
+		Log.Debugf("Path created: ")
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error processing path data: " + err.Error()))
+			break
+		}
+
+		p.server.path.Display()
+
+		w.Write([]byte("Successfully uploaded path to hub"))
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 // Handles GET requests that ask for our Plane's telemetry data
