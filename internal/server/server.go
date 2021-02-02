@@ -55,6 +55,15 @@ type planePathHandler struct {
 
 func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case "GET":
+		if p.server.path != nil && p.server.path.GetOriginalJSON() != nil {
+			pathData := p.server.path.GetOriginalJSON()
+			w.Write([]byte(pathData))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("No path found."))
+		}
+
 	case "POST":
 		pathData, err := ioutil.ReadAll(r.Body)
 		if err != nil {
