@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	ic "github.com/tritonuas/hub/internal/interop"
 	hs "github.com/tritonuas/hub/internal/server"
+	mav "github.com/tritonuas/hub/internal/mavlink"
 )
 
 var log = logrus.New()
@@ -26,6 +27,8 @@ var ENVS = map[string]*string{
 	"IP":                 flag.String("ip", "*", "ip of interop computer"),
 	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
 	"DEBUG_MODE":         flag.String("debug", "False", "Boolean to determine logging mode"),
+	"MAV_COMMON_PATH":    flag.String("mav_common_path", "mavlink/message_definitions/v1.0/common.xml", "path to file that contains common mavlink messages"),
+	"MAV_ARDU_PATH": 	  flag.String("mav_ardu_path", "./mavlink/message_definitions/v1.0/ardupilotmega.xml", "path to file that contains ardupilot mavlink messages"),
 }
 
 // setEnvVars will check for any hub related environment variables and
@@ -45,6 +48,7 @@ func setEnvVars() {
 // Add in other loggers for modules as needed
 func setLoggers() {
 	ic.Log = log
+	mav.Log = log
 }
 
 func main() {
@@ -66,6 +70,7 @@ func main() {
 	go ic.EstablishInteropConnection(interopRetryTime, interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], interopTimeout, interopChannel)
 
 	// Do other things...
+	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"])
 
 	// Once we need to access the interop client
 	log.Debug("Waiting for interop connection to be established")
