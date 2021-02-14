@@ -25,6 +25,8 @@ type Server struct {
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
 	path *Path // Holds the path of the plane, see the definition of the struct for more details
+
+	homePosition *ic.Position // Home position of the plane, which must be set by us
 }
 
 // Run starts the hub http server and establishes all of the uri's that it
@@ -39,6 +41,7 @@ func (s *Server) Run(port string, cli *ic.Client) {
 
 	mux.Handle("/plane/telemetry", &planeTelemHandler{server: s})
 	mux.Handle("/plane/path", &planePathHandler{server: s})
+	mux.Handle("/plane/home", &planeHomeHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -46,6 +49,44 @@ func (s *Server) Run(port string, cli *ic.Client) {
 
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+// Handles uploading and retreiving the home position of the plane
+type planeHomeHandler struct {
+	server *Server
+}
+
+func (p *planeHomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		if p.server.homePosition == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("No home position has been set."))
+		} else {
+			jsonData, _ := json.Marshal(&p.server.homePosition)
+			w.Write(jsonData)
+		}
+		break
+	case "POST":
+		msgBody, _ := ioutil.ReadAll(r.Body)
+		var homePos ic.Position
+		err := json.Unmarshal(msgBody, &homePos)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprintf("Error parsing home position: %s", err.Error())))
+			break
+		}
+
+		if homePos.Latitude == nil || homePos.Longitude == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Error: Latitude and/or longitude not properly set."))
+			break
+		}
+
+		p.server.homePosition = &homePos
+		w.Write([]byte("Successfully uploaded home position."))
+		break
+	}
 }
 
 // Handles POST requests
@@ -63,6 +104,7 @@ func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("No path found."))
 		}
+		break
 
 	case "POST":
 		pathData, err := ioutil.ReadAll(r.Body)
