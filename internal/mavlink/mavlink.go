@@ -178,11 +178,11 @@ func writeToInflux(msgID uint32, msgName string, parameters []string, floatValue
 }
 
 //RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
-func RunMavlink(mavCommonPath string, mavArduPath string) {
+func RunMavlink(mavCommonPath string, mavArduPath string, token string) {
 
 
 	//InfluxDB credentials
-	const token = "7hK-vq0LuZFzXjqIQtCiAXD0BwLUWyAoen4mYhD2EO_NIcC5puPcMjjpy6syBpY9pWd6HO_JdBd2CgPMNIFoNw=="
+	
 	const bucket = "Mavlink"
 	const org = "TritonUAS"
 
@@ -202,7 +202,7 @@ func RunMavlink(mavCommonPath string, mavArduPath string) {
 	if err != nil {
 		Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
 		time.Sleep(10)
-		RunMavlink(mavCommonPath, mavArduPath)
+		RunMavlink(mavCommonPath, mavArduPath, token)
 	}
 	defer node.Close()
 

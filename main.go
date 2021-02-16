@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	ic "github.com/tritonuas/hub/internal/interop"
-	hs "github.com/tritonuas/hub/internal/server"
 	mav "github.com/tritonuas/hub/internal/mavlink"
+	hs "github.com/tritonuas/hub/internal/server"
 )
 
 var log = logrus.New()
@@ -70,7 +71,13 @@ func main() {
 	go ic.EstablishInteropConnection(interopRetryTime, interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], interopTimeout, interopChannel)
 
 	// Do other things...
-	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"])
+
+	//InfluxDB token should be placed in the inflxu_token.key file
+	token, err := ioutil.ReadFile("./influx_token.key")
+	if err != nil {
+		log.Warn("Influx key at influx_token.key not found.")
+	}
+	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], string(token))
 
 	// Once we need to access the interop client
 	log.Debug("Waiting for interop connection to be established")
