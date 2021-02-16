@@ -2,6 +2,7 @@ package mav
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/aler9/gomavlib/pkg/msg"
 	"github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+	// "github.com/influxdata/influxdb-client-go/v2/log"
 	// "github.com/influxdata/influxdb-client-go/v2/internal/log"
 )
 
@@ -200,8 +202,12 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string) {
 		OutSystemID: systemID,
 	})
 	if err != nil {
-		Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
-		time.Sleep(10)
+		Log.Error("Fatal error while connecting to SITL")
+	}
+	_, err = net.Dial("tcp", ":14551")
+	if err != nil {
+		Log.Error("Connection to plane failed. Trying to establish connection again in 10 seconds...")
+		time.Sleep(10 * time.Second)
 		RunMavlink(mavCommonPath, mavArduPath, token)
 	}
 	defer node.Close()
