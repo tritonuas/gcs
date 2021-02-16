@@ -107,21 +107,17 @@ func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		break
 
 	case "POST":
-		pathData, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Error processing path data: " + err.Error()))
-			break
-		}
+		pathData, _ := ioutil.ReadAll(r.Body)
 
 		Log.Debugf("Attempting to create a path")
 
+		var err error
 		p.server.path, err = CreatePath(pathData)
 
 		Log.Debugf("Path created: ")
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Error processing path data: " + err.Error()))
 			break
 		}

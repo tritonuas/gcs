@@ -10,7 +10,8 @@ FORMAT FOR A WAYPOINT SENT FROM PATHPLANNING:
 {
 	"latitude": val,
 	"longitude": val,
-	"altitude": val
+	"altitude": val,
+	"heading:" val
 }
 */
 
@@ -20,12 +21,13 @@ type Waypoint struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Altitude  float64 `json:"altitude"`
+	Heading   float64 `json:"heading"`
 }
 
 // String converts the waypoint to a string representation in the format
 // (lat, long, alt)
 func (w *Waypoint) String() string {
-	return fmt.Sprintf("(%f, %f, %f)", w.Latitude, w.Longitude, w.Altitude)
+	return fmt.Sprintf("(%f, %f, %f, %f)", w.Latitude, w.Longitude, w.Altitude, w.Heading)
 }
 
 // Path essentially is a list of Waypoints that the represent the Plane's path
@@ -61,7 +63,6 @@ func CreatePath(waypointsJSON []byte) (*Path, error) {
 
 	path := &Path{waypoints: wps, currIndex: 0, jsonSource: waypointsJSON}
 
-	Log.Debug(path)
 	return path, err
 }
 
