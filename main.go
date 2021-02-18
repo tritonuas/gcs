@@ -24,7 +24,7 @@ var ENVS = map[string]*string{
 	"INTEROP_PASS":       flag.String("interop_pass", "tritons", "password to interop computer"),
 	"INTEROP_TIMEOUT":    flag.String("interop_timeout", "10", "time limit in seconds on http requests to interop server"),
 	"INTEROP_RETRY_TIME": flag.String("interop_retry_time", "5", "how many seconds to wait after unsuccessful interop authentication"),
-	"MAV_DEVICE":         flag.String("mav_device", ":5761", "mav device"),
+	"MAV_DEVICE":         flag.String("mav_device", ":14551", "tcp port of mav device"),
 	"IP":                 flag.String("ip", "*", "ip of interop computer"),
 	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
 	"DEBUG_MODE":         flag.String("debug", "False", "Boolean to determine logging mode"),
@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		log.Warn("Influx key at influx_token.key not found.")
 	}
-	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], string(token))
+	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], string(token), *ENVS["MAV_DEVICE"])
 
 	// Once we need to access the interop client
 	log.Debug("Waiting for interop connection to be established")

@@ -180,7 +180,7 @@ func writeToInflux(msgID uint32, msgName string, parameters []string, floatValue
 }
 
 //RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
-func RunMavlink(mavCommonPath string, mavArduPath string, token string) {
+func RunMavlink(mavCommonPath string, mavArduPath string, token string, port string) {
 
 
 	//InfluxDB credentials
@@ -194,21 +194,22 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string) {
 	//connects to the plane
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: []gomavlib.EndpointConf{
-			gomavlib.EndpointTCPClient{fmt.Sprintf("%v:%v", host, "14551")},
-			// gomavlib.EndpointUDPClient{fmt.Sprintf("%v:%v", host, "14550")},
+			gomavlib.EndpointTCPClient{fmt.Sprintf("%v%v", host, port)},
 		},
 		Dialect:     ardupilotmega.Dialect,
-		OutVersion:  gomavlib.V2, // change to V1 if you're unable to communicate with the target
+		OutVersion:  gomavlib.V2, 
 		OutSystemID: systemID,
 	})
 	if err != nil {
 		Log.Error("Fatal error while connecting to SITL")
 	}
-	_, err = net.Dial("tcp", ":14551")
+	
+	//verifies that connection to plane has been established
+	_, err = net.Dial("tcp",port)
 	if err != nil {
-		Log.Error("Connection to plane failed. Trying to establish connection again in 10 seconds...")
+		Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
 		time.Sleep(10 * time.Second)
-		RunMavlink(mavCommonPath, mavArduPath, token)
+		RunMavlink(mavCommonPath, mavArduPath, token, port)
 	}
 	defer node.Close()
 
@@ -218,7 +219,7 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string) {
 	mavXML, err := os.Open(mavCommonPath)
 	arduXML, err := os.Open(mavArduPath)
 	if err != nil {
-		//Not sure if this should be an error or just check for files again in 10 seconds
+		//Not sure if this should be an error/panic or just check for files again in 10 seconds
 		Log.Error("Mavlink message files not loaded")
 	}
 	Log.Info("Successfully opened mavlink message files")
