@@ -27,15 +27,19 @@ type Server struct {
 	path *Path // Holds the path of the plane, see the definition of the struct for more details
 
 	homePosition *ic.Position // Home position of the plane, which must be set by us
+
+	missionID int // ID of the mission that we are assigned
 }
 
 // Run starts the hub http server and establishes all of the uri's that it
 // will receive
-func (s *Server) Run(port string, cli *ic.Client) {
+func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
+	s.missionID = interopMissionID
+
 	s.port = fmt.Sprintf(":%s", port)
 	mux := http.NewServeMux()
 	mux.Handle("/interop/teams", &teamHandler{client: cli})
-	mux.Handle("/interop/missions/", &missionHandler{client: cli})
+	mux.Handle("/interop/missions/", &missionHandler{client: cli, server: s})
 	mux.Handle("/interop/telemetry", &telemHandler{client: cli, server: s})
 	mux.Handle("/interop/odlcs/", &odlcHandler{client: cli})
 
@@ -178,35 +182,49 @@ func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Handles GET requests that ask for the mission parameters
 type missionHandler struct {
 	client *ic.Client
+	server *Server
+}
+
+// This object captures changes to the mission ID stored in Hub
+// To change the mission ID that hub is using:
+// POST /interop/missions
+// {
+//  	"id": [MISSION_ID]
+// }
+
+type missionID struct {
+	ID int `json:"id"`
 }
 
 func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Get the url path ("/api/missions/{MISSION_ID}")
-	path := strings.Split(r.URL.Path, "/")
-	// Get the integer value of the mission ID which is the last value in the array
-	missionID, err := strconv.Atoi(path[len(path)-1])
-
-	// If there is an error, then the user messed up in creating the request
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Bad request format"))
-	} else { // If no error, check the message method and do appropriate actions
-		switch r.Method {
-		case "GET":
-			// Make the GET request to the interop server
-			mission, err := m.client.GetMission(missionID)
-			if err.Get {
-				w.WriteHeader(err.Status)
-				w.Write(err.Message)
-			} else {
-				w.Write(mission)
-			}
-		default:
-			w.WriteHeader(http.StatusNotImplemented)
-			w.Write([]byte("Not Implemented"))
+	switch r.Method {
+	case "GET":
+		// Make the GET request to the interop server
+		mission, err := m.client.GetMission(m.server.missionID)
+		if err.Get {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+		} else {
+			w.Write(mission)
 		}
-	}
+	case "POST":
+		// Change the stored mission ID
+		idData, _ := ioutil.ReadAll(r.Body)
+		var id missionID
+		err := json.Unmarshal(idData, &id)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprintf("Unable to parse mission id: %s", err.Error())))
+		} else {
+			oldID := m.server.missionID
+			m.server.missionID = id.ID
+			w.Write([]byte(fmt.Sprintf("Successfully updated mission id from %d to %d", oldID, m.server.missionID)))
+		}
 
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 // Handles POST requests to the server that upload telemetry data

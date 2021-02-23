@@ -22,6 +22,7 @@ var ENVS = map[string]*string{
 	"INTEROP_PASS":       flag.String("interop_pass", "tritons", "password to interop computer"),
 	"INTEROP_TIMEOUT":    flag.String("interop_timeout", "10", "time limit in seconds on http requests to interop server"),
 	"INTEROP_RETRY_TIME": flag.String("interop_retry_time", "5", "how many seconds to wait after unsuccessful interop authentication"),
+	"INTEROP_MISSION_ID": flag.String("interop_mission_id", "1", "id of the mission assigned to us by the judges"),
 	"MAV_DEVICE":         flag.String("mav_device", ":5761", "mav device"),
 	"IP":                 flag.String("ip", "*", "ip of interop computer"),
 	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
@@ -73,5 +74,14 @@ func main() {
 	client := <-interopChannel
 	log.Debug("Creating Hub Server")
 	var server hs.Server
-	server.Run("5000", client)
+
+	interopMissionID, err := strconv.Atoi(*ENVS["INTEROP_MISSION_ID"])
+	if err != nil {
+		log.Warningf("Invalid interop mission id (cannot parse \"%s\" to int). Using default mission id 1.", *ENVS["INTEROP_MISSION_ID"])
+		interopMissionID = 1
+	} else {
+		log.Infof("Using interop mission id of %d", interopMissionID)
+	}
+
+	server.Run("5000", client, interopMissionID)
 }
