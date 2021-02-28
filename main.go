@@ -24,7 +24,10 @@ var ENVS = map[string]*string{
 	"INTEROP_PASS":       flag.String("interop_pass", "tritons", "password to interop computer"),
 	"INTEROP_TIMEOUT":    flag.String("interop_timeout", "10", "time limit in seconds on http requests to interop server"),
 	"INTEROP_RETRY_TIME": flag.String("interop_retry_time", "5", "how many seconds to wait after unsuccessful interop authentication"),
-	"MAV_DEVICE":         flag.String("mav_device", ":14551", "tcp port of mav device"),
+	"MAV_DEVICE":         flag.String("mav_device", ":14550", "tcp port of mav device"),
+	"MAV_HOST":			  flag.String("mav_host", "localhost", "plane's ip address"),
+	"INFLUXDB_URI":		  flag.String("influxdb_uri", "http://influxdb:8086", "uri of inlux database for mavlink messages"),
+	"INFLUXDB_TOKEN":	  flag.String("influxdb_token", "influxdbToken", "token to allow read/write access to influx database"),
 	"IP":                 flag.String("ip", "*", "ip of interop computer"),
 	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
 	"DEBUG_MODE":         flag.String("debug", "False", "Boolean to determine logging mode"),
@@ -72,12 +75,8 @@ func main() {
 
 	// Do other things...
 
-	//InfluxDB token should be placed in the inflxu_token.key file
-	token, err := ioutil.ReadFile("./influx_token.key")
-	if err != nil {
-		log.Warn("Influx key at influx_token.key not found.")
-	}
-	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], string(token), *ENVS["MAV_DEVICE"])
+	// begins to send messages from the plane to InfluxDB
+	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], *ENVS["INLUXDB_TOKEN"], *ENVS["MAV_HOST"], *ENVS["MAV_DEVICE"], *ENVS["INFLUXDB_URI"])
 
 	// Once we need to access the interop client
 	log.Debug("Waiting for interop connection to be established")
