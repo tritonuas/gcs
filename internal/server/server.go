@@ -29,12 +29,16 @@ type Server struct {
 	homePosition *ic.Position // Home position of the plane, which must be set by us
 
 	missionID int // ID of the mission that we are assigned
+
+	//mission TODO Actually hold the mission object for pyplanner to request
 }
 
 // Run starts the hub http server and establishes all of the uri's that it
 // will receive
 func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
 	s.missionID = interopMissionID
+
+	// TODO: Change endpoints to all start with /hub
 
 	s.port = fmt.Sprintf(":%s", port)
 	mux := http.NewServeMux()
@@ -53,6 +57,12 @@ func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
 
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+	Log.Info("Hub Server up and running")
+}
+
+func logRequestInfo(r *http.Request) {
+	Log.Infof("Request received: %s %s", r.Method, r.URL)
+	Log.Infof("%s", r.Body)
 }
 
 // Handles uploading and retreiving the home position of the plane
@@ -61,6 +71,8 @@ type planeHomeHandler struct {
 }
 
 func (p *planeHomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
 	switch r.Method {
 	case "GET":
 		if p.server.homePosition == nil {

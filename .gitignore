@@ -1,3 +1,4 @@
 hub
 *.env
 **/*.pb.go
+.vscode

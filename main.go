@@ -70,11 +70,11 @@ func main() {
 	// Do other things...
 
 	// Once we need to access the interop client
-	log.Debug("Waiting for interop connection to be established")
 	client := <-interopChannel
-	log.Debug("Creating Hub Server")
 	var server hs.Server
 
+	port := "5000"
+	log.Infof("Creating hub server at port %s", port)
 	interopMissionID, err := strconv.Atoi(*ENVS["INTEROP_MISSION_ID"])
 	if err != nil {
 		log.Warningf("Invalid interop mission id (cannot parse \"%s\" to int). Using default mission id 1.", *ENVS["INTEROP_MISSION_ID"])
@@ -83,5 +83,5 @@ func main() {
 		log.Infof("Using interop mission id of %d", interopMissionID)
 	}
 
-	server.Run("5000", client, interopMissionID)
+	server.Run(port, client, interopMissionID)
 }
