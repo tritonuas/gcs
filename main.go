@@ -75,7 +75,7 @@ func main() {
 	// Do other things...
 
 	// begins to send messages from the plane to InfluxDB
-	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], *ENVS["INLUXDB_TOKEN"], *ENVS["MAV_HOST"], *ENVS["MAV_DEVICE"], *ENVS["INFLUXDB_URI"])
+	go mav.RunMavlink(*ENVS["MAV_COMMON_PATH"], *ENVS["MAV_ARDU_PATH"], *ENVS["INFLUXDB_TOKEN"], *ENVS["MAV_HOST"], *ENVS["MAV_DEVICE"], *ENVS["INFLUXDB_URI"])
 
 	// Once we need to access the interop client
 	log.Debug("Waiting for interop connection to be established")
