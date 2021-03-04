@@ -209,6 +209,8 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost 
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: []gomavlib.EndpointConf{
 			gomavlib.EndpointTCPClient{sitlURI},
+			// gomavlib.EndpointUDPClient{"172.17.0,1:14550"},
+			gomavlib.EndpointUDPClient{"172.17.0.1:14550"},
 		},
 		//ardupilot message dialect
 		Dialect:     ardupilotmega.Dialect,
@@ -458,6 +460,7 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost 
 				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
 
 			}
+			node.WriteFrameExcept(frm.Channel, frm.Frame)
 		}
 	}
 	defer client.Close()

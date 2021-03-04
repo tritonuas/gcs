@@ -1,20 +1,24 @@
 version: "3"
 services:
-  # hub:
-  #   image: tritonuas/hub
-  #   environment:
-  #     - INTEROP_IP=127.0.0.1
-  #     - INTEROP_PORT=8000
-  #     - INTEROP_USER=ucsdauvsi
-  #     - INTEROP_PASS=tritons
-  #     - MAV_DEVICE=:5762
-  #     - HUB_PATH=/go/src/github.com/tritonuas/hub
-  #     - MAV_HOST=mavproxy
-  #   network_mode: host
-  #   volumes:
-  #     - missions:/go/src/github.com/tritonuas/hub/missions
-  #   # logging:
-  #   #   driver: none
+  hub:
+    image: tritonuas/hub
+    environment:
+      - INTEROP_IP=127.0.0.1
+      - INTEROP_PORT=8000
+      - INTEROP_USER=ucsdauvsi
+      - INTEROP_PASS=tritons
+      - MAV_DEVICE=:5760
+      - HUB_PATH=/go/src/github.com/tritonuas/hub
+      - MAV_HOST=sitl
+    # network_mode: host.docker.internal:host-gateway
+    # extra_hosts:
+      # - host.docker.internal:127.0.0.1
+    # ports:
+      # - "14550:14550/udp"
+    volumes:
+      - missions:/go/src/github.com/tritonuas/hub/missions
+    # logging:
+    #   driver: none
   influxdb:
     image: quay.io/influxdb/influxdb:v2.0.4
     volumes:
@@ -44,25 +48,26 @@ services:
       - sitl:/app/logs
     logging:
       driver: none
-  mavproxy:
-    image: tritonuas/mavproxy
-    ports:
-      - "5761:5762"
-      - "14551:14551"
-    environment:
-      - "MASTER=--master=tcp:sitl:5760"
-      # - MASTER2=
-      - "OUT1=--out=udp:mavproxy:14550"
-      - "OUT2=--out=tcpin:mavproxy:14551"
-      # - "OUT2=--out=udp:mavproxy:14555"
-      # - "OUT3=--out=udp:mavproxy:14556"
-      # - "OUT4=--out=tcpin:mavproxy:5761"
-      # - "OUT5=--out=udp:mavproxy:5762"
-      # - OUT6=
-      # - OUT7=
-    restart: always
-    logging:
-      driver: none
+  # mavproxy:
+  #   image: tritonuas/mavproxy
+  #   ports:
+  #     - "5761:5762/tcp"
+  #     - "14551:14551/tcp"
+  #     - "14550:14550/udp"
+  #   environment:
+  #     - "MASTER=--master=tcp:sitl:5760"
+  #     # - MASTER2=
+  #     - "OUT1=--out=udp:mavproxy:14550"
+  #     - "OUT2=--out=tcpin:mavproxy:14551"
+  #     # - "OUT2=--out=udp:mavproxy:14555"
+  #     # - "OUT3=--out=udp:mavproxy:14556"
+  #     # - "OUT4=--out=tcpin:mavproxy:5761"
+  #     # - "OUT5=--out=udp:mavproxy:5762"
+  #     # - OUT6=
+  #     # - OUT7=
+  #   restart: always
+  #   # logging:
+  #   #   driver: none
 
 volumes:
   influxdb_volume:
