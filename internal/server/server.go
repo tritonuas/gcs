@@ -43,7 +43,7 @@ func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
 	s.port = fmt.Sprintf(":%s", port)
 	mux := http.NewServeMux()
 	mux.Handle("/interop/teams", &teamHandler{client: cli})
-	mux.Handle("/interop/missions/", &missionHandler{client: cli, server: s})
+	mux.Handle("/interop/missions", &missionHandler{client: cli, server: s})
 	mux.Handle("/interop/telemetry", &telemHandler{client: cli, server: s})
 	mux.Handle("/interop/odlcs/", &odlcHandler{client: cli})
 
@@ -57,12 +57,10 @@ func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
 
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
-	Log.Info("Hub Server up and running")
 }
 
 func logRequestInfo(r *http.Request) {
-	Log.Infof("Request received: %s %s", r.Method, r.URL)
-	Log.Infof("%s", r.Body)
+	Log.Infof("Request to Hub from %s: %s %s", r.RemoteAddr, r.Method, r.URL)
 }
 
 // Handles uploading and retreiving the home position of the plane
@@ -78,9 +76,11 @@ func (p *planeHomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if p.server.homePosition == nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("No home position has been set."))
+			Log.Info("No home position has been set.")
 		} else {
 			jsonData, _ := json.Marshal(&p.server.homePosition)
 			w.Write(jsonData)
+			Log.Info("Successfully returned set home position.")
 		}
 		break
 	case "POST":
@@ -90,17 +90,20 @@ func (p *planeHomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(fmt.Sprintf("Error parsing home position: %s", err.Error())))
+			Log.Errorf("Unable to parse home position: %s", err.Error())
 			break
 		}
 
 		if homePos.Latitude == nil || homePos.Longitude == nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Error: Latitude and/or longitude not properly set."))
+			Log.Errorf("Latitude and/or longitude not properly set.")
 			break
 		}
 
 		p.server.homePosition = &homePos
-		w.Write([]byte("Successfully uploaded home position."))
+		w.Write([]byte("Successfully updated home position."))
+		Log.Info("Successfully updated home position.")
 		break
 	}
 }
@@ -111,36 +114,38 @@ type planePathHandler struct {
 }
 
 func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
 	switch r.Method {
 	case "GET":
 		if p.server.path != nil && p.server.path.GetOriginalJSON() != nil {
 			pathData := p.server.path.GetOriginalJSON()
 			w.Write([]byte(pathData))
+			Log.Info("Successfully retrieved path data.")
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("No path found."))
+			Log.Error("No path found.")
 		}
 		break
 
 	case "POST":
 		pathData, _ := ioutil.ReadAll(r.Body)
 
-		Log.Debugf("Attempting to create a path")
-
 		var err error
 		p.server.path, err = CreatePath(pathData)
 
-		Log.Debugf("Path created: ")
-
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Error processing path data: " + err.Error()))
+			w.Write([]byte(fmt.Sprintf("Error processing path data: %s", err.Error())))
+			Log.Errorf("Error processing path data: %s", err.Error())
 			break
 		}
 
 		p.server.path.Display()
 
 		w.Write([]byte("Successfully uploaded path to hub"))
+		Log.Info("Successfully updated stored path.")
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
@@ -154,15 +159,18 @@ type planeTelemHandler struct {
 }
 
 func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
 	switch r.Method {
 	case "GET":
 		if t.server.telemetry == nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("No telemetry found. Is the plane flying?"))
+			Log.Error("No telemetry found. Is the plane flying?")
 			break
 		}
 
 		w.Write(t.server.telemetry)
+		Log.Info("Successfully retrieved our plane's telemetry.")
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented"))
@@ -175,6 +183,8 @@ type teamHandler struct {
 }
 
 func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
 	switch r.Method {
 	case "GET":
 		// Make the GET request to the Interop Server
@@ -209,6 +219,8 @@ type missionID struct {
 }
 
 func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
 	switch r.Method {
 	case "GET":
 		// Make the GET request to the interop server
@@ -216,8 +228,10 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
+			Log.Errorf("Unable to retrieve mission data from Interop: %s", err.Message)
 		} else {
 			w.Write(mission)
+			Log.Info("Successfully retrieved mission from Interop.")
 		}
 	case "POST":
 		// Change the stored mission ID
@@ -227,10 +241,12 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(fmt.Sprintf("Unable to parse mission id: %s", err.Error())))
+			Log.Errorf("Unable to parse mission id: %s", err.Error())
 		} else {
 			oldID := m.server.missionID
 			m.server.missionID = id.ID
 			w.Write([]byte(fmt.Sprintf("Successfully updated mission id from %d to %d", oldID, m.server.missionID)))
+			Log.Infof("Successfully updated mission id from %d to %d", oldID, m.server.missionID)
 		}
 
 	default:
@@ -246,6 +262,8 @@ type telemHandler struct {
 }
 
 func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
 	switch r.Method {
 	case "GET":
 		// We want to parse the teams data to find all of the telemetry of the other planes
@@ -274,8 +292,10 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		telemData, _ := json.Marshal(telemList)
 		if len(telemList) > 0 {
 			w.Write(telemData)
+			Log.Infof("Successfully retrieved telemetry data from %d other team(s) flying right now", len(telemList))
 		} else {
 			w.Write([]byte("There are no other teams in the air transmitting telemetry."))
+			Log.Infof("There are no other teams in the air transmitting telemtry.")
 		}
 
 	case "POST":
@@ -285,6 +305,7 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err.Post {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
+			Log.Errorf("Unable to post telemetry data to Interop: %s", err.Message)
 		} else {
 			// TEMPORARY WORKAROUND since the plane mavlink integration is not complete at the moment
 			// TODO: change this to cache the telemetry data as it comes in from the plane directly
@@ -294,6 +315,7 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			t.server.telemetry = telemData
 
 			w.Write([]byte("Telemetry successfully uploaded"))
+			Log.Info("Successfully uploaded telemetry data to Interop.")
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
@@ -307,8 +329,10 @@ type odlcHandler struct {
 }
 
 func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// To view a full documentation of these endpoints, please view the endpoints page on the
-	// wiki
+	logRequestInfo(r)
+	// I hate this function and we should seriously considering either fixing it or making
+	// it way simpler by not attempting to match exactly the API interop uses, and instead
+	// only implementing the ones that we want to use
 
 	// initialize this value to -99, and update if the user specifies a mission
 	const noMission int = -99
@@ -339,6 +363,7 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if missionID == noMission {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Bad Request Format - Must provide a valid mission ID for odlc image requests"))
+			Log.Error("Bad Request Format - Must provide a valid mission ID for odlc image requests")
 		} else {
 			switch r.Method {
 			case "GET":
@@ -346,10 +371,12 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if err.Get {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
+					Log.Errorf("Unable to get ODLC image from Interop: %s", err.Message)
 				} else {
 					// This Write statement corresponds to a successful request in the format
 					// GET /interop/odlcs/X/image
 					w.Write(image)
+					Log.Info("Successfully retrieved ODLC image from Interop.")
 				}
 			case "PUT":
 				image, _ := ioutil.ReadAll(r.Body)
@@ -357,20 +384,24 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if err.Put {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
+					Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
 				} else {
 					// This Write statement corresponds to a successful request in the format
 					// PUT /interop/odlcs/X/image
 					w.Write([]byte(fmt.Sprintf("Successfully uploaded odlc image for odlc %d", missionID)))
+					Log.Infof("Successfully uploaded ODLC image for ODLC %d", missionID)
 				}
 			case "DELETE":
 				err := o.client.DeleteODLCImage(missionID)
 				if err.Delete {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
+					Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
 				} else {
 					// This Write statement corresponds to a successful request in the format
 					// DELETE /interop/odlcs/X/image
-					w.Write([]byte(fmt.Sprintf("Successfully deleted odlc image for odlc %d", missionID)))
+					w.Write([]byte(fmt.Sprintf("Successfully deleted ODLC image for ODLC %d", missionID)))
+					Log.Infof("Successfully deleted ODLC image for ODLC %d", missionID)
 				}
 			default:
 				w.WriteHeader(http.StatusNotImplemented)
@@ -390,25 +421,30 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						if err != nil {
 							w.WriteHeader(http.StatusBadRequest)
 							w.Write([]byte("Bad Request Format - Expected valid integer X in query parameter ?mission=X"))
+							Log.Errorf("Bad Request Format - Exptected valid integer X in query parameter ?mission=X")
 							return
 						}
 						odlcsData, intErr := o.client.GetODLCs(missionID)
 						if intErr.Get {
 							w.WriteHeader(intErr.Status)
 							w.Write(intErr.Message)
+							Log.Errorf("Unable to retrieve ODLCS via mission ID %d from Interop: %s", missionID, intErr.Message)
 						} else {
 							// Everything is OK!
 							// This Write statement corresponds to a successful GET request in the format:
 							// GET /interop/odlcs?mission=X where X is a valid integer
 							w.Write(odlcsData)
+							Log.Infof("Successfully retrieved ODLCS via mission ID %d from Interop", missionID)
 						}
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
 						w.Write([]byte("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}"))
+						Log.Errorf("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}")
 					}
 				} else {
 					w.WriteHeader(http.StatusBadRequest)
 					w.Write([]byte("Bad Request Format - Cannot provide query parameters other than ?mission"))
+					Log.Errorf("Bad Request Format - Cannot provide query parameters other than ?mission")
 				}
 			} else {
 				// There was no query param
@@ -420,11 +456,13 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					if intErr.Get {
 						w.WriteHeader(intErr.Status)
 						w.Write(intErr.Message)
+						Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
 					} else {
 						// Everything is OK!
 						// This Write statement corresponds to a successful GET request in the format:
 						// GET /interop/odlcs/
 						w.Write(odlcsData)
+						Log.Infof("Successfully retrieved ODLCs from Interop")
 					}
 				} else {
 					// The user wants the odlc data from a specific ODLC, and the id of that odlc
@@ -433,11 +471,13 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					if intErr.Get {
 						w.WriteHeader(intErr.Status)
 						w.Write(intErr.Message)
+						Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", missionID, intErr.Message)
 					} else {
 						// Everything is OK!
 						// This Write statment corresponds to a successful GET request in the format:
 						// GET /interop/odlcs/X where X is a valid integer
 						w.Write(odlcData)
+						Log.Infof("Successfully retrieved ODLC %d from Interop", missionID)
 					}
 				}
 			}
@@ -449,44 +489,53 @@ func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if err.Post {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
+					Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
 				} else {
 					// This Write statement corresponds to a successful POST request in the format:
 					// POST /interop/odlcs
 					w.Write(updatedODLC)
+					Log.Infof("Successfully uploaded ODLC to Interop")
 				}
 			} else {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request"))
+				w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request."))
+				Log.Errorf("Bad Request Format - Cannot provide a mission ID for a POST request.")
 			}
 		case "PUT":
 			if missionID == noMission {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte("Bad Request Format - Must provide a mission ID for a PUT request"))
+				Log.Error("Bad Request Format - Must provide a mission ID for a PUT request")
 			} else {
 				odlcData, _ := ioutil.ReadAll(r.Body)
 				updatedOdlc, err := o.client.PutODLC(missionID, odlcData)
 				if err.Put {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
+					Log.Errorf("Unable to update ODLC %d on Interop: %s", missionID, err.Message)
 				} else {
 					// This Write statement corresponds to a successful PUT request in the format:
 					// PUT /interop/odlcs/X where X is a valid integer
 					w.Write(updatedOdlc)
+					Log.Infof("Successfully updated ODLC %d on Interop", missionID)
 				}
 			}
 		case "DELETE":
 			if missionID == noMission {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Bad Request Format - Must provide a mission ID for a DELETE request"))
+				w.Write([]byte("Bad Request Format - Must provide a mission ID for a DELETE request."))
+				Log.Errorf("Bad Request Format - Must provide a mission ID for a DELETE request.")
 			} else {
 				err := o.client.DeleteODLC(missionID)
 				if err.Delete {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
+					Log.Errorf("Unable to delete ODLC %d on Interop: %s", missionID, err.Message)
 				} else {
 					// This Write statement corresponds to a successful DELETE request in the format:
 					// DELETE /interop/odlcs/X where X is a valid integer
 					w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
+					Log.Infof("Successfuly deleted ODLC %d on Interop", missionID)
 				}
 			}
 		default:

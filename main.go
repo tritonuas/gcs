@@ -74,7 +74,7 @@ func main() {
 	var server hs.Server
 
 	port := "5000"
-	log.Infof("Creating hub server at port %s", port)
+	log.Infof("Creating Hub server at port %s", port)
 	interopMissionID, err := strconv.Atoi(*ENVS["INTEROP_MISSION_ID"])
 	if err != nil {
 		log.Warningf("Invalid interop mission id (cannot parse \"%s\" to int). Using default mission id 1.", *ENVS["INTEROP_MISSION_ID"])
@@ -84,4 +84,5 @@ func main() {
 	}
 
 	server.Run(port, client, interopMissionID)
+	log.Info("Hub server up and running")
 }
