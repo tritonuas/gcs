@@ -28,7 +28,7 @@ type Server struct {
 
 	homePosition *ic.Position // Home position of the plane, which must be set by us
 
-	missionID int // ID of the mission that we are assigned
+	missionID MissionID // ID of the mission that we are assigned
 
 	//mission TODO Actually hold the mission object for pyplanner to request
 }
@@ -36,20 +36,20 @@ type Server struct {
 // Run starts the hub http server and establishes all of the uri's that it
 // will receive
 func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
-	s.missionID = interopMissionID
-
-	// TODO: Change endpoints to all start with /hub
+	s.missionID = MissionID{ID: interopMissionID}
 
 	s.port = fmt.Sprintf(":%s", port)
 	mux := http.NewServeMux()
-	mux.Handle("/interop/teams", &teamHandler{client: cli})
-	mux.Handle("/interop/missions", &missionHandler{client: cli, server: s})
-	mux.Handle("/interop/telemetry", &telemHandler{client: cli, server: s})
-	mux.Handle("/interop/odlcs/", &odlcHandler{client: cli})
+	mux.Handle("/hub/interop/teams", &interopTeamHandler{client: cli})
+	mux.Handle("/hub/interop/missions", &interopMissionHandler{client: cli, server: s})
+	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{client: cli, server: s})
+	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{client: cli})
 
-	mux.Handle("/plane/telemetry", &planeTelemHandler{server: s})
-	mux.Handle("/plane/path", &planePathHandler{server: s})
-	mux.Handle("/plane/home", &planeHomeHandler{server: s})
+	mux.Handle("/hub/mission", &missionHandler{client: cli, server: s})
+
+	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
+	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
+	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -61,6 +61,54 @@ func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
 
 func logRequestInfo(r *http.Request) {
 	Log.Infof("Request to Hub from %s: %s %s", r.RemoteAddr, r.Method, r.URL)
+}
+
+type missionHandler struct {
+	server *Server
+	client *ic.Client
+}
+
+// This object captures changes to the mission ID stored in Hub
+// To change the mission ID that hub is using:
+// POST /interop/missions
+// {
+//  	"id": [MISSION_ID]
+// }
+
+// MissionID is an object used to capture a mission ID parameter
+type MissionID struct {
+	ID int `json:"id"`
+}
+
+func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
+	switch r.Method {
+	case "GET":
+		idData, _ := json.Marshal(m.server.missionID)
+		w.Write(idData)
+		Log.Infof("Successfully retrieved mission ID information: id = %d", m.server.missionID)
+
+	case "POST":
+		// Change the stored mission ID
+		idData, _ := ioutil.ReadAll(r.Body)
+		var id MissionID
+		err := json.Unmarshal(idData, &id)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprintf("Unable to parse mission id: %s", err.Error())))
+			Log.Errorf("Unable to parse mission id: %s", err.Error())
+		} else {
+			oldID := m.server.missionID
+			m.server.missionID = id
+			w.Write([]byte(fmt.Sprintf("Successfully updated mission id from %d to %d", oldID, m.server.missionID)))
+			Log.Infof("Successfully updated mission id from %d to %d", oldID, m.server.missionID)
+		}
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
 }
 
 // Handles uploading and retreiving the home position of the plane
@@ -178,11 +226,11 @@ func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles GET requests that ask for Team Status information
-type teamHandler struct {
+type interopTeamHandler struct {
 	client *ic.Client
 }
 
-func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (t *interopTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 
 	switch r.Method {
@@ -202,29 +250,18 @@ func (t *teamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles GET requests that ask for the mission parameters
-type missionHandler struct {
+type interopMissionHandler struct {
 	client *ic.Client
 	server *Server
 }
 
-// This object captures changes to the mission ID stored in Hub
-// To change the mission ID that hub is using:
-// POST /interop/missions
-// {
-//  	"id": [MISSION_ID]
-// }
-
-type missionID struct {
-	ID int `json:"id"`
-}
-
-func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m *interopMissionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 
 	switch r.Method {
 	case "GET":
 		// Make the GET request to the interop server
-		mission, err := m.client.GetMission(m.server.missionID)
+		mission, err := m.client.GetMission(m.server.missionID.ID)
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
@@ -232,21 +269,6 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Write(mission)
 			Log.Info("Successfully retrieved mission from Interop.")
-		}
-	case "POST":
-		// Change the stored mission ID
-		idData, _ := ioutil.ReadAll(r.Body)
-		var id missionID
-		err := json.Unmarshal(idData, &id)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("Unable to parse mission id: %s", err.Error())))
-			Log.Errorf("Unable to parse mission id: %s", err.Error())
-		} else {
-			oldID := m.server.missionID
-			m.server.missionID = id.ID
-			w.Write([]byte(fmt.Sprintf("Successfully updated mission id from %d to %d", oldID, m.server.missionID)))
-			Log.Infof("Successfully updated mission id from %d to %d", oldID, m.server.missionID)
 		}
 
 	default:
@@ -256,12 +278,12 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles POST requests to the server that upload telemetry data
-type telemHandler struct {
+type interopTelemHandler struct {
 	client *ic.Client
 	server *Server
 }
 
-func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 
 	switch r.Method {
@@ -324,11 +346,11 @@ func (t *telemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handles all requests related to ODLCs
-type odlcHandler struct {
+type interopOdlcHandler struct {
 	client *ic.Client
 }
 
-func (o *odlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	// I hate this function and we should seriously considering either fixing it or making
 	// it way simpler by not attempting to match exactly the API interop uses, and instead
