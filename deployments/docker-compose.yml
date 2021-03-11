@@ -7,14 +7,13 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=:5760
+      - MAV_DEVICE=sitl:5760
+      - MAV-OUTPUT1=udp:172.17.0.1:14550
+      # - MAV-OUTPUT2=""
+      # - MAV-OUTPUT3=""
+      # - MAV-OUTPUT4=""
+      # - MAV-OUTPUT5=""
       - HUB_PATH=/go/src/github.com/tritonuas/hub
-      - MAV_HOST=sitl
-    # network_mode: host.docker.internal:host-gateway
-    # extra_hosts:
-      # - host.docker.internal:127.0.0.1
-    # ports:
-      # - "14550:14550/udp"
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
     # logging:
@@ -31,7 +30,15 @@ services:
     links:
       - influxdb
     image: quay.io/influxdb/influxdb:v2.0.4
-    entrypoint: influx setup --bucket mavlink -o TritonUAS -t influxdbToken --username=tritons --password=tritonuas --host=http://influxdb:8086 -f
+    entrypoint: > 
+      influx setup 
+      --bucket mavlink 
+      -o TritonUAS 
+      -t influxdbToken 
+      --username=tritons 
+      --password=tritonuas 
+      --host=http://influxdb:8086 
+      -f
     restart: on-failure:10
     depends_on:
       - influxdb
@@ -48,27 +55,6 @@ services:
       - sitl:/app/logs
     logging:
       driver: none
-  # mavproxy:
-  #   image: tritonuas/mavproxy
-  #   ports:
-  #     - "5761:5762/tcp"
-  #     - "14551:14551/tcp"
-  #     - "14550:14550/udp"
-  #   environment:
-  #     - "MASTER=--master=tcp:sitl:5760"
-  #     # - MASTER2=
-  #     - "OUT1=--out=udp:mavproxy:14550"
-  #     - "OUT2=--out=tcpin:mavproxy:14551"
-  #     # - "OUT2=--out=udp:mavproxy:14555"
-  #     # - "OUT3=--out=udp:mavproxy:14556"
-  #     # - "OUT4=--out=tcpin:mavproxy:5761"
-  #     # - "OUT5=--out=udp:mavproxy:5762"
-  #     # - OUT6=
-  #     # - OUT7=
-  #   restart: always
-  #   # logging:
-  #   #   driver: none
-
 volumes:
   influxdb_volume:
   missions:

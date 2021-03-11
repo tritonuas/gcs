@@ -185,33 +185,67 @@ func getIntValFromEnum(msgID uint32, fieldIndex int, enumVal string, mavlink Mav
 func writeToInflux(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
 	for idx := range parameters {
 		p := influxdb2.NewPointWithMeasurement(msgName).
-				AddTag("ID", fmt.Sprintf("%v", msgID)).
-				AddField(parameters[idx], floatValues[idx]).
-				SetTime(time.Now())
+			AddTag("ID", fmt.Sprintf("%v", msgID)).
+			AddField(parameters[idx], floatValues[idx]).
+			SetTime(time.Now())
 		writeAPI.WritePoint(p)
 	}
 	writeAPI.Flush()
 }
 
+// Retrieves the type of endpoint based on the address prefix
+func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
+
+	switch endpointType {
+	case "serial":
+		return gomavlib.EndpointSerial{address}
+
+	case "udp":
+		return gomavlib.EndpointUDPClient{address}
+
+	case "tcp":
+		return gomavlib.EndpointTCPClient{address}
+
+	default:
+		return nil
+	}
+}
+
 //RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
-func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost string, port string, influxdbURI string) {
+//mavCommonPath and mavArduPath point to the mavlink message files
+func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavDevice string, influxdbURI string, mavOutputs []string) {
+
+	endpoints := []gomavlib.EndpointConf{}
+	mavs := []string{fmt.Sprintf("tcp:%s", mavDevice)}
+	mavs = append(mavs, mavOutputs...)
+
+	for _, mavOutput := range mavs {
+		mavOutputSplit := strings.Split(mavOutput, ":")
+		mavOutputAddress := ""
+		for i := 1; i < len(mavOutputSplit); i++ {
+			mavOutputAddress += mavOutputSplit[i]
+			if i != len(mavOutputSplit)-1 {
+				mavOutputAddress += ":"
+			}
+		}
+		endpoint := getEndpoint(mavOutputSplit[0], mavOutputAddress)
+		if(endpoint != nil) {
+			endpoints = append(endpoints, endpoint)
+		}
+	}
+
 
 	//InfluxDB credentials
+	//Make these env vars?
 	const bucket = "mavlink"
 	const org = "TritonUAS"
-
-	sitlURI := fmt.Sprintf("%v%v", mavHost, port)
 
 	client := influxdb2.NewClient(influxdbURI, token)
 	writeAPI := client.WriteAPI(org, bucket)
 
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
-		Endpoints: []gomavlib.EndpointConf{
-			gomavlib.EndpointTCPClient{sitlURI},
-			// gomavlib.EndpointUDPClient{"172.17.0,1:14550"},
-			gomavlib.EndpointUDPClient{"172.17.0.1:14550"},
-		},
+		Endpoints: endpoints,
 		//ardupilot message dialect
 		Dialect:     ardupilotmega.Dialect,
 		OutVersion:  gomavlib.V2,
@@ -223,7 +257,7 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost 
 
 	//verifies that connection to plane has been established
 	for {
-		_, err = net.Dial("tcp", sitlURI)
+		_, err = net.Dial("tcp", mavDevice)
 		if err == nil {
 			break
 		}
@@ -277,7 +311,7 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost 
 
 			//ardupilot dialect message IDs found in ardupilotmega.xml
 			arduPilotMessageIDS := []int{150, 152, 163, 164, 165, 168, 174, 178, 182, 193}
-			for _, ardupilotMessageID := range arduPilotMessageIDS { 
+			for _, ardupilotMessageID := range arduPilotMessageIDS {
 				if int(msgID) == ardupilotMessageID {
 					floatValues := convertToFloats(rawValues, msgID)
 					parameters, msgName := getParameterNames(msgID, arduPilotMega)
@@ -285,7 +319,6 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost 
 					break
 				}
 			}
-
 
 			switch msgID {
 
@@ -390,9 +423,9 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavHost 
 						break
 					}
 					p := influxdb2.NewPointWithMeasurement(msgName).
-							AddTag("ID", fmt.Sprintf("%v", msgID)).
-							AddField(label, value).
-							SetTime(time.Now())
+						AddTag("ID", fmt.Sprintf("%v", msgID)).
+						AddField(label, value).
+						SetTime(time.Now())
 					writeAPI.WritePoint(p)
 				}
 
