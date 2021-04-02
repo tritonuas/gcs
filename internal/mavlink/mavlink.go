@@ -11,6 +11,8 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 
+	"github.com/goburrow/serial"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/aler9/gomavlib"
@@ -215,8 +217,41 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 //mavCommonPath and mavArduPath point to the mavlink message files
 func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavDevice string, influxdbURI string, mavOutputs []string) {
 
+	mavDeviceSplit := strings.Split(mavDevice, ":")
+
+	// Stores the type of device where information will be read from (udp, tcp, or serial connection)
+	mavDeviceType := mavDeviceSplit[0]
+	mavDeviceAddress := strings.Join(mavDeviceSplit[1:], ":")
+
+	//verify connection to the plane according to the type of connection provided
+	switch mavDeviceType {
+	case "serial":
+		for {
+			_, err := serial.Open(&serial.Config{Address: mavDeviceAddress})
+			if err == nil {
+				break
+			}
+			Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
+			time.Sleep(10 * time.Second)
+		}
+	case "tcp":
+		fallthrough
+	case "udp":
+		for {
+			_, err := net.Dial(mavDeviceType, mavDeviceAddress)
+			if err == nil {
+				break
+			}
+			Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
+			time.Sleep(10 * time.Second)
+		}
+
+	default:
+		Log.Fatal("Invalid Mavlink device network type. Change the network type to upp, tcp, or serial")
+	}
+
 	endpoints := []gomavlib.EndpointConf{}
-	mavs := []string{fmt.Sprintf("tcp:%s", mavDevice)}
+	mavs := []string{mavDevice}
 	mavs = append(mavs, mavOutputs...)
 
 	for _, mavOutput := range mavs {
@@ -224,7 +259,7 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavDevic
 		mavOutputAddress := ""
 		for i := 1; i < len(mavOutputSplit); i++ {
 			mavOutputAddress += mavOutputSplit[i]
-			if i != len(mavOutputSplit)-1 {
+			if i != len(mavOutputSplit) - 1 {
 				mavOutputAddress += ":"
 			}
 		}
@@ -255,15 +290,6 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavDevic
 		Log.Warn(err)
 	}
 
-	//verifies that connection to plane has been established
-	for {
-		_, err = net.Dial("tcp", mavDevice)
-		if err == nil {
-			break
-		}
-		Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
-		time.Sleep(10 * time.Second)
-	}
 	defer node.Close()
 
 	Log.Info("Successfully connected to SITL")

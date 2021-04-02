@@ -7,7 +7,7 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=sitl:5760
+      - MAV_DEVICE=tcp:sitl:5760
       - MAV-OUTPUT1=udp:172.17.0.1:14550
       # - MAV-OUTPUT2=""
       # - MAV-OUTPUT3=""

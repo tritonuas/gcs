@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/aler9/gomavlib v0.0.0-20210116151114-d34712c0323d
+	github.com/goburrow/serial v0.1.0
 	github.com/golang/protobuf v1.4.1
 	github.com/gorilla/websocket v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.3
