@@ -2,3 +2,4 @@ hub
 *.env
 **/*.pb.go
 .vscode
+influx_token.key

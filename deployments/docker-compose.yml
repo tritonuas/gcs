@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   hub:
     image: tritonuas/hub
@@ -7,8 +7,55 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=:5762
+      - MAV_DEVICE=tcp:sitl:5760
+      - MAV-OUTPUT1=udp:172.17.0.1:14550
+      # - MAV-OUTPUT2=""
+      # - MAV-OUTPUT3=""
+      # - MAV-OUTPUT4=""
+      # - MAV-OUTPUT5=""
       - HUB_PATH=/go/src/github.com/tritonuas/hub
-    network_mode: host
     volumes:
-      - /home/broach/tritonuas/god/missions:/go/src/github.com/tritonuas/hub/missions
+      - missions:/go/src/github.com/tritonuas/hub/missions
+    # logging:
+    #   driver: none
+  influxdb:
+    image: quay.io/influxdb/influxdb:v2.0.4
+    volumes:
+      - influxdb_volume:/var/lib/influxdb
+    ports:
+      - "8086:8086"
+    logging:
+      driver: none
+  influxdb_cli:
+    links:
+      - influxdb
+    image: quay.io/influxdb/influxdb:v2.0.4
+    entrypoint: > 
+      influx setup 
+      --bucket mavlink 
+      -o TritonUAS 
+      -t influxdbToken 
+      --username=tritons 
+      --password=tritonuas 
+      --host=http://influxdb:8086 
+      -f
+    restart: on-failure:10
+    depends_on:
+      - influxdb
+    logging:
+      driver: none
+  sitl:
+    image: tritonuas/plane.rascal
+    environment:
+      - "SITL_HOME=38.145844,-76.42638,8,0"
+      - SITL_SPEEDUP=1
+    ports:
+      - "5760:5760"
+    volumes:
+      - sitl:/app/logs
+    logging:
+      driver: none
+volumes:
+  influxdb_volume:
+  missions:
+  sitl:
