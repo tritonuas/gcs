@@ -12,8 +12,10 @@ install-dependencies:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: build install-dependencies configure-git compile-protos build-go docker-build
-build: configure-git submodulesupdate compile-protos build-go
+.PHONY: pre-build build install-dependencies configure-git compile-protos build-go docker-build
+pre-build: configure-git submodulesupdate compile-protos
+
+build: build-go
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
@@ -46,14 +48,14 @@ clean:
 	rm hub **/*.pb.go
 
 submodulesclean:
-	git submodule foreach --recursive git clean --ff -x -d
+	git submodule foreach git clean --ff -x -d
 	git submodule sync --recursive
-	git submodule update --init --recusive --force
+	git submodule update --init --force
 
 submodulesupdate:
-	git submodule update --init --recursive || true
-	git submodule sync --recursive
-	git submodule update --init --recursive
+	git submodule update --init || true
+	git submodule sync
+	git submodule update --init
 
 # Testing
 # --------------------------------------------------------------------

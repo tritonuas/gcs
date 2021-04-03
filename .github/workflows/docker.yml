@@ -13,40 +13,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      -
-        name: Checkout Repo
-        uses: actions/checkout@v2
-      -
-        name: clone submodule
+      - name: Checkout Repo
         uses: actions/checkout@v2
         with:
-          repository: tritonuas/protos
-          path: protos
+          submodules: true
           token: ${{ secrets.SSH_TOKEN }}
-          persist-credentials: true
-      -
-        name: checkout submodule
-        run: |
-          git submodule init
-          git submodule update
-      -
-        name: Set up Docker Buildx
+          
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      -
-        name: Login to DockerHub
+
+      - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Login to GitHub Container Registry
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
-      -
-        name: Build and Push
+
+      - name: Build and Push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -58,13 +47,13 @@ jobs:
             ghcr.io/tritonuas/hub:latest
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.CR_PAT }}
-      -
-        name: Update repo description
+
+      - name: Update repo description
         uses: peter-evans/dockerhub-description@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: tritonuas/hub
-      -
-        name: Image digest
+
+      - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

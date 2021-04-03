@@ -1,3 +1,5 @@
 hub
 *.env
 **/*.pb.go
+
+influx_token.key
