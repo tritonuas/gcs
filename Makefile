@@ -38,6 +38,9 @@ run:
 docker-run:
 	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host tritonuas/hub
 
+compose-run:
+	docker-compose -f deployments/docker-compose.yml up
+
 # Cleanup
 # --------------------------------------------------------------------
 .PHONY: clean submodulesclean submodulesupdate
