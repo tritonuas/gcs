@@ -28,7 +28,7 @@ Both of these should be handled with this script
 
 ```sh
 # download git submodules
-git submodule update --init --recursive
+make submodulesupdate
 # install go and protobuf-compiler
 make install-dependencies
 ```
