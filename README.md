@@ -23,6 +23,8 @@ The hub is currently hosted on
 
 - go 1.14
 - protobuf-compiler
+- [docker](https://docs.docker.com/engine/install/)
+- [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with Influxdb and SITL)
 
 Both of these should be handled with this script
 
@@ -58,7 +60,7 @@ make docker-run
 # docker build
 make docker-build
 # run docker-compose
-make run-compose
+make compose-run
 ```
 
 ## Ports and Stuff
