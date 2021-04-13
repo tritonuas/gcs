@@ -35,10 +35,16 @@ type Server struct {
 
 // Run starts the hub http server and establishes all of the uri's that it
 // will receive
-func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
+func (s *Server) Run(
+	port string,
+	cli *ic.Client,
+	interopMissionID int,
+	telemetryChannel chan *ic.Telemetry) {
+
 	s.missionID = MissionID{ID: interopMissionID}
 
 	s.port = fmt.Sprintf(":%s", port)
+	s.client = cli
 	mux := http.NewServeMux()
 	mux.Handle("/hub/interop/teams", &interopTeamHandler{client: cli})
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{client: cli, server: s})
@@ -55,8 +61,25 @@ func (s *Server) Run(port string, cli *ic.Client, interopMissionID int) {
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 
+	go s.CacheAndUploadTelem(telemetryChannel)
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+// CacheAndUploadTelem sends the telemetry to the server and caches it and uploads it to interop
+// continually as telemetry data is received from mavlink
+func (s *Server) CacheAndUploadTelem(channel chan *ic.Telemetry) {
+	for true {
+		telem := <-channel
+		telemData, _ := json.Marshal(&telem)
+		s.telemetry = telemData
+
+		Log.Info(s.client == nil)
+		// TODO: consider putting a rate limit on this so we don't spam the interop server?
+		if s.client != nil && s.client.IsConnected() {
+			s.client.PostTelemetry(telemData)
+		}
+	}
 }
 
 func logRequestInfo(r *http.Request) {
@@ -329,13 +352,6 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			w.Write(err.Message)
 			Log.Errorf("Unable to post telemetry data to Interop: %s", err.Message)
 		} else {
-			// TEMPORARY WORKAROUND since the plane mavlink integration is not complete at the moment
-			// TODO: change this to cache the telemetry data as it comes in from the plane directly
-			// 		 instead of here
-
-			// Cache the telemetry data so it can be retrieved by hub
-			t.server.telemetry = telemData
-
 			w.Write([]byte("Telemetry successfully uploaded"))
 			Log.Info("Successfully uploaded telemetry data to Interop.")
 		}

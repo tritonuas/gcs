@@ -3,7 +3,7 @@ services:
   hub:
     image: tritonuas/hub
     environment:
-      - INTEROP_IP=127.0.0.1
+      - INTEROP_IP=172.17.0.1
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons

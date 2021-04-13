@@ -30,6 +30,11 @@ type Client struct {
 	timeout  int
 }
 
+// IsConnected checks to see if hte http client object is not null
+func (c *Client) IsConnected() bool {
+	return c.client != nil
+}
+
 // EstablishInteropConnection keeps trying to connect to the interop server
 // every waitTime seconds, and exits once it has connected
 func EstablishInteropConnection(waitTime int, interopURL string, user string, pass string, timeout int, c chan *Client) {
