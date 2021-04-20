@@ -74,7 +74,6 @@ func (s *Server) CacheAndUploadTelem(channel chan *ic.Telemetry) {
 		telemData, _ := json.Marshal(&telem)
 		s.telemetry = telemData
 
-		Log.Info(s.client == nil)
 		// TODO: consider putting a rate limit on this so we don't spam the interop server?
 		if s.client != nil && s.client.IsConnected() {
 			s.client.PostTelemetry(telemData)
