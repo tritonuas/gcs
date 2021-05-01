@@ -7,10 +7,11 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=tcp:sitl:5760
-      - MAV-OUTPUT1=udp:172.17.0.1:14550
-      # - MAV-OUTPUT2=""
-      # - MAV-OUTPUT3=""
+        #- MAV_DEVICE=tcp:sitl:5760
+      - MAV_DEVICE=tcp:mavproxy:14551
+      - MAV_OUTPUT1=""
+        # - MAV-OUTPUT2=udp:192.168.1.14:14550
+        # - MAV-OUTPUT3=udp:192.168.1.8:14550
       # - MAV-OUTPUT4=""
       # - MAV-OUTPUT5=""
       - HUB_PATH=/go/src/github.com/tritonuas/hub
@@ -55,6 +56,28 @@ services:
       - sitl:/app/logs
     logging:
       driver: none
+  mavproxy:
+    image: tritonuas/mavproxy
+    ports:
+      - "5761:5762"
+      - "14551:14551"
+    environment:
+        #- "MASTER=--master=tcp:sitl:5760"
+      - "MASTER=--master=/dev/ttyUSB0"
+      # - MASTER2=
+      - "OUT1=--out=udp:172.17.0.1:14550"
+      - "OUT2=--out=tcpin:mavproxy:14551"
+      - "OUT3=--out=udp:192.168.1.14:14555"
+      - "OUT4=--out=udp:192.168.1.8:14556"
+      # - "OUT4=--out=tcpin:mavproxy:5761"
+      # - "OUT5=--out=udp:mavproxy:5762"
+      # - OUT6=
+      # - OUT7=
+    restart: always
+    logging:
+      driver: json-file
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
 volumes:
   influxdb_volume:
   missions:

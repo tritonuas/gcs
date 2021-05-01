@@ -43,6 +43,9 @@ docker-run:
 compose-run:
 	docker-compose -f deployments/docker-compose.yml up
 
+broach-compose-run:
+	docker-compose -f deployments/broach-docker-compose.yml up
+
 # Cleanup
 # --------------------------------------------------------------------
 .PHONY: clean submodulesclean submodulesupdate
