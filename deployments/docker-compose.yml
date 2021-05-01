@@ -8,40 +8,58 @@ services:
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
       - MAV_DEVICE=tcp:sitl:5760
-      - MAV-OUTPUT1=udp:172.17.0.1:14550
-      # - MAV-OUTPUT2=""
-      # - MAV-OUTPUT3=""
-      # - MAV-OUTPUT4=""
-      # - MAV-OUTPUT5=""
+      - MAV_OUTPUT1="udp:172.17.0.1:14550"
+      - MAV_OUTPUT2=""
+      - MAV_OUTPUT3=""
+      - MAV_OUTPUT4=""
+      - MAV_OUTPUT5=""
       - HUB_PATH=/go/src/github.com/tritonuas/hub
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
     # logging:
     #   driver: none
   influxdb:
-    image: quay.io/influxdb/influxdb:v2.0.4
-    volumes:
-      - influxdb_volume:/var/lib/influxdb
+    image: influxdb:2.0-alpine
     ports:
-      - "8086:8086"
-    logging:
-      driver: none
+      - '8086:8086'
+    volumes:
+      - ./:/imports
+      - influxdb_data:/var/lib/influxdb
+  grafana:
+    image: grafana/grafana:7.5.5
+    depends_on:
+      - influxdb
+    environment: 
+      - GF_USERS_DEFAULT_THEME=dark
+      - GF_INSTALL_PLUGINS=briangann-gauge-panel
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=TritonUAS
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    links:
+      - influxdb
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
   influxdb_cli:
     links:
       - influxdb
-    image: quay.io/influxdb/influxdb:v2.0.4
+    depends_on:
+      - influxdb
+    image: influxdb:2.0-alpine
     entrypoint: > 
       influx setup 
       --bucket mavlink 
-      -o TritonUAS 
-      -t influxdbToken 
-      --username=tritons 
-      --password=tritonuas 
-      --host=http://influxdb:8086 
-      -f
+      --org TritonUAS 
+      --token influxdbToken 
+      --username tritons 
+      --password tritonuas 
+      --host http://influxdb:8086 
+      --force
     restart: on-failure:10
-    depends_on:
-      - influxdb
     logging:
       driver: none
   sitl:
@@ -55,7 +73,27 @@ services:
       - sitl:/app/logs
     logging:
       driver: none
+  # mavproxy:
+  #   image: tritonuas/mavproxy
+  #   ports:
+  #     - "5761:5762"
+  #     - "14551:14551"
+  #   environment:
+  #     - "MASTER=--master=tcp:sitl:5760"
+  #     # - MASTER2=
+  #     - "OUT1=--out=udp:172.17.0.1:14550"
+  #     - "OUT2=--out=tcpin:mavproxy:14551"
+  #     # - "OUT2=--out=udp:mavproxy:14555"
+  #     # - "OUT3=--out=udp:mavproxy:14556"
+  #     # - "OUT4=--out=tcpin:mavproxy:5761"
+  #     # - "OUT5=--out=udp:mavproxy:5762"
+  #     # - OUT6=
+  #     # - OUT7=
+  #   restart: always
+  #   logging:
+  #     driver: none
 volumes:
-  influxdb_volume:
+  grafana_data:
+  influxdb_data:
   missions:
   sitl:
