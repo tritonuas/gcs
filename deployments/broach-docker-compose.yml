@@ -45,31 +45,17 @@ services:
       - influxdb
     logging:
       driver: none
-  sitl:
-    image: tritonuas/plane.rascal
-    environment:
-      - "SITL_HOME=38.145844,-76.42638,8,0"
-      - SITL_SPEEDUP=1
-    ports:
-      - "5760:5760"
-    volumes:
-      - sitl:/app/logs
-    logging:
-      driver: none
   mavproxy:
     image: tritonuas/mavproxy
     ports:
       - "5761:5762"
       - "14551:14551"
     environment:
-        #- "MASTER=--master=tcp:sitl:5760"
       - "MASTER=--master=/dev/ttyUSB0"
-      # - MASTER2=
       - "OUT1=--out=udp:172.17.0.1:14550"
       - "OUT2=--out=tcpin:mavproxy:14551"
       - "OUT3=--out=udp:192.168.1.14:14555"
       - "OUT4=--out=udp:192.168.1.8:14556"
-      # - "OUT4=--out=tcpin:mavproxy:5761"
       # - "OUT5=--out=udp:mavproxy:5762"
       # - OUT6=
       # - OUT7=
