@@ -28,7 +28,7 @@ compile-protos:
 build-go:
 	go build
 
-docker-build:
+build-docker:
 	docker build -t tritonuas/hub -f build/package/Dockerfile .
 
 # Run
@@ -37,10 +37,10 @@ docker-build:
 run:
 	./hub -interop_user=testuser -interop_pass=testpass
 
-docker-run:
+run-docker:
 	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host tritonuas/hub
 
-compose-run:
+run-compose:
 	docker-compose -f deployments/docker-compose.yml up
 
 # Cleanup
