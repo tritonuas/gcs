@@ -1,0 +1,12 @@
+apiVersion: 1
+
+# Allows dashboards placed in the /var/lib/grafana/dashboards folder to be pre-loaded in grafana 
+providers:
+  - name: "default"
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    options:
+      path: /var/lib/grafana/dashboards

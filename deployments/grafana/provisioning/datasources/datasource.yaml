@@ -1,0 +1,24 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: Graphite
+    orgId: 1
+
+# Sets up grafana to gather data from InfluxDB
+datasources:
+  - name: InfluxDB_v2
+    type: influxdb
+    access: proxy
+    default: true
+    isDefault: true
+    editable: true
+    url: http://172.17.0.1:8086
+    secureJsonData:
+      token: influxdbToken
+    jsonData:
+      version: Flux
+      organization: TritonUAS
+      defaultBucket: mavlink 
+      tlsSkipVerify: true
+
+# More info on configuration here: https://grafana.com/docs/grafana/latest/datasources/influxdb/influxdb-flux/

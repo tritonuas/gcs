@@ -215,7 +215,7 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
 //RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
 //mavCommonPath and mavArduPath point to the mavlink message files
-func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavDevice string, influxdbURI string, mavOutputs []string) {
+func RunMavlink(mavCommonPath string, mavArduPath string,  mavDevice string, influxdbToken string, influxdbURI string, influxdbBucket string, influxdbOrg string, mavOutputs []string) {
 
 	mavDeviceSplit := strings.Split(mavDevice, ":")
 
@@ -269,14 +269,8 @@ func RunMavlink(mavCommonPath string, mavArduPath string, token string, mavDevic
 		}
 	}
 
-
-	//InfluxDB credentials
-	//Make these env vars?
-	const bucket = "mavlink"
-	const org = "TritonUAS"
-
-	client := influxdb2.NewClient(influxdbURI, token)
-	writeAPI := client.WriteAPI(org, bucket)
+	client := influxdb2.NewClient(influxdbURI, influxdbToken)
+	writeAPI := client.WriteAPI(influxdbOrg, influxdbBucket)
 
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
