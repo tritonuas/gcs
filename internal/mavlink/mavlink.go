@@ -337,10 +337,11 @@ func RunMavlink(
 					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
 
 					// 33:
+					// https://mavlink.io/en/messages/common.html
 					// TODO: move this info to the wiki
 					// 0: time_boot_ms
-					// 1: lat (DIVIDE BY 10^7)
-					// 2: lon (DIVIDE BY 10^7)
+					// 1: lat (DIVIDE BY 10^6) Note: mavlink documentation says 10e7 but this isn't the correct value??
+					// 2: lon (DIVIDE BY 10^6)
 					// 3: alt (DIVIDE BY 1000)
 					// 4: relative_alt (DIVIDE BY 1000) (USE THIS ONE)
 					// 5: vx
@@ -348,8 +349,8 @@ func RunMavlink(
 					// 7: vz
 					// 8: hdg (heading) (CENTIDEGREES DIVIDE BY 100)
 					if msgID == 33 {
-						lat := floatValues[1] / 10e7
-						lon := floatValues[2] / 10e7
+						lat := floatValues[1] / 10e6
+						lon := floatValues[2] / 10e6
 						relative_alt := floatValues[4] / 1000
 						hdg := floatValues[8] / 100
 						telem := ic.Telemetry{Latitude: &lat, Longitude: &lon, Altitude: &relative_alt, Heading: &hdg}

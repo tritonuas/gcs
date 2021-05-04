@@ -381,17 +381,22 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// OR if the user is trying to specify an image, then the format will be like this:
 	// ["", "api", "odlcs", "X", "image"] (len = 5)
 	splitURI := strings.Split(r.URL.Path, "/")
-	if len(splitURI) == 4 || len(splitURI) == 5 {
+
+	// THIS CODE SUCKS AND IF THE NUMBER OF WORDS IN THE URL CHANGES THESE HAVE TO CHANGE AS WELL
+	// I WANT TO NUKE THIS FUNCTION AND FIX THIS SOME DAY
+	// UNTIL THEN, SORRY
+
+	if len(splitURI) == 5 || len(splitURI) == 6 {
 		// update mission to the value they want it to be
 		var err error
-		missionID, err = strconv.Atoi(splitURI[3])
+		missionID, err = strconv.Atoi(splitURI[4])
 		if err != nil {
 			// Either the user didn't supply a mission, or they provided a non integer
 			// value. Either way, we will assume they didn't try to specifiy an ID
 			// and override whatever junk value was placed into missionID
 			missionID = noMission
 		}
-		if len(splitURI) == 5 && splitURI[len(splitURI)-1] == "image" { // Check if user trying to do something with images
+		if len(splitURI) == 6 && splitURI[len(splitURI)-1] == "image" { // Check if user trying to do something with images
 			imageRequest = true
 		}
 	}
