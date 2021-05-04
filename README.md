@@ -9,7 +9,7 @@
 Hub is a backend webserver that faciliates communication between many
 other modules in the TUAS system, including
 [Houston](https://github.com/tritonuas/houston),
-[OBC](https://github.com/tritonuas/planeobc), Mavproxy, and more. It
+[OBC](https://github.com/tritonuas/planeobc), and more. It
 also communicates with the [Interop Judging
 Server](https://github.com/auvsi-suas/interop) to grab the mission
 plans and submit waypoints.
@@ -23,10 +23,14 @@ The hub is currently hosted on
 
 - go 1.14
 - protobuf-compiler
+- [docker](https://docs.docker.com/engine/install/)
+- [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with Influxdb and SITL)
 
 Both of these should be handled with this script
 
 ```sh
+# download git submodules
+make submodulesupdate
 # install go and protobuf-compiler
 make install-dependencies
 ```
@@ -49,6 +53,14 @@ make run
 make docker-build
 # run
 make docker-run
+```
+
+### Docker-Compose
+```sh
+# docker build
+make docker-build
+# run docker-compose
+make compose-run
 ```
 
 ## Ports and Stuff
