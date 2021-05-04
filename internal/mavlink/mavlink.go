@@ -11,6 +11,8 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 
+	ic "github.com/tritonuas/hub/internal/interop"
+
 	"github.com/goburrow/serial"
 
 	"github.com/sirupsen/logrus"
@@ -18,7 +20,7 @@ import (
 	"github.com/aler9/gomavlib"
 	"github.com/aler9/gomavlib/pkg/dialects/ardupilotmega"
 	"github.com/aler9/gomavlib/pkg/msg"
-	"github.com/influxdata/influxdb-client-go/v2"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	// "github.com/influxdata/influxdb-client-go/v2/log"
 	// "github.com/influxdata/influxdb-client-go/v2/internal/log"
@@ -215,7 +217,16 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
 //RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
 //mavCommonPath and mavArduPath point to the mavlink message files
-func RunMavlink(mavCommonPath string, mavArduPath string,  mavDevice string, influxdbToken string, influxdbURI string, influxdbBucket string, influxdbOrg string, mavOutputs []string) {
+func RunMavlink(
+	mavCommonPath string,
+	mavArduPath string,
+	token string,
+	bucket string,
+	org string,
+	mavDevice string,
+	influxdbURI string,
+	mavOutputs []string,
+	telemetryChannel chan *ic.Telemetry) {
 
 	mavDeviceSplit := strings.Split(mavDevice, ":")
 
@@ -259,18 +270,18 @@ func RunMavlink(mavCommonPath string, mavArduPath string,  mavDevice string, inf
 		mavOutputAddress := ""
 		for i := 1; i < len(mavOutputSplit); i++ {
 			mavOutputAddress += mavOutputSplit[i]
-			if i != len(mavOutputSplit) - 1 {
+			if i != len(mavOutputSplit)-1 {
 				mavOutputAddress += ":"
 			}
 		}
 		endpoint := getEndpoint(mavOutputSplit[0], mavOutputAddress)
-		if(endpoint != nil) {
+		if endpoint != nil {
 			endpoints = append(endpoints, endpoint)
 		}
 	}
 
-	client := influxdb2.NewClient(influxdbURI, influxdbToken)
-	writeAPI := client.WriteAPI(influxdbOrg, influxdbBucket)
+	client := influxdb2.NewClient(influxdbURI, token)
+	writeAPI := client.WriteAPI(org, bucket)
 
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
@@ -324,6 +335,28 @@ func RunMavlink(mavCommonPath string, mavArduPath string,  mavDevice string, inf
 				if int(msgID) == normalMessageID {
 					floatValues := convertToFloats(rawValues, msgID)
 					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					// 33:
+					// https://mavlink.io/en/messages/common.html
+					// TODO: move this info to the wiki
+					// 0: time_boot_ms
+					// 1: lat (DIVIDE BY 10^6) Note: mavlink documentation says 10e7 but this isn't the correct value??
+					// 2: lon (DIVIDE BY 10^6)
+					// 3: alt (DIVIDE BY 1000)
+					// 4: relative_alt (DIVIDE BY 1000) (USE THIS ONE)
+					// 5: vx
+					// 6: vy
+					// 7: vz
+					// 8: hdg (heading) (CENTIDEGREES DIVIDE BY 100)
+					if msgID == 33 {
+						lat := floatValues[1] / 10e6
+						lon := floatValues[2] / 10e6
+						relative_alt := floatValues[4] / 1000
+						hdg := floatValues[8] / 100
+						telem := ic.Telemetry{Latitude: &lat, Longitude: &lon, Altitude: &relative_alt, Heading: &hdg}
+						telemetryChannel <- &telem
+					}
+
 					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
 					break
 				}
@@ -463,9 +496,9 @@ func RunMavlink(mavCommonPath string, mavArduPath string,  mavDevice string, inf
 						break
 					}
 					p := influxdb2.NewPointWithMeasurement(msgName).
-							AddTag("ID", fmt.Sprintf("%v", msgID)).
-							AddField(label, value).
-							SetTime(time.Now())
+						AddTag("ID", fmt.Sprintf("%v", msgID)).
+						AddField(label, value).
+						SetTime(time.Now())
 					writeAPI.WritePoint(p)
 				}
 
