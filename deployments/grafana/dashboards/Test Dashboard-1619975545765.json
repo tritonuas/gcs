@@ -18,6 +18,20 @@
   "links": [],
   "panels": [
     {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 15,
+      "panels": [],
+      "title": "Row title",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -33,7 +47,7 @@
         "h": 8,
         "w": 9,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "hiddenSeries": false,
       "id": 8,
@@ -119,6 +133,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:48",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -127,6 +142,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:49",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -156,7 +172,7 @@
         "h": 8,
         "w": 9,
         "x": 9,
-        "y": 0
+        "y": 1
       },
       "hiddenSeries": false,
       "id": 6,
@@ -279,7 +295,7 @@
         "h": 8,
         "w": 9,
         "x": 0,
-        "y": 8
+        "y": 9
       },
       "hiddenSeries": false,
       "id": 4,
@@ -465,10 +481,10 @@
         "gaugeRadius": 0,
         "gaugeUnits": "",
         "innerCol": "rgb(0, 0, 0)",
-        "labelFontSize": 17,
+        "labelFontSize": 14,
         "markerStartEnabled": false,
         "maxNeedleAngle": 360,
-        "maxTickAngle": 360,
+        "maxTickAngle": 540,
         "maxValue": 360,
         "minValue": 0,
         "needleCol": "#F2495C",
@@ -493,7 +509,7 @@
         "tickLabelCol": "rgb(255, 255, 255)",
         "tickLengthMaj": 0.15,
         "tickLengthMin": 0.05,
-        "tickSpaceMajVal": 30,
+        "tickSpaceMajVal": 15,
         "tickSpaceMinVal": 1,
         "tickWidthMaj": 5,
         "tickWidthMin": 1,
@@ -503,14 +519,14 @@
         "unitsLabelFontSize": 15,
         "valueYOffset": 0,
         "zeroNeedleAngle": 0,
-        "zeroTickAngle": 0
+        "zeroTickAngle": 180
       },
       "gaugeDivId": "d3gauge_svg_10",
       "gridPos": {
         "h": 11,
         "w": 6,
         "x": 9,
-        "y": 8
+        "y": 9
       },
       "id": 10,
       "mappingType": 1,
@@ -1981,7 +1997,7 @@
         "h": 11,
         "w": 3,
         "x": 15,
-        "y": 8
+        "y": 9
       },
       "id": 13,
       "options": {
@@ -2059,7 +2075,7 @@
         "h": 9,
         "w": 9,
         "x": 0,
-        "y": 16
+        "y": 17
       },
       "hiddenSeries": false,
       "id": 2,
@@ -2170,7 +2186,7 @@
       }
     }
   ],
-  "refresh": "1s",
+  "refresh": "500ms",
   "schemaVersion": 27,
   "style": "dark",
   "tags": [],
@@ -2183,11 +2199,12 @@
   },
   "timepicker": {
     "refresh_intervals": [
+      "500ms",
       "1s"
     ]
   },
   "timezone": "",
   "title": "Test Dashboard",
   "uid": "MlrNZwXGk",
-  "version": 3
+  "version": 2
 }

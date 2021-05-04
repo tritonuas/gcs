@@ -8,7 +8,7 @@ services:
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
       - MAV_DEVICE=tcp:sitl:5760
-      - MAV_OUTPUT1="udp:172.17.0.1:14550"
+      - MAV_OUTPUT1=""
       - MAV_OUTPUT2=""
       - MAV_OUTPUT3=""
       - MAV_OUTPUT4=""
@@ -27,14 +27,17 @@ services:
       - '8086:8086'
     volumes:
       - influxdb_data:/var/lib/influxdb
+    logging:
+      driver: none
   grafana:
     image: grafana/grafana:7.5.5
     depends_on:
       - influxdb
     environment: 
       - GF_USERS_DEFAULT_THEME=dark
+      - GF_USERS_HOME_PAGE=/dashboards
       - GF_INSTALL_PLUGINS=briangann-gauge-panel
-      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
@@ -49,6 +52,8 @@ services:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+    logging:
+      driver: none
   influxdb_cli:
     links:
       - influxdb
@@ -78,25 +83,24 @@ services:
       - sitl:/app/logs
     logging:
       driver: none
-  # mavproxy:
-  #   image: tritonuas/mavproxy
-  #   ports:
-  #     - "5761:5762"
-  #     - "14551:14551"
-  #   environment:
-  #     - "MASTER=--master=tcp:sitl:5760"
-  #     # - MASTER2=
-  #     - "OUT1=--out=udp:172.17.0.1:14550"
-  #     - "OUT2=--out=tcpin:mavproxy:14551"
-  #     # - "OUT2=--out=udp:mavproxy:14555"
-  #     # - "OUT3=--out=udp:mavproxy:14556"
-  #     # - "OUT4=--out=tcpin:mavproxy:5761"
-  #     # - "OUT5=--out=udp:mavproxy:5762"
-  #     # - OUT6=
-  #     # - OUT7=
-  #   restart: always
-  #   logging:
-  #     driver: none
+  mavproxy:
+    image: tritonuas/mavproxy
+    ports:
+      - "5761:5762"
+      - "14551:14551"
+    environment:
+      - "MASTER=--master=tcp:sitl:5760"
+      - "OUT1=--out=udp:172.17.0.1:14550"
+      - "OUT2=--out=tcpin:mavproxy:14551"
+      # - "OUT2=--out=udp:mavproxy:14555"
+      # - "OUT3=--out=udp:mavproxy:14556"
+      # - "OUT4=--out=tcpin:mavproxy:5761"
+      # - "OUT5=--out=udp:mavproxy:5762"
+      # - OUT6=
+      # - OUT7=
+    restart: always
+    logging:
+      driver: none
 volumes:
   grafana_data:
   influxdb_data:
