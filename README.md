@@ -4,19 +4,17 @@
 [![Tests](https://github.com/tritonuas/hub/workflows/Tests/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ATests)
 [![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
 
-
-
-Hub is a backend webserver that faciliates communication between many
-other modules in the TUAS system, including
+Hub is a back-end web-server that facilitates communication between other
+modules in the TUAS system, including
 [Houston](https://github.com/tritonuas/houston),
-[OBC](https://github.com/tritonuas/planeobc), and more. It
-also communicates with the [Interop Judging
-Server](https://github.com/auvsi-suas/interop) to grab the mission
-plans and submit waypoints.
-As of now, it does NOT deal with computer vision stuff; for that, see
+[OBC](https://github.com/tritonuas/planeobc),
+and more. It also communicates with the
+[Interop Judging Server](https://github.com/auvsi-suas/interop)
+to grab the mission plans and submit waypoints. As of now, it does NOT deal with
+computer vision stuff; for that, see
 [matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).
 
-The hub is currently hosted on
+Hub is currently hosted on
 [Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
 
 ## Dependencies
@@ -24,7 +22,7 @@ The hub is currently hosted on
 - go 1.14
 - protobuf-compiler
 - [docker](https://docs.docker.com/engine/install/)
-- [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with Influxdb and SITL)
+- [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
 
 Both of these should be handled with this script
 
@@ -35,32 +33,27 @@ make submodulesupdate
 make install-dependencies
 ```
 
-## Usage
+## Build
 
-### Local
-
-```sh
-# build hub
+``` sh
+# Build local hub executable
 make build
-# run hub with testuser
+
+# Build Docker image
+make build-docker
+```
+
+## Run
+
+``` sh
+# Run hub with testuser locally
 make run
-```
 
-### Docker
+# Run docker image of hub
+make run-docker
 
-```sh
-# docker build
-make docker-build
-# run
-make docker-run
-```
-
-### Docker-Compose
-```sh
-# docker build
-make docker-build
-# run docker-compose
-make compose-run
+# Run full hub workflow with multiple components
+make run-compose
 ```
 
 ## Ports and Stuff
@@ -70,12 +63,12 @@ Check [houston](https://github.com/tritonuas/houston) for usage instructions
 In houston, the `Backend Addr` always needs to match that of hub
 
 ```sh
-# find ip of hub
+# find IP of hub
 docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
 ```
 
 ## Test
 
-```
+```sh
 make test
 ```
