@@ -4,19 +4,17 @@
 [![Tests](https://github.com/tritonuas/hub/workflows/Tests/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ATests)
 [![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
 
-
-
-Hub is a backend webserver that faciliates communication between many
-other modules in the TUAS system, including
+Hub is a back-end web-server that facilitates communication between other
+modules in the TUAS system, including
 [Houston](https://github.com/tritonuas/houston),
-[OBC](https://github.com/tritonuas/planeobc), and more. It
-also communicates with the [Interop Judging
-Server](https://github.com/auvsi-suas/interop) to grab the mission
-plans and submit waypoints.
-As of now, it does NOT deal with computer vision stuff; for that, see
+[OBC](https://github.com/tritonuas/planeobc),
+and more. It also communicates with the
+[Interop Judging Server](https://github.com/auvsi-suas/interop)
+to grab the mission plans and submit waypoints. As of now, it does NOT deal with
+computer vision stuff; for that, see
 [matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).
 
-The hub is currently hosted on
+Hub is currently hosted on
 [Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
 
 ## Dependencies
@@ -35,31 +33,26 @@ make submodulesupdate
 make install-dependencies
 ```
 
-## Usage
+## Build
 
-### Local
-
-```sh
-# build hub
+``` sh
+# Build local hub executable
 make build
-# run hub with testuser
+
+# Build Docker image
+make build-docker
+```
+
+## Run
+
+``` sh
+# Run hub with testuser locally
 make run
-```
 
-### Docker
-
-```sh
-# docker build
-make build-docker
-# run
+# Run docker image of hub
 make run-docker
-```
 
-### Docker-Compose
-```sh
-# docker build
-make build-docker
-# run docker-compose
+# Run full hub workflow with multiple components
 make run-compose
 ```
 
@@ -70,12 +63,12 @@ Check [houston](https://github.com/tritonuas/houston) for usage instructions
 In houston, the `Backend Addr` always needs to match that of hub
 
 ```sh
-# find ip of hub
+# find IP of hub
 docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
 ```
 
 ## Test
 
-```
+```sh
 make test
 ```
