@@ -98,7 +98,7 @@ func main() {
 
 	// Once we need to access the interop client
 	// client := <-interopChannel
-	var client *ic.Client = nil
+	var client chan *ic.Client
 
 	var server *hs.Server
 	server = new(hs.Server)
