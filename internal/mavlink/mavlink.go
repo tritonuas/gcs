@@ -353,8 +353,13 @@ func RunMavlink(
 						lon := floatValues[2] / 10e6
 						relative_alt := floatValues[4] / 1000
 						hdg := floatValues[8] / 100
+						Log.Warn("Before sending telem")
 						telem := ic.Telemetry{Latitude: &lat, Longitude: &lon, Altitude: &relative_alt, Heading: &hdg}
+						// go func(channel chan* ic.Telemetry, telem ic.Telemetry) {
 						telemetryChannel <- &telem
+							// Log.Warn("Leaving goroutine")
+						// }(telemetryChannel, telem)
+						Log.Warn("After sending telem")
 					}
 
 					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)

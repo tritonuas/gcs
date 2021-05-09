@@ -19,8 +19,8 @@ services:
       - HUB_PATH=/go/src/github.com/tritonuas/hub
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
-    # logging:
-    #   driver: none
+    logging:
+      driver: journald
   influxdb:
     image: influxdb:2.0-alpine
     ports:
@@ -28,7 +28,7 @@ services:
     volumes:
       - influxdb_data:/var/lib/influxdb
     logging:
-      driver: none
+      driver: journald
   grafana:
     image: grafana/grafana:7.5.5
     depends_on:
@@ -53,7 +53,7 @@ services:
       - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
     logging:
-      driver: none
+      driver: journald
   influxdb_cli:
     links:
       - influxdb
@@ -71,7 +71,7 @@ services:
       --force
     restart: on-failure:10
     logging:
-      driver: none
+      driver: journald
   sitl:
     image: tritonuas/plane.rascal
     environment:
@@ -100,7 +100,7 @@ services:
       # - OUT7=
     restart: always
     logging:
-      driver: none
+      driver: journald
 volumes:
   grafana_data:
   influxdb_data:

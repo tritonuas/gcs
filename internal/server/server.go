@@ -37,21 +37,23 @@ type Server struct {
 // will receive
 func (s *Server) Run(
 	port string,
-	cli *ic.Client,
+	interopChannel chan *ic.Client,
 	interopMissionID int,
 	telemetryChannel chan *ic.Telemetry) {
+
 
 	s.missionID = MissionID{ID: interopMissionID}
 
 	s.port = fmt.Sprintf(":%s", port)
-	s.client = cli
+	s.client = nil
+	go s.ConnectToInterop(interopChannel)
 	mux := http.NewServeMux()
-	mux.Handle("/hub/interop/teams", &interopTeamHandler{client: cli})
-	mux.Handle("/hub/interop/missions", &interopMissionHandler{client: cli, server: s})
-	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{client: cli, server: s})
-	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{client: cli})
+	mux.Handle("/hub/interop/teams", &interopTeamHandler{client: s.client})
+	mux.Handle("/hub/interop/missions", &interopMissionHandler{client: s.client, server: s})
+	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{client: s.client, server: s})
+	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{client: s.client})
 
-	mux.Handle("/hub/mission", &missionHandler{client: cli, server: s})
+	mux.Handle("/hub/mission", &missionHandler{client: s.client, server: s})
 
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
@@ -64,6 +66,10 @@ func (s *Server) Run(
 	go s.CacheAndUploadTelem(telemetryChannel)
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+func (s* Server) ConnectToInterop(channel chan *ic.Client){
+	s.client = <-channel
 }
 
 // CacheAndUploadTelem sends the telemetry to the server and caches it and uploads it to interop
