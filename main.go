@@ -81,7 +81,7 @@ func main() {
 	go ic.EstablishInteropConnection(interopRetryTime, interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], interopTimeout, interopChannel)
 
 	// Do other things...
-	telemetryChannel := make(chan *ic.Telemetry, 100) 
+	telemetryChannel := make(chan *ic.Telemetry, 100)
 
 	// begins to send messages from the plane to InfluxDB
 	mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
@@ -95,10 +95,6 @@ func main() {
 		*ENVS["INFLUXDB_URI"],
 		mavOutputs,
 		telemetryChannel)
-
-	// Once we need to access the interop client
-	// client := <-interopChannel
-	var client chan *ic.Client
 
 	var server *hs.Server
 	server = new(hs.Server)
@@ -115,7 +111,7 @@ func main() {
 
 	server.Run(
 		port,
-		client,
+		interopChannel,
 		interopMissionID,
 		telemetryChannel)
 
