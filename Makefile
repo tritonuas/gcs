@@ -12,7 +12,7 @@ install-dependencies:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git compile-protos build-go docker-build
+.PHONY: pre-build build install-dependencies configure-git compile-protos build-go build-docker run-docker run-compose run-compose-detached stop-compose
 pre-build: configure-git submodulesupdate compile-protos
 
 build: build-go
@@ -42,6 +42,12 @@ run-docker:
 
 run-compose:
 	docker-compose -f deployments/docker-compose.yml up
+
+run-compose-detached:
+	docker-compose -f deployments/docker-compose.yml up -d
+
+stop-compose:
+	docker-compose -f deployments/docker-compose.yml down
 
 # Cleanup
 # --------------------------------------------------------------------

@@ -7,7 +7,8 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=tcp:sitl:5760
+      # - MAV_DEVICE=tcp:sitl:5760
+      - MAV_DEVICE=udp:mavproxy:14551
       - MAV_OUTPUT1=""
       - MAV_OUTPUT2=""
       - MAV_OUTPUT3=""
@@ -19,20 +20,27 @@ services:
       - HUB_PATH=/go/src/github.com/tritonuas/hub
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
-    logging:
-      driver: journald
+    depends_on: 
+      - mavproxy
+      - influxdb_cli
+      - influxdb
+    links:
+      - mavproxy
+      - influxdb
+    # logging:
+    #   driver: none
   influxdb:
     image: influxdb:2.0-alpine
     ports:
       - '8086:8086'
     volumes:
       - influxdb_data:/var/lib/influxdb
-    logging:
-      driver: journald
+    # logging:
+    #   driver: none 
   grafana:
     image: grafana/grafana:7.5.5
     depends_on:
-      - influxdb
+      - hub 
     environment: 
       - GF_USERS_DEFAULT_THEME=dark
       - GF_USERS_HOME_PAGE=/dashboards
@@ -43,8 +51,6 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_USERS_ALLOW_SIGN_UP=false
-    links:
-      - influxdb
     ports:
       - '3000:3000'
     volumes:
@@ -52,8 +58,8 @@ services:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
-    logging:
-      driver: journald
+    # logging:
+    #   driver: none 
   influxdb_cli:
     links:
       - influxdb
@@ -69,9 +75,10 @@ services:
       --password tritonuas 
       --host http://influxdb:8086 
       --force
-    restart: on-failure:10
-    logging:
-      driver: journald
+    # entrypoint: influx org list
+    restart: on-failure:20
+    # logging:
+      # driver: none 
   sitl:
     image: tritonuas/plane.rascal
     environment:
@@ -81,17 +88,22 @@ services:
       - "5760:5760"
     volumes:
       - sitl:/app/logs
-    logging:
-      driver: none
+    # logging:
+    #   driver: none
   mavproxy:
     image: tritonuas/mavproxy
+    depends_on: 
+      - sitl
     ports:
       - "5761:5762"
       - "14551:14551"
     environment:
       - "MASTER=--master=tcp:sitl:5760"
-      - "OUT1=--out=udp:172.17.0.1:14550"
-      - "OUT2=--out=tcpin:mavproxy:14551"
+      # - "OUT1=--out=udp:172.17.0.1:14550"
+      # Forwards messages to MissionPlanner/QGC
+      - "OUT1=--out=172.17.0.1:14550"
+      # Forwards messages to hub
+      - "OUT2=--out=udpin:mavproxy:14551"
       # - "OUT2=--out=udp:mavproxy:14555"
       # - "OUT3=--out=udp:mavproxy:14556"
       # - "OUT4=--out=tcpin:mavproxy:5761"
@@ -99,8 +111,8 @@ services:
       # - OUT6=
       # - OUT7=
     restart: always
-    logging:
-      driver: journald
+    # logging:
+    #   driver: none
 volumes:
   grafana_data:
   influxdb_data:
