@@ -12,7 +12,7 @@ install-dependencies:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git compile-protos build-go build-docker run-docker run-compose run-compose-detached stop-compose
+.PHONY: pre-build build install-dependencies configure-git compile-protos build-go build-docker
 pre-build: configure-git submodulesupdate compile-protos
 
 build: build-go
@@ -33,7 +33,7 @@ build-docker:
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run docker-run
+.PHONY: run run-docker run-compose run-compose-detached stop-compose
 run:
 	./hub -interop_user=testuser -interop_pass=testpass
 
@@ -48,6 +48,24 @@ run-compose-detached:
 
 stop-compose:
 	docker-compose -f deployments/docker-compose.yml down
+
+# Docker logging 
+# --------------------------------------------------------------------
+.PHONY: log-hub log-mavproxy log-influxdb log-grafana log-sitl
+log-hub:
+	docker logs --follow deployments_hub_1
+
+log-mavproxy:
+	docker logs --follow deployments_mavproxy_1
+
+log-influxdb:
+	docker logs --follow deployments_influxdb_1
+
+log-grafana:
+	docker logs --follow deployments_grafana_1
+
+log-sitl:
+	docker logs --follow deployments_sitl_1
 
 # Cleanup
 # --------------------------------------------------------------------
