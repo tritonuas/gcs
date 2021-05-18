@@ -28,7 +28,7 @@
       },
       "id": 15,
       "panels": [],
-      "title": "Row title",
+      "title": "General Data",
       "type": "row"
     },
     {
@@ -93,7 +93,7 @@
           ],
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"relative_alt\"\n  )",
+          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"relative_alt\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value * 0.00328084}))\n  |> aggregateWindow(every: 500ms, fn: mean)\n\n  //0.00328084",
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -117,7 +117,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Altitude off the ground",
+      "title": "Altitude off the ground (ft)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -218,7 +218,7 @@
           ],
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"alt\"\n  )",
+          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"alt\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value * 0.00328084}))\n  |> aggregateWindow(every: 500ms, fn: mean)\n",
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -242,7 +242,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Altitude from sea level",
+      "title": "Altitude from sea level (ft)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -365,7 +365,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Throttle",
+      "title": "Throttle (%)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -505,7 +505,7 @@
         "tickColMaj": "#F2495C",
         "tickColMin": "rgb(0, 0, 0)",
         "tickEdgeGap": 0.05,
-        "tickFont": "Open Sans",
+        "tickFont": "Arial",
         "tickLabelCol": "rgb(255, 255, 255)",
         "tickLengthMaj": 0.15,
         "tickLengthMin": 0.05,
@@ -602,7 +602,7 @@
           ],
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"hdg\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value / 100.0 }))\n\n",
+          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"hdg\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value / 100.0 }))\n  |> aggregateWindow(every: 500ms, fn: mean)\n\n",
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -626,7 +626,7 @@
       "tickMaps": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Heading",
+      "title": "Heading (deg)",
       "type": "briangann-gauge-panel",
       "unitFormats": [
         {
@@ -2034,7 +2034,7 @@
           ],
           "orderByTime": "ASC",
           "policy": "default",
-          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"hdg\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value / 100.0 }))\n\n",
+          "query": "from(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"GLOBAL_POSITION_INT\" and\n    r._field == \"hdg\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value / 100.0 }))\n  |> aggregateWindow(every: 500ms, fn: mean)\n",
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
@@ -2056,7 +2056,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Heading",
+      "title": "Heading (deg)",
       "type": "stat"
     },
     {
@@ -2146,7 +2146,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Airspeed and Groundspeed",
+      "title": "Airspeed and Groundspeed (m/s)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2184,6 +2184,290 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Attitude",
+      "type": "row"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 0,
+        "y": 27
+      },
+      "id": 19,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.5",
+      "targets": [
+        {
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "import \"math\"\n\nfrom(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"ATTITUDE\" and\n    r._field == \"roll\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value * 180.0 / math.pi }))\n  |> aggregateWindow(every: 500ms, fn: mean)\n",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Roll (deg)",
+      "type": "stat"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 7,
+        "y": 27
+      },
+      "id": 20,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.5",
+      "targets": [
+        {
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "import \"math\"\n\nfrom(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"ATTITUDE\" and\n    r._field == \"pitch\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value * 180.0 / math.pi }))\n  |> aggregateWindow(every: 500ms, fn: mean)\n",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Pitch (deg)",
+      "type": "stat"
+    },
+    {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 14,
+        "y": 27
+      },
+      "id": 21,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.5.5",
+      "targets": [
+        {
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "import \"math\"\n\nfrom(bucket: \"mavlink\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"ATTITUDE\" and\n    r._field == \"yaw\"\n  )\n  |> map(fn: (r) => ({ r with _value: r._value * 180.0 / math.pi }))\n  |> aggregateWindow(every: 500ms, fn: mean)\n",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Yaw (deg)",
+      "type": "stat"
     }
   ],
   "refresh": "500ms",
@@ -2206,5 +2490,5 @@
   "timezone": "",
   "title": "Test Dashboard",
   "uid": "MlrNZwXGk",
-  "version": 2
+  "version": 3
 }

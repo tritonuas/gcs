@@ -26,12 +26,14 @@ import (
 	// "github.com/influxdata/influxdb-client-go/v2/internal/log"
 )
 
-//systemID is added to every outgoing frame and used to identify the node that comminicates to the plane
+//systemID is added to every outgoing frame and used to identify the node that communicates to the plane
 //on the network.
 const systemID byte = 255
 
-//Mavlink structs for mavlink messages from xml files
+// connRefreshTimer is the number of seconds Hub will wait until attempting to reconnect to the plane
+const connRefreshTimer int = 5;
 
+//Mavlink structs for mavlink messages from xml files
 type Mavlink struct {
 	XMLName  xml.Name `xml:"mavlink"`
 	Enums    Enums    `xml:"enums"`
@@ -242,8 +244,8 @@ func RunMavlink(
 			if err == nil {
 				break
 			}
-			Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
-			time.Sleep(10 * time.Second)
+			Log.Warn(fmt.Sprintf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...",mavDeviceAddress, connRefreshTimer))
+			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
 	case "tcp":
 		fallthrough
@@ -253,12 +255,12 @@ func RunMavlink(
 			if err == nil {
 				break
 			}
-			Log.Warn("Connection to plane failed. Trying to establish connection again in 10 seconds...")
-			time.Sleep(10 * time.Second)
+			Log.Warn(fmt.Sprintf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...",mavDeviceType, mavDeviceAddress, connRefreshTimer))
+			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
 
 	default:
-		Log.Fatal("Invalid Mavlink device network type. Change the network type to upp, tcp, or serial")
+		Log.Fatal("Invalid Mavlink device connection type. Change the connection type to upp, tcp, or serial")
 	}
 
 	endpoints := []gomavlib.EndpointConf{}
@@ -546,8 +548,10 @@ func RunMavlink(
 				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
 
 			}
-			node.WriteFrameExcept(frm.Channel, frm.Frame)
-		}
+
+			// Forwards mavlink messages to other clients
+			// node.WriteFrameExcept(frm.Channel, frm.Frame)
+		} 
 	}
 	defer client.Close()
 }
