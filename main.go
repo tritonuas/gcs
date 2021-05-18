@@ -29,7 +29,7 @@ var ENVS = map[string]*string{
 	"MAV_OUTPUT3":		  flag.String("mav_output3", "udp:127.0.0.1:14556", "third output of mavlink messages"),
 	"MAV_OUTPUT4":		  flag.String("mav_output4", "tcp:127.0.0.1:5761", "fourth output of mavlink messages"),
 	"MAV_OUTPUT5":		  flag.String("mav_output5", "udp:127.0.0.1:5762", "fifth output of mavlink messages"),
-	"INFLUXDB_URI":		  flag.String("influxdb_uri", "http://influxdb:8086", "uri of influx database for mavlink messages"),
+	"INFLUXDB_URI":		  flag.String("influxdb_uri", "http://influxdb:8086", "uri of inlux database for mavlink messages"),
 	"INFLUXDB_TOKEN":	  flag.String("influxdb_token", "influxdbToken", "token to allow read/write access to influx database"),
 	"IP":                 flag.String("ip", "*", "ip of interop computer"),
 	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
