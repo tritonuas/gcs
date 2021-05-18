@@ -33,7 +33,7 @@ docker-build:
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run docker-run
+.PHONY: run docker-run run-broach-compose
 run:
 	./hub -interop_user=testuser -interop_pass=testpass
 
@@ -43,8 +43,8 @@ docker-run:
 compose-run:
 	docker-compose -f deployments/docker-compose.yml up
 
-broach-compose-run:
-	docker-compose -f deployments/broach-docker-compose.yml up
+run-broach-compose:
+	docker-compose -f deployments/broach-docker-compose.yml up -d
 
 # Cleanup
 # --------------------------------------------------------------------
