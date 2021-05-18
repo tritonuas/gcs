@@ -6,12 +6,17 @@ COPY . .
 
 # Install some necessary dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    git \
     libzmq3-dev \
+	protobuf-compiler \
  && rm -rf /var/lib/apt/lists/*
 
-# Setup git to use ssh for private go modules
-RUN make install-dependencies
-RUN make build
+# Install protoc compilation for golang
+RUN go get google.golang.org/protobuf/cmd/protoc-gen-go
+
+# Compile protobufs for golang
+RUN make compile-protos
+
+# Build hub
+RUN go build
 
 CMD ["./hub"]

@@ -30,6 +30,11 @@ type Client struct {
 	timeout  int
 }
 
+// IsConnected checks to see if hte http client object is not null
+func (c *Client) IsConnected() bool {
+	return c.client != nil
+}
+
 // EstablishInteropConnection keeps trying to connect to the interop server
 // every waitTime seconds, and exits once it has connected
 func EstablishInteropConnection(waitTime int, interopURL string, user string, pass string, timeout int, c chan *Client) {
@@ -83,6 +88,11 @@ func NewClient(url string, username string, password string, timeout int) (*Clie
 	return client, intErr
 }
 
+// GetUsername returns the username for our interop connection
+func (c *Client) GetUsername() string {
+	return c.username
+}
+
 // Get makes a GET request to server.
 func (c *Client) Get(uri string) ([]byte, InteropError) {
 	intErr := NewInteropError()
@@ -106,7 +116,7 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("GET - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request to Interop: GET - %s - %d", uri, resp.StatusCode)
 
 	return body, *intErr
 }
@@ -134,7 +144,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("POST - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request to Interop: POST - %s - %d", uri, resp.StatusCode)
 
 	return body, *intErr
 }
@@ -167,7 +177,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Debugf("PUT - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request to Interop: PUT - %s - %d", uri, resp.StatusCode)
 	return body, *intErr
 }
 
@@ -196,19 +206,13 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Debugf("DELETE - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request to Interop: DELETE - %s - %d", uri, resp.StatusCode)
 	return body, *intErr
 }
 
 // GetTeams gets the statuses of all the teams registered in the server
 func (c *Client) GetTeams() ([]byte, InteropError) {
 	data, err := c.Get("/api/teams")
-
-	if err.Get {
-		Log.Error("An error occurred retrieving Team Status information.")
-	} else {
-		Log.Info("Successfully retrieved Team Status information.")
-	}
 
 	return data, err
 }
@@ -218,12 +222,6 @@ func (c *Client) GetMission(id int) ([]byte, InteropError) {
 	uri := fmt.Sprintf("/api/missions/%d", id)
 	data, err := c.Get(uri)
 
-	if err.Get {
-		Log.Error("An error occurred retrieving Mission information.")
-	} else {
-		Log.Info("Successfully retrieved Mission information.")
-	}
-
 	return data, err
 }
 
@@ -231,12 +229,6 @@ func (c *Client) GetMission(id int) ([]byte, InteropError) {
 func (c *Client) PostTelemetry(telem []byte) InteropError {
 	// Post telemetry to server
 	_, err := c.Post("/api/telemetry", bytes.NewReader(telem))
-
-	if err.Post {
-		Log.Error("An error occurred submitting our Telemetry information")
-	} else {
-		Log.Info("Successfully submitted our Telemetry information")
-	}
 
 	return err
 }
@@ -253,12 +245,6 @@ func (c *Client) GetODLCs(missionID int) ([]byte, InteropError) {
 	// Get request to the server
 	data, err := c.Get(uri)
 
-	if err.Get {
-		Log.Error("An error occurred retrieving ODLCs' information.")
-	} else {
-		Log.Info("Successfully retrieved ODLCs' information")
-	}
-
 	return data, err
 }
 
@@ -269,12 +255,6 @@ func (c *Client) GetODLC(id int) ([]byte, InteropError) {
 	// Get byte array from the server
 	data, err := c.Get(uri)
 
-	if err.Get {
-		Log.Error("An error occurred retrieving an ODLC's information")
-	} else {
-		Log.Info("Successfully retrieved an ODLC's information")
-	}
-
 	return data, err
 }
 
@@ -283,12 +263,6 @@ func (c *Client) GetODLC(id int) ([]byte, InteropError) {
 func (c *Client) PostODLC(odlc []byte) ([]byte, InteropError) {
 	// Post the json to the server
 	updatedODLC, err := c.Post("/api/odlcs", bytes.NewReader(odlc))
-
-	if err.Post {
-		Log.Error("An error occurred submitting an ODLC's information")
-	} else {
-		Log.Info("Successfully submitted an ODLC's information")
-	}
 
 	return updatedODLC, err
 }
@@ -301,12 +275,6 @@ func (c *Client) PutODLC(id int, odlc []byte) ([]byte, InteropError) {
 	// Put the json to the server
 	newOdlc, err := c.Put(uri, bytes.NewReader(odlc))
 
-	if err.Put {
-		Log.Error("An error occurred updating an ODLC's information")
-	} else {
-		Log.Info("Successfully updated an ODLC's information")
-	}
-
 	return newOdlc, err
 }
 
@@ -314,12 +282,6 @@ func (c *Client) PutODLC(id int, odlc []byte) ([]byte, InteropError) {
 func (c *Client) DeleteODLC(id int) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 	_, err := c.Delete(uri)
-
-	if err.Delete {
-		Log.Error("An error occurred deleting an uploaded ODLC")
-	} else {
-		Log.Info("Successfully deleted an uploaded ODLC")
-	}
 
 	return err
 }
@@ -331,12 +293,6 @@ func (c *Client) GetODLCImage(id int) ([]byte, InteropError) {
 
 	body, err := c.Get(uri)
 
-	if err.Get {
-		Log.Error("An error occurred retreiving an ODLC's image")
-	} else {
-		Log.Info("Successfully retrieved an ODLC's image")
-	}
-
 	return body, err
 }
 
@@ -347,12 +303,6 @@ func (c *Client) PutODLCImage(id int, image []byte) InteropError {
 
 	_, err := c.Put(uri, bytes.NewReader(image))
 
-	if err.Put {
-		Log.Error("An error occurred submitting an ODLC's image")
-	} else {
-		Log.Info("Successfully submitted an ODLC's image")
-	}
-
 	return err
 }
 
@@ -361,12 +311,6 @@ func (c *Client) DeleteODLCImage(id int) InteropError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	_, err := c.Delete(uri)
-
-	if err.Delete {
-		Log.Error("An error occurred deleting an ODLC's image")
-	} else {
-		Log.Info("Successfully submitted an ODLC's image")
-	}
 
 	return err
 }
