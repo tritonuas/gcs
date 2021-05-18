@@ -37,21 +37,22 @@ type Server struct {
 // will receive
 func (s *Server) Run(
 	port string,
-	cli *ic.Client,
+	interopChannel chan *ic.Client,
 	interopMissionID int,
 	telemetryChannel chan *ic.Telemetry) {
 
 	s.missionID = MissionID{ID: interopMissionID}
 
 	s.port = fmt.Sprintf(":%s", port)
-	s.client = cli
+	s.client = nil
+	go s.ConnectToInterop(interopChannel)
 	mux := http.NewServeMux()
-	mux.Handle("/hub/interop/teams", &interopTeamHandler{client: cli})
-	mux.Handle("/hub/interop/missions", &interopMissionHandler{client: cli, server: s})
-	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{client: cli, server: s})
-	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{client: cli})
+	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})
+	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
+	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
+	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{server: s})
 
-	mux.Handle("/hub/mission", &missionHandler{client: cli, server: s})
+	mux.Handle("/hub/mission", &missionHandler{server: s})
 
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
@@ -64,6 +65,11 @@ func (s *Server) Run(
 	go s.CacheAndUploadTelem(telemetryChannel)
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+func (s *Server) ConnectToInterop(channel chan *ic.Client) {
+	s.client = <-channel
+	Log.Info("Server client object initialized: Interop fully connected.")
 }
 
 // CacheAndUploadTelem sends the telemetry to the server and caches it and uploads it to interop
@@ -87,7 +93,6 @@ func logRequestInfo(r *http.Request) {
 
 type missionHandler struct {
 	server *Server
-	client *ic.Client
 }
 
 // This object captures changes to the mission ID stored in Hub
@@ -249,7 +254,7 @@ func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Handles GET requests that ask for Team Status information
 type interopTeamHandler struct {
-	client *ic.Client
+	server *Server
 }
 
 func (t *interopTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -257,8 +262,15 @@ func (t *interopTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
+		if t.server.client == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Interop connection not established"))
+			Log.Errorf("Unable to retrieve team data from Interop because connection to Interop not established")
+			return
+		}
+
 		// Make the GET request to the Interop Server
-		teams, err := t.client.GetTeams()
+		teams, err := t.server.client.GetTeams()
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
@@ -273,7 +285,6 @@ func (t *interopTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Handles GET requests that ask for the mission parameters
 type interopMissionHandler struct {
-	client *ic.Client
 	server *Server
 }
 
@@ -283,7 +294,14 @@ func (m *interopMissionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	switch r.Method {
 	case "GET":
 		// Make the GET request to the interop server
-		mission, err := m.client.GetMission(m.server.missionID.ID)
+		if m.server.client == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Interop connection not established"))
+			Log.Errorf("Unable to retrieve mission data from Interop because connection to Interop not established")
+			return
+		}
+
+		mission, err := m.server.client.GetMission(m.server.missionID.ID)
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
@@ -301,7 +319,6 @@ func (m *interopMissionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 // Handles POST requests to the server that upload telemetry data
 type interopTelemHandler struct {
-	client *ic.Client
 	server *Server
 }
 
@@ -310,8 +327,15 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	switch r.Method {
 	case "GET":
+		if t.server.client == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Interop connection not established"))
+			Log.Errorf("Unable to retrieve telemetry data from Interop because connection to Interop not established")
+			return
+		}
+
 		// We want to parse the teams data to find all of the telemetry of the other planes
-		teamsData, _ := t.client.GetTeams()
+		teamsData, _ := t.server.client.GetTeams()
 		var teamsList []ic.TeamStatus
 		json.Unmarshal(teamsData, &teamsList)
 
@@ -323,7 +347,7 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 			// We don't want to get our own telemety or telemetry from planes
 			// not in the air, so filter out those
-			if team.GetTeam().GetUsername() != t.client.GetUsername() && team.GetInAir() {
+			if team.GetTeam().GetUsername() != t.server.client.GetUsername() && team.GetInAir() {
 				// To prevent a crash if a team has taken off but not uploaded any telemetry
 				if team.GetTelemetry() != nil {
 					telemList = append(telemList, *team.GetTelemetry())
@@ -343,9 +367,16 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 
 	case "POST":
+		if t.server.client == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Interop connection not established"))
+			Log.Errorf("Unable to post telemetry data to Interop because connection to Interop not established")
+			return
+		}
+
 		telemData, _ := ioutil.ReadAll(r.Body)
 		// Make the POST request to the interop server
-		err := t.client.PostTelemetry(telemData)
+		err := t.server.client.PostTelemetry(telemData)
 		if err.Post {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
@@ -362,11 +393,17 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // Handles all requests related to ODLCs
 type interopOdlcHandler struct {
-	client *ic.Client
+	server *Server
 }
 
 func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
+	if o.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Interop connection not established"))
+		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
+		return
+	}
 	// I hate this function and we should seriously considering either fixing it or making
 	// it way simpler by not attempting to match exactly the API interop uses, and instead
 	// only implementing the ones that we want to use
@@ -409,7 +446,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			switch r.Method {
 			case "GET":
-				image, err := o.client.GetODLCImage(missionID)
+				image, err := o.server.client.GetODLCImage(missionID)
 				if err.Get {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
@@ -422,7 +459,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 			case "PUT":
 				image, _ := ioutil.ReadAll(r.Body)
-				err := o.client.PutODLCImage(missionID, image)
+				err := o.server.client.PutODLCImage(missionID, image)
 				if err.Put {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
@@ -434,7 +471,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Log.Infof("Successfully uploaded ODLC image for ODLC %d", missionID)
 				}
 			case "DELETE":
-				err := o.client.DeleteODLCImage(missionID)
+				err := o.server.client.DeleteODLCImage(missionID)
 				if err.Delete {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
@@ -466,7 +503,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							Log.Errorf("Bad Request Format - Exptected valid integer X in query parameter ?mission=X")
 							return
 						}
-						odlcsData, intErr := o.client.GetODLCs(missionID)
+						odlcsData, intErr := o.server.client.GetODLCs(missionID)
 						if intErr.Get {
 							w.WriteHeader(intErr.Status)
 							w.Write(intErr.Message)
@@ -494,7 +531,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// The user didn't provide a specific mission, so they want a list of all the odlcs
 					// (We still pass through missionID since a negative number parameter to this function
 					// signifies that we don't want to restrict it to a specific mission)
-					odlcsData, intErr := o.client.GetODLCs(missionID)
+					odlcsData, intErr := o.server.client.GetODLCs(missionID)
 					if intErr.Get {
 						w.WriteHeader(intErr.Status)
 						w.Write(intErr.Message)
@@ -509,7 +546,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				} else {
 					// The user wants the odlc data from a specific ODLC, and the id of that odlc
 					// is stored in missionID
-					odlcData, intErr := o.client.GetODLC(missionID)
+					odlcData, intErr := o.server.client.GetODLC(missionID)
 					if intErr.Get {
 						w.WriteHeader(intErr.Status)
 						w.Write(intErr.Message)
@@ -527,7 +564,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if missionID == noMission {
 				odlcData, _ := ioutil.ReadAll(r.Body)
 				// Make the POST request to the interop server
-				updatedODLC, err := o.client.PostODLC(odlcData)
+				updatedODLC, err := o.server.client.PostODLC(odlcData)
 				if err.Post {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
@@ -550,7 +587,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Log.Error("Bad Request Format - Must provide a mission ID for a PUT request")
 			} else {
 				odlcData, _ := ioutil.ReadAll(r.Body)
-				updatedOdlc, err := o.client.PutODLC(missionID, odlcData)
+				updatedOdlc, err := o.server.client.PutODLC(missionID, odlcData)
 				if err.Put {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)
@@ -568,7 +605,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("Bad Request Format - Must provide a mission ID for a DELETE request."))
 				Log.Errorf("Bad Request Format - Must provide a mission ID for a DELETE request.")
 			} else {
-				err := o.client.DeleteODLC(missionID)
+				err := o.server.client.DeleteODLC(missionID)
 				if err.Delete {
 					w.WriteHeader(err.Status)
 					w.Write(err.Message)

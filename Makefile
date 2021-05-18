@@ -12,7 +12,7 @@ install-dependencies:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git compile-protos build-go docker-build
+.PHONY: pre-build build install-dependencies configure-git compile-protos build-go build-docker
 pre-build: configure-git submodulesupdate compile-protos
 
 build: build-go
@@ -33,7 +33,7 @@ build-docker:
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run docker-run run-broach-compose
+.PHONY: run run-docker run-compose stop-compose run-broach-compose
 run:
 	./hub -interop_user=testuser -interop_pass=testpass
 
@@ -41,7 +41,10 @@ run-docker:
 	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host tritonuas/hub
 
 run-compose:
-	docker-compose -f deployments/docker-compose.yml up
+	docker-compose -f deployments/docker-compose.yml up -d
+
+stop-compose:
+	docker-compose -f deployments/docker-compose.yml down
 
 run-broach-compose:
 	docker-compose -f deployments/broach-docker-compose.yml up -d
