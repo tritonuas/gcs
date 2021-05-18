@@ -113,6 +113,13 @@ services:
     restart: always
     # logging:
     #   driver: none
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 9999:8080
 volumes:
   grafana_data:
   influxdb_data:
