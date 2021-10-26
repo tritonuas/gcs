@@ -53,8 +53,10 @@ make run
 
 # Run docker image of hub
 make run-docker
+```
 
 # Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot) Will include [Interop](https://github.com/auvsi-suas/interop) in the future)
+``` sh
 make run-compose
 ```
 
