@@ -33,6 +33,12 @@ make submodulesupdate
 make install-dependencies
 ```
 
+## First Time Setup
+In order to compile the protobuf files needed to run Hub, execute the following command
+```
+make compile-protos
+```
+
 ## Build
 
 ``` sh
