@@ -50,13 +50,14 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
-	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{server: s})
-
 	mux.Handle("/hub/mission", &missionHandler{server: s})
-
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
+
+	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
+	mux.Handle("/hub/interop/odlcs", )
+	mux.Handle("/hub/interop/odlc/image/", )
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -391,7 +392,8 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// Handles all requests related to ODLCs
+// Handles all requests related to singular odlc
+// e.g. /hub/interop/odlc/
 type interopOdlcHandler struct {
 	server *Server
 }
@@ -406,16 +408,10 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// initialize this value to -99, and update if the user specifies a mission
-	const noMission int = -99
-	missionID := noMission
 
-	// This split string array should be in the format ["", "api", "odlcs" ]
-	// OR ["", "api", "odlcs", "X"] where X is the mission value
-	// OR if the user is trying to specify an image, then the format will be like this:
-	// ["", "api", "odlcs", "X", "image"] (len = 5)
+
 	splitURI := strings.Split(r.URL.Path, "/")
-	var err error
+
 	
 	if (splitURI[4] == "image") {
 		missionID, err = strconv.Atoi(splitURI[5])
@@ -432,88 +428,11 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (o *interopOdlcHandler) ServeHTTPAllODLCs(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		// Check for ?mission=X query param
-		if len(r.URL.Query()) > 0 {
-			if val, ok := r.URL.Query()["mission"]; ok {
-				// Verify that mission wasn't also set in the URI
-				if missionID == noMission {
-					var err error
-					missionID, err = strconv.Atoi(val[0])
-					if err != nil {
-						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte("Bad Request Format - Expected valid integer X in query parameter ?mission=X"))
-						Log.Errorf("Bad Request Format - Exptected valid integer X in query parameter ?mission=X")
-						return
-					}
-					odlcsData, intErr := o.server.client.GetODLCs(missionID)
-					if intErr.Get {
-						w.WriteHeader(intErr.Status)
-						w.Write(intErr.Message)
-						Log.Errorf("Unable to retrieve ODLCS via mission ID %d from Interop: %s", missionID, intErr.Message)
-					} else {
-						// Everything is OK!
-						// This Write statement corresponds to a successful GET request in the format:
-						// GET /interop/odlcs?mission=X where X is a valid integer
-						w.Write(odlcsData)
-						Log.Infof("Successfully retrieved ODLCS via mission ID %d from Interop", missionID)
-					}
-				} else {
-					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}"))
-					Log.Errorf("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}")
-				}
-			} else {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Bad Request Format - Cannot provide query parameters other than ?mission"))
-				Log.Errorf("Bad Request Format - Cannot provide query parameters other than ?mission")
-			}
-		} else {
-			// The user didn't provide a specific mission, so they want a list of all the odlcs
-			// (We still pass through missionID since a negative number parameter to this function
-			// signifies that we don't want to restrict it to a specific mission)
-			odlcsData, intErr := o.server.client.GetODLCs(missionID)
-			if intErr.Get {
-				w.WriteHeader(intErr.Status)
-				w.Write(intErr.Message)
-				Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
-			} else {
-				// Everything is OK!
-				// This Write statement corresponds to a successful GET request in the format:
-				// GET /interop/odlcs/
-				w.Write(odlcsData)
-				Log.Infof("Successfully retrieved ODLCs from Interop")
-			}
-		}
-	case "POST":
-		if missionID == noMission {
-			odlcData, _ := ioutil.ReadAll(r.Body)
-			// Make the POST request to the interop server
-			updatedODLC, err := o.server.client.PostODLC(odlcData)
-			if err.Post {
-				w.WriteHeader(err.Status)
-				w.Write(err.Message)
-				Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
-			} else {
-				// This Write statement corresponds to a successful POST request in the format:
-				// POST /interop/odlcs
-				w.Write(updatedODLC)
-				Log.Infof("Successfully uploaded ODLC to Interop")
-			}
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request."))
-			Log.Errorf("Bad Request Format - Cannot provide a mission ID for a POST request.")
-		}
-	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented"))
-	}
+type interopOdlcsHandler struct {
+
 }
 
-func (o *interopOdlcHandler) ServeHTTPSingleODLC(w http.ResponseWriter, r *http.Request) {
+func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		// Check for ?mission=X query param
@@ -610,7 +529,7 @@ func (o *interopOdlcHandler) ServeHTTPSingleODLC(w http.ResponseWriter, r *http.
 	}
 }
 
-func (o *interopOdlcHandler) ServeHTTPImageHandler(w http.ResponseWriter, r *http.Request) {
+func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		image, err := o.server.client.GetODLCImage(missionID)
