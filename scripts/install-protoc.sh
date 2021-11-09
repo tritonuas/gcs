@@ -1,6 +1,7 @@
 #!/bin/bash
 
 COMMAND=protoc
+COMMAND-GEN-GO=protoc-gen-go
 BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -9,7 +10,11 @@ NC='\033[0m' # No Color
 if command -v  $COMMAND &> /dev/null; then
     echo -e "${BLUE}${COMMAND} already installed${NC}"
     protoc --version
-    exit
+fi
+
+if command -v  ${COMMAND-GEN-GO} &> /dev/null; then
+    echo -e "${BLUE}${COMMAND-GEN-GO} already installed${NC}"
+    protoc --version
 fi
 
 # Install protobuf-compiler on linux or OSX
