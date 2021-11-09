@@ -396,6 +396,266 @@ type interopOdlcHandler struct {
 	server *Server
 }
 
+//it will be a miracle if this works
+func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	if o.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Interop connection not established"))
+		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
+		return
+	}
+
+	// initialize this value to -99, and update if the user specifies a mission
+	const noMission int = -99
+	missionID := noMission
+
+	// This split string array should be in the format ["", "api", "odlcs" ]
+	// OR ["", "api", "odlcs", "X"] where X is the mission value
+	// OR if the user is trying to specify an image, then the format will be like this:
+	// ["", "api", "odlcs", "X", "image"] (len = 5)
+	splitURI := strings.Split(r.URL.Path, "/")
+	var err error
+	
+	if (splitURI[4] == "image") {
+		missionID, err = strconv.Atoi(splitURI[5])
+		ServeHTTPImageHandler(w, r)
+	} else if (splitURI[3] == "odlcs") {
+		ServeHTTPAllODLCs(w, r)
+	} else if (splitURI[3] == "odlc") {
+		ServeHTTPSingleODLC(w, r)
+	} else {
+		//there's an error
+		w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Invalid URL"))
+			Log.Error("Bad Request Format - Invalid URL")
+	}
+}
+
+func (o *interopOdlcHandler) ServeHTTPAllODLCs(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// Check for ?mission=X query param
+		if len(r.URL.Query()) > 0 {
+			if val, ok := r.URL.Query()["mission"]; ok {
+				// Verify that mission wasn't also set in the URI
+				if missionID == noMission {
+					var err error
+					missionID, err = strconv.Atoi(val[0])
+					if err != nil {
+						w.WriteHeader(http.StatusBadRequest)
+						w.Write([]byte("Bad Request Format - Expected valid integer X in query parameter ?mission=X"))
+						Log.Errorf("Bad Request Format - Exptected valid integer X in query parameter ?mission=X")
+						return
+					}
+					odlcsData, intErr := o.server.client.GetODLCs(missionID)
+					if intErr.Get {
+						w.WriteHeader(intErr.Status)
+						w.Write(intErr.Message)
+						Log.Errorf("Unable to retrieve ODLCS via mission ID %d from Interop: %s", missionID, intErr.Message)
+					} else {
+						// Everything is OK!
+						// This Write statement corresponds to a successful GET request in the format:
+						// GET /interop/odlcs?mission=X where X is a valid integer
+						w.Write(odlcsData)
+						Log.Infof("Successfully retrieved ODLCS via mission ID %d from Interop", missionID)
+					}
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}"))
+					Log.Errorf("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}")
+				}
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Bad Request Format - Cannot provide query parameters other than ?mission"))
+				Log.Errorf("Bad Request Format - Cannot provide query parameters other than ?mission")
+			}
+		} else {
+			// The user didn't provide a specific mission, so they want a list of all the odlcs
+			// (We still pass through missionID since a negative number parameter to this function
+			// signifies that we don't want to restrict it to a specific mission)
+			odlcsData, intErr := o.server.client.GetODLCs(missionID)
+			if intErr.Get {
+				w.WriteHeader(intErr.Status)
+				w.Write(intErr.Message)
+				Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
+			} else {
+				// Everything is OK!
+				// This Write statement corresponds to a successful GET request in the format:
+				// GET /interop/odlcs/
+				w.Write(odlcsData)
+				Log.Infof("Successfully retrieved ODLCs from Interop")
+			}
+		}
+	case "POST":
+		if missionID == noMission {
+			odlcData, _ := ioutil.ReadAll(r.Body)
+			// Make the POST request to the interop server
+			updatedODLC, err := o.server.client.PostODLC(odlcData)
+			if err.Post {
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
+				Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
+			} else {
+				// This Write statement corresponds to a successful POST request in the format:
+				// POST /interop/odlcs
+				w.Write(updatedODLC)
+				Log.Infof("Successfully uploaded ODLC to Interop")
+			}
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request."))
+			Log.Errorf("Bad Request Format - Cannot provide a mission ID for a POST request.")
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
+}
+
+func (o *interopOdlcHandler) ServeHTTPSingleODLC(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// Check for ?mission=X query param
+		if len(r.URL.Query()) > 0 {
+			if val, ok := r.URL.Query()["mission"]; ok {
+				// Verify that mission wasn't also set in the URI
+				if missionID == noMission {
+					var err error
+					missionID, err = strconv.Atoi(val[0])
+					if err != nil {
+						w.WriteHeader(http.StatusBadRequest)
+						w.Write([]byte("Bad Request Format - Expected valid integer X in query parameter ?mission=X"))
+						Log.Errorf("Bad Request Format - Exptected valid integer X in query parameter ?mission=X")
+						return
+					}
+					odlcsData, intErr := o.server.client.GetODLCs(missionID)
+					if intErr.Get {
+						w.WriteHeader(intErr.Status)
+						w.Write(intErr.Message)
+						Log.Errorf("Unable to retrieve ODLCS via mission ID %d from Interop: %s", missionID, intErr.Message)
+					} else {
+						// Everything is OK!
+						// This Write statement corresponds to a successful GET request in the format:
+						// GET /interop/odlcs?mission=X where X is a valid integer
+						w.Write(odlcsData)
+						Log.Infof("Successfully retrieved ODLCS via mission ID %d from Interop", missionID)
+					}
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}"))
+					Log.Errorf("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}")
+				}
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Bad Request Format - Cannot provide query parameters other than ?mission"))
+				Log.Errorf("Bad Request Format - Cannot provide query parameters other than ?mission")
+			}
+		} else {
+			// The user wants the odlc data from a specific ODLC, and the id of that odlc
+			// is stored in missionID
+			odlcData, intErr := o.server.client.GetODLC(missionID)
+			if intErr.Get {
+				w.WriteHeader(intErr.Status)
+				w.Write(intErr.Message)
+				Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", missionID, intErr.Message)
+			} else {
+				// Everything is OK!
+				// This Write statment corresponds to a successful GET request in the format:
+				// GET /interop/odlcs/X where X is a valid integer
+				w.Write(odlcData)
+				Log.Infof("Successfully retrieved ODLC %d from Interop", missionID)
+			}
+		}
+	case "PUT":
+		if missionID == noMission {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Must provide a mission ID for a PUT request"))
+			Log.Error("Bad Request Format - Must provide a mission ID for a PUT request")
+		} else {
+			odlcData, _ := ioutil.ReadAll(r.Body)
+			updatedOdlc, err := o.server.client.PutODLC(missionID, odlcData)
+			if err.Put {
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
+				Log.Errorf("Unable to update ODLC %d on Interop: %s", missionID, err.Message)
+			} else {
+				// This Write statement corresponds to a successful PUT request in the format:
+				// PUT /interop/odlcs/X where X is a valid integer
+				w.Write(updatedOdlc)
+				Log.Infof("Successfully updated ODLC %d on Interop", missionID)
+			}
+		}
+	case "DELETE":
+		if missionID == noMission {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Bad Request Format - Must provide a mission ID for a DELETE request."))
+			Log.Errorf("Bad Request Format - Must provide a mission ID for a DELETE request.")
+		} else {
+			err := o.server.client.DeleteODLC(missionID)
+			if err.Delete {
+				w.WriteHeader(err.Status)
+				w.Write(err.Message)
+				Log.Errorf("Unable to delete ODLC %d on Interop: %s", missionID, err.Message)
+			} else {
+				// This Write statement corresponds to a successful DELETE request in the format:
+				// DELETE /interop/odlcs/X where X is a valid integer
+				w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
+				Log.Infof("Successfuly deleted ODLC %d on Interop", missionID)
+			}
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
+}
+
+func (o *interopOdlcHandler) ServeHTTPImageHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		image, err := o.server.client.GetODLCImage(missionID)
+		if err.Get {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to get ODLC image from Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// GET /interop/odlcs/X/image
+			w.Write(image)
+			Log.Info("Successfully retrieved ODLC image from Interop.")
+		}
+	case "PUT":
+		image, _ := ioutil.ReadAll(r.Body)
+		err := o.server.client.PutODLCImage(missionID, image)
+		if err.Put {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// PUT /interop/odlcs/X/image
+			w.Write([]byte(fmt.Sprintf("Successfully uploaded odlc image for odlc %d", missionID)))
+			Log.Infof("Successfully uploaded ODLC image for ODLC %d", missionID)
+		}
+	case "DELETE":
+		err := o.server.client.DeleteODLCImage(missionID)
+		if err.Delete {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// DELETE /interop/odlcs/X/image
+			w.Write([]byte(fmt.Sprintf("Successfully deleted ODLC image for ODLC %d", missionID)))
+			Log.Infof("Successfully deleted ODLC image for ODLC %d", missionID)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
+
+/* old code:
 func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	if o.server.client == nil {
@@ -623,3 +883,4 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+*/
