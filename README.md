@@ -38,6 +38,11 @@ In order to compile the protobuf files needed to run Hub, execute the following 
 ```
 make compile-protos
 ```
+If this command doesn't work, then run
+```
+git submodule update --init
+```
+before trying the previous make command again
 
 ## Build
 
