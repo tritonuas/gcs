@@ -48,6 +48,9 @@ stop-compose:
 
 run-broach-compose:
 	docker-compose -f deployments/broach-docker-compose.yml up -d
+	
+stop-broach-compose:
+	docker-compose -f deployments/broach-docker-compose.yml down
 
 # Cleanup
 # --------------------------------------------------------------------
