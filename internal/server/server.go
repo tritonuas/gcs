@@ -56,8 +56,11 @@ func (s *Server) Run(
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
+	
+	/*
 	mux.Handle("/hub/interop/odlcs", )
 	mux.Handle("/hub/interop/odlc/image/", )
+	*/
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -409,7 +412,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	splitURI := strings.Split(r.URL.Path, "/")
-	missionID := splitURI[4]
+	missionID, _ := strconv.Atoi(splitURI[4])
 
 	switch r.Method {
 	case "GET":
