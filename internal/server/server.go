@@ -456,6 +456,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
 type interopOdlcsHandler struct {
 	server *Server
 }
@@ -601,6 +602,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Not implemented"))
 	}
 }
+*/
 
 /* old code:
 func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
