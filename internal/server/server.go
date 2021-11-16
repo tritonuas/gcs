@@ -408,28 +408,56 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-
 	splitURI := strings.Split(r.URL.Path, "/")
+	missionID := splitURI[4]
 
-	
-	if (splitURI[4] == "image") {
-		missionID, err = strconv.Atoi(splitURI[5])
-		ServeHTTPImageHandler(w, r)
-	} else if (splitURI[3] == "odlcs") {
-		ServeHTTPAllODLCs(w, r)
-	} else if (splitURI[3] == "odlc") {
-		ServeHTTPSingleODLC(w, r)
-	} else {
-		//there's an error
-		w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Bad Request Format - Invalid URL"))
-			Log.Error("Bad Request Format - Invalid URL")
+	switch r.Method {
+	case "GET":
+		odlcData, intErr := o.server.client.GetODLC(missionID)
+		if intErr.Get {
+			w.WriteHeader(intErr.Status)
+			w.Write(intErr.Message)
+			Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", missionID, intErr.Message)
+		} else {
+			// Everything is OK!
+			// This Write statment corresponds to a successful GET request in the format:
+			// GET /interop/odlcs/X where X is a valid integer
+			w.Write(odlcData)
+			Log.Infof("Successfully retrieved ODLC %d from Interop", missionID)
+		}
+	case "PUT":
+		odlcData, _ := ioutil.ReadAll(r.Body)
+		updatedOdlc, err := o.server.client.PutODLC(missionID, odlcData)
+		if err.Put {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC %d on Interop: %s", missionID, err.Message)
+		} else {
+			// This Write statement corresponds to a successful PUT request in the format:
+			// PUT /interop/odlcs/X where X is a valid integer
+			w.Write(updatedOdlc)
+			Log.Infof("Successfully updated ODLC %d on Interop", missionID)
+		}
+	case "DELETE":
+		err := o.server.client.DeleteODLC(missionID)
+		if err.Delete {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to delete ODLC %d on Interop: %s", missionID, err.Message)
+		} else {
+			// This Write statement corresponds to a successful DELETE request in the format:
+			// DELETE /interop/odlcs/X where X is a valid integer
+			w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
+			Log.Infof("Successfuly deleted ODLC %d on Interop", missionID)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
 	}
 }
 
 type interopOdlcsHandler struct {
-
+	server *Server
 }
 
 func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
