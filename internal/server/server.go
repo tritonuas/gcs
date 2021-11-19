@@ -474,12 +474,9 @@ func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	splitURI := strings.Split(r.URL.Path, "/")
-	missionID, _ := strconv.Atoi(splitURI[4])
-
 	switch r.Method {
 	case "GET":
-		odlcsData, intErr := o.server.client.GetODLCs(missionID)
+		odlcsData, intErr := o.server.client.GetODLCs(-1)
 		if intErr.Get {
 			w.WriteHeader(intErr.Status)
 			w.Write(intErr.Message)
