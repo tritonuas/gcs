@@ -479,22 +479,17 @@ func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	switch r.Method {
 	case "GET":
-		if missionID == noMission {
-			// The user didn't provide a specific mission, so they want a list of all the odlcs
-			// (We still pass through missionID since a negative number parameter to this function
-			// signifies that we don't want to restrict it to a specific mission)
-			odlcsData, intErr := o.server.client.GetODLCs(missionID)
-			if intErr.Get {
-				w.WriteHeader(intErr.Status)
-				w.Write(intErr.Message)
-				Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
-			} else {
-				// Everything is OK!
-				// This Write statement corresponds to a successful GET request in the format:
-				// GET /interop/odlcs/
-				w.Write(odlcsData)
-				Log.Infof("Successfully retrieved ODLCs from Interop")
-			}
+		odlcsData, intErr := o.server.client.GetODLCs(missionID)
+		if intErr.Get {
+			w.WriteHeader(intErr.Status)
+			w.Write(intErr.Message)
+			Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
+		} else {
+			// Everything is OK!
+			// This Write statement corresponds to a successful GET request in the format:
+			// GET /interop/odlcs/
+			w.Write(odlcsData)
+			Log.Infof("Successfully retrieved ODLCs from Interop")
 		}
 	case "POST":
 		if missionID == noMission {
