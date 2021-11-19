@@ -492,24 +492,18 @@ func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			Log.Infof("Successfully retrieved ODLCs from Interop")
 		}
 	case "POST":
-		if missionID == noMission {
-			odlcData, _ := ioutil.ReadAll(r.Body)
-			// Make the POST request to the interop server
-			updatedODLC, err := o.server.client.PostODLC(odlcData)
-			if err.Post {
-				w.WriteHeader(err.Status)
-				w.Write(err.Message)
-				Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
-			} else {
-				// This Write statement corresponds to a successful POST request in the format:
-				// POST /interop/odlcs
-				w.Write(updatedODLC)
-				Log.Infof("Successfully uploaded ODLC to Interop")
-			}
+		odlcData, _ := ioutil.ReadAll(r.Body)
+		// Make the POST request to the interop server
+		updatedODLC, err := o.server.client.PostODLC(odlcData)
+		if err.Post {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
 		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request."))
-			Log.Errorf("Bad Request Format - Cannot provide a mission ID for a POST request.")
+			// This Write statement corresponds to a successful POST request in the format:
+			// POST /interop/odlcs
+			w.Write(updatedODLC)
+			Log.Infof("Successfully uploaded ODLC to Interop")
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
