@@ -57,7 +57,7 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
-	//mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
+	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
 	/*
 	mux.Handle("/hub/interop/odlcs", )
@@ -505,6 +505,66 @@ func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented"))
+	}
+}
+
+type interopOdlcImageHandler struct {
+	server *Server
+}
+
+func (o *interopOdlcImageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	if o.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Interop connection not established"))
+		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
+		return
+	}
+
+	splitURI := strings.Split(r.URL.Path, "/")
+	missionID, _ := strconv.Atoi(splitURI[5])
+
+	switch r.Method {
+	case "GET":
+		image, err := o.server.client.GetODLCImage(missionID)
+		if err.Get {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to get ODLC image from Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// GET /interop/odlcs/X/image
+			w.Write(image)
+			Log.Info("Successfully retrieved ODLC image from Interop.")
+		}
+	case "PUT":
+		image, _ := ioutil.ReadAll(r.Body)
+		err := o.server.client.PutODLCImage(missionID, image)
+		if err.Put {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// PUT /interop/odlcs/X/image
+			w.Write([]byte(fmt.Sprintf("Successfully uploaded odlc image for odlc %d", missionID)))
+			Log.Infof("Successfully uploaded ODLC image for ODLC %d", missionID)
+		}
+	case "DELETE":
+		err := o.server.client.DeleteODLCImage(missionID)
+		if err.Delete {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// DELETE /interop/odlcs/X/image
+			w.Write([]byte(fmt.Sprintf("Successfully deleted ODLC image for ODLC %d", missionID)))
+			Log.Infof("Successfully deleted ODLC image for ODLC %d", missionID)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
 	}
 }
 
