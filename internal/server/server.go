@@ -508,6 +508,7 @@ func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+//Handles requests for odlc images
 type interopOdlcImageHandler struct {
 	server *Server
 }
