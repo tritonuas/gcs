@@ -57,7 +57,7 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
-	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
+	//mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
 	/*
 	mux.Handle("/hub/interop/odlcs", )
