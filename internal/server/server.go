@@ -519,6 +519,7 @@ func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented"))
+	}
 }
 
 /* old code:
