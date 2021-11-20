@@ -413,46 +413,46 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	splitURI := strings.Split(r.URL.Path, "/")
-	missionID, _ := strconv.Atoi(splitURI[4])
+	odlcID, _ := strconv.Atoi(splitURI[len(splitURI) - 1])
 
 	switch r.Method {
 	case "GET":
-		odlcData, intErr := o.server.client.GetODLC(missionID)
+		odlcData, intErr := o.server.client.GetODLC(odlcID)
 		if intErr.Get {
 			w.WriteHeader(intErr.Status)
 			w.Write(intErr.Message)
-			Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", missionID, intErr.Message)
+			Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", odlcID, intErr.Message)
 		} else {
 			// Everything is OK!
 			// This Write statment corresponds to a successful GET request in the format:
 			// GET /interop/odlcs/X where X is a valid integer
 			w.Write(odlcData)
-			Log.Infof("Successfully retrieved ODLC %d from Interop", missionID)
+			Log.Infof("Successfully retrieved ODLC %d from Interop", odlcID)
 		}
 	case "PUT":
 		odlcData, _ := ioutil.ReadAll(r.Body)
-		updatedOdlc, err := o.server.client.PutODLC(missionID, odlcData)
+		updatedOdlc, err := o.server.client.PutODLC(odlcID, odlcData)
 		if err.Put {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
-			Log.Errorf("Unable to update ODLC %d on Interop: %s", missionID, err.Message)
+			Log.Errorf("Unable to update ODLC %d on Interop: %s", odlcID, err.Message)
 		} else {
 			// This Write statement corresponds to a successful PUT request in the format:
 			// PUT /interop/odlcs/X where X is a valid integer
 			w.Write(updatedOdlc)
-			Log.Infof("Successfully updated ODLC %d on Interop", missionID)
+			Log.Infof("Successfully updated ODLC %d on Interop", odlcID)
 		}
 	case "DELETE":
-		err := o.server.client.DeleteODLC(missionID)
+		err := o.server.client.DeleteODLC(odlcID)
 		if err.Delete {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
-			Log.Errorf("Unable to delete ODLC %d on Interop: %s", missionID, err.Message)
+			Log.Errorf("Unable to delete ODLC %d on Interop: %s", odlcID, err.Message)
 		} else {
 			// This Write statement corresponds to a successful DELETE request in the format:
 			// DELETE /interop/odlcs/X where X is a valid integer
-			w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
-			Log.Infof("Successfuly deleted ODLC %d on Interop", missionID)
+			w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", odlcID)))
+			Log.Infof("Successfuly deleted ODLC %d on Interop", odlcID)
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
