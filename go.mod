@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/aler9/gomavlib v0.0.0-20210116151114-d34712c0323d
 	github.com/goburrow/serial v0.1.0
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.5.0
 	github.com/gorilla/websocket v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.3
 	github.com/influxdata/influxdb-client-go/v2 v2.2.1
@@ -20,5 +20,5 @@ require (
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.27.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.27.1
 )
