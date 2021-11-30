@@ -50,13 +50,19 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
-	mux.Handle("/hub/interop/odlcs/", &interopOdlcHandler{server: s})
-
 	mux.Handle("/hub/mission", &missionHandler{server: s})
-
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
+
+	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
+	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
+	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
+
+	/*
+	mux.Handle("/hub/interop/odlcs", )
+	mux.Handle("/hub/interop/odlc/image/", )
+	*/
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -391,11 +397,179 @@ func (t *interopTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// Handles all requests related to ODLCs
+// Handles all requests related to singular odlc
+// e.g. /hub/interop/odlc/
 type interopOdlcHandler struct {
 	server *Server
 }
 
+func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	if o.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Interop connection not established"))
+		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
+		return
+	}
+
+	splitURI := strings.Split(r.URL.Path, "/")
+	odlcID, _ := strconv.Atoi(splitURI[len(splitURI) - 1])
+
+	switch r.Method {
+	case "GET":
+		odlcData, intErr := o.server.client.GetODLC(odlcID)
+		if intErr.Get {
+			w.WriteHeader(intErr.Status)
+			w.Write(intErr.Message)
+			Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", odlcID, intErr.Message)
+		} else {
+			// Everything is OK!
+			// This Write statment corresponds to a successful GET request in the format:
+			// GET /interop/odlcs/X where X is a valid integer
+			w.Write(odlcData)
+			Log.Infof("Successfully retrieved ODLC %d from Interop", odlcID)
+		}
+	case "PUT":
+		odlcData, _ := ioutil.ReadAll(r.Body)
+		updatedOdlc, err := o.server.client.PutODLC(odlcID, odlcData)
+		if err.Put {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC %d on Interop: %s", odlcID, err.Message)
+		} else {
+			// This Write statement corresponds to a successful PUT request in the format:
+			// PUT /interop/odlcs/X where X is a valid integer
+			w.Write(updatedOdlc)
+			Log.Infof("Successfully updated ODLC %d on Interop", odlcID)
+		}
+	case "DELETE":
+		err := o.server.client.DeleteODLC(odlcID)
+		if err.Delete {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to delete ODLC %d on Interop: %s", odlcID, err.Message)
+		} else {
+			// This Write statement corresponds to a successful DELETE request in the format:
+			// DELETE /interop/odlcs/X where X is a valid integer
+			w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", odlcID)))
+			Log.Infof("Successfuly deleted ODLC %d on Interop", odlcID)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
+}
+
+//Handles requests for multiple odlcs
+type interopOdlcsHandler struct {
+	server *Server
+}
+
+func (o *interopOdlcsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	if o.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Interop connection not established"))
+		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
+		return
+	}
+
+	switch r.Method {
+	case "GET":
+		odlcsData, intErr := o.server.client.GetODLCs(-1)
+		if intErr.Get {
+			w.WriteHeader(intErr.Status)
+			w.Write(intErr.Message)
+			Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
+		} else {
+			// Everything is OK!
+			// This Write statement corresponds to a successful GET request in the format:
+			// GET /interop/odlcs/
+			w.Write(odlcsData)
+			Log.Infof("Successfully retrieved ODLCs from Interop")
+		}
+	case "POST":
+		odlcData, _ := ioutil.ReadAll(r.Body)
+		// Make the POST request to the interop server
+		updatedODLC, err := o.server.client.PostODLC(odlcData)
+		if err.Post {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful POST request in the format:
+			// POST /interop/odlcs
+			w.Write(updatedODLC)
+			Log.Infof("Successfully uploaded ODLC to Interop")
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
+}
+
+//Handles requests for odlc images
+type interopOdlcImageHandler struct {
+	server *Server
+}
+
+func (o *interopOdlcImageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	if o.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Interop connection not established"))
+		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
+		return
+	}
+
+	splitURI := strings.Split(r.URL.Path, "/")
+	missionID, _ := strconv.Atoi(splitURI[5])
+
+	switch r.Method {
+	case "GET":
+		image, err := o.server.client.GetODLCImage(missionID)
+		if err.Get {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to get ODLC image from Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// GET /interop/odlcs/X/image
+			w.Write(image)
+			Log.Info("Successfully retrieved ODLC image from Interop.")
+		}
+	case "PUT":
+		image, _ := ioutil.ReadAll(r.Body)
+		err := o.server.client.PutODLCImage(missionID, image)
+		if err.Put {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// PUT /interop/odlcs/X/image
+			w.Write([]byte(fmt.Sprintf("Successfully uploaded odlc image for odlc %d", missionID)))
+			Log.Infof("Successfully uploaded ODLC image for ODLC %d", missionID)
+		}
+	case "DELETE":
+		err := o.server.client.DeleteODLCImage(missionID)
+		if err.Delete {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
+		} else {
+			// This Write statement corresponds to a successful request in the format
+			// DELETE /interop/odlcs/X/image
+			w.Write([]byte(fmt.Sprintf("Successfully deleted ODLC image for ODLC %d", missionID)))
+			Log.Infof("Successfully deleted ODLC image for ODLC %d", missionID)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
+
+/* old code:
 func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	if o.server.client == nil {
@@ -623,3 +797,4 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+*/
