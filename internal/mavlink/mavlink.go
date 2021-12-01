@@ -1,6 +1,7 @@
 package mav
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -31,7 +32,7 @@ import (
 const systemID byte = 255
 
 // connRefreshTimer is the number of seconds Hub will wait until attempting to reconnect to the plane
-const connRefreshTimer int = 5;
+const connRefreshTimer int = 5
 
 //Mavlink structs for mavlink messages from xml files
 type Mavlink struct {
@@ -244,7 +245,7 @@ func RunMavlink(
 			if err == nil {
 				break
 			}
-			Log.Warn(fmt.Sprintf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...",mavDeviceAddress, connRefreshTimer))
+			Log.Warn(fmt.Sprintf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...", mavDeviceAddress, connRefreshTimer))
 			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
 	case "tcp":
@@ -255,7 +256,7 @@ func RunMavlink(
 			if err == nil {
 				break
 			}
-			Log.Warn(fmt.Sprintf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...",mavDeviceType, mavDeviceAddress, connRefreshTimer))
+			Log.Warn(fmt.Sprintf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...", mavDeviceType, mavDeviceAddress, connRefreshTimer))
 			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
 
@@ -285,6 +286,17 @@ func RunMavlink(
 	client := influxdb2.NewClient(influxdbURI, token)
 	writeAPI := client.WriteAPI(org, bucket)
 
+	// make a test query to check influx connection status before attempting to write any data
+	queryAPI := client.QueryAPI(org)
+	for {
+		_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
+		if err == nil {
+			break
+		}
+		Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
+		time.Sleep(time.Duration(connRefreshTimer) * time.Second)
+	}
+
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: endpoints,
@@ -299,7 +311,7 @@ func RunMavlink(
 
 	defer node.Close()
 
-	Log.Info("Successfully connected to SITL")
+	Log.Infof("Successfully connected to plane at %s %s", mavDeviceType, mavDeviceAddress)
 
 	//read xml files of messages
 	mavXML, err := os.Open(mavCommonPath)
@@ -551,7 +563,7 @@ func RunMavlink(
 
 			// Forwards mavlink messages to other clients
 			// node.WriteFrameExcept(frm.Channel, frm.Frame)
-		} 
+		}
 	}
 	defer client.Close()
 }
