@@ -189,7 +189,11 @@ func getIntValFromEnum(msgID uint32, fieldIndex int, enumVal string, mavlink Mav
 }
 
 //write the data of a particular message to the local influxDB
-func writeToInflux(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
+func writeToInflux(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI, influxConnDone chan bool) {
+	status := <-influxConnDone
+	if !status {
+		return
+	}
 	for idx := range parameters {
 		p := influxdb2.NewPointWithMeasurement(msgName).
 			AddTag("ID", fmt.Sprintf("%v", msgID)).
@@ -288,14 +292,21 @@ func RunMavlink(
 
 	// make a test query to check influx connection status before attempting to write any data
 	queryAPI := client.QueryAPI(org)
-	for {
-		_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
-		if err == nil {
-			break
+
+	influxCheck := func(influxConnDone chan bool) {
+		for {
+			_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
+			if err == nil {
+				influxConnDone <- true
+				Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
+				break
+			}
+			Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
+			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
-		Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
-		time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 	}
+	influxConnDone := make(chan bool)
+	go influxCheck(influxConnDone)
 
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
@@ -371,7 +382,7 @@ func RunMavlink(
 						telemetryChannel <- &telem
 					}
 
-					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
+					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI, influxConnDone)
 					break
 				}
 			}
@@ -382,7 +393,7 @@ func RunMavlink(
 				if int(msgID) == ardupilotMessageID {
 					floatValues := convertToFloats(rawValues, msgID)
 					parameters, msgName := getParameterNames(msgID, arduPilotMega)
-					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
+					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI, influxConnDone)
 					break
 				}
 			}
@@ -400,14 +411,14 @@ func RunMavlink(
 				enumVals := []float64{paramType}
 				var enumNames []string
 				enumNames = append(enumNames, parameters[2:3]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI, influxConnDone)
 
 				//remaining float parsing
 				floatValues := convertToFloats(rawValues[1:2], msgID)
 				floatValues = append(floatValues, convertToFloats(rawValues[3:], msgID)...)
 				floatParameters := parameters[1:2]
 				floatParameters = append(floatParameters, parameters[3:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 			//GPS_RAW_INT
 			case 24:
@@ -417,14 +428,14 @@ func RunMavlink(
 				fixType := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
 				enumVals := []float64{fixType}
 				enumNames := []string{parameters[1]}
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI, influxConnDone)
 
 				//remaining float parser
 				floatValues := convertToFloats(rawValues[0:1], msgID)
 				floatValues = append(floatValues, convertToFloats(rawValues[2:], msgID)...)
 				floatParameters := parameters[0:1]
 				floatParameters = append(floatParameters, parameters[2:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 			//MISSION_REQUEST
 			case 40:
@@ -434,7 +445,7 @@ func RunMavlink(
 				missionType := float64(getIntValFromEnum(msgID, 3, rawValues[3], mavlinkCommon))
 				enumVals := []float64{missionType}
 				enumNames := []string{parameters[3]}
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI, influxConnDone)
 
 			//COMMAND_ACK
 			case 77:
@@ -446,12 +457,12 @@ func RunMavlink(
 				enumVals := []float64{command, result}
 				var enumNames []string
 				enumNames = append(enumNames, parameters[0:2]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI, influxConnDone)
 
 				//parses remaining floats
 				floatValues := convertToFloats(rawValues[2:], msgID)
 				floatParameters := parameters[2:]
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 			//POSITION_TARGET_GLOBAL_INT
 			case 87:
@@ -464,13 +475,13 @@ func RunMavlink(
 				enumVals := []float64{coordinateFrame, typeMask}
 				var enumNames []string
 				enumNames = append(enumNames, parameters[1:3]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI, influxConnDone)
 
 				floatValues := convertToFloats(rawValues[0:1], msgID)
 				floatValues = append(floatValues, convertToFloats(rawValues[3:], msgID)...)
 				floatParameters := parameters[0:1]
 				floatParameters = append(floatParameters, parameters[3:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 			//BATTERY_STATUS
 			case 147:
@@ -527,7 +538,7 @@ func RunMavlink(
 				enumNames = append(enumNames, parameters[1:3]...)
 				enumNames = append(enumNames, parameters[10:11]...)
 				enumNames = append(enumNames, parameters[12:]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI, influxConnDone)
 
 				//parse the rest of the values normally
 				floatValues := convertToFloats(rawValues[0:1], msgID)
@@ -536,7 +547,7 @@ func RunMavlink(
 				floatParameters := parameters[0:1]
 				floatParameters = append(floatParameters, parameters[3:4]...)
 				floatParameters = append(floatParameters, parameters[5:10]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 				writeAPI.Flush()
 
@@ -549,7 +560,7 @@ func RunMavlink(
 				floatValues = append(floatValues, convertToFloats(rawValues[10:], msgID)...)
 				floatParameters := parameters[0:6]
 				floatParameters = append(floatParameters, parameters[7:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 			// STATUSTEXT
 			case 253:
@@ -557,7 +568,7 @@ func RunMavlink(
 
 				floatValues := convertToFloats(rawValues[len(rawValues)-2:], msgID)
 				floatParameters := parameters[len(parameters)-2:]
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI, influxConnDone)
 
 			}
 
