@@ -57,10 +57,10 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
 	mux.Handle("/hub/mission", &missionHandler{server: s})
-	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
+	mux.Handle("/hub/plane/position", &planePositionHandler{server: s})
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
-	mux.Handle("/hub/plane/data", &planeDataHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
+	mux.Handle("/hub/plane/telemetry", &planeTelemetryHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
@@ -241,12 +241,12 @@ func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handles GET requests that ask for our Plane's telemetry data
-type planeTelemHandler struct {
+// Handles GET requests that ask for our Plane's position data
+type planePositionHandler struct {
 	server *Server
 }
 
-func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (t *planePositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	switch r.Method {
 	case "GET":
@@ -265,7 +265,8 @@ func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type planeDataHandler struct {
+// Handles GET requests that ask for our Plane's telemetry data
+type planeTelemetryHandler struct {
 	server *Server
 	uri    string
 	token  string
@@ -273,7 +274,7 @@ type planeDataHandler struct {
 	bucket string
 }
 
-func (t *planeDataHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	switch r.Method {
 	case "GET":
@@ -281,6 +282,16 @@ func (t *planeDataHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		queryAPI := client.QueryAPI(t.org)
 		id := r.URL.Query().Get("id")
 		field := r.URL.Query().Get("field")
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Missing id parameter"))
+			break
+		}
+		if field == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Missing field parameter"))
+			break
+		}
 		result, err := queryAPI.Query(context.Background(), fmt.Sprintf(
 			`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
 			t.bucket, id, field))
