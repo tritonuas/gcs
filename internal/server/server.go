@@ -59,9 +59,11 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
+	mux.Handle("/hub/pathplanning/initialize", &ppMissionDataHandler{server: s})
+
 	/*
-	mux.Handle("/hub/interop/odlcs", )
-	mux.Handle("/hub/interop/odlc/image/", )
+		mux.Handle("/hub/interop/odlcs", )
+		mux.Handle("/hub/interop/odlc/image/", )
 	*/
 
 	c := cors.New(cors.Options{
@@ -413,7 +415,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	splitURI := strings.Split(r.URL.Path, "/")
-	odlcID, _ := strconv.Atoi(splitURI[len(splitURI) - 1])
+	odlcID, _ := strconv.Atoi(splitURI[len(splitURI)-1])
 
 	switch r.Method {
 	case "GET":
@@ -562,6 +564,51 @@ func (o *interopOdlcImageHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 			// DELETE /interop/odlcs/X/image
 			w.Write([]byte(fmt.Sprintf("Successfully deleted ODLC image for ODLC %d", missionID)))
 			Log.Infof("Successfully deleted ODLC image for ODLC %d", missionID)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
+
+//Handles requests from path planning server
+type ppMissionDataHandler struct {
+	server *Server
+}
+
+/*
+Use path planning client to send the static mission data to path planning when Hub receives a POST request
+at /hub/pathplanning/initialize with the following request body { "id": [mission_id] }.
+Then should use the path planning client to forward the static mission data to path planning
+*/
+
+func (m ppMissionDataHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	logRequestInfo(r)
+
+	if m.server.client == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Path Planning connection not established"))
+		Log.Errorf("Unable to get data from Path Planning; connection not established")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		//use post function from pp client
+		missionID, _ := ioutil.ReadAll(r.body)
+		err := ic.NewInteropError()
+		
+		updatedMission, err := m.server.client.PostMission(updatedMission)
+
+		if err.Post {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to send data to path planning: %s", err.Message)
+		}
+		else {
+			w.Write(updatedMission)
+			Log.Infof("Successfully sent mission ID to path planning")
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
