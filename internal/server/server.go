@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
+	pp "github.com/tritonuas/hub/internal/pathplanning"
 )
 
 var Log = logrus.New()
@@ -21,6 +22,7 @@ var Log = logrus.New()
 type Server struct {
 	port   string
 	client *ic.Client
+	pathPlanningClient *pp.PathPlanningClient
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
