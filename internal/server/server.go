@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
-	pp "github.com/tritonuas/hub/internal/pathplanning"
+	pp "github.com/tritonuas/hub/internal/path_plan"
 )
 
 var Log = logrus.New()
@@ -20,9 +20,9 @@ var Log = logrus.New()
 // Server provides the implementation for the hub server that communicates
 // with other parts of the plane's system and houston
 type Server struct {
-	port   string
-	client *ic.Client
-	pathPlanningClient *pp.PathPlanningClient
+	port               string
+	client             *ic.Client
+	pathPlanningClient *pp.Client
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
@@ -45,6 +45,8 @@ func (s *Server) Run(
 
 	s.missionID = MissionID{ID: interopMissionID}
 
+	s.pathPlanningClient = pp.NewClient("127.0.0.1:5000", 5)
+
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
@@ -61,7 +63,7 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
-	mux.Handle("/hub/pathplanning/initialize", &ppMissionDataHandler{server: s})
+	mux.Handle("/hub/path_plan/initialize", &ppMissionDataHandler{server: s})
 
 	/*
 		mux.Handle("/hub/interop/odlcs", )
@@ -588,7 +590,7 @@ func (m ppMissionDataHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	logRequestInfo(r)
 
-	if m.server.client == nil {
+	if m.server.pathPlanningClient == nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Path Planning connection not established"))
 		Log.Errorf("Unable to get data from Path Planning; connection not established")
@@ -598,19 +600,25 @@ func (m ppMissionDataHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	switch r.Method {
 	case "POST":
 		//use post function from pp client
-		missionID, _ := ioutil.ReadAll(r.body)
-		err := ic.NewInteropError()
-		
-		updatedMission, err := m.server.client.PostMission(updatedMission)
+		missionID, _ := ioutil.ReadAll(r.Body) //reads mission ID from post request body
+		//err := ic.NewInteropError()
+
+		var id MissionID
+		json.Unmarshal(missionID, &id)
+		//TODO: handle the error
+
+		missionData, err := m.server.client.GetMission(id.ID) //gets mission data from interop server
+
+		m.server.pathPlanningClient.PostMission(missionData) //calls pp client post function
+		//TODO: handle pathPlanningError
 
 		if err.Post {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
 			Log.Errorf("Unable to send data to path planning: %s", err.Message)
-		}
-		else {
-			w.Write(updatedMission)
-			Log.Infof("Successfully sent mission ID to path planning")
+		} else {
+			w.Write([]byte("Successfully sent mission data to path planning")) //sends the mission data to path planning
+			Log.Infof("Successfully sent mission data to path planning")
 		}
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
