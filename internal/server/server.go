@@ -56,7 +56,11 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
 	mux.Handle("/hub/mission", &missionHandler{server: s})
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
+
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
+	// 3. rename this to something to do with path planning, maybe move down here    V
+	// 4. make accept get request which sends a get request to the path planning server at endpoint /path endpoint in the pathplanning server
+
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
@@ -64,11 +68,7 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
 	mux.Handle("/hub/path_plan/initialize", &ppMissionDataHandler{server: s})
-
-	/*
-		mux.Handle("/hub/interop/odlcs", )
-		mux.Handle("/hub/interop/odlc/image/", )
-	*/
+	//                                                                               *
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -192,51 +192,6 @@ func (p *planeHomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Successfully updated home position."))
 		Log.Info("Successfully updated home position.")
 		break
-	}
-}
-
-// Handles POST requests
-type planePathHandler struct {
-	server *Server
-}
-
-func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logRequestInfo(r)
-
-	switch r.Method {
-	case "GET":
-		if p.server.path != nil && p.server.path.GetOriginalJSON() != nil {
-			pathData := p.server.path.GetOriginalJSON()
-			w.Write([]byte(pathData))
-			Log.Info("Successfully retrieved path data.")
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("No path found."))
-			Log.Error("No path found.")
-		}
-		break
-
-	case "POST":
-		pathData, _ := ioutil.ReadAll(r.Body)
-
-		var err error
-		p.server.path, err = CreatePath(pathData)
-
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("Error processing path data: %s", err.Error())))
-			Log.Errorf("Error processing path data: %s", err.Error())
-			break
-		}
-
-		p.server.path.Display()
-
-		w.Write([]byte("Successfully uploaded path to hub"))
-		Log.Info("Successfully updated stored path.")
-
-	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented"))
 	}
 }
 
