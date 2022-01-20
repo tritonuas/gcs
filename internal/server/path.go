@@ -24,6 +24,5 @@ type Waypoint struct {
 	Heading   float64 `json:"heading"`
 }
 
-// 1. constructor
-// 2. learn about json tags, how to use with json.Marshal, json.Unmarshal
-// 3. see server.go run method
+// 1. learn about json tags, how to use with json.Marshal, json.Unmarshal
+// 2. see server.go run method
