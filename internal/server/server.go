@@ -26,7 +26,7 @@ type Server struct {
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
-	path *Path // Holds the path of the plane, see the definition of the struct for more details
+	path *pp.Path // Holds the path of the plane, see the definition of the struct for more details
 
 	homePosition *ic.Position // Home position of the plane, which must be set by us
 
@@ -57,7 +57,7 @@ func (s *Server) Run(
 	mux.Handle("/hub/mission", &missionHandler{server: s})
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 
-	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
+	
 	// 3. rename this to something to do with path planning, maybe move down here    V
 	// 4. make accept get request which sends a get request to the path planning server at endpoint /path endpoint in the pathplanning server
 
@@ -69,6 +69,7 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/path_plan/initialize", &ppMissionDataHandler{server: s})
 	//                                                                               *
+	mux.Handle("/hub/path_plan/path", &pathPlanHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -77,6 +78,54 @@ func (s *Server) Run(
 	go s.CacheAndUploadTelem(telemetryChannel)
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
+}
+
+//My iteration of task 4
+type pathPlanHandler struct {
+	server *Server
+}
+/*
+*if t.server.client == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Interop connection not established"))
+			Log.Errorf("Unable to retrieve team data from Interop because connection to Interop not established")
+			return
+		}
+
+		// Make the GET request to the Interop Server
+		teams, err := t.server.client.GetTeams()
+		if err.Get {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+		} else {
+			w.Write(teams)
+		}
+*/
+
+func (p pathPlanHandler) ServeHTTP( w http.ResponseWriter, r *http.Request){
+	logRequestInfo(r)
+	switch r.Method{
+	case "GET":
+		if p.server.pathPlanningClient == nil{
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("PathPlanning connection not established"))
+			Log.Errorf("Unable to retrieve waypoints from PathPlanning because connection to Interop not established")
+			return
+		}
+		//Make the GET request to the PathPlan Server
+		//path, err := json.Marhsall(p.path.Waypoint)
+		path, pathBinary, err := p.server.pathPlanningClient.GetPath()
+		p.server.path = &path
+		if err.Get{
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+		}else{
+			w.Write(pathBinary)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 func (s *Server) ConnectToInterop(channel chan *ic.Client) {

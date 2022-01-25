@@ -96,3 +96,29 @@ func (c *Client) PostMission(mission []byte) RTPPError {
 
 	return err
 }
+
+//implmentation of 4a?? not too sure what I should call in this instance
+func (c *Client) get(uri string) ([]byte, RTPPError){
+	ppErr := NewRTPPError()
+
+	resp, err := c.client.Get(c.url+uri)
+	if err != nil {
+		Log.Debug(err)
+		ppErr.SetError("GET", []byte("RTPP Server Offline"), http.StatusBadGateway)
+		return nil, *ppErr
+	}
+	if resp.StatusCode != http.StatusOK {
+		errMsg, _ := ioutil.ReadAll(resp.Body)
+		ppErr.SetError("GET", errMsg, resp.StatusCode)
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	Log.Debugf("Making Request to RTPP: GET - %s - %d", uri, resp.StatusCode)
+
+	return body, *ppErr
+}
+
+func (c *Client) GetPath() (Path, []byte, RTPPError){
+	pathBinary, err := c.get("/path")
+	return CreatePath(pathBinary), pathBinary, err
+}
