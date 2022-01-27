@@ -17,6 +17,8 @@ import (
 
 var Log = logrus.New()
 
+// https://app.clickup.com/t/28rwhv5
+
 // Server provides the implementation for the hub server that communicates
 // with other parts of the plane's system and houston
 type Server struct {
