@@ -24,27 +24,7 @@ func (c *Client) IsConnected() bool {
 	return c.client != nil
 }
 
-/*
-func EstablishRTPPConnection(waitTime int, rtppURL string, timeout int, c chan *Client) {
-	Log.Infof("Creating RTPP Client connected to %s", rtppURL)
-
-	var client *Client
-	var err RTPPError
-	for {
-		client = NewClient(rtppURL, timeout)
-		//don't think this loop is necessary since I have no idea what would be an actual error
-		//given that NewClient doesn't currently return any error no matter what
-		if err.Post {
-			Log.Warningf("Client to RTPP failed. Retrying in %d seconds.", waitTime)
-			time.Sleep(time.Duration(waitTime) * time.Second)
-		} else {
-			Log.Info("RTPP Client successfully authenticated.")
-			break
-		}
-	}
-	c <- client
-}
-*/
+its 
 //thinking about having (*Client, RTPPError) to follow the structure of client.go, but realized that there is no actual
 //authentization involved, which the original InteropError was used fof
 func NewClient(url string, timeout int) *Client {
