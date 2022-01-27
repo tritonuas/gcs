@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	ut "github.com/tritonuas/hub/internal/utils"
 )
 
 var Log = logrus.New()
@@ -41,7 +42,7 @@ func EstablishInteropConnection(waitTime int, interopURL string, user string, pa
 	Log.Infof("Creating Interop Client connected to %s", interopURL)
 
 	var client *Client
-	var err InteropError
+	var err ut.HTTPError
 	for {
 		// Try creating a new client and authenticating it
 		client, err = NewClient(interopURL, user, pass, timeout)
@@ -63,7 +64,7 @@ func EstablishInteropConnection(waitTime int, interopURL string, user string, pa
 // NewClient creates creates an instance of the interop Client struct
 // to make requests with the interop server.
 // func NewClient(url string, username string, password string, timeout int, max_concurrent int, max_retries int) *Client{
-func NewClient(url string, username string, password string, timeout int) (*Client, InteropError) {
+func NewClient(url string, username string, password string, timeout int) (*Client, ut.HTTPError) {
 	client := &Client{
 		url:      "http://" + url,
 		username: username,
@@ -94,8 +95,8 @@ func (c *Client) GetUsername() string {
 }
 
 // Get makes a GET request to server.
-func (c *Client) Get(uri string) ([]byte, InteropError) {
-	intErr := NewInteropError()
+func (c *Client) Get(uri string) ([]byte, ut.HTTPError) {
+	intErr := ut.NewHTTPError()
 
 	resp, err := c.client.Get(c.url + uri)
 
@@ -122,8 +123,8 @@ func (c *Client) Get(uri string) ([]byte, InteropError) {
 }
 
 // Post makes a POST request to server.
-func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
-	intErr := NewInteropError()
+func (c *Client) Post(uri string, msg io.Reader) ([]byte, ut.HTTPError) {
+	intErr := ut.NewHTTPError()
 
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
@@ -150,8 +151,8 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, InteropError) {
 }
 
 // Put makes a PUT request to the server
-func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
-	intErr := NewInteropError()
+func (c *Client) Put(uri string, msg io.Reader) ([]byte, ut.HTTPError) {
+	intErr := ut.NewHTTPError()
 
 	// set the HTTP method, url, and request body
 	req, _ := http.NewRequest(http.MethodPut, c.url+uri, msg)
@@ -182,8 +183,8 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, InteropError) {
 }
 
 // Delete makes a DELETE request to the server
-func (c *Client) Delete(uri string) ([]byte, InteropError) {
-	intErr := NewInteropError()
+func (c *Client) Delete(uri string) ([]byte, ut.HTTPError) {
+	intErr := ut.NewHTTPError()
 
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
@@ -211,14 +212,14 @@ func (c *Client) Delete(uri string) ([]byte, InteropError) {
 }
 
 // GetTeams gets the statuses of all the teams registered in the server
-func (c *Client) GetTeams() ([]byte, InteropError) {
+func (c *Client) GetTeams() ([]byte, ut.HTTPError) {
 	data, err := c.Get("/api/teams")
 
 	return data, err
 }
 
 // GetMission gets the mission at the given mission id value
-func (c *Client) GetMission(id int) ([]byte, InteropError) {
+func (c *Client) GetMission(id int) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/missions/%d", id)
 	data, err := c.Get(uri)
 
@@ -226,7 +227,7 @@ func (c *Client) GetMission(id int) ([]byte, InteropError) {
 }
 
 // PostTelemetry posts the ship's telemetry data to the server
-func (c *Client) PostTelemetry(telem []byte) InteropError {
+func (c *Client) PostTelemetry(telem []byte) ut.HTTPError {
 	// Post telemetry to server
 	_, err := c.Post("/api/telemetry", bytes.NewReader(telem))
 
@@ -235,7 +236,7 @@ func (c *Client) PostTelemetry(telem []byte) InteropError {
 
 // GetODLCs gets a list of ODLC objects that have been uploaded. To not limit the
 // scope to a certain mission, pass through a negative number to mission.
-func (c *Client) GetODLCs(missionID int) ([]byte, InteropError) {
+func (c *Client) GetODLCs(missionID int) ([]byte, ut.HTTPError) {
 	uri := "/api/odlcs"
 	// Specify a specific mission if the caller chooses to
 	if missionID > -1 {
@@ -249,7 +250,7 @@ func (c *Client) GetODLCs(missionID int) ([]byte, InteropError) {
 }
 
 // GetODLC gets a single ODLC with the ODLC's id
-func (c *Client) GetODLC(id int) ([]byte, InteropError) {
+func (c *Client) GetODLC(id int) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Get byte array from the server
@@ -260,7 +261,7 @@ func (c *Client) GetODLC(id int) ([]byte, InteropError) {
 
 // PostODLC posts the ODLC object to the server and then returns the data
 // of an odlc with the id parameter filled in
-func (c *Client) PostODLC(odlc []byte) ([]byte, InteropError) {
+func (c *Client) PostODLC(odlc []byte) ([]byte, ut.HTTPError) {
 	// Post the json to the server
 	updatedODLC, err := c.Post("/api/odlcs", bytes.NewReader(odlc))
 
@@ -269,7 +270,7 @@ func (c *Client) PostODLC(odlc []byte) ([]byte, InteropError) {
 
 // PutODLC sends a PUT request to the server, updating any parameters of a
 // specific ODLC with the values passed through.
-func (c *Client) PutODLC(id int, odlc []byte) ([]byte, InteropError) {
+func (c *Client) PutODLC(id int, odlc []byte) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Put the json to the server
@@ -279,7 +280,7 @@ func (c *Client) PutODLC(id int, odlc []byte) ([]byte, InteropError) {
 }
 
 // DeleteODLC deletes the ODLC at the specified id number
-func (c *Client) DeleteODLC(id int) InteropError {
+func (c *Client) DeleteODLC(id int) ut.HTTPError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 	_, err := c.Delete(uri)
 
@@ -288,7 +289,7 @@ func (c *Client) DeleteODLC(id int) InteropError {
 
 // GetODLCImage gets the raw binary image content of a specified ODLC that has
 // already had image data uploaded to the server
-func (c *Client) GetODLCImage(id int) ([]byte, InteropError) {
+func (c *Client) GetODLCImage(id int) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	body, err := c.Get(uri)
@@ -298,7 +299,7 @@ func (c *Client) GetODLCImage(id int) ([]byte, InteropError) {
 
 // PutODLCImage puts the binary image content of the ODLC to the server for the
 // specified ODLC id
-func (c *Client) PutODLCImage(id int, image []byte) InteropError {
+func (c *Client) PutODLCImage(id int, image []byte) ut.HTTPError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	_, err := c.Put(uri, bytes.NewReader(image))
@@ -307,7 +308,7 @@ func (c *Client) PutODLCImage(id int, image []byte) InteropError {
 }
 
 // DeleteODLCImage deletes the image saved at the specified ODLC
-func (c *Client) DeleteODLCImage(id int) InteropError {
+func (c *Client) DeleteODLCImage(id int) ut.HTTPError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
 	_, err := c.Delete(uri)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	ut "github.com/tritonuas/hub/internal/utils"
 )
 
 var Log = logrus.New()
@@ -25,7 +26,7 @@ func (c *Client) IsConnected() bool {
 }
 
 its 
-//thinking about having (*Client, RTPPError) to follow the structure of client.go, but realized that there is no actual
+//thinking about having (*Client, HTPPError) to follow the structure of client.go, but realized that there is no actual
 //authentization involved, which the original InteropError was used fof
 func NewClient(url string, timeout int) *Client {
 	client := &Client{
@@ -43,8 +44,8 @@ func NewClient(url string, timeout int) *Client {
 	return client
 }
 
-func (c *Client) post(uri string, msg io.Reader) ([]byte, RTPPError) {
-	ppErr := NewRTPPError()
+func (c *Client) post(uri string, msg io.Reader) ([]byte, ut.HTPPError) {
+	ppErr := ut.NewHTTPError()
 
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
@@ -70,7 +71,7 @@ func (c *Client) post(uri string, msg io.Reader) ([]byte, RTPPError) {
 	return body, *ppErr
 }
 
-func (c *Client) PostMission(mission []byte) RTPPError {
+func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	// Post telemetry to server
 	_, err := c.post("/mission", bytes.NewReader(mission))
 
@@ -78,8 +79,8 @@ func (c *Client) PostMission(mission []byte) RTPPError {
 }
 
 //implmentation of 4a?? not too sure what I should call in this instance
-func (c *Client) get(uri string) ([]byte, RTPPError){
-	ppErr := NewRTPPError()
+func (c *Client) get(uri string) ([]byte, ut.HTTPError){
+	ppErr := NewHTTPError()
 
 	resp, err := c.client.Get(c.url+uri)
 	if err != nil {
@@ -98,7 +99,7 @@ func (c *Client) get(uri string) ([]byte, RTPPError){
 	return body, *ppErr
 }
 
-func (c *Client) GetPath() (Path, []byte, RTPPError){
+func (c *Client) GetPath() (Path, []byte, HTTPError){
 	pathBinary, err := c.get("/path")
 	return CreatePath(pathBinary), pathBinary, err
 }
