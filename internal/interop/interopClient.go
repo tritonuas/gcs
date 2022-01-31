@@ -25,6 +25,7 @@ var Log = logrus.New()
 
 type Client struct {
 	client   *http.Client
+	httpClient *ut.Client
 	url      string
 	username string
 	password string
@@ -95,121 +96,121 @@ func (c *Client) GetUsername() string {
 }
 
 // Get makes a GET request to server.
-func (c *Client) Get(uri string) ([]byte, ut.HTTPError) {
-	intErr := ut.NewHTTPError()
+// func (c *Client) Get(uri string) ([]byte, ut.HTTPError) {
+// 	intErr := ut.NewHTTPError()
 
-	resp, err := c.client.Get(c.url + uri)
+// 	resp, err := c.client.Get(c.url + uri)
 
-	// If err is not nil, then the server is not online and we need to back out
-	// so that nothing crashes
-	if err != nil {
-		Log.Debug(err)
-		intErr.SetError("GET", []byte("Interop Server Offline"), http.StatusBadGateway)
-		return nil, *intErr
-	}
+// 	// If err is not nil, then the server is not online and we need to back out
+// 	// so that nothing crashes
+// 	if err != nil {
+// 		Log.Debug(err)
+// 		intErr.SetError("GET", []byte("Interop Server Offline"), http.StatusBadGateway)
+// 		return nil, *intErr
+// 	}
 
-	// The server is online, but we need to check the status code directly to
-	// see if there was a 4xx error
-	if resp.StatusCode != 200 {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
-		intErr.SetError("GET", errMsg, resp.StatusCode)
-	}
+// 	// The server is online, but we need to check the status code directly to
+// 	// see if there was a 4xx error
+// 	if resp.StatusCode != 200 {
+// 		errMsg, _ := ioutil.ReadAll(resp.Body)
+// 		intErr.SetError("GET", errMsg, resp.StatusCode)
+// 	}
 
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("Making Request to Interop: GET - %s - %d", uri, resp.StatusCode)
+// 	defer resp.Body.Close()
+// 	body, _ := ioutil.ReadAll(resp.Body)
+// 	Log.Debugf("Making Request to Interop: GET - %s - %d", uri, resp.StatusCode)
 
-	return body, *intErr
-}
+// 	return body, *intErr
+// }
 
 // Post makes a POST request to server.
-func (c *Client) Post(uri string, msg io.Reader) ([]byte, ut.HTTPError) {
-	intErr := ut.NewHTTPError()
+// func (c *Client) Post(uri string, msg io.Reader) ([]byte, ut.HTTPError) {
+// 	intErr := ut.NewHTTPError()
 
-	resp, err := c.client.Post(c.url+uri, "application/json", msg)
+// 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
-	// If err is not nil, then the server is not online and we need to back out
-	// so that nothing crashes
-	if err != nil {
-		Log.Debug(err)
-		intErr.SetError("POST", []byte("Interop Server Offline"), http.StatusBadGateway)
-		return nil, *intErr
-	}
+// 	// If err is not nil, then the server is not online and we need to back out
+// 	// so that nothing crashes
+// 	if err != nil {
+// 		Log.Debug(err)
+// 		intErr.SetError("POST", []byte("Interop Server Offline"), http.StatusBadGateway)
+// 		return nil, *intErr
+// 	}
 
-	// The server is online, but we need to check the status code directly to
-	// see if there was a 4xx error
-	if resp.StatusCode != 200 {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
-		intErr.SetError("POST", errMsg, resp.StatusCode)
-	}
+// 	// The server is online, but we need to check the status code directly to
+// 	// see if there was a 4xx error
+// 	if resp.StatusCode != 200 {
+// 		errMsg, _ := ioutil.ReadAll(resp.Body)
+// 		intErr.SetError("POST", errMsg, resp.StatusCode)
+// 	}
 
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("Making Request to Interop: POST - %s - %d", uri, resp.StatusCode)
+// 	defer resp.Body.Close()
+// 	body, _ := ioutil.ReadAll(resp.Body)
+// 	Log.Debugf("Making Request to Interop: POST - %s - %d", uri, resp.StatusCode)
 
-	return body, *intErr
-}
+// 	return body, *intErr
+// }
 
 // Put makes a PUT request to the server
-func (c *Client) Put(uri string, msg io.Reader) ([]byte, ut.HTTPError) {
-	intErr := ut.NewHTTPError()
+// func (c *Client) Put(uri string, msg io.Reader) ([]byte, ut.HTTPError) {
+// 	intErr := ut.NewHTTPError()
 
-	// set the HTTP method, url, and request body
-	req, _ := http.NewRequest(http.MethodPut, c.url+uri, msg)
+// 	// set the HTTP method, url, and request body
+// 	req, _ := http.NewRequest(http.MethodPut, c.url+uri, msg)
 
-	// set the request header Content-Type for json
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.client.Do(req)
+// 	// set the request header Content-Type for json
+// 	req.Header.Set("Content-Type", "application/json")
+// 	resp, err := c.client.Do(req)
 
-	// If err is not nil, then the server is not online and we need to back out
-	// so that nothing crashes
-	if err != nil {
-		Log.Debug(err)
-		intErr.SetError("PUT", []byte("Interop Server Offline"), http.StatusBadGateway)
-		return nil, *intErr
-	}
+// 	// If err is not nil, then the server is not online and we need to back out
+// 	// so that nothing crashes
+// 	if err != nil {
+// 		Log.Debug(err)
+// 		intErr.SetError("PUT", []byte("Interop Server Offline"), http.StatusBadGateway)
+// 		return nil, *intErr
+// 	}
 
-	// The server is online, but we need to check the status code directly to
-	// see if there was a 4xx error
-	if resp.StatusCode != 200 {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
-		intErr.SetError("PUT", errMsg, resp.StatusCode)
-	}
+// 	// The server is online, but we need to check the status code directly to
+// 	// see if there was a 4xx error
+// 	if resp.StatusCode != 200 {
+// 		errMsg, _ := ioutil.ReadAll(resp.Body)
+// 		intErr.SetError("PUT", errMsg, resp.StatusCode)
+// 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+// 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Debugf("Making Request to Interop: PUT - %s - %d", uri, resp.StatusCode)
-	return body, *intErr
-}
+// 	Log.Debugf("Making Request to Interop: PUT - %s - %d", uri, resp.StatusCode)
+// 	return body, *intErr
+// }
 
 // Delete makes a DELETE request to the server
-func (c *Client) Delete(uri string) ([]byte, ut.HTTPError) {
-	intErr := ut.NewHTTPError()
+// func (c *Client) Delete(uri string) ([]byte, ut.HTTPError) {
+// 	intErr := ut.NewHTTPError()
 
-	// set the HTTP method, url, and request body
-	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
-	resp, err := c.client.Do(req)
+// 	// set the HTTP method, url, and request body
+// 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
+// 	resp, err := c.client.Do(req)
 
-	// If err is not nil, then the server is not online and we need to back out
-	// so that nothing crashes
-	if err != nil {
-		Log.Debug(err)
-		intErr.SetError("DELETE", []byte("Interop Server Offline"), http.StatusBadGateway)
-		return nil, *intErr
-	}
+// 	// If err is not nil, then the server is not online and we need to back out
+// 	// so that nothing crashes
+// 	if err != nil {
+// 		Log.Debug(err)
+// 		intErr.SetError("DELETE", []byte("Interop Server Offline"), http.StatusBadGateway)
+// 		return nil, *intErr
+// 	}
 
-	// The server is online, but we need to check the status code directly to
-	// see if there was a 4xx error
-	if resp.StatusCode != 200 {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
-		intErr.SetError("DELETE", errMsg, resp.StatusCode)
-	}
+// 	// The server is online, but we need to check the status code directly to
+// 	// see if there was a 4xx error
+// 	if resp.StatusCode != 200 {
+// 		errMsg, _ := ioutil.ReadAll(resp.Body)
+// 		intErr.SetError("DELETE", errMsg, resp.StatusCode)
+// 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+// 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Debugf("Making Request to Interop: DELETE - %s - %d", uri, resp.StatusCode)
-	return body, *intErr
-}
+// 	Log.Debugf("Making Request to Interop: DELETE - %s - %d", uri, resp.StatusCode)
+// 	return body, *intErr
+// }
 
 // GetTeams gets the statuses of all the teams registered in the server
 func (c *Client) GetTeams() ([]byte, ut.HTTPError) {

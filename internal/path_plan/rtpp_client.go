@@ -16,6 +16,7 @@ var Log = logrus.New()
 
 type Client struct {
 	client  *http.Client
+	httpClient *ut.Client
 	url     string
 	timeout int
 }
@@ -44,32 +45,32 @@ func NewClient(url string, timeout int) *Client {
 	return client
 }
 
-func (c *Client) post(uri string, msg io.Reader) ([]byte, ut.HTPPError) {
-	ppErr := ut.NewHTTPError()
+// func (c *Client) post(uri string, msg io.Reader) ([]byte, ut.HTPPError) {
+// 	ppErr := ut.NewHTTPError()
 
-	resp, err := c.client.Post(c.url+uri, "application/json", msg)
+// 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
 
-	// If err is not nil, then the server is not online and we need to back out
-	// so that nothing crashes
-	if err != nil {
-		Log.Debug(err)
-		ppErr.SetError("POST", []byte("RTPP Server Offline"), http.StatusBadGateway)
-		return nil, *ppErr
-	}
+// 	// If err is not nil, then the server is not online and we need to back out
+// 	// so that nothing crashes
+// 	if err != nil {
+// 		Log.Debug(err)
+// 		ppErr.SetError("POST", []byte("RTPP Server Offline"), http.StatusBadGateway)
+// 		return nil, *ppErr
+// 	}
 
-	// The server is online, but we need to check the status code directly to
-	// see if there was a 4xx error
-	if resp.StatusCode != http.StatusOK {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
-		ppErr.SetError("POST", errMsg, resp.StatusCode)
-	}
+// 	// The server is online, but we need to check the status code directly to
+// 	// see if there was a 4xx error
+// 	if resp.StatusCode != http.StatusOK {
+// 		errMsg, _ := ioutil.ReadAll(resp.Body)
+// 		ppErr.SetError("POST", errMsg, resp.StatusCode)
+// 	}
 
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("Making Request to RTPP: POST - %s - %d", uri, resp.StatusCode)
+// 	defer resp.Body.Close()
+// 	body, _ := ioutil.ReadAll(resp.Body)
+// 	Log.Debugf("Making Request to RTPP: POST - %s - %d", uri, resp.StatusCode)
 
-	return body, *ppErr
-}
+// 	return body, *ppErr
+// }
 
 func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	// Post telemetry to server
@@ -79,25 +80,25 @@ func (c *Client) PostMission(mission []byte) ut.HTTPError {
 }
 
 //implmentation of 4a?? not too sure what I should call in this instance
-func (c *Client) get(uri string) ([]byte, ut.HTTPError){
-	ppErr := NewHTTPError()
+// func (c *Client) get(uri string) ([]byte, ut.HTTPError){
+// 	ppErr := NewHTTPError()
 
-	resp, err := c.client.Get(c.url+uri)
-	if err != nil {
-		Log.Debug(err)
-		ppErr.SetError("GET", []byte("RTPP Server Offline"), http.StatusBadGateway)
-		return nil, *ppErr
-	}
-	if resp.StatusCode != http.StatusOK {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
-		ppErr.SetError("GET", errMsg, resp.StatusCode)
-	}
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("Making Request to RTPP: GET - %s - %d", uri, resp.StatusCode)
+// 	resp, err := c.client.Get(c.url+uri)
+// 	if err != nil {
+// 		Log.Debug(err)
+// 		ppErr.SetError("GET", []byte("RTPP Server Offline"), http.StatusBadGateway)
+// 		return nil, *ppErr
+// 	}
+// 	if resp.StatusCode != http.StatusOK {
+// 		errMsg, _ := ioutil.ReadAll(resp.Body)
+// 		ppErr.SetError("GET", errMsg, resp.StatusCode)
+// 	}
+// 	defer resp.Body.Close()
+// 	body, _ := ioutil.ReadAll(resp.Body)
+// 	Log.Debugf("Making Request to RTPP: GET - %s - %d", uri, resp.StatusCode)
 
-	return body, *ppErr
-}
+// 	return body, *ppErr
+// }
 
 func (c *Client) GetPath() (Path, []byte, HTTPError){
 	pathBinary, err := c.get("/path")
