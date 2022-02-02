@@ -2,6 +2,8 @@ version: "3"
 services:
   hub:
     image: tritonuas/hub
+    ports:
+      - '5000:5000'
     environment:
       - INTEROP_IP=172.17.0.1
       - INTEROP_PORT=8000
