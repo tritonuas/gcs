@@ -33,7 +33,7 @@ type Client struct {
 
 // IsConnected checks to see if hte http client object is not null
 func (c *Client) IsConnected() bool {
-	return c.client != nil
+	return c.httpClient != nil
 }
 
 // EstablishInteropConnection keeps trying to connect to the interop server
@@ -70,13 +70,6 @@ func NewClient(url string, username string, password string, timeout int) (*Clie
 		username: username,
 		password: password,
 		timeout:  timeout,
-	}
-
-	// setup client with cookies
-	cookieJar, _ := cookiejar.New(nil)
-	client.client = &http.Client{
-		Jar:     cookieJar,
-		Timeout: time.Duration(timeout) * time.Second,
 	}
 
 	// setup http_client
