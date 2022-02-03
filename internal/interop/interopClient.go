@@ -11,10 +11,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//"io"
-	//"io/ioutil"
-	"net/http"
-	"net/http/cookiejar"
 	"time"
 
 	"github.com/sirupsen/logrus"
