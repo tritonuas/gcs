@@ -2,8 +2,8 @@ package path_plan
 
 import (
 	"bytes"
-	"io"
-	"io/ioutil"
+	//"io"
+	//"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -26,7 +26,7 @@ func (c *Client) IsConnected() bool {
 	return c.client != nil
 }
 
-its 
+
 //thinking about having (*Client, HTPPError) to follow the structure of client.go, but realized that there is no actual
 //authentization involved, which the original InteropError was used fof
 func NewClient(url string, timeout int) *Client {
@@ -41,6 +41,9 @@ func NewClient(url string, timeout int) *Client {
 		Jar:     cookieJar,
 		Timeout: time.Duration(timeout) * time.Second,
 	}
+	// setup http_client
+	client.httpClient = ut.NewClient(url, timeout)
+
 
 	return client
 }
@@ -74,7 +77,7 @@ func NewClient(url string, timeout int) *Client {
 
 func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	// Post telemetry to server
-	_, err := c.post("/mission", bytes.NewReader(mission))
+	_, err := c.httpClient.Post("/mission", bytes.NewReader(mission))
 
 	return err
 }
@@ -100,7 +103,7 @@ func (c *Client) PostMission(mission []byte) ut.HTTPError {
 // 	return body, *ppErr
 // }
 
-func (c *Client) GetPath() (Path, []byte, HTTPError){
-	pathBinary, err := c.get("/path")
+func (c *Client) GetPath() (Path, []byte, ut.HTTPError){
+	pathBinary, err := c.httpClient.Get("/path")
 	return CreatePath(pathBinary), pathBinary, err
 }

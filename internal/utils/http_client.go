@@ -1,7 +1,6 @@
 package utils 
 
 import (
-	"bytes"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -54,7 +53,7 @@ func NewClient(url string, timeout int) *Client {
 //the clients to properly account for them
 
 //Post makes a POST request to the server
-func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTPPError) {
+func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
 	resp, err := c.client.Post(c.url+uri, "application/json", msg)
@@ -71,7 +70,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTPPError) {
 	// see if there was a 4xx error
 	if resp.StatusCode != http.StatusOK {
 		errMsg, _ := ioutil.ReadAll(resp.Body)
-		htppErr.SetError("POST", errMsg, resp.StatusCode)
+		httpErr.SetError("POST", errMsg, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -136,7 +135,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 
 // Delete makes a DELETE request to the server
 func (c *Client) Delete(uri string) ([]byte, HTTPError) {
-	httpErr := ut.NewHTTPError()
+	httpErr := NewHTTPError()
 
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)

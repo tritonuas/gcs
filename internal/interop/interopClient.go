@@ -11,8 +11,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
+	//"io"
+	//"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -80,12 +80,15 @@ func NewClient(url string, username string, password string, timeout int) (*Clie
 		Timeout: time.Duration(timeout) * time.Second,
 	}
 
+	// setup http_client
+	client.httpClient = ut.NewClient(url, timeout)
+
 	// jsonify authentication
 	auth := map[string]string{"username": username, "password": password}
 	authJSON, _ := json.Marshal(auth)
 
 	// All endpoints are authenticated, so always login
-	_, intErr := client.Post("/api/login", bytes.NewBuffer(authJSON))
+	_, intErr := client.httpClient.Post("/api/login", bytes.NewBuffer(authJSON))
 
 	return client, intErr
 }
@@ -214,7 +217,7 @@ func (c *Client) GetUsername() string {
 
 // GetTeams gets the statuses of all the teams registered in the server
 func (c *Client) GetTeams() ([]byte, ut.HTTPError) {
-	data, err := c.Get("/api/teams")
+	data, err := c.httpClient.Get("/api/teams")
 
 	return data, err
 }
@@ -222,7 +225,7 @@ func (c *Client) GetTeams() ([]byte, ut.HTTPError) {
 // GetMission gets the mission at the given mission id value
 func (c *Client) GetMission(id int) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/missions/%d", id)
-	data, err := c.Get(uri)
+	data, err := c.httpClient.Get(uri)
 
 	return data, err
 }
@@ -230,7 +233,7 @@ func (c *Client) GetMission(id int) ([]byte, ut.HTTPError) {
 // PostTelemetry posts the ship's telemetry data to the server
 func (c *Client) PostTelemetry(telem []byte) ut.HTTPError {
 	// Post telemetry to server
-	_, err := c.Post("/api/telemetry", bytes.NewReader(telem))
+	_, err := c.httpClient.Post("/api/telemetry", bytes.NewReader(telem))
 
 	return err
 }
@@ -245,7 +248,7 @@ func (c *Client) GetODLCs(missionID int) ([]byte, ut.HTTPError) {
 	}
 
 	// Get request to the server
-	data, err := c.Get(uri)
+	data, err := c.httpClient.Get(uri)
 
 	return data, err
 }
@@ -255,7 +258,7 @@ func (c *Client) GetODLC(id int) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Get byte array from the server
-	data, err := c.Get(uri)
+	data, err := c.httpClient.Get(uri)
 
 	return data, err
 }
@@ -264,7 +267,7 @@ func (c *Client) GetODLC(id int) ([]byte, ut.HTTPError) {
 // of an odlc with the id parameter filled in
 func (c *Client) PostODLC(odlc []byte) ([]byte, ut.HTTPError) {
 	// Post the json to the server
-	updatedODLC, err := c.Post("/api/odlcs", bytes.NewReader(odlc))
+	updatedODLC, err := c.httpClient.Post("/api/odlcs", bytes.NewReader(odlc))
 
 	return updatedODLC, err
 }
@@ -275,7 +278,7 @@ func (c *Client) PutODLC(id int, odlc []byte) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
 
 	// Put the json to the server
-	newOdlc, err := c.Put(uri, bytes.NewReader(odlc))
+	newOdlc, err := c.httpClient.Put(uri, bytes.NewReader(odlc))
 
 	return newOdlc, err
 }
@@ -283,7 +286,7 @@ func (c *Client) PutODLC(id int, odlc []byte) ([]byte, ut.HTTPError) {
 // DeleteODLC deletes the ODLC at the specified id number
 func (c *Client) DeleteODLC(id int) ut.HTTPError {
 	uri := fmt.Sprintf("/api/odlcs/%d", id)
-	_, err := c.Delete(uri)
+	_, err := c.httpClient.Delete(uri)
 
 	return err
 }
@@ -293,7 +296,7 @@ func (c *Client) DeleteODLC(id int) ut.HTTPError {
 func (c *Client) GetODLCImage(id int) ([]byte, ut.HTTPError) {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
-	body, err := c.Get(uri)
+	body, err := c.httpClient.Get(uri)
 
 	return body, err
 }
@@ -303,7 +306,7 @@ func (c *Client) GetODLCImage(id int) ([]byte, ut.HTTPError) {
 func (c *Client) PutODLCImage(id int, image []byte) ut.HTTPError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
-	_, err := c.Put(uri, bytes.NewReader(image))
+	_, err := c.httpClient.Put(uri, bytes.NewReader(image))
 
 	return err
 }
@@ -312,7 +315,7 @@ func (c *Client) PutODLCImage(id int, image []byte) ut.HTTPError {
 func (c *Client) DeleteODLCImage(id int) ut.HTTPError {
 	uri := fmt.Sprintf("/api/odlcs/%d/image", id)
 
-	_, err := c.Delete(uri)
+	_, err := c.httpClient.Delete(uri)
 
 	return err
 }
