@@ -1,8 +1,8 @@
-package path_plan
+package utils
 
 import "strings"
 
-type RTPPError struct {
+type HTTPError struct {
 	Get     bool   // Signifies error from a get request
 	Post    bool   // Signifies error from a post request
 	Put     bool   // Signifies error from a put request
@@ -13,8 +13,8 @@ type RTPPError struct {
 
 // NewRTPPError creates an RTPPError object with all error flags set to
 // false.
-func NewRTPPError() *RTPPError {
-	err := &RTPPError{
+func NewHTTPError() *HTTPError {
+	err := &HTTPError{
 		Get:     false,
 		Post:    false,
 		Put:     false,
@@ -28,7 +28,7 @@ func NewRTPPError() *RTPPError {
 
 // SetError sets the attributes of the RTPP error accordingly to the parameters
 // passed through
-func (i *RTPPError) SetError(errType string, message []byte, status int) {
+func (i *HTTPError) SetError(errType string, message []byte, status int) {
 	errType = strings.ToUpper(errType)
 	switch errType {
 	case "GET":
