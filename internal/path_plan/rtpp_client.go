@@ -2,9 +2,6 @@ package path_plan
 
 import (
 	"bytes"
-	"net/http"
-	"net/http/cookiejar"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	ut "github.com/tritonuas/hub/internal/utils"

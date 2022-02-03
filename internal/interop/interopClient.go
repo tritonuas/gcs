@@ -24,7 +24,6 @@ import (
 var Log = logrus.New()
 
 type Client struct {
-	client   *http.Client
 	httpClient *ut.Client
 	url      string
 	username string
