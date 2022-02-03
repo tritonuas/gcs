@@ -15,7 +15,6 @@ import (
 var Log = logrus.New()
 
 type Client struct {
-	client  *http.Client
 	httpClient *ut.Client
 	url     string
 	timeout int
@@ -23,7 +22,7 @@ type Client struct {
 
 // IsConnected checks to see if hte http client object is not null
 func (c *Client) IsConnected() bool {
-	return c.client != nil
+	return c.httpClient != nil
 }
 
 
@@ -36,11 +35,6 @@ func NewClient(url string, timeout int) *Client {
 		timeout: timeout,
 	}
 
-	cookieJar, _ := cookiejar.New(nil)
-	client.client = &http.Client{
-		Jar:     cookieJar,
-		Timeout: time.Duration(timeout) * time.Second,
-	}
 	// setup http_client
 	client.httpClient = ut.NewClient(url, timeout)
 
