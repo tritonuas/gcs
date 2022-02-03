@@ -2,8 +2,6 @@ package path_plan
 
 import (
 	"bytes"
-	//"io"
-	//"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
