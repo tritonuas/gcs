@@ -10,6 +10,8 @@ import (
 	"testing"
 )
 
+// Need to relook at this file!
+
 var client *Client
 
 // TestNewClientFailure tests invalid authentication values and makes sure
