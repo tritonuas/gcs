@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/color"
-	"image/png"
 	"testing"
 )
 
@@ -22,6 +19,7 @@ func TestNewClient(t *testing.T) {
 
 func TestPostMission(t *testing.T){
 	//variables of mission here
+	file, err := os.Open("2020-test-mission.json")
 	mission := Mission{
 		//add structure for mission here
 	}
