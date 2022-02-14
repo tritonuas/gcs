@@ -272,7 +272,7 @@ func TestODLCs(t *testing.T) {
 	if containsPostODLC {
 		t.Error("Expected getODLCsBadMission not to contain postODLC, but it did")
 	}
-
+	//------------------------------------------------------------------
 	// Test updating an odlc
 	putShape := Odlc_CIRCLE
 	postODLC.Shape = &putShape
@@ -280,6 +280,8 @@ func TestODLCs(t *testing.T) {
 	if intErr.Get {
 		t.Error("Expected PutODLC get error to be false, but it was true")
 	}
+
+	//-----------------------------------------------------------------
 
 	// Test uploading an image
 
@@ -320,6 +322,8 @@ func TestODLCs(t *testing.T) {
 	if intErr.Delete {
 		t.Error("Expected DeleteODLCImage delete error to be false, but it was true")
 	}
+
+	//------------------------------------------------------------------
 
 	// Test deleting an odlc
 	intErr = client.DeleteODLC(postODLC.GetId())
