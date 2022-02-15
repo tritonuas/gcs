@@ -5,9 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"io/ioutil"
 )
 
 var client *Client
+
+//essentially figure out how to make a mission struct. probably going to spend the time at the meeting working on it
+type Mission struct{
+	id int32 `json:"id"`
+	lostCommsPos []LostCommsPos `json:"lostCommsPos"`
+}
+type LostCommsPos struct{
+	latitude float64 `json:"latitude"`
+	longitude	float64 `json:"longitude"`
+}
 
 func TestNewClient(t *testing.T) {
 	client, err := NewClient("127.0.0.1:8000",10)
@@ -19,7 +30,7 @@ func TestNewClient(t *testing.T) {
 
 func TestPostMission(t *testing.T){
 	//variables of mission here
-	file, err := os.Open("2020-test-mission.json")
+	file, _ := ioutil.ReadFile("2020-test-mission.json")
 	mission := Mission{
 		//add structure for mission here
 	}
