@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"reflect"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/rs/cors"
@@ -292,10 +293,31 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 			w.Write([]byte("Missing field parameter"))
 			break
 		}
-		result, err := queryAPI.Query(context.Background(), fmt.Sprintf(
-			`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
-			t.bucket, id, field))
-
+		// split up the field param by comma
+		// fields is an array where each index is a value we want to get from the database
+		fields := strings.Split(field, ",")
+		// each fieldString is a query string with one of the fields from fields
+		queryStrings := []string{}
+		for _, f := range fields {
+			queryStrings = append(queryStrings,
+							fmt.Sprintf(`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r.field == "%s")`,
+							t.bucket, id, f))
+		}
+		// Go through the query strings we made and put them in this results slice
+		results := []queryAPI.QueryTableResult{}
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
+			} else {
+				results = append(results, result)
+			}
+		}
+		// Go through results and put them in a dictionary to put into json
+		for _, result := range results {
+			
+		}
 		if err == nil {
 			if result.Next() {
 				w.WriteHeader(http.StatusOK)
@@ -304,10 +326,8 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(fmt.Sprintf("Requested telemetry with message ID \"%s\" and field \"%s\" not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", id, field)))
 			}
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Cannot connect to InfluxDB to retreive telemetry"))
 		}
+
 		client.Close()
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
