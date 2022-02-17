@@ -86,23 +86,6 @@ func (s *Server) Run(
 type pathPlanHandler struct {
 	server *Server
 }
-/*
-*if t.server.client == nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Interop connection not established"))
-			Log.Errorf("Unable to retrieve team data from Interop because connection to Interop not established")
-			return
-		}
-
-		// Make the GET request to the Interop Server
-		teams, err := t.server.client.GetTeams()
-		if err.Get {
-			w.WriteHeader(err.Status)
-			w.Write(err.Message)
-		} else {
-			w.Write(teams)
-		}
-*/
 
 func (p pathPlanHandler) ServeHTTP( w http.ResponseWriter, r *http.Request){
 	logRequestInfo(r)

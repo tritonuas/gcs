@@ -35,19 +35,6 @@ func TestGetUsername(t *testing.T) {
 
 	// to make this code better, perhaps define the username as a constant at the top of the file
 }
-package interop
-
-import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"image"
-	"image/color"
-	"image/png"
-	"testing"
-)
-
-var client *Client
 
 // TestNewClientFailure tests invalid authentication values and makes sure
 // the client isn't able to authenticate itself with the interop server
@@ -172,12 +159,12 @@ func TestODLCs(t *testing.T) {
 	postODLC := &Odlc{
 		Mission: 			&odlcMission,
 		Type:    			&odlcType,
-		Latitude: 			&odlcLatitude 
-		Longitude: 			&odlcLongitude
-		Orientation:		&odlcOrienation 
-		Shape: 				&odlcShape
-		ShapeColor:			&odlcShapeColor
-		AlphanumericColor:	&odlcAlphanumericColor	
+		Latitude: 			&odlcLatitude, 
+		Longitude: 			&odlcLongitude,
+		Orientation:		&odlcOrienation, 
+		Shape: 				&odlcShape,
+		ShapeColor:			&odlcShapeColor,
+		AlphanumericColor:	&odlcAlphanumericColor,	
 	}
 
 	postOdlcJSON, _ := json.Marshal(postODLC)
