@@ -31,6 +31,16 @@ type Path struct{
 	waypoints []Waypoint 
 }
 
+//Created for server_test so that it can be used for the plane endpoints 
+func CreateWaypoint(waypointIn []byte) (Waypoint){
+	var wpt Waypoint
+	err := json.Unmarshal([]byte(waypointIn), &wpt)
+	if err !=nil {
+		Log.Fatal(err)
+	}
+	return wpt 
+}
+
 func CreatePath(waypointsIn []byte) (Path){
 	var wpts []Waypoint
 	err := json.Unmarshal([]byte(waypointsIn), &wpts)
