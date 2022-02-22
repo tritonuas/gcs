@@ -337,7 +337,7 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		Log.Info("Made results!")
 		Log.Info(fields)
 		Log.Info(results)
-		var jsonMap map[string]interface{}
+		jsonMap := make(map[string]interface{})
 		for i, field := range fields {
 			jsonMap[field] = results[i]
 		}
