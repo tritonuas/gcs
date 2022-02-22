@@ -295,8 +295,6 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		// split up the field param by comma
 		// fields is an array where each index is a value we want to get from the database
 		fields := strings.Split(field, ",")
-		Log.Info("fields size")
-		Log.Info(len(fields))
 		// each fieldString is a query string with one of the fields from fields
 		queryStrings := []string{}
 		for _, f := range fields {
@@ -305,38 +303,25 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 							fmt.Sprintf(`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
 							t.bucket, id, f))
 		}
-		Log.Info("Going to make results!")
 		// Go through the query strings we made and put them in this results slice
-//		results := []influxdb2.QueryTableResult{}
+		// results := []influxdb2.QueryTableResult{}
 		var results []string
-		Log.Info(queryStrings)
 		for _, queryString := range queryStrings {
-			Log.Infof("queryString: %s", queryString)
 			result, err := queryAPI.Query(context.Background(), queryString)
-			Log.Info("queried result")
-			Log.Info(result)
 			if err != nil {
-				Log.Info("ERROR IS NOT NIL")
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
 				return
 			} else {
 				if result.Next() {
-					Log.Info("result.Next() true")
-					temp := fmt.Sprint(result.Record().Value())
-					Log.Info(temp)
-					results = append(results, temp)
+					results = append(results, fmt.Sprint(result.Record().Value()))
 				} else {
-					Log.Info("RESULT NEXT NOT TRUE ")
 					w.WriteHeader(http.StatusBadRequest)
 					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
 					return
 				}
 			}
 		}
-		Log.Info("Made results!")
-		Log.Info(fields)
-		Log.Info(results)
 		jsonMap := make(map[string]interface{})
 		for i, field := range fields {
 			jsonMap[field] = results[i]
