@@ -281,20 +281,20 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		client := influxdb2.NewClient(t.uri, t.token)
 		queryAPI := client.QueryAPI(t.org)
 		id := r.URL.Query().Get("id")
-		field := r.URL.Query().Get("field")
+		fieldsSeparatedByCommas := r.URL.Query().Get("field")
 		if id == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Missing id parameter"))
 			break
 		}
-		if field == "" {
+		if fieldsSeparatedByCommas == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Missing field parameter"))
 			break
 		}
 		// split up the field param by comma
 		// fields is an array where each index is a value we want to get from the database
-		fields := strings.Split(field, ",")
+		fields := strings.Split(fieldsSeparatedByCommas, ",")
 		// each fieldString is a query string with one of the fields from fields
 		queryStrings := []string{}
 		for _, f := range fields {
