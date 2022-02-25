@@ -27,11 +27,11 @@ func TestGeneral(t *testing.T) {
 		ID: 1,
 	}
 	postIDjson, _ := json.Marshal(postID)
-	_, err := client.Post("hub/mission", bytes.NewReader(postIDjson))
+	_, err := client.Post("/hub/mission", bytes.NewReader(postIDjson))
 	if err.Post {
-		t.Error("Post Error")
+		t.Errorf("Post Error: %s ", err.Message)
 	}
-	val, err := client.Get("hub/mission")
+	val, err := client.Get("/hub/mission")
 	var id MissionID
 	jsonErr := json.Unmarshal(val, &id)
 	if err.Get {
@@ -46,7 +46,7 @@ func TestGeneral(t *testing.T) {
 }
 //Tests the plane endpoints section of the wiki
 func TestPlane(t *testing.T) {
-	position, err := client.Get("hub/plane/position")
+	position, err := client.Get("/hub/plane/position")
 	posCheck, ppErr := pp.CreateWaypoint(position)
 	//check for waypoint do not know, need to get actual waypoint for this
 	if err.Get {
@@ -56,7 +56,7 @@ func TestPlane(t *testing.T) {
 		t.Errorf("JSON Error: %s", ppErr.Error())
 	}
 	var telemetry []byte 
-	telemetry, err = client.Get("hub/plane/telemetry?id=30&field=yaw")
+	telemetry, err = client.Get("/hub/plane/telemetry?id=30&field=yaw")
 	var telemCheck pp.Waypoint
 	telemCheck, ppErr = pp.CreateWaypoint(telemetry)
 	//check for waypoint same problem as 51 
@@ -67,11 +67,11 @@ func TestPlane(t *testing.T) {
 	if err.Get {
 		t.Error("Get Error")
 	}
-	_, err = client.Post("hub/plane/home", bytes.NewReader(position))
+	_, err = client.Post("/hub/plane/home", bytes.NewReader(position))
 	if err.Post {
 		t.Error("Post Error")
 	}
-	home, err := client.Get("hub/plane/home")
+	home, err := client.Get("/hub/plane/home")
 	//literally same implemntation as the first since I just reused position
 	if err.Get {
 		t.Error("Get Error")
@@ -111,12 +111,12 @@ func TestPlane(t *testing.T) {
 	
 
 	//path should be path not waypoint my bad thats pretty dumb
-	_, err = client.Post("hub/plane/path", bytes.NewReader(pathJSON))
+	_, err = client.Post("/hub/plane/path", bytes.NewReader(pathJSON))
 	if err.Post {
 		t.Error("Post Error")
 	}
 	var pathGet []byte
-	pathGet, err = client.Get("hub/plane/path")
+	pathGet, err = client.Get("/hub/plane/path")
 	//check for the path values provided 
 	pathCheck := pp.CreatePath(pathGet)
 	//compares paths should most likely do a loop, instead of literally just checking the second index
@@ -129,7 +129,7 @@ func TestPlane(t *testing.T) {
 }
 
 func TestInterop(t *testing.T) {
-	teams, err := client.Get("hub/interop/teams")
+	teams, err := client.Get("/hub/interop/teams")
 	var teamList []*ic.TeamStatus
 	jsonErr := json.Unmarshal(teams, &teamList)
 	if jsonErr != nil {
@@ -141,7 +141,7 @@ func TestInterop(t *testing.T) {
 	if err.Get {
 		t.Error("Get Error")
 	}
-	missions, err := client.Get("hub/interop/missions")
+	missions, err := client.Get("/hub/interop/missions")
 	var mission *ic.Mission
 	jsonErr = json.Unmarshal(missions, &mission)
 	if jsonErr != nil {
@@ -164,11 +164,11 @@ func TestInterop(t *testing.T) {
 		Heading:   head,
 	}
 	telemJSON, _ := json.Marshal(telem)
-	_, err = client.Post("hub/interop/telemtry", bytes.NewReader(telemJSON))
+	_, err = client.Post("/hub/interop/telemtry", bytes.NewReader(telemJSON))
 	if err.Post {
 		t.Error("Post Error")
 	}
-	telemGet, err := client.Get("hub/interop/telemtry")
+	telemGet, err := client.Get("/hub/interop/telemtry")
 	//json, linked to previous post
 	var tel *pp.Waypoint
 	jsonErr = json.Unmarshal(telemGet, &tel)
@@ -211,7 +211,7 @@ func TestInterop(t *testing.T) {
 
 	postOdlcJSON, _ := json.Marshal(postODLC)
 
-	odlcsPost, err := client.Post("hub/interop/odlcs", bytes.NewReader(postOdlcJSON))
+	odlcsPost, err := client.Post("/hub/interop/odlcs", bytes.NewReader(postOdlcJSON))
 	//make sure that odlcPost has an id, I think we can just compare the odlcs with the odlcs post
 	var retOdlcs *ic.Odlc
 	jsonErr = json.Unmarshal(odlcsPost, &retOdlcs)
@@ -221,7 +221,7 @@ func TestInterop(t *testing.T) {
 	if err.Post{
 		t.Error("Post Error")
 	}
-	odlcsPostP, err := client.Get("hub/interop/odlcs")
+	odlcsPostP, err := client.Get("/hub/interop/odlcs")
 	var compOdlcs *ic.Odlc
 	//one concern is that this is turning a list of odlcs to a singular odlc whcih does not make much sense to me
 	jsonErr = json.Unmarshal(odlcsPostP, &compOdlcs)
@@ -238,7 +238,7 @@ func TestInterop(t *testing.T) {
 	
 	//odlc after this
 	//-----------------
-	odlcPost, err := client.Post("hub/interop/odlc/25", bytes.NewReader(postOdlcJSON))
+	odlcPost, err := client.Post("/hub/interop/odlc/25", bytes.NewReader(postOdlcJSON))
 	//check to see if id is 25 also use this to compare with the get function
 	var retOdlc *ic.Odlc
 	jsonErr = json.Unmarshal(odlcPost, &retOdlc)
@@ -251,7 +251,7 @@ func TestInterop(t *testing.T) {
 	if err.Get{
 		t.Error("Get Error")
 	}
-	odlcPostP, err := client.Get("hub/interop/odlc/1")
+	odlcPostP, err := client.Get("/hub/interop/odlc/1")
 	//make sure that odlcPostP is equivalent to odlcPost
 	var compOdlc *ic.Odlc
 	//one concern is that this is turning a list of odlcs to a singular odlc whcih does not make much sense to me
@@ -266,7 +266,7 @@ func TestInterop(t *testing.T) {
 	if err.Get{
 		t.Error("Get Error")
 	}
-	_, err = client.Delete("hub/interop/odlc/1")
+	_, err = client.Delete("/hub/interop/odlc/1")
 	if err.Delete{
 		t.Error("Delete error")
 	}
@@ -290,17 +290,17 @@ func TestInterop(t *testing.T) {
 	buff := new(bytes.Buffer)
 	png.Encode(buff, img)
 	b := []byte(fmt.Sprint(buff))
-	_, err = client.Put("hub/interop/odlc/image/1", bytes.NewReader(b))
+	_, err = client.Put("/hub/interop/odlc/image/1", bytes.NewReader(b))
 	if err.Post{
 		t.Error("Post Error")
 	}
 	// image, err := client.Get("hub/interop/odlc/image/1")
-	_, err = client.Get("hub/interop/odlc/image/1")
+	_, err = client.Get("/hub/interop/odlc/image/1")
 	//make sure that b is equivalent to image not too sure how to handle the equivalency of a png though so ...
 	if err.Get {
 		t.Error("Get Error")
 	}
-	_, err = client.Delete("hub/interop/odlc/image/1")
+	_, err = client.Delete("/hub/interop/odlc/image/1")
 	if err.Delete{
 		t.Error("Delete error")
 	}

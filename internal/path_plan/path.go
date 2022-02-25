@@ -28,17 +28,14 @@ type Waypoint struct {
 //My implementation of a path struct in here not too sure if it should be a float64 slice or a waypoint slice
 
 type Path struct{
-	waypoints []Waypoint 
+	Waypoints []Waypoint 
 }
 
 //Created for server_test so that it can be used for the plane endpoints 
-func CreateWaypoint(waypointIn []byte) (Waypoint){
+func CreateWaypoint(waypointIn []byte) (Waypoint, error){
 	var wpt Waypoint
 	err := json.Unmarshal([]byte(waypointIn), &wpt)
-	if err !=nil {
-		Log.Fatal(err)
-	}
-	return wpt 
+	return wpt, err 
 }
 
 func CreatePath(waypointsIn []byte) (Path){
@@ -48,7 +45,7 @@ func CreatePath(waypointsIn []byte) (Path){
 		Log.Fatal(err)
 	}
 	path := Path{
-		waypoints: wpts,
+		Waypoints: wpts,
 	}
 	return path 
 }

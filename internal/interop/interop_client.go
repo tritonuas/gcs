@@ -190,3 +190,22 @@ func (c *Client) DeleteODLCImage(id int) ut.HTTPError {
 
 	return err
 }
+
+func CompareODLCs(odlc1, odlc2 *Odlc) bool {
+	// Have to manually define all of the comparisons because the
+	// protoImpl.MessageState won't let us just use == to compare 2 Odlc objects
+	// directly since the message state cant be compared
+	return odlc1.GetId() == odlc2.GetId() &&
+		odlc1.GetMission() == odlc2.GetMission() &&
+		odlc1.GetType() == odlc2.GetType() &&
+		odlc1.GetLatitude() == odlc2.GetLatitude() &&
+		odlc1.GetLongitude() == odlc2.GetLongitude() &&
+		odlc1.GetOrientation() == odlc2.GetOrientation() &&
+		odlc1.GetShape() == odlc2.GetShape() &&
+		odlc1.GetAlphanumeric() == odlc2.GetAlphanumeric() &&
+		odlc1.GetShapeColor() == odlc2.GetShapeColor() &&
+		odlc1.GetAlphanumericColor() == odlc2.GetAlphanumericColor() &&
+		odlc1.GetDescription() == odlc2.GetDescription() &&
+		odlc1.GetAutonomous() == odlc2.GetAutonomous()
+
+}
