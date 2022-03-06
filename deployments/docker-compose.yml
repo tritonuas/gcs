@@ -2,8 +2,10 @@ version: "3"
 services:
   hub:
     image: tritonuas/hub
+    ports:
+      - '5000:5000'
     environment:
-      - INTEROP_IP=172.17.0.1
+      - INTEROP_IP=172.27.112.1
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
@@ -37,27 +39,27 @@ services:
       - influxdb_data:/var/lib/influxdb
     # logging:
     #   driver: none 
-  grafana:
-    image: grafana/grafana:7.5.5
-    depends_on:
-      - hub 
-    environment: 
-      - GF_USERS_DEFAULT_THEME=dark
-      - GF_USERS_HOME_PAGE=/dashboards
-      - GF_INSTALL_PLUGINS=briangann-gauge-panel
-      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    ports:
-      - '3000:3000'
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
-      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
-      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+  # grafana:
+  #   image: grafana/grafana:7.5.5
+  #   depends_on:
+  #     - hub 
+  #   environment: 
+  #     - GF_USERS_DEFAULT_THEME=dark
+  #     - GF_USERS_HOME_PAGE=/dashboards
+  #     - GF_INSTALL_PLUGINS=briangann-gauge-panel
+  #     - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
+  #     - GF_AUTH_DISABLE_LOGIN_FORM=true
+  #     - GF_AUTH_ANONYMOUS_ENABLED=true
+  #     - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+  #     - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+  #     - GF_USERS_ALLOW_SIGN_UP=false
+  #   ports:
+  #     - '3000:3000'
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+  #     - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+  #     - ./grafana/dashboards/:/var/lib/grafana/dashboards/
     # logging:
     #   driver: none 
   influxdb_cli:
