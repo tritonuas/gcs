@@ -9,9 +9,12 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      # - MAV_DEVICE=tcp:sitl:5760
-      - MAV_DEVICE=udp:mavproxy:14551
-      - MAV_OUTPUT1=""
+      - MAV_DEVICE=tcp:sitl:5760
+      # - MAV_DEVICE=udp:mavproxy:14551
+      # - MAV_OUTPUT1=udp:172.17.0.1:14553
+      # - MAV_OUTPUT1=udp:localhost:14553
+      - MAV_OUTPUT1=udp:host.docker.internal:14553
+      # - MAV_OUTPUT1=udp:host-gateway:14553
       - MAV_OUTPUT2=""
       - MAV_OUTPUT3=""
       - MAV_OUTPUT4=""
@@ -23,14 +26,18 @@ services:
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
     depends_on: 
-      - mavproxy
+      # - mavproxy
       - influxdb_cli
       - influxdb
-    links:
-      - mavproxy
-      - influxdb
+    # links:
+      # - mavproxy
+      # - influxdb
     # logging:
     #   driver: none
+    # network_mode: "host"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      
   influxdb:
     image: influxdb:2.0-alpine
     ports:

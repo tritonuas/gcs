@@ -1,12 +1,13 @@
 package mav
 
 import (
-	"context"
+	// "context"
 	"fmt"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"encoding/xml"
@@ -19,7 +20,10 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/aler9/gomavlib"
+	// "github.com/aler9/gomavlib/pkg/dialect"
+	// "github.com/aler9/gomavlib/pkg/dialect"
 	"github.com/aler9/gomavlib/pkg/dialects/ardupilotmega"
+	// "github.com/aler9/gomavlib/pkg/dialects/common"
 	"github.com/aler9/gomavlib/pkg/msg"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
@@ -27,9 +31,91 @@ import (
 	// "github.com/influxdata/influxdb-client-go/v2/internal/log"
 )
 
+// TODO: move to another file  
+const (
+	nodeInactiveAfter = 30 * time.Second
+)
+
+type remoteNode struct {
+	Channel     *gomavlib.Channel
+	SystemID    byte
+	ComponentID byte
+}
+
+func (i remoteNode) String() string {
+	return fmt.Sprintf("chan=%s sid=%d cid=%d", i.Channel, i.SystemID, i.ComponentID)
+}
+
+type nodeHandler struct {
+	remoteNodeMutex sync.Mutex
+	remoteNodes     map[remoteNode]time.Time
+}
+
+func newNodeHandler() (*nodeHandler, error) {
+	nh := &nodeHandler{
+		remoteNodes: make(map[remoteNode]time.Time),
+	}
+
+	return nh, nil
+}
+
+func (nh *nodeHandler) run() {
+	// delete remote nodes after a period of inactivity
+	for {
+		time.Sleep(10 * time.Second)
+
+		now := time.Now()
+
+		func() {
+			nh.remoteNodeMutex.Lock()
+			defer nh.remoteNodeMutex.Unlock()
+
+			for rnode, t := range nh.remoteNodes {
+				if now.Sub(t) >= nodeInactiveAfter {
+					fmt.Printf("node disappeared: %s", rnode)
+					delete(nh.remoteNodes, rnode)
+				}
+			}
+		}()
+	}
+}
+
+func (nh *nodeHandler) onEventFrame(evt *gomavlib.EventFrame) {
+	// fmt.Println(evt.Channel)
+	rnode := remoteNode{
+		Channel:     evt.Channel,
+		SystemID:    evt.SystemID(),
+		ComponentID: evt.ComponentID(),
+	}
+
+	nh.remoteNodeMutex.Lock()
+	defer nh.remoteNodeMutex.Unlock()
+
+	// new remote node
+	if _, ok := nh.remoteNodes[rnode]; !ok {
+		fmt.Printf("node appeared: %s", rnode)
+	}
+
+	// always update time
+	nh.remoteNodes[rnode] = time.Now()
+}
+
+func (nh *nodeHandler) onEventChannelClose(evt *gomavlib.EventChannelClose) {
+	nh.remoteNodeMutex.Lock()
+	defer nh.remoteNodeMutex.Unlock()
+
+	// delete remote nodes associated to channel
+	for rnode := range nh.remoteNodes {
+		if rnode.Channel == evt.Channel {
+			delete(nh.remoteNodes, rnode)
+			fmt.Printf("node disappeared: %s", rnode)
+		}
+	}
+}
+
 //systemID is added to every outgoing frame and used to identify the node that communicates to the plane
-//on the network.
-const systemID byte = 255
+//on the network. Shouldn't match any other mavlink device on the network.
+const systemID byte = 125
 
 // connRefreshTimer is the number of seconds Hub will wait until attempting to reconnect to the plane
 const connRefreshTimer int = 5
@@ -274,6 +360,9 @@ func RunMavlink(
 	mavs = append(mavs, mavOutputs...)
 
 	for _, mavOutput := range mavs {
+		if mavOutput == "" {
+			continue
+		}
 		mavOutputSplit := strings.Split(mavOutput, ":")
 		mavOutputAddress := ""
 		for i := 1; i < len(mavOutputSplit); i++ {
@@ -292,30 +381,35 @@ func RunMavlink(
 	writeAPI := client.WriteAPI(org, bucket)
 
 	// make a test query to check influx connection status before attempting to write any data
-	queryAPI := client.QueryAPI(org)
+	//TODO: put this back in (commented out to test on non docker setup)
+	// queryAPI := client.QueryAPI(org)
 
-	influxCheck := func(influxConnChan chan bool) {
-		for {
-			_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
-			if err == nil {
-				influxConnChan <- true
-				Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
-				break
-			}
-			Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
-			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
-		}
-	}
-	influxConnChan := make(chan bool)
-	go influxCheck(influxConnChan)
+	// influxCheck := func(influxConnChan chan bool) {
+	// 	for {
+	// 		_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
+	// 		if err == nil {
+	// 			influxConnChan <- true
+	// 			Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
+	// 			break
+	// 		}
+	// 		Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
+	// 		time.Sleep(time.Duration(connRefreshTimer) * time.Second)
+	// 	}
+	// }
+	// influxConnChan := make(chan bool)
+	// go influxCheck(influxConnChan)
 
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: endpoints,
 		//ardupilot message dialect
-		Dialect:     ardupilotmega.Dialect,
-		OutVersion:  gomavlib.V2,
-		OutSystemID: systemID,
+		Dialect:                ardupilotmega.Dialect,
+		OutVersion:             gomavlib.V2,
+		OutSystemID:            systemID,
+		HeartbeatDisable:       false,
+		HeartbeatPeriod:        time.Duration(5) * time.Second,
+		StreamRequestEnable:    true,
+		StreamRequestFrequency: 4,
 	})
 	if err != nil {
 		Log.Warn(err)
@@ -347,13 +441,24 @@ func RunMavlink(
 	xml.Unmarshal(mavByteValue, &mavlinkCommon)
 	xml.Unmarshal(arduPilotByteValue, &arduPilotMega)
 
-	if <-influxConnChan {
-		influxConnDone = true
+	// if <-influxConnChan {
+	// 	influxConnDone = true
+	// }
+
+	nh, err := newNodeHandler()
+	if err != nil {
+		Log.Error(err)
 	}
+	go nh.run()
 
 	//loop through incoming events from the plane
 	for evt := range node.Events() {
 		if frm, ok := evt.(*gomavlib.EventFrame); ok {
+			nh.onEventFrame(frm)
+
+			// Forwards mavlink messages to other clients
+			node.WriteFrameExcept(frm.Channel, frm.Frame)
+
 			msgID := frm.Message().GetID()
 
 			//gather the raw values returned by the plane as an array of strings
@@ -393,15 +498,15 @@ func RunMavlink(
 			}
 
 			//ardupilot dialect message IDs found in ardupilotmega.xml
-			arduPilotMessageIDS := []int{150, 152, 163, 164, 165, 168, 174, 178, 182, 193}
-			for _, ardupilotMessageID := range arduPilotMessageIDS {
-				if int(msgID) == ardupilotMessageID {
-					floatValues := convertToFloats(rawValues, msgID)
-					parameters, msgName := getParameterNames(msgID, arduPilotMega)
-					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
-					break
-				}
-			}
+			// arduPilotMessageIDS := []int{150, 152, 163, 164, 165, 168, 174, 178, 182, 193}
+			// for _, ardupilotMessageID := range arduPilotMessageIDS {
+			// 	if int(msgID) == ardupilotMessageID {
+			// 		floatValues := convertToFloats(rawValues, msgID)
+			// 		parameters, msgName := getParameterNames(msgID, arduPilotMega)
+			// 		writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
+			// 		break
+			// 	}
+			// }
 
 			switch msgID {
 
@@ -577,8 +682,6 @@ func RunMavlink(
 
 			}
 
-			// Forwards mavlink messages to other clients
-			// node.WriteFrameExcept(frm.Channel, frm.Frame)
 		}
 	}
 	defer client.Close()
