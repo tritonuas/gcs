@@ -598,3 +598,35 @@ func RunMavlink(
 	}
 	defer client.Close()
 }
+
+func SendWaypointToDevice(connectionInfo string, yaw float32, x float32, y float32, z float32) error {
+	connectionInfoSplit := strings.Split(connectionInfo, ":")
+	endpoint := getEndpoint(connectionInfoSplit[0], connectionInfoSplit[1])
+	node, err := gomavlib.NewNode(gomavlib.NodeConf{
+		Endpoints:   []gomavlib.EndpointConf{endpoint},
+		Dialect:     ardupilotmega.Dialect,
+		OutVersion:  gomavlib.V2,
+		OutSystemID: systemID,
+	})
+	if err != nil {
+		return err
+	}
+	// MAV_CMD_NAV_WAYPOINT
+	node.WriteMessageAll(&ardupilotmega.MessageCommandInt{
+		TargetSystem:    255,                            // SystemID of the plane (should probably be a parameter)
+		TargetComponent: 254,                            // ComponentID (not exactly sure what this should be yet)
+		Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
+		Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
+		Current:         0,
+		Autocontinue:    0,
+		Param1:          0,               // Hold Time: ignored by fixed wing planes
+		Param2:          10,              // Accept Radius (radial threshold in meters for a waypoint to be hit)
+		Param3:          0,               // Pass Radius (idk what this is exactly yet)
+		Param4:          yaw,             // Yaw to enter waypoint at
+		X:               int32(x * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+		Y:               int32(y * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+		Z:               z,               // altitude in meters over mean sea level (MSL)
+	})
+
+	return nil
+}
