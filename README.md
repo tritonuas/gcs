@@ -33,6 +33,17 @@ make submodulesupdate
 make install-dependencies
 ```
 
+## First Time Setup
+In order to compile the protobuf files needed to run Hub, execute the following command
+```
+make compile-protos
+```
+If this command doesn't work, then run
+```
+git submodule update --init
+```
+before trying the previous make command again
+
 ## Build
 
 ``` sh
@@ -43,6 +54,8 @@ make build
 make build-docker
 ```
 
+Note that running docker commands may require sudo. 
+
 ## Run
 
 ``` sh
@@ -51,9 +64,17 @@ make run
 
 # Run docker image of hub
 make run-docker
+```
 
-# Run full hub workflow with multiple components
+Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot) Will include [Interop](https://github.com/auvsi-suas/interop) in the future)
+``` sh
 make run-compose
+```
+
+## Stop
+``` sh
+# Stop docker-compose workflow
+make stop-compose
 ```
 
 ## Ports and Stuff
