@@ -1,6 +1,8 @@
 package mav
 
 import (
+	// "context"
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -22,16 +24,14 @@ import (
 	"github.com/aler9/gomavlib/pkg/msg"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
-	// "github.com/influxdata/influxdb-client-go/v2/log"
-	// "github.com/influxdata/influxdb-client-go/v2/internal/log"
 )
 
 //systemID is added to every outgoing frame and used to identify the node that communicates to the plane
-//on the network.
-const systemID byte = 255
+//on the network. Shouldn't match any other mavlink device on the network.
+const systemID byte = 125
 
 // connRefreshTimer is the number of seconds Hub will wait until attempting to reconnect to the plane
-const connRefreshTimer int = 5;
+const connRefreshTimer int = 5
 
 //Mavlink structs for mavlink messages from xml files
 type Mavlink struct {
@@ -187,18 +187,6 @@ func getIntValFromEnum(msgID uint32, fieldIndex int, enumVal string, mavlink Mav
 	return -1
 }
 
-//write the data of a particular message to the local influxDB
-func writeToInflux(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
-	for idx := range parameters {
-		p := influxdb2.NewPointWithMeasurement(msgName).
-			AddTag("ID", fmt.Sprintf("%v", msgID)).
-			AddField(parameters[idx], floatValues[idx]).
-			SetTime(time.Now())
-		writeAPI.WritePoint(p)
-	}
-	writeAPI.Flush()
-}
-
 // Retrieves the type of endpoint based on the address prefix
 func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
@@ -230,6 +218,23 @@ func RunMavlink(
 	mavOutputs []string,
 	telemetryChannel chan *ic.Telemetry) {
 
+	influxConnDone := false
+
+	//write the data of a particular message to the local influxDB
+	writeToInflux := func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
+		if !influxConnDone {
+			return
+		}
+		for idx := range parameters {
+			p := influxdb2.NewPointWithMeasurement(msgName).
+				AddTag("ID", fmt.Sprintf("%v", msgID)).
+				AddField(parameters[idx], floatValues[idx]).
+				SetTime(time.Now())
+			writeAPI.WritePoint(p)
+		}
+		writeAPI.Flush()
+	}
+
 	mavDeviceSplit := strings.Split(mavDevice, ":")
 
 	// Stores the type of device where information will be read from (udp, tcp, or serial connection)
@@ -244,7 +249,7 @@ func RunMavlink(
 			if err == nil {
 				break
 			}
-			Log.Warn(fmt.Sprintf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...",mavDeviceAddress, connRefreshTimer))
+			Log.Warn(fmt.Sprintf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...", mavDeviceAddress, connRefreshTimer))
 			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
 	case "tcp":
@@ -255,7 +260,7 @@ func RunMavlink(
 			if err == nil {
 				break
 			}
-			Log.Warn(fmt.Sprintf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...",mavDeviceType, mavDeviceAddress, connRefreshTimer))
+			Log.Warn(fmt.Sprintf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...", mavDeviceType, mavDeviceAddress, connRefreshTimer))
 			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
 
@@ -268,6 +273,9 @@ func RunMavlink(
 	mavs = append(mavs, mavOutputs...)
 
 	for _, mavOutput := range mavs {
+		if mavOutput == "" {
+			continue
+		}
 		mavOutputSplit := strings.Split(mavOutput, ":")
 		mavOutputAddress := ""
 		for i := 1; i < len(mavOutputSplit); i++ {
@@ -285,13 +293,35 @@ func RunMavlink(
 	client := influxdb2.NewClient(influxdbURI, token)
 	writeAPI := client.WriteAPI(org, bucket)
 
+	// make a test query to check influx connection status before attempting to write any data
+	queryAPI := client.QueryAPI(org)
+
+	influxCheck := func(influxConnChan chan bool) {
+		for {
+			_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
+			if err == nil {
+				influxConnChan <- true
+				Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
+				break
+			}
+			Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
+			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
+		}
+	}
+	influxConnChan := make(chan bool)
+	go influxCheck(influxConnChan)
+
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: endpoints,
 		//ardupilot message dialect
-		Dialect:     ardupilotmega.Dialect,
-		OutVersion:  gomavlib.V2,
-		OutSystemID: systemID,
+		Dialect:                ardupilotmega.Dialect,
+		OutVersion:             gomavlib.V2,
+		OutSystemID:            systemID,
+		HeartbeatDisable:       false,
+		HeartbeatPeriod:        time.Duration(5) * time.Second,
+		StreamRequestEnable:    true,
+		StreamRequestFrequency: 4,
 	})
 	if err != nil {
 		Log.Warn(err)
@@ -299,7 +329,7 @@ func RunMavlink(
 
 	defer node.Close()
 
-	Log.Info("Successfully connected to SITL")
+	Log.Infof("Successfully connected to plane at %s %s", mavDeviceType, mavDeviceAddress)
 
 	//read xml files of messages
 	mavXML, err := os.Open(mavCommonPath)
@@ -323,9 +353,24 @@ func RunMavlink(
 	xml.Unmarshal(mavByteValue, &mavlinkCommon)
 	xml.Unmarshal(arduPilotByteValue, &arduPilotMega)
 
+	if <-influxConnChan {
+		influxConnDone = true
+	}
+
+	nh, err := newNodeHandler()
+	if err != nil {
+		Log.Error(err)
+	}
+	go nh.run()
+
 	//loop through incoming events from the plane
 	for evt := range node.Events() {
 		if frm, ok := evt.(*gomavlib.EventFrame); ok {
+
+			// Forwards mavlink messages to other clients
+			nh.onEventFrame(frm)
+			node.WriteFrameExcept(frm.Channel, frm.Frame)
+
 			msgID := frm.Message().GetID()
 
 			//gather the raw values returned by the plane as an array of strings
@@ -549,9 +594,39 @@ func RunMavlink(
 
 			}
 
-			// Forwards mavlink messages to other clients
-			// node.WriteFrameExcept(frm.Channel, frm.Frame)
-		} 
+		}
 	}
 	defer client.Close()
+}
+
+func SendWaypointToDevice(connectionInfo string, yaw float32, x float32, y float32, z float32) error {
+	connectionInfoSplit := strings.Split(connectionInfo, ":")
+	endpoint := getEndpoint(connectionInfoSplit[0], connectionInfoSplit[1])
+	node, err := gomavlib.NewNode(gomavlib.NodeConf{
+		Endpoints:   []gomavlib.EndpointConf{endpoint},
+		Dialect:     ardupilotmega.Dialect,
+		OutVersion:  gomavlib.V2,
+		OutSystemID: systemID,
+	})
+	if err != nil {
+		return err
+	}
+	// MAV_CMD_NAV_WAYPOINT
+	node.WriteMessageAll(&ardupilotmega.MessageCommandInt{
+		TargetSystem:    255,                            // SystemID of the plane (should probably be a parameter)
+		TargetComponent: 254,                            // ComponentID (not exactly sure what this should be yet)
+		Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
+		Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
+		Current:         0,
+		Autocontinue:    0,
+		Param1:          0,               // Hold Time: ignored by fixed wing planes
+		Param2:          10,              // Accept Radius (radial threshold in meters for a waypoint to be hit)
+		Param3:          0,               // Pass Radius (idk what this is exactly yet)
+		Param4:          yaw,             // Yaw to enter waypoint at
+		X:               int32(x * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+		Y:               int32(y * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+		Z:               z,               // altitude in meters over mean sea level (MSL)
+	})
+
+	return nil
 }

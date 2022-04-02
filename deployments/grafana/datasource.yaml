@@ -12,7 +12,7 @@ datasources:
     default: true
     isDefault: true
     editable: true
-    url: http://influxdb:8086
+    url: http://localhost:8086
     secureJsonData:
       token: influxdbToken
     jsonData:
