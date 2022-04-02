@@ -7,28 +7,34 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=tcp:mavproxy:14551
+      - MAV_DEVICE=serial:/dev/ttyUSB0
       - MAV_OUTPUT1=""
-        # - MAV-OUTPUT2=udp:192.168.1.14:14550
-        # - MAV-OUTPUT3=udp:192.168.1.8:14550
-      # - MAV-OUTPUT4=""
-      # - MAV-OUTPUT5=""
+      - MAV_OUTPUT2=""
+      - MAV_OUTPUT3=""
+      - MAV_OUTPUT4=""
+      - MAV_OUTPUT5=""
+      # - "OUT1=--out=udp:172.17.0.1:14550"
+      # - "OUT2=--out=tcpin:mavproxy:14551"
+      # - "OUT3=--out=udp:192.168.1.14:14555"
+      # - "OUT4=--out=udp:192.168.1.8:14556"
+      - INFLUXDB_BUCKET=mavlink
+      - INFLUXDB_ORG=TritonUAS
+      - INFLUXDB_TOKEN=influxdbToken
+      - INFLUXDB_URI=http://localhost:8086
       - HUB_PATH=/go/src/github.com/tritonuas/hub
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
     depends_on: 
-      - mavproxy
       - influxdb_cli
       - influxdb
-    links: 
-      - mavproxy
-      - influxdb
+    network_mode: "host"
   influxdb:
     image: influxdb:2.0-alpine
     volumes:
       - influxdb_data:/var/lib/influxdb
-    ports:
-      - "8086:8086"
+    network_mode: "host"
   grafana:
     image: grafana/grafana:7.5.5
     depends_on:
@@ -43,16 +49,13 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_USERS_ALLOW_SIGN_UP=false
-    ports:
-      - '3000:3000'
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+    network_mode: "host"
   influxdb_cli:
-    links:
-      - influxdb
     image: influxdb:2.0-alpine
     entrypoint: > 
       influx setup 
@@ -61,28 +64,10 @@ services:
       -t influxdbToken 
       --username=tritons 
       --password=tritonuas 
-      --host=http://influxdb:8086 
-      -f
-    restart: on-failure:10
-    depends_on:
-      - influxdb
-  mavproxy:
-    image: tritonuas/mavproxy
-    ports:
-      - "5761:5762"
-      - "14551:14551"
-    environment:
-      - "MASTER=--master=/dev/ttyUSB0"
-      - "OUT1=--out=udp:172.17.0.1:14550"
-      - "OUT2=--out=tcpin:mavproxy:14551"
-      - "OUT3=--out=udp:192.168.1.14:14555"
-      - "OUT4=--out=udp:192.168.1.8:14556"
-      # - "OUT5=--out=udp:mavproxy:5762"
-      # - OUT6=
-      # - OUT7=
-    restart: always
-    devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
+      --host=http://127.0.0.1:8086 
+      --force
+    restart: on-failure:20
+    network_mode: "host"
   dozzle:
     container_name: dozzle
     image: amir20/dozzle:latest
