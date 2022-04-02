@@ -32,7 +32,7 @@ type Server struct {
 
 	homePosition *ic.Position // Home position of the plane, which must be set by us
 
-	missionID MissionID // ID of the mission that we are assigned
+	missionID MissionID
 
 	//mission TODO Actually hold the mission object for pyplanner to request
 }
@@ -53,16 +53,17 @@ func (s *Server) Run(
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
 	mux := http.NewServeMux()
-	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})
-	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
-	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
-	
-	mux.Handle("/hub/mission/id", &missionHandler{server: s})
+	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})       // get info about teams from interop
+	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s}) // get mission from interop using server's mission ID
+	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})  // get other teams telem info from interop
+
+	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
 	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s})
-	
+	// POST: sets the id in the server, and then gets the mission associated with the id, and then generates a path from that mission, then sends the path to the plane
+	// right now should return back the path that was generated
+
 	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 
-	
 	// 3. rename this to something to do with path planning, maybe move down here    V
 	// 4. make accept get request which sends a get request to the path planning server at endpoint /path endpoint in the pathplanning server
 
@@ -126,9 +127,14 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		idData, _ := json.Marshal(m.server.missionID)
-		w.Write(idData)
-		Log.Infof("Successfully retrieved mission ID information: id = %d", m.server.missionID)
+		idData, err := json.Marshal(m.server.missionID)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			//w.Write(err.Message)
+		} else {
+			w.Write(idData)
+			Log.Infof("Successfully retrieved mission ID information: id = %d", m.server.missionID)
+		}
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
@@ -139,6 +145,7 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type missionHandlerStart struct {
 	server *Server
 }
+
 func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//cut path_plan/initialize code
 	logRequestInfo(r)
@@ -157,32 +164,46 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//err := ic.NewInteropError()
 
 		var id MissionID
-		json.Unmarshal(missionID, &id)
-		//TODO: handle the error
+		jsonErr := json.Unmarshal(missionID, &id)
+
+		if jsonErr != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(jsonErr.Error()))
+			break
+		}
+
+		m.server.missionID = id
 
 		missionData, err := m.server.client.GetMission(id.ID) //gets mission data from interop server
-
-		m.server.pathPlanningClient.PostMission(missionData) //calls pp client post function
-		//TODO: handle pathPlanningError
 
 		if err.Post {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
 			Log.Errorf("Unable to send data to path planning: %s", err.Message)
+			break
 		} else {
-			w.Write([]byte("Successfully sent mission data to path planning")) //sends the mission data to path planning
-			Log.Infof("Successfully sent mission data to path planning")
+			Log.Infof("Successfully requested mission information from interop")
 		}
+
+		ppErr := m.server.pathPlanningClient.PostMission(missionData) //calls pp client post function
+
+		if ppErr.Post {
+			w.WriteHeader(ppErr.Status)
+			w.Write(ppErr.Message)
+			Log.Errorf("Unable to post mission data to path planning: %s", ppErr.Message)
+			break
+		}
+
 		//copied path_plan/plath code for 3d sub bullet
 
 		//Make the GET request to the PathPlan Server
 		//path, err := json.Marhsall(p.path.Waypoint)
-		path, pathBinary, err := p.server.pathPlanningClient.GetPath()
-		p.server.path = &path
-		if err.Get{
+		path, pathBinary, err := m.server.pathPlanningClient.GetPath()
+		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
-		}else{
+		} else {
+			m.server.path = &path //caching the path
 			w.Write(pathBinary)
 		}
 	default:
@@ -571,12 +592,8 @@ func (o *interopOdlcImageHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-
 /*
 Use path planning client to send the static mission data to path planning when Hub receives a POST request
 at /hub/pathplanning/initialize with the following request body { "id": [mission_id] }.
 Then should use the path planning client to forward the static mission data to path planning
 */
-
-
-
