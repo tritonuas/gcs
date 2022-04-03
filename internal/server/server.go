@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
@@ -39,7 +41,11 @@ func (s *Server) Run(
 	port string,
 	interopChannel chan *ic.Client,
 	interopMissionID int,
-	telemetryChannel chan *ic.Telemetry) {
+	telemetryChannel chan *ic.Telemetry,
+	influxdbURI string,
+	influxToken string,
+	influxBucket string,
+	influxOrg string) {
 
 	s.missionID = MissionID{ID: interopMissionID}
 
@@ -51,17 +57,18 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
 	mux.Handle("/hub/mission", &missionHandler{server: s})
-	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
+	mux.Handle("/hub/plane/position", &planePositionHandler{server: s})
 	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
+	mux.Handle("/hub/plane/telemetry", &planeTelemetryHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
 	/*
-	mux.Handle("/hub/interop/odlcs", )
-	mux.Handle("/hub/interop/odlc/image/", )
+		mux.Handle("/hub/interop/odlcs", )
+		mux.Handle("/hub/interop/odlc/image/", )
 	*/
 
 	c := cors.New(cors.Options{
@@ -234,12 +241,12 @@ func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handles GET requests that ask for our Plane's telemetry data
-type planeTelemHandler struct {
+// Handles GET requests that ask for our Plane's position data
+type planePositionHandler struct {
 	server *Server
 }
 
-func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (t *planePositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	switch r.Method {
 	case "GET":
@@ -252,6 +259,77 @@ func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(t.server.telemetry)
 		Log.Info("Successfully retrieved our plane's telemetry.")
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
+}
+
+// Handles GET requests that ask for our Plane's telemetry data
+type planeTelemetryHandler struct {
+	server *Server
+	uri    string
+	token  string
+	org    string
+	bucket string
+}
+
+func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "GET":
+		client := influxdb2.NewClient(t.uri, t.token)
+		queryAPI := client.QueryAPI(t.org)
+		id := r.URL.Query().Get("id")
+		fieldsSeparatedByCommas := r.URL.Query().Get("field")
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Missing id parameter"))
+			break
+		}
+		if fieldsSeparatedByCommas == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Missing field parameter"))
+			break
+		}
+		// split up the field param by comma
+		// fields is an array where each index is a value we want to get from the database
+		fields := strings.Split(fieldsSeparatedByCommas, ",")
+		// each fieldString is a query string with one of the fields from fields
+		queryStrings := []string{}
+		for _, f := range fields {
+			Log.Infof("current f: %s", f)
+			queryStrings = append(queryStrings,
+							fmt.Sprintf(`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
+							t.bucket, id, f))
+		}
+		// Go through the query strings we made and put them in this results slice
+		// results := []influxdb2.QueryTableResult{}
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
+				return
+			} else {
+				if result.Next() {
+					results = append(results, fmt.Sprint(result.Record().Value()))
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
+					return
+				}
+			}
+		}
+		jsonMap := make(map[string]interface{})
+		for i, field := range fields {
+			jsonMap[field] = results[i]
+		}
+		jsonStr, _ := json.Marshal(jsonMap)
+		w.Write([]byte(jsonStr))
+
+		client.Close()
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented"))
@@ -413,7 +491,7 @@ func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	splitURI := strings.Split(r.URL.Path, "/")
-	odlcID, _ := strconv.Atoi(splitURI[len(splitURI) - 1])
+	odlcID, _ := strconv.Atoi(splitURI[len(splitURI)-1])
 
 	switch r.Method {
 	case "GET":
