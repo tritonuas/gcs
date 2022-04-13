@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
+	mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 )
 
@@ -53,7 +54,7 @@ func (s *Server) Run(
 
 	s.missionID = MissionID{ID: interopMissionID}
 
-	s.pathPlanningClient = pp.NewClient("127.0.0.1:5000", 5)
+	s.pathPlanningClient = pp.NewClient("127.0.0.1:5040", 1000)
 
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
@@ -64,11 +65,12 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})  // get other teams telem info from interop
 
 	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
+	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
 	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s})
 	// POST: sets the id in the server, and then gets the mission associated with the id, and then generates a path from that mission, then sends the path to the plane
 	// right now should return back the path that was generated
 
-	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
+	//mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
 
 	// 3. rename this to something to do with path planning, maybe move down here    V
 	// 4. make accept get request which sends a get request to the path planning server at endpoint /path endpoint in the pathplanning server
@@ -126,7 +128,7 @@ type missionHandler struct {
 
 // MissionID is an object used to capture a mission ID parameter
 type MissionID struct {
-	ID int `json:"id"`
+	ID int `json:"id,omitempty"`
 }
 
 func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -149,11 +151,11 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type missionHandlerStart struct {
+type missionHandlerInitialize struct {
 	server *Server
 }
 
-func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//cut path_plan/initialize code
 	logRequestInfo(r)
 
@@ -176,10 +178,12 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if jsonErr != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(jsonErr.Error()))
+			w.Write(missionID)
 			break
 		}
 
 		m.server.missionID = id
+		fmt.Println(id.ID)
 
 		missionData, err := m.server.client.GetMission(id.ID) //gets mission data from interop server
 
@@ -216,6 +220,37 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not implemented"))
+	}
+}
+
+//Sends waypoints to the plane
+type missionHandlerStart struct {
+	server *Server
+}
+
+func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "POST":
+		{
+			for _, waypoint := range m.server.path.GetPath() {
+				err := mav.SendWaypointToDevice("tcp:localhost:5760", float32(waypoint.Heading), waypoint.Latitude, waypoint.Longitude, float32(waypoint.Altitude))
+				if err != nil {
+					Log.Errorf("Cannot send waypoint to device. Reason: %s", err)
+					break
+				}
+				message := fmt.Sprintf("Sucessfully sent waypoints to plane %d", len(m.server.path.GetPath()))
+				w.Write([]byte(message))
+				Log.Info(message)
+			}
+
+		}
+	default:
+		{
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("Not implemented"))
+		}
+
 	}
 }
 

@@ -3,11 +3,15 @@ version: "3"
 services:
   hub:
     image: tritonuas/hub
+    # ports:
+    #   - 5000:5000
     environment:
-      - INTEROP_IP=172.17.0.1
+      - INTEROP_IP=127.0.0.1
       - INTEROP_PORT=8000
-      - INTEROP_USER=ucsdauvsi
-      - INTEROP_PASS=tritons
+      #- INTEROP_USER=ucsdauvsi
+      #- INTEROP_PASS=tritons
+      - INTEROP_USER=testadmin
+      - INTEROP_PASS=testpass
       - MAV_DEVICE=tcp:localhost:5760
       - MAV_OUTPUT1=udp:localhost:14553
       - MAV_OUTPUT2=""
@@ -28,17 +32,21 @@ services:
       
   influxdb:
     image: influxdb:2.0-alpine
+    # ports:
+    #   - 8086:8086
     volumes:
       - influxdb_data:/var/lib/influxdb
     network_mode: "host"
   grafana:
     image: grafana/grafana:7.5.5
+    # ports:
+    #   - 3000:3000
     depends_on:
       - hub 
     environment: 
       - GF_USERS_DEFAULT_THEME=dark
       - GF_USERS_HOME_PAGE=/dashboards
-      - GF_INSTALL_PLUGINS=briangann-gauge-panel
+      #- GF_INSTALL_PLUGINS=briangann-gauge-panel
       - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -62,12 +70,14 @@ services:
       --token influxdbToken 
       --username tritons 
       --password tritonuas 
-      --host http://127.0.0.1:8086 
+      --host http://localhost:8086 
       --force
     restart: on-failure:20
     network_mode: "host"
   sitl:
     image: tritonuas/plane.rascal
+    # ports:
+    #   - 5760:5760
     environment:
       - "SITL_HOME=38.145844,-76.42638,8,0"
       - SITL_SPEEDUP=1

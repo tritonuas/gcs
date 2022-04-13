@@ -599,9 +599,10 @@ func RunMavlink(
 	defer client.Close()
 }
 
-func SendWaypointToDevice(connectionInfo string, yaw float32, x float32, y float32, z float32) error {
+func SendWaypointToDevice(connectionInfo string, yaw float32, x float64, y float64, z float32) error {
 	connectionInfoSplit := strings.Split(connectionInfo, ":")
-	endpoint := getEndpoint(connectionInfoSplit[0], connectionInfoSplit[1])
+	endpoint := getEndpoint(connectionInfoSplit[0], strings.Join(connectionInfoSplit[1:], ":"))
+	Log.Info(endpoint)
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints:   []gomavlib.EndpointConf{endpoint},
 		Dialect:     ardupilotmega.Dialect,

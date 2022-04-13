@@ -11,8 +11,8 @@ var Log = logrus.New()
 
 type Client struct {
 	httpClient *ut.Client
-	url     string
-	timeout int
+	url        string
+	timeout    int
 }
 
 // IsConnected checks to see if the http client object is not null
@@ -30,7 +30,6 @@ func NewClient(url string, timeout int) *Client {
 	// setup http_client
 	client.httpClient = ut.NewClient(url, timeout)
 
-
 	return client
 }
 
@@ -41,7 +40,8 @@ func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	return err
 }
 
-func (c *Client) GetPath() (Path, []byte, ut.HTTPError){
-	pathBinary, err := c.httpClient.Get("/path")
+func (c *Client) GetPath() (Path, []byte, ut.HTTPError) {
+	pathBinary, err := c.httpClient.Get("/path/waypoints?latitude=38.144778&longitude=-76.429417&altitude=100&heading=180")
+	Log.Info(pathBinary)
 	return CreatePath(pathBinary), pathBinary, err
 }

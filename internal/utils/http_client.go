@@ -1,4 +1,4 @@
-package utils 
+package utils
 
 import (
 	"io"
@@ -17,7 +17,7 @@ Notes to myself: Figured out pretty much how I'm going to develop inhertiance fo
 lower level HTTP requests, I have the functions copied to this struct right now, just
 need to edit Put and Delete to account for the syntax of the error struct in here.
 The way I'm going to develop inheritance is most likely going to be by composition, by having
-this client referenced in each client, then having their methods called,sort of like 
+this client referenced in each client, then having their methods called,sort of like
 how *http.Client is created in here, though I think we don't even need that in the other
 ones which seems interesting.
 */
@@ -81,21 +81,33 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 }
 
 //Get makes a GET request to the server
-func (c *Client) Get(uri string) ([]byte, HTTPError){
+func (c *Client) Get(uri string) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
-
-	resp, err := c.client.Get(c.url+uri)
+	Log.Info("hello")
+	resp, err := c.client.Get(c.url + uri)
+	Log.Info("did you work")
+	Log.Info(resp)
+	Log.Info(err)
 	if err != nil {
-		Log.Debug(err)
+		Log.Warn(err)
 		httpErr.SetError("GET", []byte("RTPP Server Offline"), http.StatusBadGateway)
 		return nil, *httpErr
 	}
+	Log.Info("first if")
 	if resp.StatusCode != http.StatusOK {
 		errMsg, _ := ioutil.ReadAll(resp.Body)
 		httpErr.SetError("GET", errMsg, resp.StatusCode)
 	}
+	Log.Info("second if")
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	Log.Info("defer")
+	body, resErr := ioutil.ReadAll(resp.Body)
+	if resErr != nil {
+		Log.Debug(resErr)
+	}
+	Log.Info("Again")
+	Log.Info(body)
+	Log.Info("age")
 	Log.Debugf("Making Request to RTPP: GET - %s - %d", uri, resp.StatusCode)
 
 	return body, *httpErr
