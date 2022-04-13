@@ -113,7 +113,11 @@ func main() {
 		port,
 		interopChannel,
 		interopMissionID,
-		telemetryChannel)
+		telemetryChannel,
+		*ENVS["INFLUXDB_URI"],
+		*ENVS["INFLUXDB_TOKEN"],
+		*ENVS["INFLUXDB_BUCKET"],
+		*ENVS["INFLUXDB_ORG"])
 
 	log.Info("Hub server up and running")
 }
