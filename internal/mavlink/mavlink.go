@@ -192,7 +192,7 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
 	switch endpointType {
 	case "serial":
-		return gomavlib.EndpointSerial{address}
+        return gomavlib.EndpointSerial{fmt.Sprintf("%s:57600",address)}
 
 	case "udp":
 		return gomavlib.EndpointUDPClient{address}
