@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
-	mav "github.com/tritonuas/hub/internal/mavlink"
+	// mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 )
 
@@ -50,7 +50,8 @@ func (s *Server) Run(
 	influxdbURI string,
 	influxToken string,
 	influxBucket string,
-	influxOrg string) {
+	influxOrg string,
+	sendWaypointToPlaneChannel chan []pp.Waypoint) {
 
 	s.missionID = MissionID{ID: interopMissionID}
 
@@ -66,7 +67,7 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
 	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
-	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s})
+	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s, waypointChan: sendWaypointToPlaneChannel})
 	// POST: sets the id in the server, and then gets the mission associated with the id, and then generates a path from that mission, then sends the path to the plane
 	// right now should return back the path that was generated
 
@@ -225,7 +226,8 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 //Sends waypoints to the plane
 type missionHandlerStart struct {
-	server *Server
+	server       *Server
+	waypointChan chan []pp.Waypoint
 }
 
 func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -233,17 +235,13 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		{
-			for _, waypoint := range m.server.path.GetPath() {
-				err := mav.SendWaypointToDevice("tcp:localhost:5760", float32(waypoint.Heading), waypoint.Latitude, waypoint.Longitude, float32(waypoint.Altitude))
-				if err != nil {
-					Log.Errorf("Cannot send waypoint to device. Reason: %s", err)
-					break
-				}
-				message := fmt.Sprintf("Sucessfully sent waypoints to plane %d", len(m.server.path.GetPath()))
-				w.Write([]byte(message))
-				Log.Info(message)
-			}
-
+			// m.waypointChan <- m.server.path.GetPath()
+			way := pp.Waypoint{Latitude: 0.0, Longitude: 0.0, Altitude: 30.0, Heading: 0}
+			m.waypointChan <- []pp.Waypoint{way}
+			// message := fmt.Sprintf("Sucessfully sent waypoints to plane %d", len(m.server.path.GetPath()))
+			message := fmt.Sprintf("Attempting to send waypoints to plane\n")
+			w.Write([]byte(message))
+			Log.Info(message)
 		}
 	default:
 		{

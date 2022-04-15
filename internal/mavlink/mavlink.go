@@ -2,18 +2,21 @@ package mav
 
 import (
 	// "context"
-	"context"
+
 	"fmt"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	// "sync"
 	"time"
 
 	"encoding/xml"
 	"io/ioutil"
 
 	ic "github.com/tritonuas/hub/internal/interop"
+	pp "github.com/tritonuas/hub/internal/path_plan"
 
 	"github.com/goburrow/serial"
 
@@ -216,12 +219,16 @@ func RunMavlink(
 	mavDevice string,
 	influxdbURI string,
 	mavOutputs []string,
-	telemetryChannel chan *ic.Telemetry) {
+	telemetryChannel chan *ic.Telemetry,
+	sendWaypointToPlaneChannel chan []pp.Waypoint) {
 
 	influxConnDone := false
 
+	waitingToSendWaypoints := make(chan bool)
+
 	//write the data of a particular message to the local influxDB
 	writeToInflux := func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
+		return
 		if !influxConnDone {
 			return
 		}
@@ -294,22 +301,24 @@ func RunMavlink(
 	writeAPI := client.WriteAPI(org, bucket)
 
 	// make a test query to check influx connection status before attempting to write any data
-	queryAPI := client.QueryAPI(org)
+	/*
+		queryAPI := client.QueryAPI(org)
 
-	influxCheck := func(influxConnChan chan bool) {
-		for {
-			_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
-			if err == nil {
-				influxConnChan <- true
-				Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
-				break
+		influxCheck := func(influxConnChan chan bool) {
+			for {
+				_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
+				if err == nil {
+					influxConnChan <- true
+					Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
+					break
+				}
+				Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
+				time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 			}
-			Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
-			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
-	}
-	influxConnChan := make(chan bool)
-	go influxCheck(influxConnChan)
+		influxConnChan := make(chan bool)
+		go influxCheck(influxConnChan)
+	*/
 
 	//establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
@@ -318,6 +327,7 @@ func RunMavlink(
 		Dialect:                ardupilotmega.Dialect,
 		OutVersion:             gomavlib.V2,
 		OutSystemID:            systemID,
+		OutComponentID:         190,
 		HeartbeatDisable:       false,
 		HeartbeatPeriod:        time.Duration(5) * time.Second,
 		StreamRequestEnable:    true,
@@ -326,10 +336,24 @@ func RunMavlink(
 	if err != nil {
 		Log.Warn(err)
 	}
+	// var nodeMutex sync.Mutex
 
 	defer node.Close()
 
 	Log.Infof("Successfully connected to plane at %s %s", mavDeviceType, mavDeviceAddress)
+
+	// test := func() {
+	// 	for {
+	// 		err = SendWaypointToDevice("tcp:localhost:5760", 0.0, 2.0, -1.0, 40.0)
+	// 		if err != nil {
+	// 			Log.Fatal(err)
+	// 		}
+	// 		Log.Error("Sent message")
+	// 		time.Sleep(time.Duration(1) * time.Second)
+	// 		break
+	// 	}
+	// }
+	// go test()
 
 	//read xml files of messages
 	mavXML, err := os.Open(mavCommonPath)
@@ -353,9 +377,11 @@ func RunMavlink(
 	xml.Unmarshal(mavByteValue, &mavlinkCommon)
 	xml.Unmarshal(arduPilotByteValue, &arduPilotMega)
 
-	if <-influxConnChan {
-		influxConnDone = true
-	}
+	/*
+		if <-influxConnChan {
+			influxConnDone = true
+		}
+	*/
 
 	nh, err := newNodeHandler()
 	if err != nil {
@@ -363,271 +389,379 @@ func RunMavlink(
 	}
 	go nh.run()
 
-	//loop through incoming events from the plane
-	for evt := range node.Events() {
-		if frm, ok := evt.(*gomavlib.EventFrame); ok {
+	mavRouterParser := func() {
+		//loop through incoming events from the plane
+		for evt := range node.Events() {
+			if frm, ok := evt.(*gomavlib.EventFrame); ok {
 
-			// Forwards mavlink messages to other clients
-			nh.onEventFrame(frm)
-			node.WriteFrameExcept(frm.Channel, frm.Frame)
+				// Forwards mavlink messages to other clients
+				nh.onEventFrame(frm)
 
-			msgID := frm.Message().GetID()
+				// nodeMutex.Lock()
+				node.WriteFrameExcept(frm.Channel, frm.Frame)
+				// nodeMutex.Unlock()
 
-			//gather the raw values returned by the plane as an array of strings
-			rawValues := parseValues(frm.Message())
+				msgID := frm.Message().GetID()
 
-			//common mavlink message IDs with no arrays or enums
-			normalMessageIDS := []int{1, 27, 29, 30, 32, 33, 35, 36, 42, 46, 62, 65, 74, 116, 125, 136, 241}
-			for _, normalMessageID := range normalMessageIDS {
-				if int(msgID) == normalMessageID {
-					floatValues := convertToFloats(rawValues, msgID)
+				//gather the raw values returned by the plane as an array of strings
+				rawValues := parseValues(frm.Message())
+
+				//common mavlink message IDs with no arrays or enums
+				normalMessageIDS := []int{1, 27, 29, 30, 32, 33, 35, 36, 42, 46, 62, 65, 74, 116, 125, 136, 241}
+				for _, normalMessageID := range normalMessageIDS {
+					if int(msgID) == normalMessageID {
+						floatValues := convertToFloats(rawValues, msgID)
+						parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+						// 33:
+						// https://mavlink.io/en/messages/common.html
+						// TODO: move this info to the wiki
+						// 0: time_boot_ms
+						// 1: lat (DIVIDE BY 10^6) Note: mavlink documentation says 10e7 but this isn't the correct value??
+						// 2: lon (DIVIDE BY 10^6)
+						// 3: alt (DIVIDE BY 1000)
+						// 4: relative_alt (DIVIDE BY 1000) (USE THIS ONE)
+						// 5: vx
+						// 6: vy
+						// 7: vz
+						// 8: hdg (heading) (CENTIDEGREES DIVIDE BY 100)
+						if msgID == 33 {
+							lat := floatValues[1] / 10e6
+							lon := floatValues[2] / 10e6
+							relative_alt := floatValues[4] / 1000
+							hdg := floatValues[8] / 100
+							telem := ic.Telemetry{Latitude: &lat, Longitude: &lon, Altitude: &relative_alt, Heading: &hdg}
+							telemetryChannel <- &telem
+						}
+
+						writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
+						break
+					}
+				}
+
+				//ardupilot dialect message IDs found in ardupilotmega.xml
+				arduPilotMessageIDS := []int{150, 152, 163, 164, 165, 168, 174, 178, 182, 193}
+				for _, ardupilotMessageID := range arduPilotMessageIDS {
+					if int(msgID) == ardupilotMessageID {
+						floatValues := convertToFloats(rawValues, msgID)
+						parameters, msgName := getParameterNames(msgID, arduPilotMega)
+						writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
+						break
+					}
+				}
+
+				switch msgID {
+
+				//Messages below don't work with all floats and require custom parsing
+
+				//PARAM_VALUE
+				case 22:
 					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
 
-					// 33:
-					// https://mavlink.io/en/messages/common.html
-					// TODO: move this info to the wiki
-					// 0: time_boot_ms
-					// 1: lat (DIVIDE BY 10^6) Note: mavlink documentation says 10e7 but this isn't the correct value??
-					// 2: lon (DIVIDE BY 10^6)
-					// 3: alt (DIVIDE BY 1000)
-					// 4: relative_alt (DIVIDE BY 1000) (USE THIS ONE)
-					// 5: vx
-					// 6: vy
-					// 7: vz
-					// 8: hdg (heading) (CENTIDEGREES DIVIDE BY 100)
-					if msgID == 33 {
-						lat := floatValues[1] / 10e6
-						lon := floatValues[2] / 10e6
-						relative_alt := floatValues[4] / 1000
-						hdg := floatValues[8] / 100
-						telem := ic.Telemetry{Latitude: &lat, Longitude: &lon, Altitude: &relative_alt, Heading: &hdg}
-						telemetryChannel <- &telem
+					//enum parser
+					paramType := float64(getIntValFromEnum(msgID, 2, rawValues[2], mavlinkCommon))
+					enumVals := []float64{paramType}
+					var enumNames []string
+					enumNames = append(enumNames, parameters[2:3]...)
+					writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+
+					//remaining float parsing
+					floatValues := convertToFloats(rawValues[1:2], msgID)
+					floatValues = append(floatValues, convertToFloats(rawValues[3:], msgID)...)
+					floatParameters := parameters[1:2]
+					floatParameters = append(floatParameters, parameters[3:]...)
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+				//GPS_RAW_INT
+				case 24:
+					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					//enum parser
+					fixType := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
+					enumVals := []float64{fixType}
+					enumNames := []string{parameters[1]}
+					writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+
+					//remaining float parser
+					floatValues := convertToFloats(rawValues[0:1], msgID)
+					floatValues = append(floatValues, convertToFloats(rawValues[2:], msgID)...)
+					floatParameters := parameters[0:1]
+					floatParameters = append(floatParameters, parameters[2:]...)
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+				//MISSION_REQUEST
+				// case 40:
+				// 	parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+				// 	//enum parser
+				// 	missionType := float64(getIntValFromEnum(msgID, 3, rawValues[3], mavlinkCommon))
+				// 	enumVals := []float64{missionType}
+				// 	enumNames := []string{parameters[3]}
+				// 	writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+
+				//COMMAND_ACK
+				case 77:
+					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					//enum parser
+					command := float64(getIntValFromEnum(msgID, 0, rawValues[0], mavlinkCommon))
+					result := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
+					enumVals := []float64{command, result}
+					var enumNames []string
+					enumNames = append(enumNames, parameters[0:2]...)
+					writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+
+					//parses remaining floats
+					floatValues := convertToFloats(rawValues[2:], msgID)
+					floatParameters := parameters[2:]
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+				//POSITION_TARGET_GLOBAL_INT
+				case 87:
+					//two enum values
+					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					//enum parse and write
+					coordinateFrame := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
+					typeMask := float64(getIntValFromEnum(msgID, 2, rawValues[2], mavlinkCommon))
+					enumVals := []float64{coordinateFrame, typeMask}
+					var enumNames []string
+					enumNames = append(enumNames, parameters[1:3]...)
+					writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+
+					floatValues := convertToFloats(rawValues[0:1], msgID)
+					floatValues = append(floatValues, convertToFloats(rawValues[3:], msgID)...)
+					floatParameters := parameters[0:1]
+					floatParameters = append(floatParameters, parameters[3:]...)
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+				//BATTERY_STATUS
+				case 147:
+					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					//parses array of battery voltage information for cells 1 to 10
+					voltageStrings := rawValues[4:14]
+					for i := 0; i < len(voltageStrings); i++ {
+						label := fmt.Sprintf("voltages%v", i)
+						if i == 0 {
+							voltageStrings[i] = (voltageStrings[i])[1:]
+						} else if i == len(voltageStrings)-1 {
+							voltageStrings[i] = (voltageStrings[i])[:len(voltageStrings[i])-1]
+						}
+						value, err := strconv.ParseFloat(voltageStrings[i], 32)
+						if err != nil {
+							break
+						}
+						p := influxdb2.NewPointWithMeasurement(msgName).
+							AddTag("ID", fmt.Sprintf("%v", msgID)).
+							AddField(label, value).
+							SetTime(time.Now())
+						writeAPI.WritePoint(p)
 					}
 
-					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
-					break
+					//parses array of battery voltage information for cells 11 to 14
+					voltageExtStrings := rawValues[20:24]
+					for i := 0; i < len(voltageExtStrings); i++ {
+						label := fmt.Sprintf("voltages_ext%v", i)
+						if i == 0 {
+							voltageExtStrings[i] = (voltageExtStrings[i])[1:]
+						} else if i == len(voltageExtStrings)-1 {
+							voltageExtStrings[i] = (voltageExtStrings[i])[:len(voltageExtStrings[i])-1]
+						}
+						value, err := strconv.ParseFloat(voltageExtStrings[i], 32)
+						if err != nil {
+							break
+						}
+						p := influxdb2.NewPointWithMeasurement(msgName).
+							AddTag("ID", fmt.Sprintf("%v", msgID)).
+							AddField(label, value).
+							SetTime(time.Now())
+						writeAPI.WritePoint(p)
+					}
+
+					//parse the remaining enum values
+					batteryFunction := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
+					batteryType := float64(getIntValFromEnum(msgID, 2, rawValues[2], mavlinkCommon))
+					chargingState := float64(getIntValFromEnum(msgID, 10, rawValues[19], mavlinkCommon))
+					batteryMode := float64(getIntValFromEnum(msgID, 12, rawValues[24], mavlinkCommon))
+					faultBitmask := float64(getIntValFromEnum(msgID, 13, rawValues[25], mavlinkCommon))
+					enumVals := []float64{batteryFunction, batteryType, chargingState, batteryMode, faultBitmask}
+					var enumNames []string
+					enumNames = append(enumNames, parameters[1:3]...)
+					enumNames = append(enumNames, parameters[10:11]...)
+					enumNames = append(enumNames, parameters[12:]...)
+					writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
+
+					//parse the rest of the values normally
+					floatValues := convertToFloats(rawValues[0:1], msgID)
+					floatValues = append(floatValues, convertToFloats(rawValues[3:4], msgID)...)
+					floatValues = append(floatValues, convertToFloats(rawValues[14:19], msgID)...)
+					floatParameters := parameters[0:1]
+					floatParameters = append(floatParameters, parameters[3:4]...)
+					floatParameters = append(floatParameters, parameters[5:10]...)
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+					writeAPI.Flush()
+
+				//HOME_POSITION
+				case 242:
+					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					//one array
+					floatValues := convertToFloats(rawValues[0:6], msgID)
+					floatValues = append(floatValues, convertToFloats(rawValues[10:], msgID)...)
+					floatParameters := parameters[0:6]
+					floatParameters = append(floatParameters, parameters[7:]...)
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+				// STATUSTEXT
+				case 253:
+					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
+
+					floatValues := convertToFloats(rawValues[len(rawValues)-2:], msgID)
+					floatParameters := parameters[len(parameters)-2:]
+					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
+
+				case 47:
+					Log.Error("ACK", frm.Message())
+
+				case 51:
+				case 40:
+					// if frm.Channel.Endpoint().Conf() == endpoints[0] &&
+					if <-waitingToSendWaypoints {
+						node.WriteMessageAll(&ardupilotmega.MessageMissionItemInt{
+							TargetSystem:    1, // SystemID of the plane (should probably be a parameter)
+							TargetComponent: 1, // ComponentID (not exactly sure what this should be yet)
+							Seq:             0,
+							Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
+							Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
+							Current:         1,
+							Autocontinue:    0,
+							Param1:          0,                       // Hold Time: ignored by fixed wing planes
+							Param2:          10,                      // Accept Radius (radial threshold in meters for a waypoint to be hit)
+							Param3:          0,                       // Pass Radius (idk what this is exactly yet)
+							Param4:          0,                       // Yaw to enter waypoint at
+							X:               int32(0.0000001 * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+							Y:               int32(0 * 10e7),         // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+							Z:               30,                      // altitude in meters over mean sea level (MSL)
+							MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
+						})
+						Log.Info("Sent a waypoint")
+						Log.Error(frm.Message())
+						waitingToSendWaypoints <- false
+					}
 				}
 			}
-
-			//ardupilot dialect message IDs found in ardupilotmega.xml
-			arduPilotMessageIDS := []int{150, 152, 163, 164, 165, 168, 174, 178, 182, 193}
-			for _, ardupilotMessageID := range arduPilotMessageIDS {
-				if int(msgID) == ardupilotMessageID {
-					floatValues := convertToFloats(rawValues, msgID)
-					parameters, msgName := getParameterNames(msgID, arduPilotMega)
-					writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
-					break
-				}
-			}
-
-			switch msgID {
-
-			//Messages below don't work with all floats and require custom parsing
-
-			//PARAM_VALUE
-			case 22:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//enum parser
-				paramType := float64(getIntValFromEnum(msgID, 2, rawValues[2], mavlinkCommon))
-				enumVals := []float64{paramType}
-				var enumNames []string
-				enumNames = append(enumNames, parameters[2:3]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
-
-				//remaining float parsing
-				floatValues := convertToFloats(rawValues[1:2], msgID)
-				floatValues = append(floatValues, convertToFloats(rawValues[3:], msgID)...)
-				floatParameters := parameters[1:2]
-				floatParameters = append(floatParameters, parameters[3:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-			//GPS_RAW_INT
-			case 24:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//enum parser
-				fixType := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
-				enumVals := []float64{fixType}
-				enumNames := []string{parameters[1]}
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
-
-				//remaining float parser
-				floatValues := convertToFloats(rawValues[0:1], msgID)
-				floatValues = append(floatValues, convertToFloats(rawValues[2:], msgID)...)
-				floatParameters := parameters[0:1]
-				floatParameters = append(floatParameters, parameters[2:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-			//MISSION_REQUEST
-			case 40:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//enum parser
-				missionType := float64(getIntValFromEnum(msgID, 3, rawValues[3], mavlinkCommon))
-				enumVals := []float64{missionType}
-				enumNames := []string{parameters[3]}
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
-
-			//COMMAND_ACK
-			case 77:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//enum parser
-				command := float64(getIntValFromEnum(msgID, 0, rawValues[0], mavlinkCommon))
-				result := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
-				enumVals := []float64{command, result}
-				var enumNames []string
-				enumNames = append(enumNames, parameters[0:2]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
-
-				//parses remaining floats
-				floatValues := convertToFloats(rawValues[2:], msgID)
-				floatParameters := parameters[2:]
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-			//POSITION_TARGET_GLOBAL_INT
-			case 87:
-				//two enum values
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//enum parse and write
-				coordinateFrame := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
-				typeMask := float64(getIntValFromEnum(msgID, 2, rawValues[2], mavlinkCommon))
-				enumVals := []float64{coordinateFrame, typeMask}
-				var enumNames []string
-				enumNames = append(enumNames, parameters[1:3]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
-
-				floatValues := convertToFloats(rawValues[0:1], msgID)
-				floatValues = append(floatValues, convertToFloats(rawValues[3:], msgID)...)
-				floatParameters := parameters[0:1]
-				floatParameters = append(floatParameters, parameters[3:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-			//BATTERY_STATUS
-			case 147:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//parses array of battery voltage information for cells 1 to 10
-				voltageStrings := rawValues[4:14]
-				for i := 0; i < len(voltageStrings); i++ {
-					label := fmt.Sprintf("voltages%v", i)
-					if i == 0 {
-						voltageStrings[i] = (voltageStrings[i])[1:]
-					} else if i == len(voltageStrings)-1 {
-						voltageStrings[i] = (voltageStrings[i])[:len(voltageStrings[i])-1]
-					}
-					value, err := strconv.ParseFloat(voltageStrings[i], 32)
-					if err != nil {
-						break
-					}
-					p := influxdb2.NewPointWithMeasurement(msgName).
-						AddTag("ID", fmt.Sprintf("%v", msgID)).
-						AddField(label, value).
-						SetTime(time.Now())
-					writeAPI.WritePoint(p)
-				}
-
-				//parses array of battery voltage information for cells 11 to 14
-				voltageExtStrings := rawValues[20:24]
-				for i := 0; i < len(voltageExtStrings); i++ {
-					label := fmt.Sprintf("voltages_ext%v", i)
-					if i == 0 {
-						voltageExtStrings[i] = (voltageExtStrings[i])[1:]
-					} else if i == len(voltageExtStrings)-1 {
-						voltageExtStrings[i] = (voltageExtStrings[i])[:len(voltageExtStrings[i])-1]
-					}
-					value, err := strconv.ParseFloat(voltageExtStrings[i], 32)
-					if err != nil {
-						break
-					}
-					p := influxdb2.NewPointWithMeasurement(msgName).
-						AddTag("ID", fmt.Sprintf("%v", msgID)).
-						AddField(label, value).
-						SetTime(time.Now())
-					writeAPI.WritePoint(p)
-				}
-
-				//parse the remaining enum values
-				batteryFunction := float64(getIntValFromEnum(msgID, 1, rawValues[1], mavlinkCommon))
-				batteryType := float64(getIntValFromEnum(msgID, 2, rawValues[2], mavlinkCommon))
-				chargingState := float64(getIntValFromEnum(msgID, 10, rawValues[19], mavlinkCommon))
-				batteryMode := float64(getIntValFromEnum(msgID, 12, rawValues[24], mavlinkCommon))
-				faultBitmask := float64(getIntValFromEnum(msgID, 13, rawValues[25], mavlinkCommon))
-				enumVals := []float64{batteryFunction, batteryType, chargingState, batteryMode, faultBitmask}
-				var enumNames []string
-				enumNames = append(enumNames, parameters[1:3]...)
-				enumNames = append(enumNames, parameters[10:11]...)
-				enumNames = append(enumNames, parameters[12:]...)
-				writeToInflux(msgID, msgName, enumNames, enumVals, writeAPI)
-
-				//parse the rest of the values normally
-				floatValues := convertToFloats(rawValues[0:1], msgID)
-				floatValues = append(floatValues, convertToFloats(rawValues[3:4], msgID)...)
-				floatValues = append(floatValues, convertToFloats(rawValues[14:19], msgID)...)
-				floatParameters := parameters[0:1]
-				floatParameters = append(floatParameters, parameters[3:4]...)
-				floatParameters = append(floatParameters, parameters[5:10]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-				writeAPI.Flush()
-
-			//HOME_POSITION
-			case 242:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				//one array
-				floatValues := convertToFloats(rawValues[0:6], msgID)
-				floatValues = append(floatValues, convertToFloats(rawValues[10:], msgID)...)
-				floatParameters := parameters[0:6]
-				floatParameters = append(floatParameters, parameters[7:]...)
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-			// STATUSTEXT
-			case 253:
-				parameters, msgName := getParameterNames(msgID, mavlinkCommon)
-
-				floatValues := convertToFloats(rawValues[len(rawValues)-2:], msgID)
-				floatParameters := parameters[len(parameters)-2:]
-				writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-
-			}
-
 		}
 	}
+
+	go mavRouterParser()
+
 	defer client.Close()
-}
 
-func SendWaypointToDevice(connectionInfo string, yaw float32, x float64, y float64, z float32) error {
-	connectionInfoSplit := strings.Split(connectionInfo, ":")
-	endpoint := getEndpoint(connectionInfoSplit[0], strings.Join(connectionInfoSplit[1:], ":"))
-	Log.Info(endpoint)
-	node, err := gomavlib.NewNode(gomavlib.NodeConf{
-		Endpoints:   []gomavlib.EndpointConf{endpoint},
-		Dialect:     ardupilotmega.Dialect,
-		OutVersion:  gomavlib.V2,
-		OutSystemID: systemID,
-	})
-	if err != nil {
-		return err
+	for {
+		nextWaypoints := <-sendWaypointToPlaneChannel
+		// nodeMutex.Lock()
+		// let the plane know that we want to upload a given number of messages
+		node.WriteMessageAll(&ardupilotmega.MessageMissionCount{
+			TargetSystem:    1,
+			TargetComponent: 1,
+			Count:           uint16(len(nextWaypoints)),
+			MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
+		})
+		// nodeMutex.Unlock()
+		waitingToSendWaypoints <- true
+
+		// for evt := range node.Events() {
+		// 	if frm, ok := evt.(*gomavlib.EventFrame); ok {
+		// 		// if msg, ok := frm.Message().(*ardupilotmega.MessageMissionRequest); ok &&
+		// 		// 	msg.TargetSystem == 0 &&
+		// 		// 	msg.TargetComponent == 0 {
+		// 		if frm.Channel.Endpoint().Conf() == endpoints[0] &&
+		// 			frm.Message().GetID() == 51 || frm.Message().GetID() == 40 {
+		// 			Log.Error(frm.Message())
+		// 			// nodeMutex.Lock()
+		// 			//upload waypoints
+		// 			node.WriteMessageTo(frm.Channel, &ardupilotmega.MessageMissionItemInt{
+		// 				TargetSystem:    1, // SystemID of the plane (should probably be a parameter)
+		// 				TargetComponent: 1, // ComponentID (not exactly sure what this should be yet)
+		// 				Seq:             0,
+		// 				Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
+		// 				Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
+		// 				Current:         1,
+		// 				Autocontinue:    0,
+		// 				Param1:          0,                       // Hold Time: ignored by fixed wing planes
+		// 				Param2:          10,                      // Accept Radius (radial threshold in meters for a waypoint to be hit)
+		// 				Param3:          0,                       // Pass Radius (idk what this is exactly yet)
+		// 				Param4:          0,                       // Yaw to enter waypoint at
+		// 				X:               int32(0.0000001 * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+		// 				Y:               int32(0 * 10e7),         // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+		// 				Z:               30,                      // altitude in meters over mean sea level (MSL)
+		// 				MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
+		// 			})
+		// 			// nodeMutex.Unlock()
+		// 			// break
+		// 		}
+		// 	}
+		// }
+		// Log.Info("Sent a waypoint")
+
 	}
-	// MAV_CMD_NAV_WAYPOINT
-	node.WriteMessageAll(&ardupilotmega.MessageCommandInt{
-		TargetSystem:    255,                            // SystemID of the plane (should probably be a parameter)
-		TargetComponent: 254,                            // ComponentID (not exactly sure what this should be yet)
-		Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
-		Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
-		Current:         0,
-		Autocontinue:    0,
-		Param1:          0,               // Hold Time: ignored by fixed wing planes
-		Param2:          10,              // Accept Radius (radial threshold in meters for a waypoint to be hit)
-		Param3:          0,               // Pass Radius (idk what this is exactly yet)
-		Param4:          yaw,             // Yaw to enter waypoint at
-		X:               int32(x * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-		Y:               int32(y * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-		Z:               z,               // altitude in meters over mean sea level (MSL)
-	})
 
-	return nil
 }
+
+// func SendWaypointToDevice(connectionInfo string, yaw float32, x float64, y float64, z float32) error {
+// 	connectionInfoSplit := strings.Split(connectionInfo, ":")
+// 	endpoint := getEndpoint(connectionInfoSplit[0], strings.Join(connectionInfoSplit[1:], ":"))
+// 	Log.Info(endpoint)
+// 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
+// 		Endpoints:   []gomavlib.EndpointConf{endpoint},
+// 		Dialect:     ardupilotmega.Dialect,
+// 		OutVersion:  gomavlib.V2,
+// 		OutSystemID: 240,
+// 	})
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer node.Close()
+// 	// MAV_CMD_NAV_WAYPOINT
+// 	node.WriteMessageAll(&ardupilotmega.MessageCommandInt{
+// 		TargetSystem:    1,                              // SystemID of the plane (should probably be a parameter)
+// 		TargetComponent: 1,                              // ComponentID (not exactly sure what this should be yet)
+// 		Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
+// 		Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
+// 		Current:         0,
+// 		Autocontinue:    0,
+// 		Param1:          0,               // Hold Time: ignored by fixed wing planes
+// 		Param2:          10,              // Accept Radius (radial threshold in meters for a waypoint to be hit)
+// 		Param3:          0,               // Pass Radius (idk what this is exactly yet)
+// 		Param4:          yaw,             // Yaw to enter waypoint at
+// 		X:               int32(x * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+// 		Y:               int32(y * 10e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+// 		Z:               z,               // altitude in meters over mean sea level (MSL)
+// 	})
+
+// 	node.WriteMessageAll(&ardupilotmega.MessageMissionCount{
+// 		TargetSystem:    1,
+// 		TargetComponent: 1,
+// 		Count:           0,
+// 		MissionType:     0,
+// 	})
+// 	node.WriteMessageAll(&ardupilotmega.MessageMissionCount{
+// 		TargetSystem:    1,
+// 		TargetComponent: 1,
+// 		Count:           1,
+// 		MissionType:     0,
+// 	})
+
+// 	// for evt := range node.Events() {
+// 	// 	if frm, ok := evt.(*gomavlib.EventFrame); ok {
+// 	// 		if frm.Frame.GetMessage().GetID() == 51 {
+// 	// 			Log.Fatal(frm.Frame.GetMessage())
+// 	// 		}
+// 	// 	}
+
+// 	// }
+
+// 	return nil
+// }

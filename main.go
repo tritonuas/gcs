@@ -11,6 +11,7 @@ import (
 	ic "github.com/tritonuas/hub/internal/interop"
 	mav "github.com/tritonuas/hub/internal/mavlink"
 	hs "github.com/tritonuas/hub/internal/server"
+	pp "github.com/tritonuas/hub/internal/path_plan"
 )
 
 var log = logrus.New()
@@ -82,6 +83,7 @@ func main() {
 
 	// Do other things...
 	telemetryChannel := make(chan *ic.Telemetry, 100)
+	sendWaypointToPlaneChannel := make(chan []pp.Waypoint)
 
 	// begins to send messages from the plane to InfluxDB
 	mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
@@ -94,7 +96,8 @@ func main() {
 		*ENVS["MAV_DEVICE"],
 		*ENVS["INFLUXDB_URI"],
 		mavOutputs,
-		telemetryChannel)
+		telemetryChannel,
+		sendWaypointToPlaneChannel)
 
 	var server *hs.Server
 	server = new(hs.Server)
@@ -117,7 +120,7 @@ func main() {
 		*ENVS["INFLUXDB_URI"],
 		*ENVS["INFLUXDB_TOKEN"],
 		*ENVS["INFLUXDB_BUCKET"],
-		*ENVS["INFLUXDB_ORG"])
+		*ENVS["INFLUXDB_ORG"],
+		sendWaypointToPlaneChannel)
 
-	log.Info("Hub server up and running")
 }
