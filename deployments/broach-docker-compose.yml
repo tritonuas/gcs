@@ -1,82 +1,76 @@
+# TODO: setup env variables https://docs.docker.com/compose/environment-variables/
 version: "3"
 services:
   hub:
     image: tritonuas/hub
     environment:
-      - INTEROP_IP=127.0.0.1
+      - INTEROP_IP=172.17.0.1
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
       - MAV_DEVICE=serial:/dev/ttyUSB0
-      - MAV_OUTPUT1="udp:192.168.1.6:14551"
-      - MAV_OUTPUT2="udp:192.168.1.5:14553"
+      - MAV_OUTPUT1=udp:192.168.1.5:14551
+      - MAV_OUTPUT2=udp:192.168.1.6:14551
+      - MAV_OUTPUT3=""
       - MAV_OUTPUT4=""
       - MAV_OUTPUT5=""
-      # - "OUT1=--out=udp:172.17.0.1:14550"
-      # - "OUT2=--out=tcpin:mavproxy:14551"
-      # - "OUT3=--out=udp:192.168.1.14:14555"
-      # - "OUT4=--out=udp:192.168.1.8:14556"
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
-      - INFLUXDB_URI=http://localhost:8086
+      - INFLUXDB_URI=http://influxdb:8086
       - HUB_PATH=/go/src/github.com/tritonuas/hub
+    volumes:
+      - missions:/go/src/github.com/tritonuas/hub/missions
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
-        #    volumes:
-        #      - missions:/go/src/github.com/tritonuas/hub/missions
-        #volumes:
-        #  missions:
-        #    links:
-        #      - influxdb
-        #    depends_on: 
-        #      - influxdb_cli
-        #      - influxdb
-        #        #network_mode: "host"
-        #  influxdb:
-        #    image: influxdb:2.0-alpine
-        #    volumes:
-        #      - influxdb_data:/var/lib/influxdb
-        #        #network_mode: "host"
-        #  grafana:
-        #    image: grafana/grafana:7.5.5
-        #    depends_on:
-        #      - hub 
-        #    environment: 
-        #      - GF_USERS_DEFAULT_THEME=light
-        #      - GF_USERS_HOME_PAGE=/dashboards
-        #      # - GF_INSTALL_PLUGINS=briangann-gauge-panel
-        #      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
-        #      - GF_AUTH_DISABLE_LOGIN_FORM=true
-        #      - GF_AUTH_ANONYMOUS_ENABLED=true
-        #      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
-        #      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-        #      - GF_USERS_ALLOW_SIGN_UP=false
-        #    volumes:
-        #      - grafana_data:/var/lib/grafana
-        #      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
-        #      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
-        #      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
-        #        #network_mode: "host"
-        #  influxdb_cli:
-        #    image: influxdb:2.0-alpine
-        #    entrypoint: > 
-        #      influx setup 
-        #      --bucket mavlink 
-        #      -o TritonUAS 
-        #      -t influxdbToken 
-        #      --username=tritons 
-        #      --password=tritonuas 
-        #      --host=http://127.0.0.1:8086 
-        #      --force
-        #    restart: on-failure:20
-        #      #network_mode: "host"
-        #    links:
-        #      - influxdb
-        #  dozzle:
-        #    container_name: dozzle
-        #    image: amir20/dozzle:latest
-        #    volumes:
-        #      - /var/run/docker.sock:/var/run/docker.sock
-        #  grafana_data:
-        #  influxdb_data:
+      
+  influxdb:
+    image: influxdb:2.0-alpine
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+  grafana:
+    image: grafana/grafana:7.5.5
+    ports:
+      - 3000:3000
+    environment: 
+      - GF_USERS_DEFAULT_THEME=dark
+      - GF_USERS_HOME_PAGE=/dashboards
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+  influxdb_cli:
+    depends_on:
+      - influxdb
+    image: influxdb:2.0-alpine
+    entrypoint: > 
+      influx setup 
+      --bucket mavlink 
+      --org TritonUAS 
+      --token influxdbToken 
+      --username tritons 
+      --password tritonuas 
+      --host http://influxdb:8086 
+      --force
+    restart: on-failure:20
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 9999:8080
+
+volumes:
+  grafana_data:
+  missions:
+  influxdb_data:

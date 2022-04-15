@@ -8,37 +8,36 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
-      - MAV_DEVICE=tcp:localhost:5760
-      - MAV_OUTPUT1=udp:localhost:14553
-      - MAV_OUTPUT2=""
+      - MAV_DEVICE=tcp:sitl:5760
+      - MAV_OUTPUT1=udp:192.168.1.5:14551
+      - MAV_OUTPUT2=udp:192.168.1.6:14551
       - MAV_OUTPUT3=""
       - MAV_OUTPUT4=""
       - MAV_OUTPUT5=""
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
-      - INFLUXDB_URI=http://localhost:8086
+      - INFLUXDB_URI=http://influxdb:8086
       - HUB_PATH=/go/src/github.com/tritonuas/hub
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
-    depends_on: 
-      - influxdb_cli
-      - influxdb
-    network_mode: "host"
       
   influxdb:
     image: influxdb:2.0-alpine
+    ports:
+      - 8086:8086
     volumes:
       - influxdb_data:/var/lib/influxdb
-    network_mode: "host"
   grafana:
     image: grafana/grafana:7.5.5
+    ports:
+      - 3000:3000
     depends_on:
       - hub 
     environment: 
       - GF_USERS_DEFAULT_THEME=dark
       - GF_USERS_HOME_PAGE=/dashboards
-      - GF_INSTALL_PLUGINS=briangann-gauge-panel
+        #- GF_INSTALL_PLUGINS=briangann-gauge-panel
       - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -50,7 +49,6 @@ services:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
-    network_mode: "host"
   influxdb_cli:
     depends_on:
       - influxdb
@@ -62,18 +60,18 @@ services:
       --token influxdbToken 
       --username tritons 
       --password tritonuas 
-      --host http://127.0.0.1:8086 
+      --host http://influxdb:8086 
       --force
     restart: on-failure:20
-    network_mode: "host"
   sitl:
     image: tritonuas/plane.rascal
+    ports:
+      - 5760:5760
     environment:
       - "SITL_HOME=38.145844,-76.42638,8,0"
       - SITL_SPEEDUP=1
     volumes:
       - sitl:/app/logs
-    network_mode: host
   dozzle:
     container_name: dozzle
     image: amir20/dozzle:latest
@@ -81,8 +79,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 9999:8080
+
 volumes:
   grafana_data:
-  influxdb_data:
   missions:
   sitl:
+  influxdb_data:
