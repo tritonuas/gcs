@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	// "sync"
+	"sync"
 	"time"
 
 	"encoding/xml"
@@ -195,7 +195,7 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
 	switch endpointType {
 	case "serial":
-        return gomavlib.EndpointSerial{fmt.Sprintf("%s:57600",address)}
+		return gomavlib.EndpointSerial{fmt.Sprintf("%s:57600", address)}
 
 	case "udp":
 		return gomavlib.EndpointUDPClient{address}
@@ -224,7 +224,7 @@ func RunMavlink(
 
 	influxConnDone := false
 
-	waitingToSendWaypoints := make(chan bool)
+	waitingToSendWaypoints := false
 
 	//write the data of a particular message to the local influxDB
 	writeToInflux := func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
@@ -336,7 +336,7 @@ func RunMavlink(
 	if err != nil {
 		Log.Warn(err)
 	}
-	// var nodeMutex sync.Mutex
+	var nodeMutex sync.Mutex
 
 	defer node.Close()
 
@@ -397,9 +397,9 @@ func RunMavlink(
 				// Forwards mavlink messages to other clients
 				nh.onEventFrame(frm)
 
-				// nodeMutex.Lock()
+				nodeMutex.Lock()
 				node.WriteFrameExcept(frm.Channel, frm.Frame)
-				// nodeMutex.Unlock()
+				nodeMutex.Unlock()
 
 				msgID := frm.Message().GetID()
 
@@ -626,9 +626,10 @@ func RunMavlink(
 					Log.Error("ACK", frm.Message())
 
 				case 51:
+					fallthrough
 				case 40:
 					// if frm.Channel.Endpoint().Conf() == endpoints[0] &&
-					if <-waitingToSendWaypoints {
+					if waitingToSendWaypoints {
 						node.WriteMessageAll(&ardupilotmega.MessageMissionItemInt{
 							TargetSystem:    1, // SystemID of the plane (should probably be a parameter)
 							TargetComponent: 1, // ComponentID (not exactly sure what this should be yet)
@@ -648,7 +649,7 @@ func RunMavlink(
 						})
 						Log.Info("Sent a waypoint")
 						Log.Error(frm.Message())
-						waitingToSendWaypoints <- false
+						waitingToSendWaypoints = false
 					}
 				}
 			}
@@ -661,7 +662,7 @@ func RunMavlink(
 
 	for {
 		nextWaypoints := <-sendWaypointToPlaneChannel
-		// nodeMutex.Lock()
+		nodeMutex.Lock()
 		// let the plane know that we want to upload a given number of messages
 		node.WriteMessageAll(&ardupilotmega.MessageMissionCount{
 			TargetSystem:    1,
@@ -669,8 +670,8 @@ func RunMavlink(
 			Count:           uint16(len(nextWaypoints)),
 			MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
 		})
-		// nodeMutex.Unlock()
-		waitingToSendWaypoints <- true
+		nodeMutex.Unlock()
+		waitingToSendWaypoints = true
 
 		// for evt := range node.Events() {
 		// 	if frm, ok := evt.(*gomavlib.EventFrame); ok {
