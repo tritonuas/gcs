@@ -11,6 +11,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
+	cv "github.com/tritonuas/hub/internal/computer_vision"
 	ic "github.com/tritonuas/hub/internal/interop"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 )
@@ -25,6 +26,7 @@ type Server struct {
 	port               string
 	client             *ic.Client
 	pathPlanningClient *pp.Client
+	cvData             *cv.ComputerVisionData
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
@@ -49,6 +51,8 @@ func (s *Server) Run(
 
 	s.pathPlanningClient = pp.NewClient("127.0.0.1:5000", 5)
 
+	s.cvData = cv.InitializeData()
+
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
@@ -72,6 +76,8 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
+
+	mux.Handle("/hub/cvs/image/", &CVSRequestHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -597,3 +603,40 @@ Use path planning client to send the static mission data to path planning when H
 at /hub/pathplanning/initialize with the following request body { "id": [mission_id] }.
 Then should use the path planning client to forward the static mission data to path planning
 */
+
+// Handles requests from the computer vision server
+type CVSRequestHandler struct {
+	server *Server
+}
+
+func (h CVSRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
+	if h.server.cvData == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Computer Vision Server connection not established"))
+		Log.Errorf("Unable to receive data from CVS; connection not established")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		imageData, _ := ioutil.ReadAll(r.Body)
+		// fmt.Printf(string(imageData) + "\n")
+
+		var image cv.Image
+
+		err := json.Unmarshal(imageData, &image)
+		if (err != nil) {
+			Log.Error(err)
+		}
+		h.server.cvData.Images = append(h.server.cvData.Images, image) // saves unmarshalled data to list of cv images
+		Log.Info(h.server.cvData.Images)
+
+		//TODO: make sure the json parsing is right in computer_vision.go; try to find an example json input for reference
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
