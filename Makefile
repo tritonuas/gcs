@@ -38,7 +38,7 @@ run:
 	./hub -interop_user=testuser -interop_pass=testpass
 
 run-docker:
-	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host tritonuas/hub
+	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host --name hub tritonuas/hub
 
 run-compose:
 	docker-compose -f deployments/docker-compose.yml up -d

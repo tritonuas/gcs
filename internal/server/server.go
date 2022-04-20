@@ -235,11 +235,11 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		{
-			m.waypointChan <- m.server.path.GetPath()
-			// way := pp.Waypoint{Latitude: 0.0, Longitude: 0.0, Altitude: 30.0, Heading: 0}
-			// m.waypointChan <- []pp.Waypoint{way}
-			message := fmt.Sprintf("Sucessfully sent waypoints to plane %d", len(m.server.path.GetPath()))
-			// message := fmt.Sprintf("Attempting to send waypoints to plane\n")
+			// m.waypointChan <- m.server.path.GetPath()
+			way := pp.Waypoint{Latitude: 0.0, Longitude: 0.0, Altitude: 30.0, Heading: 0}
+			m.waypointChan <- []pp.Waypoint{way}
+			// message := fmt.Sprintf("Sucessfully sent waypoints to plane %d", len(m.server.path.GetPath()))
+			message := fmt.Sprintf("Attempting to send waypoints to plane\n")
 			w.Write([]byte(message))
 			Log.Info(message)
 		}
