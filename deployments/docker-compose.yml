@@ -11,8 +11,9 @@ services:
       - INTEROP_USER=testadmin
       - INTEROP_PASS=testpass
       - MAV_DEVICE=tcp:sitl:5760
+      # - MAV_DEVICE=udp:mavproxy:14555
       - MAV_OUTPUT1=udp:192.168.1.2:14551
-      - MAV_OUTPUT2=udp:192.168.1.3:14551
+      - MAV_OUTPUT2=udp:192.168.1.7:14551
       - MAV_OUTPUT3=udp:host.docker.internal:14551
       # - MAV_OUTPUT4=udp:172.17.0.1:14551
       - MAV_OUTPUT5=""
@@ -83,6 +84,31 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 9999:8080
+  # mavproxy:
+  #   image: tritonuas/mavproxy
+  #   # depends_on: 
+  #   #   - sitl
+  #   ports:
+  #     - "5761:5762"
+  #     - "14551:14551"
+  #   environment:
+  #     - "MASTER=--master=tcp:sitl:5760"
+  #     # - "OUT1=--out=udp:172.17.0.1:14550"
+  #     # Forwards messages to MissionPlanner/QGC
+  #     - "OUT1=--out=172.17.0.1:14550"
+  #     # Forwards messages to hub
+  #     - "OUT2=--out=udpin:mavproxy:14551"
+  #     - "OUT2=--out=udp:mavproxy:14555"
+  #     - "OUT3=--out=udp:192.168.1.2:14551"
+  #     - "OUT4=--out=udp:192.168.1.7:14551"
+  #     # - "OUT3=--out=udp:mavproxy:14556"
+  #     # - "OUT4=--out=tcpin:mavproxy:5761"
+  #     # - "OUT5=--out=udp:mavproxy:5762"
+  #     # - OUT6=
+  #     # - OUT7=
+  #   restart: always
+  #   # logging:
+  #   #   driver: none
 
 volumes:
   grafana_data:

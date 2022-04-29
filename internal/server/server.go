@@ -55,7 +55,7 @@ func (s *Server) Run(
 
 	s.missionID = MissionID{ID: interopMissionID}
 
-	s.pathPlanningClient = pp.NewClient("127.0.0.1:5040", 1000)
+	s.pathPlanningClient = pp.NewClient("172.17.0.1:5010", 1000)
 
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
@@ -235,11 +235,9 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		{
-			// m.waypointChan <- m.server.path.GetPath()
-			way := pp.Waypoint{Latitude: 0.0, Longitude: 0.0, Altitude: 30.0, Heading: 0}
-			m.waypointChan <- []pp.Waypoint{way}
-			// message := fmt.Sprintf("Sucessfully sent waypoints to plane %d", len(m.server.path.GetPath()))
-			message := fmt.Sprintf("Attempting to send waypoints to plane\n")
+			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
+			m.waypointChan <- m.server.path.GetPath()
+			message := fmt.Sprintf("Attempting to send %d waypoints to plane", len(m.server.path.GetPath()))
 			w.Write([]byte(message))
 			Log.Info(message)
 		}
@@ -248,7 +246,6 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotImplemented)
 			w.Write([]byte("Not implemented"))
 		}
-
 	}
 }
 

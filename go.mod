@@ -3,7 +3,7 @@ module github.com/tritonuas/hub
 go 1.14
 
 require (
-	github.com/aler9/gomavlib v0.0.0-20210116151114-d34712c0323d
+	github.com/aler9/gomavlib v0.0.0-20220414051749-b209e19eb336
 	github.com/goburrow/serial v0.1.0
 	github.com/golang/protobuf v1.5.0
 	github.com/gorilla/websocket v1.4.0

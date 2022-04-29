@@ -1,7 +1,11 @@
 package mav
 
 import (
-	// "context"
+	// "bytes"
+	"context"
+	"math"
+
+	// "math/rand"
 
 	"fmt"
 	"net"
@@ -9,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"sync"
+	// "sync"
 	"time"
 
 	"encoding/xml"
@@ -23,9 +27,11 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/aler9/gomavlib"
-	"github.com/aler9/gomavlib/pkg/dialects/ardupilotmega"
+	// "github.com/aler9/gomavlib/pkg/dialect"
 	"github.com/aler9/gomavlib/pkg/dialects/common"
 	"github.com/aler9/gomavlib/pkg/msg"
+
+	// "github.com/aler9/gomavlib/pkg/parser"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 )
@@ -225,11 +231,22 @@ func RunMavlink(
 
 	influxConnDone := false
 
-	waitingToSendWaypoints := false
+	var wpsReadyForPlane []pp.Waypoint
 
+	// startTime := time.Now()
+	// influxCount := 0
 	//write the data of a particular message to the local influxDB
-	_ = func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
-		return
+	writeToInflux := func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
+		// if rand.Intn(10) != 0 {
+		// 	Log.Error("Get trolled lol ඞ")
+		// 	return
+		// }
+		// if time.Since(startTime) < time.Second*30 {
+		// 	influxCount++
+		// } else {
+		// 	Log.Error("influx push count ", influxCount)
+		// }
+		// Log.Info("lol ඞ")
 		if !influxConnDone {
 			return
 		}
@@ -299,64 +316,48 @@ func RunMavlink(
 	}
 
 	client := influxdb2.NewClient(influxdbURI, token)
-	_ = client.WriteAPI(org, bucket)
+	writeAPI := client.WriteAPI(org, bucket)
 
 	// make a test query to check influx connection status before attempting to write any data
-	/*
-		queryAPI := client.QueryAPI(org)
+	queryAPI := client.QueryAPI(org)
 
-		influxCheck := func(influxConnChan chan bool) {
-			for {
-				_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
-				if err == nil {
-					influxConnChan <- true
-					Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
-					break
-				}
-				Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
-				time.Sleep(time.Duration(connRefreshTimer) * time.Second)
+	influxCheck := func(influxConnChan chan bool) {
+		for {
+			_, err := queryAPI.Query(context.Background(), fmt.Sprintf(`from(bucket:"%s")|> range(start: -1h) |> filter(fn: (r) => r._measurement == "33")`, bucket))
+			if err == nil {
+				influxConnChan <- true
+				Log.Infof("Successfully connected to InfluxDB at %s.", influxdbURI)
+				break
 			}
+			Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
+			time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 		}
-		influxConnChan := make(chan bool)
-		go influxCheck(influxConnChan)
-	*/
+	}
+	influxConnChan := make(chan bool)
+	go influxCheck(influxConnChan)
 
 	//establishes plane connection
-	// msgs := []msg.Message{&common.MessageHeartbeat{}, &common.MessageRequestDataStream{}}
-	// dialect := &dialect.Dialect{3, msgs}
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: endpoints,
 		//ardupilot message dialect
-		Dialect:                common.Dialect,
-		OutVersion:             gomavlib.V2,
-		OutSystemID:            systemID,
-		OutComponentID:         190,
-		HeartbeatDisable:       false,
-		HeartbeatPeriod:        time.Duration(5) * time.Second,
-		StreamRequestEnable:    true,
-		StreamRequestFrequency: 4,
+		Dialect: common.Dialect,
+		// Dialect:        nil,
+		OutVersion:     gomavlib.V2,
+		OutSystemID:    systemID,
+		OutComponentID: 2,
+		// HeartbeatDisable:       false,
+		// HeartbeatPeriod:        time.Duration(5) * time.Second,
+		StreamRequestEnable: true,
+		// StreamRequestFrequency: 4,
 	})
 	if err != nil {
 		Log.Warn(err)
 	}
-	var nodeMutex sync.Mutex
+	// var nodeMutex sync.Mutex
 
 	defer node.Close()
 
 	Log.Infof("Successfully connected to plane at %s %s", mavDeviceType, mavDeviceAddress)
-
-	// test := func() {
-	// 	for {
-	// 		err = SendWaypointToDevice("tcp:localhost:5760", 0.0, 2.0, -1.0, 40.0)
-	// 		if err != nil {
-	// 			Log.Fatal(err)
-	// 		}
-	// 		Log.Error("Sent message")
-	// 		time.Sleep(time.Duration(1) * time.Second)
-	// 		break
-	// 	}
-	// }
-	// go test()
 
 	//read xml files of messages
 	mavXML, err := os.Open(mavCommonPath)
@@ -380,38 +381,209 @@ func RunMavlink(
 	xml.Unmarshal(mavByteValue, &mavlinkCommon)
 	xml.Unmarshal(arduPilotByteValue, &arduPilotMega)
 
-	/*
-		if <-influxConnChan {
-			influxConnDone = true
-		}
-	*/
+	if <-influxConnChan {
+		influxConnDone = true
+	}
 
 	nh, err := newNodeHandler()
 	if err != nil {
 		Log.Error(err)
 	}
 	go nh.run()
+	// *gomavlib.Event
+
+	// startYawTime := time.Now()
+	// yawCount := 0
 
 	mavRouterParser := func() {
 		//loop through incoming events from the plane
 		for evt := range node.Events() {
-			if frm, ok := evt.(*gomavlib.EventFrame); ok {
+			if rawFrame, ok := evt.(*gomavlib.EventFrame); ok {
 
 				// Forwards mavlink messages to other clients
-				nh.onEventFrame(frm)
+				nh.onEventFrame(rawFrame)
 
-				nodeMutex.Lock()
-				node.WriteFrameExcept(frm.Channel, frm.Frame)
-				nodeMutex.Unlock()
+				// nodeMutex.Lock()
+				node.WriteFrameExcept(rawFrame.Channel, rawFrame.Frame)
+				// nodeMutex.Unlock()
 
-				msgID := frm.Message().GetID()
+				/** start of scuffness
+				// NOTE: must make dialect nil in the gomavlib nodeconf before enabling this horror
+				dialectDE, err := dialect.NewDecEncoder(common.Dialect)
+				if err != nil {
+					Log.Errorf("Could not create dialect encoder for Mavlink messages. Reason: %s", err)
+					continue
+				}
+				buf := bytes.NewBuffer(nil)
+				writer, err := parser.NewWriter(parser.WriterConf{
+					Writer:      buf,
+					DialectDE:   dialectDE,
+					OutVersion:  parser.V2,
+					OutSystemID: rawFrame.SystemID(),
+				})
+				err = writer.WriteFrame(rawFrame.Frame)
+				if err != nil {
+					Log.Error("could not write frame", err)
+					continue
+				}
+
+				reader, err := parser.NewReader(parser.ReaderConf{
+					Reader:    buf,
+					DialectDE: dialectDE,
+				})
+				if err != nil {
+					Log.Errorf("Could not create reader for Mavlink messages. Reason: %s", err)
+					continue
+				}
+
+				// read a message, encapsulated in a frame
+				decodedFrame, err := reader.Read()
+				if err != nil {
+					Log.Errorf("Could not read Mavlink message frame. Reason: %s", err)
+					continue
+				}
+				end of scuffness **/
+
+				decodedFrame := rawFrame.Frame
+
+				// testing new parsing
+				switch msg := decodedFrame.GetMessage().(type) {
+				// /**
+				case *common.MessageGlobalPositionInt:
+					fields := []string{"alt", "lat", "lon", "relative_alt", "vx", "vy", "hdg"}
+					vals := []float64{float64(msg.Alt), float64(msg.Lat), float64(msg.Lon), float64(msg.RelativeAlt), float64(msg.Vx), float64(msg.Vy), float64(msg.Hdg)}
+					writeToInflux(msg.GetID(), "GLOBAL_POSITION_INT", fields, vals, writeAPI)
+				case *common.MessageAttitude:
+					fields := []string{"pitch", "pitchspeed", "roll", "rollspeed", "yaw", "yawspeed"}
+					vals := []float64{float64(msg.Pitch), float64(msg.Pitchspeed), float64(msg.Roll), float64(msg.Rollspeed), float64(msg.Yaw), float64(msg.Yawspeed)}
+					writeToInflux(msg.GetID(), "ATTITUDE", fields, vals, writeAPI)
+				case *common.MessageVfrHud:
+					fields := []string{"airspeed", "alt", "climb", "groundspeed", "heading", "throttle"}
+					vals := []float64{float64(msg.Airspeed), float64(msg.Alt), float64(msg.Climb), float64(msg.Groundspeed), float64(msg.Heading), float64(msg.Throttle)}
+					writeToInflux(msg.GetID(), "VFR_HUD", fields, vals, writeAPI)
+				case *common.MessageCommandAck:
+					Log.Info("Received acknowledgement from team", msg)
+					// **/
+				case *common.MessageMissionRequest:
+				case *common.MessageMissionRequestInt:
+					if wpsReadyForPlane == nil {
+						Log.Error("Waypoints not received from Path Planning server yet")
+						break
+					}
+					if int(msg.Seq) > len(wpsReadyForPlane)-1 {
+						Log.Error("Waypoints stored on hub don't match the ones the plane is requesting. Try to initialize them again.")
+						break
+					}
+					cur := 0
+					if int(msg.Seq) == 0 {
+						cur = 1
+					}
+					Log.Infof("Sending waypoint %v", msg.Seq)
+					node.WriteMessageAll(&common.MessageMissionItemInt{
+						TargetSystem:    1, // SystemID of the plane
+						TargetComponent: 0, // ComponentID
+						Seq:             msg.Seq,
+						Frame:           common.MAV_FRAME_GLOBAL,                          // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Command:         common.MAV_CMD_NAV_WAYPOINT,                      // type of command (we want to send waypoints)
+						Current:         uint8(cur),                                       // if it's the current waypoint or not?
+						Autocontinue:    0,                                                // always 0
+						Param1:          0,                                                // Hold Time: ignored by fixed wing planes
+						Param2:          0,                                                // Accept Radius (radial threshold in meters for a waypoint to be hit)
+						Param3:          0,                                                // Pass Radius (idk what this is exactly yet)
+						Param4:          float32(math.NaN()),                              // Yaw to enter waypoint at
+						X:               int32(wpsReadyForPlane[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+						Y:               int32(wpsReadyForPlane[msg.Seq].Longitude * 1e7), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
+						Z:               float32(wpsReadyForPlane[msg.Seq].Altitude),      // altitude in meters over mean sea level (MSL)
+						MissionType:     common.MAV_MISSION_TYPE_MISSION,
+					})
+				}
+
+				// old waypoint sending
+				/**
+				// deprecated MissionRequest message (SITL still uses bruh)
+				if msg, ok := decodedFrame.GetMessage().(*common.MessageMissionRequest); ok {
+					if wpsReadyForPlane == nil {
+						Log.Error("Waypoints not received from Path Planning server yet")
+						break
+					}
+					if int(msg.Seq) > len(wpsReadyForPlane)-1 {
+						Log.Error("Waypoints stored on hub don't match the ones the plane is requesting. Try to initialize them again.")
+						break
+					}
+					cur := 0
+					if int(msg.Seq) == 0 {
+						cur = 1
+					}
+					Log.Infof("Sending waypoint %v", msg.Seq)
+					node.WriteMessageAll(&common.MessageMissionItem{
+						TargetSystem:    1, // SystemID of the plane
+						TargetComponent: 0, // ComponentID
+						Seq:             msg.Seq,
+						Frame:           common.MAV_FRAME_GLOBAL,                      // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Command:         common.MAV_CMD_NAV_WAYPOINT,                  // type of command (we want to send waypoints)
+						Current:         uint8(cur),                                   // if it's the current waypoint or not?
+						Autocontinue:    0,                                            // always 0
+						Param1:          0,                                            // Hold Time: ignored by fixed wing planes
+						Param2:          0,                                            // Accept Radius (radial threshold in meters for a waypoint to be hit)
+						Param3:          0,                                            // Pass Radius (idk what this is exactly yet)
+						Param4:          float32(math.NaN()),                          // Yaw to enter waypoint at
+						X:               float32(wpsReadyForPlane[msg.Seq].Latitude),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+						Y:               float32(wpsReadyForPlane[msg.Seq].Longitude), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
+						Z:               float32(wpsReadyForPlane[msg.Seq].Altitude),  // altitude in meters over mean sea level (MSL)
+						MissionType:     common.MAV_MISSION_TYPE_MISSION,
+					})
+				}
+
+				if msg, ok := decodedFrame.GetMessage().(*common.MessageMissionAck); ok {
+					Log.Error(msg)
+					Log.Error(msg.Type)
+				}
+
+				// newer MissionRequestInt message
+				if msg, ok := decodedFrame.GetMessage().(*common.MessageMissionRequestInt); ok {
+					if wpsReadyForPlane == nil {
+						Log.Error("Waypoints not received from Path Planning server yet")
+						break
+					}
+					if int(msg.Seq) > len(wpsReadyForPlane)-1 {
+						Log.Error("Waypoints stored on hub don't match the ones the plane is requesting. Try to initialize them again.")
+						break
+					}
+					cur := 0
+					if int(msg.Seq) == 0 {
+						cur = 1
+					}
+					Log.Infof("Sending waypoint %v", msg.Seq)
+					node.WriteMessageAll(&common.MessageMissionItemInt{
+						TargetSystem:    1, // SystemID of the plane
+						TargetComponent: 0, // ComponentID
+						Seq:             msg.Seq,
+						Frame:           common.MAV_FRAME_GLOBAL,                          // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Command:         common.MAV_CMD_NAV_WAYPOINT,                      // type of command (we want to send waypoints)
+						Current:         uint8(cur),                                       // if it's the current waypoint or not?
+						Autocontinue:    0,                                                // always 0
+						Param1:          0,                                                // Hold Time: ignored by fixed wing planes
+						Param2:          0,                                                // Accept Radius (radial threshold in meters for a waypoint to be hit)
+						Param3:          0,                                                // Pass Radius (idk what this is exactly yet)
+						Param4:          float32(math.NaN()),                              // Yaw to enter waypoint at
+						X:               int32(wpsReadyForPlane[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+						Y:               int32(wpsReadyForPlane[msg.Seq].Longitude * 1e7), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
+						Z:               float32(wpsReadyForPlane[msg.Seq].Altitude),      // altitude in meters over mean sea level (MSL)
+						MissionType:     common.MAV_MISSION_TYPE_MISSION,
+					})
+				}
+				**/
+
+				// old parsing for a bunch more messages
+				/**
+				msgID := decodedFrame.GetMessage().GetID()
 
 				//gather the raw values returned by the plane as an array of strings
-				rawValues := parseValues(frm.Message())
+				rawValues := parseValues(decodedFrame.GetMessage())
 
-				/**
 				//common mavlink message IDs with no arrays or enums
-				normalMessageIDS := []int{1, 27, 29, 30, 32, 33, 35, 36, 42, 46, 62, 65, 74, 116, 125, 136, 241}
+				// normalMessageIDS := []int{1, 27, 29, 30, 32, 33, 35, 36, 42, 46, 62, 65, 74, 116, 125, 136, 241}
+				normalMessageIDS := []int{27, 29, 30, 32, 33, 35, 36, 42, 46, 62, 65, 74, 116, 136, 241}
 				for _, normalMessageID := range normalMessageIDS {
 					if int(msgID) == normalMessageID {
 						floatValues := convertToFloats(rawValues, msgID)
@@ -438,6 +610,14 @@ func RunMavlink(
 							telemetryChannel <- &telem
 						}
 
+						if msgID == 30 {
+							yawCount++
+						}
+						if yawCount > 100 {
+							duration := time.Since(startYawTime)
+							Log.Fatal("Took", duration, "to get 100 yaws")
+						}
+
 						writeToInflux(msgID, msgName, parameters, floatValues, writeAPI)
 						break
 					}
@@ -453,13 +633,11 @@ func RunMavlink(
 				// 		break
 				// 	}
 				// }
-				**/
 
 				switch msgID {
 
 				//Messages below don't work with all floats and require custom parsing
 
-				/**
 				//PARAM_VALUE
 				case 22:
 					parameters, msgName := getParameterNames(msgID, mavlinkCommon)
@@ -627,63 +805,46 @@ func RunMavlink(
 					floatValues := convertToFloats(rawValues[len(rawValues)-2:], msgID)
 					floatParameters := parameters[len(parameters)-2:]
 					writeToInflux(msgID, msgName, floatParameters, floatValues, writeAPI)
-				**/
 
 				case 47:
-					Log.Error("Plane sent ack", frm.Message())
+					Log.Error("Plane sent ack", decodedFrame.GetMessage())
 
-				case 51:
-					fallthrough
-				case 40:
-					// if frm.Channel.Endpoint().Conf() == endpoints[0] &&
-					Log.Error("Plane sent a request", frm.Message())
-					if waitingToSendWaypoints {
-						// parameters, _ := getParameterNames(msgID, mavlinkCommon)
-						Log.Info()
-						Log.Infof("%T", rawValues[2])
-						if rawValues[2] == "0" {
-							node.WriteMessageAll(&ardupilotmega.MessageMissionItemInt{
-								TargetSystem:    1, // SystemID of the plane (should probably be a parameter)
-								TargetComponent: 1, // ComponentID (not exactly sure what this should be yet)
-								Seq:             0,
-								Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
-								Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
-								Current:         1,
-								Autocontinue:    0,
-								Param1:          0,               // Hold Time: ignored by fixed wing planes
-								Param2:          10,              // Accept Radius (radial threshold in meters for a waypoint to be hit)
-								Param3:          0,               // Pass Radius (idk what this is exactly yet)
-								Param4:          0,               // Yaw to enter waypoint at
-								X:               int32(30 * 1e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-								Y:               int32(0 * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-								Z:               30,              // altitude in meters over mean sea level (MSL)
-								MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
-							})
-							Log.Info("Sent a waypoint")
-							// waitingToSendWaypoints = false
-						} else if rawValues[2] == "1" {
-							node.WriteMessageAll(&ardupilotmega.MessageMissionItemInt{
-								TargetSystem:    1, // SystemID of the plane (should probably be a parameter)
-								TargetComponent: 1, // ComponentID (not exactly sure what this should be yet)
-								Seq:             1,
-								Frame:           ardupilotmega.MAV_FRAME_GLOBAL, // global frame allows us to give global coordinates (lat/lon in degrees for example)
-								Command:         ardupilotmega.MAV_CMD_NAV_WAYPOINT,
-								Current:         1,
-								Autocontinue:    0,
-								Param1:          0,               // Hold Time: ignored by fixed wing planes
-								Param2:          10,              // Accept Radius (radial threshold in meters for a waypoint to be hit)
-								Param3:          0,               // Pass Radius (idk what this is exactly yet)
-								Param4:          0,               // Yaw to enter waypoint at
-								X:               int32(31 * 1e7), // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-								Y:               int32(0 * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-								Z:               30,              // altitude in meters over mean sea level (MSL)
-								MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
-							})
-							Log.Info("Sent a waypoint")
-							waitingToSendWaypoints = false
-						}
-					}
+					// case 51:
+					// 	fallthrough
+					// case 40:
+					// 	if msg, ok := decodedFrame.GetMessage().(*common.MessageMissionRequest); ok {
+					// 		if wpsReadyForPlane == nil {
+					// 			Log.Error("Waypoints not received from Path Planning server yet")
+					// 			break
+					// 		}
+					// 		if int(msg.Seq) > len(wpsReadyForPlane)-1 {
+					// 			Log.Error("Waypoints stored on hub don't match the ones the plane is requesting. Try to initialize them again.")
+					// 			break
+					// 		}
+					// 		cur := 0
+					// 		if int(msg.Seq) == 0 {
+					// 			cur = 1
+					// 		}
+					// 		node.WriteMessageAll(&common.MessageMissionItem{
+					// 			TargetSystem:    1, // SystemID of the plane
+					// 			TargetComponent: 0, // ComponentID
+					// 			Seq:             msg.Seq,
+					// 			Frame:           common.MAV_FRAME_GLOBAL,                      // global frame allows us to give global coordinates (lat/lon in degrees for example)
+					// 			Command:         common.MAV_CMD_NAV_WAYPOINT,                  // type of command (we want to send waypoints)
+					// 			Current:         uint8(cur),                                   // if it's the current waypoint or not?
+					// 			Autocontinue:    0,                                            // always 0
+					// 			Param1:          0,                                            // Hold Time: ignored by fixed wing planes
+					// 			Param2:          0,                                            // Accept Radius (radial threshold in meters for a waypoint to be hit)
+					// 			Param3:          0,                                            // Pass Radius (idk what this is exactly yet)
+					// 			Param4:          float32(math.NaN()),                          // Yaw to enter waypoint at
+					// 			X:               float32(wpsReadyForPlane[msg.Seq].Latitude),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+					// 			Y:               float32(wpsReadyForPlane[msg.Seq].Longitude), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
+					// 			Z:               float32(wpsReadyForPlane[msg.Seq].Altitude),  // altitude in meters over mean sea level (MSL)
+					// 			MissionType:     common.MAV_MISSION_TYPE_MISSION,
+					// 		})
+					// 	}
 				}
+				**/
 			}
 		}
 	}
@@ -693,22 +854,24 @@ func RunMavlink(
 	defer client.Close()
 
 	for {
-		Log.Info("waiting for next waypoints")
-		nextWaypoints := <-sendWaypointToPlaneChannel
-		Log.Info("got next waypoints")
-		// <-sendWaypointToPlaneChannel
-		Log.Info(nextWaypoints)
-		nodeMutex.Lock()
-		// let the plane know that we want to upload a given number of messages
-		node.WriteMessageAll(&ardupilotmega.MessageMissionCount{
+		waypointsFromPP := <-sendWaypointToPlaneChannel
+		Log.Info("Received waypoints from PP and letting plane know")
+		// nodeMutex.Lock()
+		node.WriteMessageAll(&common.MessageMissionClearAll{
 			TargetSystem:    1,
 			TargetComponent: 0,
-			Count:           2,
-			MissionType:     ardupilotmega.MAV_MISSION_TYPE_MISSION,
+			MissionType:     0,
 		})
-		nodeMutex.Unlock()
-		waitingToSendWaypoints = true
-
+		// let the plane know that we want to upload a given number of messages
+		node.WriteMessageAll(&common.MessageMissionCount{
+			TargetSystem:    1,
+			TargetComponent: 0,
+			Count:           uint16(len(waypointsFromPP)),
+			MissionType:     common.MAV_MISSION_TYPE_MISSION,
+		})
+		// nodeMutex.Unlock()
+		wpsReadyForPlane = make([]pp.Waypoint, len(waypointsFromPP))
+		wpsReadyForPlane = waypointsFromPP
 	}
 
 }
