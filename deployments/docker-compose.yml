@@ -10,6 +10,8 @@ services:
       - INTEROP_PORT=8000
       - INTEROP_USER=testadmin
       - INTEROP_PASS=testpass
+      - RTPP_IP=host.docker.internal
+      - RTPP_PORT=5010
       - MAV_DEVICE=tcp:sitl:5760
       # - MAV_DEVICE=udp:mavproxy:14555
       - MAV_OUTPUT1=udp:192.168.1.2:14551

@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 	ic "github.com/tritonuas/hub/internal/interop"
 	mav "github.com/tritonuas/hub/internal/mavlink"
-	hs "github.com/tritonuas/hub/internal/server"
 	pp "github.com/tritonuas/hub/internal/path_plan"
+	hs "github.com/tritonuas/hub/internal/server"
 )
 
 var log = logrus.New()
@@ -25,6 +25,10 @@ var ENVS = map[string]*string{
 	"INTEROP_TIMEOUT":    flag.String("interop_timeout", "10", "time limit in seconds on http requests to interop server"),
 	"INTEROP_RETRY_TIME": flag.String("interop_retry_time", "5", "how many seconds to wait after unsuccessful interop authentication"),
 	"INTEROP_MISSION_ID": flag.String("interop_mission_id", "1", "id of the mission assigned to us by the judges"),
+	"RTPP_IP":            flag.String("rtpp_ip", "127.0.0.1", "ip of rtpp computer"),
+	"RTPP_PORT":          flag.String("rtpp_port", "5010", "port of rtpp computer"),
+	"RTPP_TIMEOUT":       flag.String("rtpp_timeout", "360", "time limit in seconds on http requests to interop server"),
+	"RTPP_RETRY_TIME":    flag.String("rtpp_retry_time", "5", "how many seconds to wait after unsuccessful rtpp connection"),
 	"MAV_DEVICE":         flag.String("mav_device", "serial:/dev/serial", "serial port or tcp address of plane to receive messages from"),
 	"MAV_OUTPUT1":        flag.String("mav_output1", "", "first output of mavlink messages"),
 	"MAV_OUTPUT2":        flag.String("mav_output2", "", "second output of mavlink messages"),
@@ -81,6 +85,13 @@ func main() {
 	interopChannel := make(chan *ic.Client)
 	go ic.EstablishInteropConnection(interopRetryTime, interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], interopTimeout, interopChannel)
 
+	// create client to rtpp
+	rtppRetryTime, _ := strconv.Atoi(*ENVS["RTPP_RETRY_TIME"])
+	rtppTimeout, _ := strconv.Atoi(*ENVS["RTPP_TIMEOUT"])
+	rtppURL := fmt.Sprintf("%s:%s", *ENVS["RTPP_IP"], *ENVS["RTPP_PORT"])
+	rtppChannel := make(chan *pp.Client)
+	go pp.EstablishRTPPConnection(rtppRetryTime, rtppURL, rtppTimeout, rtppChannel)
+
 	// Do other things...
 	telemetryChannel := make(chan *ic.Telemetry, 100)
 	sendWaypointToPlaneChannel := make(chan []pp.Waypoint)
@@ -116,6 +127,7 @@ func main() {
 		port,
 		interopChannel,
 		interopMissionID,
+		rtppChannel,
 		telemetryChannel,
 		*ENVS["INFLUXDB_URI"],
 		*ENVS["INFLUXDB_TOKEN"],

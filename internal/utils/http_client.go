@@ -83,31 +83,25 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 //Get makes a GET request to the server
 func (c *Client) Get(uri string) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
-	Log.Info("hello")
+
 	resp, err := c.client.Get(c.url + uri)
-	Log.Info("did you work")
-	Log.Info(resp)
-	Log.Info(err)
+
 	if err != nil {
 		Log.Warn(err)
 		httpErr.SetError("GET", []byte("RTPP Server Offline"), http.StatusBadGateway)
 		return nil, *httpErr
 	}
-	Log.Info("first if")
+
 	if resp.StatusCode != http.StatusOK {
 		errMsg, _ := ioutil.ReadAll(resp.Body)
 		httpErr.SetError("GET", errMsg, resp.StatusCode)
 	}
-	Log.Info("second if")
 	defer resp.Body.Close()
-	Log.Info("defer")
 	body, resErr := ioutil.ReadAll(resp.Body)
 	if resErr != nil {
 		Log.Debug(resErr)
 	}
-	Log.Info("Again")
-	Log.Info(body)
-	Log.Info("age")
+
 	Log.Debugf("Making Request to RTPP: GET - %s - %d", uri, resp.StatusCode)
 
 	return body, *httpErr

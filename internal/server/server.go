@@ -46,6 +46,7 @@ func (s *Server) Run(
 	port string,
 	interopChannel chan *ic.Client,
 	interopMissionID int,
+	rtppChannel chan *pp.Client,
 	telemetryChannel chan *ic.Telemetry,
 	influxdbURI string,
 	influxToken string,
@@ -55,11 +56,10 @@ func (s *Server) Run(
 
 	s.missionID = MissionID{ID: interopMissionID}
 
-	s.pathPlanningClient = pp.NewClient("172.17.0.1:5010", 1000)
-
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
+	go s.ConnectToRTPP(rtppChannel)
 	mux := http.NewServeMux()
 	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})       // get info about teams from interop
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s}) // get mission from interop using server's mission ID
@@ -68,13 +68,6 @@ func (s *Server) Run(
 	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
 	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
 	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s, waypointChan: sendWaypointToPlaneChannel})
-	// POST: sets the id in the server, and then gets the mission associated with the id, and then generates a path from that mission, then sends the path to the plane
-	// right now should return back the path that was generated
-
-	//mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
-
-	// 3. rename this to something to do with path planning, maybe move down here    V
-	// 4. make accept get request which sends a get request to the path planning server at endpoint /path endpoint in the pathplanning server
 
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
 	mux.Handle("/hub/plane/telemetry", &planeTelemetryHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
@@ -95,6 +88,11 @@ func (s *Server) Run(
 func (s *Server) ConnectToInterop(channel chan *ic.Client) {
 	s.client = <-channel
 	Log.Info("Server client object initialized: Interop fully connected.")
+}
+
+func (s *Server) ConnectToRTPP(channel chan *pp.Client) {
+	s.pathPlanningClient = <-channel
+	Log.Info("Server client object initialized: RTPP fully connected.")
 }
 
 // CacheAndUploadTelem sends the telemetry to the server and caches it and uploads it to interop

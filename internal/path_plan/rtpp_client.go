@@ -2,6 +2,7 @@ package path_plan
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	ut "github.com/tritonuas/hub/internal/utils"
@@ -18,6 +19,32 @@ type Client struct {
 // IsConnected checks to see if the http client object is not null
 func (c *Client) IsConnected() bool {
 	return c.httpClient != nil
+}
+
+// EstablishInteropConnection keeps trying to connect to the rtpp server
+// every waitTime seconds, and exits once it has connected
+func EstablishRTPPConnection(waitTime int, rtppURL string, timeout int, c chan *Client) {
+	Log.Infof("Creating RTPP Client connected to %s", rtppURL)
+
+	var client *Client
+	//var err ut.HTTPError
+
+	for {
+		// Try creating a new client and authenticating it
+		client = NewClient(rtppURL, timeout)
+		err := client.validate()
+
+		if err.Get {
+			Log.Warningf("Client to RTPP failed. Retrying in %d seconds.", waitTime)
+			time.Sleep(time.Duration(waitTime) * time.Second)
+		} else {
+			Log.Info("RTPP Client successfully connect.")
+			break
+		}
+
+	}
+
+	c <- client
 }
 
 func NewClient(url string, timeout int) *Client {
@@ -44,4 +71,9 @@ func (c *Client) GetPath() (Path, []byte, ut.HTTPError) {
 	pathBinary, err := c.httpClient.Get("/path/waypoints?latitude=38.144778&longitude=-76.429417&altitude=100&heading=180")
 	Log.Info(pathBinary)
 	return CreatePath(pathBinary), pathBinary, err
+}
+
+func (c *Client) validate() ut.HTTPError {
+	_, err := c.httpClient.Get("/")
+	return err
 }
