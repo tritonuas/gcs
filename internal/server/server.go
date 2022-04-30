@@ -52,7 +52,7 @@ func (s *Server) Run(
 	influxToken string,
 	influxBucket string,
 	influxOrg string,
-	sendWaypointToPlaneChannel chan []pp.Waypoint) {
+	sendWaypointToPlaneChannel chan *pp.Path) {
 
 	s.missionID = MissionID{ID: interopMissionID}
 
@@ -68,6 +68,8 @@ func (s *Server) Run(
 	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
 	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
 	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s, waypointChan: sendWaypointToPlaneChannel})
+
+	mux.Handle("/hub/path", &pathCacherHandler{server: s})
 
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
 	mux.Handle("/hub/plane/telemetry", &planeTelemetryHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
@@ -225,7 +227,7 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 //Sends waypoints to the plane
 type missionHandlerStart struct {
 	server       *Server
-	waypointChan chan []pp.Waypoint
+	waypointChan chan *pp.Path
 }
 
 func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -234,8 +236,30 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		{
 			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
-			m.waypointChan <- m.server.path.GetPath()
+			m.waypointChan <- m.server.path
 			message := fmt.Sprintf("Attempting to send %d waypoints to plane", len(m.server.path.GetPath()))
+			w.Write([]byte(message))
+			Log.Info(message)
+		}
+	default:
+		{
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("Not implemented"))
+		}
+	}
+}
+
+type pathCacherHandler struct {
+	server *Server
+}
+
+func (m pathCacherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "GET":
+		{
+			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
+			message := fmt.Sprintf("%t\n", m.server.path.PlaneAcknowledged)
 			w.Write([]byte(message))
 			Log.Info(message)
 		}

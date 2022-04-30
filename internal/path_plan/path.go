@@ -26,7 +26,8 @@ type Waypoint struct {
 //My implementation of a path struct in here not too sure if it should be a float64 slice or a waypoint slice
 
 type Path struct {
-	Waypoints []Waypoint
+	Waypoints         []Waypoint
+	PlaneAcknowledged bool
 }
 
 func CreatePath(waypointsIn []byte) Path {

@@ -227,11 +227,12 @@ func RunMavlink(
 	influxdbURI string,
 	mavOutputs []string,
 	telemetryChannel chan *ic.Telemetry,
-	sendWaypointToPlaneChannel chan []pp.Waypoint) {
+	sendWaypointToPlaneChannel chan *pp.Path) {
 
 	influxConnDone := false
 
-	var wpsReadyForPlane []pp.Waypoint
+	var pathReadyForPlane *pp.Path
+	var checkForPathAck bool
 
 	// startTime := time.Now()
 	// influxCount := 0
@@ -461,16 +462,21 @@ func RunMavlink(
 					fields := []string{"airspeed", "alt", "climb", "groundspeed", "heading", "throttle"}
 					vals := []float64{float64(msg.Airspeed), float64(msg.Alt), float64(msg.Climb), float64(msg.Groundspeed), float64(msg.Heading), float64(msg.Throttle)}
 					writeToInflux(msg.GetID(), "VFR_HUD", fields, vals, writeAPI)
-				case *common.MessageCommandAck:
+				case *common.MessageMissionAck:
+					if msg.Type == common.MAV_MISSION_ACCEPTED && pathReadyForPlane != nil && checkForPathAck {
+						pathReadyForPlane.PlaneAcknowledged = true
+					}
+					checkForPathAck = false
 					Log.Info("Received acknowledgement from team", msg)
+					Log.Info("Type: %v, MissionType: %v", msg.Type, msg.MissionType)
 					// **/
 				case *common.MessageMissionRequest:
 				case *common.MessageMissionRequestInt:
-					if wpsReadyForPlane == nil {
+					if pathReadyForPlane == nil {
 						Log.Error("Waypoints not received from Path Planning server yet")
 						break
 					}
-					if int(msg.Seq) > len(wpsReadyForPlane)-1 {
+					if int(msg.Seq) > len(pathReadyForPlane.Waypoints)-1 {
 						Log.Error("Waypoints stored on hub don't match the ones the plane is requesting. Try to initialize them again.")
 						break
 					}
@@ -483,19 +489,22 @@ func RunMavlink(
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
 						Seq:             msg.Seq,
-						Frame:           common.MAV_FRAME_GLOBAL,                          // global frame allows us to give global coordinates (lat/lon in degrees for example)
-						Command:         common.MAV_CMD_NAV_WAYPOINT,                      // type of command (we want to send waypoints)
-						Current:         uint8(cur),                                       // if it's the current waypoint or not?
-						Autocontinue:    0,                                                // always 0
-						Param1:          0,                                                // Hold Time: ignored by fixed wing planes
-						Param2:          0,                                                // Accept Radius (radial threshold in meters for a waypoint to be hit)
-						Param3:          0,                                                // Pass Radius (idk what this is exactly yet)
-						Param4:          float32(math.NaN()),                              // Yaw to enter waypoint at
-						X:               int32(wpsReadyForPlane[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
-						Y:               int32(wpsReadyForPlane[msg.Seq].Longitude * 1e7), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
-						Z:               float32(wpsReadyForPlane[msg.Seq].Altitude),      // altitude in meters over mean sea level (MSL)
+						Frame:           common.MAV_FRAME_GLOBAL,                                     // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Command:         common.MAV_CMD_NAV_WAYPOINT,                                 // type of command (we want to send waypoints)
+						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
+						Autocontinue:    0,                                                           // always 0
+						Param1:          0,                                                           // Hold Time: ignored by fixed wing planes
+						Param2:          0,                                                           // Accept Radius (radial threshold in meters for a waypoint to be hit)
+						Param3:          0,                                                           // Pass Radius (idk what this is exactly yet)
+						Param4:          float32(math.NaN()),                                         // Yaw to enter waypoint at
+						X:               int32(pathReadyForPlane.Waypoints[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
+						Y:               int32(pathReadyForPlane.Waypoints[msg.Seq].Longitude * 1e7), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
+						Z:               float32(pathReadyForPlane.Waypoints[msg.Seq].Altitude),      // altitude in meters over mean sea level (MSL)
 						MissionType:     common.MAV_MISSION_TYPE_MISSION,
 					})
+					if int(msg.Seq) == len(pathReadyForPlane.Waypoints)-1 {
+						checkForPathAck = true
+					}
 				}
 
 				// old waypoint sending
@@ -854,7 +863,7 @@ func RunMavlink(
 	defer client.Close()
 
 	for {
-		waypointsFromPP := <-sendWaypointToPlaneChannel
+		pathFromPP := <-sendWaypointToPlaneChannel
 		Log.Info("Received waypoints from PP and letting plane know")
 		// nodeMutex.Lock()
 		node.WriteMessageAll(&common.MessageMissionClearAll{
@@ -866,12 +875,12 @@ func RunMavlink(
 		node.WriteMessageAll(&common.MessageMissionCount{
 			TargetSystem:    1,
 			TargetComponent: 0,
-			Count:           uint16(len(waypointsFromPP)),
+			Count:           uint16(len(pathFromPP.Waypoints)),
 			MissionType:     common.MAV_MISSION_TYPE_MISSION,
 		})
 		// nodeMutex.Unlock()
-		wpsReadyForPlane = make([]pp.Waypoint, len(waypointsFromPP))
-		wpsReadyForPlane = waypointsFromPP
+		//pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
+		pathReadyForPlane = pathFromPP
 	}
 
 }
