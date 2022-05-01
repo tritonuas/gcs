@@ -259,9 +259,28 @@ func (m pathCacherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		{
 			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
-			message := fmt.Sprintf("%t\n", m.server.path.PlaneAcknowledged)
-			w.Write([]byte(message))
-			Log.Info(message)
+			type wp struct {
+				Latitude  float64 `json:"latitude"`
+				Longitude float64 `json:"longitude"`
+			}
+			var cached_path []wp
+			for _, waypoint := range m.server.path.Waypoints {
+				new_wp := wp{
+					Latitude:  waypoint.Latitude,
+					Longitude: waypoint.Longitude,
+				}
+				cached_path = append(cached_path, new_wp)
+			}
+			data, err := json.Marshal(cached_path)
+			if err != nil {
+				Log.Error(err)
+				w.Write([]byte(err.Error()))
+			}
+			w.Write(data)
+
+			// message := fmt.Sprintf("%t\n", m.server.path.PlaneAcknowledged)
+			// w.Write([]byte(message))
+			// Log.Info(message)
 		}
 	default:
 		{
