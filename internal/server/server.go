@@ -394,7 +394,7 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		for _, f := range fields {
 			Log.Infof("current f: %s", f)
 			queryStrings = append(queryStrings,
-				fmt.Sprintf(`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
+				fmt.Sprintf(`from(bucket:"%s") |> range(start: -5m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
 					t.bucket, id, f))
 		}
 		// Go through the query strings we made and put them in this results slice
@@ -408,7 +408,8 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 				return
 			} else {
 				if result.Next() {
-					results = append(results, fmt.Sprint(result.Record().Value()))
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
 				} else {
 					w.WriteHeader(http.StatusBadRequest)
 					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
