@@ -3,9 +3,13 @@ version: "3"
 services:
   hub:
     image: tritonuas/hub
+    ports:
+      - 5000:5000
     environment:
       - INTEROP_IP=172.17.0.1
       - INTEROP_PORT=8000
+      - RTPP_IP=172.17.0.1
+      - RTPP_PORT=5010
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
       - MAV_DEVICE=serial:/dev/ttyUSB0
