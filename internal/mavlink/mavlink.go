@@ -489,7 +489,7 @@ func RunMavlink(
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
 						Seq:             msg.Seq,
-						Frame:           common.MAV_FRAME_GLOBAL,                                     // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Frame:           common.MAV_FRAME_GLOBAL_RELATIVE_ALT,                        // global frame allows us to give global coordinates (lat/lon in degrees for example)
 						Command:         common.MAV_CMD_NAV_WAYPOINT,                                 // type of command (we want to send waypoints)
 						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
 						Autocontinue:    0,                                                           // always 0
@@ -523,7 +523,7 @@ func RunMavlink(
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
 						Seq:             msg.Seq,
-						Frame:           common.MAV_FRAME_GLOBAL,                                     // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Frame:           common.MAV_FRAME_GLOBAL_RELATIVE_ALT,                        // global frame allows us to give global coordinates (lat/lon in degrees for example)
 						Command:         common.MAV_CMD_NAV_WAYPOINT,                                 // type of command (we want to send waypoints)
 						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
 						Autocontinue:    0,                                                           // always 0
