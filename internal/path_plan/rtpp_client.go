@@ -2,6 +2,7 @@ package path_plan
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -67,8 +68,10 @@ func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	return err
 }
 
-func (c *Client) GetPath() (Path, []byte, ut.HTTPError) {
-	pathBinary, err := c.httpClient.Get("/path/waypoints?latitude=38.144778&longitude=-76.429417&altitude=100&heading=180")
+//Make latitude, longitue, heading, and altitude not be hard coded
+func (c *Client) GetPath(latitude float64, longitude float64) (Path, []byte, ut.HTTPError) {
+	url := fmt.Sprintf("/path/waypoints?latitude=%f&longitude=%f&altitude=90&heading=0", latitude, longitude)
+	pathBinary, err := c.httpClient.Get(url)
 	Log.Info(pathBinary)
 	return CreatePath(pathBinary), pathBinary, err
 }

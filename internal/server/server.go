@@ -37,6 +37,8 @@ type Server struct {
 
 	missionID MissionID
 
+	gcsWaypoint map[string]float64
+
 	//mission TODO Actually hold the mission object for pyplanner to request
 }
 
@@ -61,6 +63,8 @@ func (s *Server) Run(
 	go s.ConnectToInterop(interopChannel)
 	go s.ConnectToRTPP(rtppChannel)
 	mux := http.NewServeMux()
+	mux.Handle("/hub/gcs", &gcsPositionHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
+
 	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})       // get info about teams from interop
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s}) // get mission from interop using server's mission ID
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})  // get other teams telem info from interop
@@ -114,6 +118,74 @@ func (s *Server) CacheAndUploadTelem(channel chan *ic.Telemetry) {
 
 func logRequestInfo(r *http.Request) {
 	Log.Infof("Request to Hub from %s: %s %s", r.RemoteAddr, r.Method, r.URL)
+}
+
+type gcsPositionHandler struct {
+	server *Server
+	uri    string
+	token  string
+	org    string
+	bucket string
+}
+
+func (m *gcsPositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "POST":
+		client := influxdb2.NewClient(m.uri, m.token)
+		queryAPI := client.QueryAPI(m.org)
+
+		latQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, m.bucket)
+		lonQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lon")`, m.bucket)
+
+		queryStrings := make([]string, 2)
+		queryStrings[0] = latQueryString
+		queryStrings[1] = lonQueryString
+
+		fields := make([]string, 2)
+		fields[0] = "latitude"
+		fields[1] = "longitude"
+
+		// Log.Info("Waiting for mission to start to begin uploaded telemetry to the interop server.")
+		// _ = <-m.server.missionStartChannel
+		// Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
+
+		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
+		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
+				return
+			} else {
+				if result.Next() {
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
+					return
+				}
+			}
+		}
+		jsonMap := make(map[string]float64)
+		for i, field := range fields {
+			val, _ := strconv.ParseFloat(results[i], 64)
+			if field == "latitude" || field == "longitude" {
+				val /= 1e7
+			}
+			jsonMap[field] = val
+		}
+
+		m.server.gcsWaypoint = jsonMap
+		client.Close()
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 type missionHandler struct {
@@ -210,7 +282,7 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 		//Make the GET request to the PathPlan Server
 		//path, err := json.Marhsall(p.path.Waypoint)
-		path, pathBinary, err := m.server.pathPlanningClient.GetPath()
+		path, pathBinary, err := m.server.pathPlanningClient.GetPath(m.server.gcsWaypoint["latitude"], m.server.gcsWaypoint["longitude"])
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
