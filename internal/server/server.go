@@ -77,7 +77,8 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
-	mux.Handle("/hub/cvs/image/", &CVSRequestHandler{server: s})
+	mux.Handle("/hub/cv/cropped/", &CVCroppedHandler{server: s})
+	mux.Handle("/hub/cv/result/", &CVResultHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -604,12 +605,37 @@ at /hub/pathplanning/initialize with the following request body { "id": [mission
 Then should use the path planning client to forward the static mission data to path planning
 */
 
-// Handles requests from the computer vision server
-type CVSRequestHandler struct {
+// Handles requests from the jetson that include the cropped/salienced image
+type CVCroppedHandler struct {
 	server *Server
 }
 
-func (h CVSRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
+	if h.server.cvData == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Computer Vision Server connection not established"))
+		Log.Errorf("Unable to receive data from CVS; connection not established")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		// _, _ := ioutil.ReadAll(r.Body)
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
+
+// Handles requests from the computer vision server with the predicted results
+type CVResultHandler struct {
+	server *Server
+}
+
+func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 
 	if h.server.cvData == nil {
@@ -627,7 +653,7 @@ func (h CVSRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var image cv.Image
 
 		err := json.Unmarshal(imageData, &image)
-		if (err != nil) {
+		if err != nil {
 			Log.Error(err)
 		}
 		h.server.cvData.Images = append(h.server.cvData.Images, image) // saves unmarshalled data to list of cv images
