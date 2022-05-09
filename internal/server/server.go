@@ -1,13 +1,16 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
@@ -608,6 +611,24 @@ Then should use the path planning client to forward the static mission data to p
 // Handles requests from the jetson that include the cropped/salienced image
 type CVCroppedHandler struct {
 	server *Server
+	bucket string
+}
+
+type bbox struct {
+	X1 int `json:"x1"`
+	Y1 int `json:"y1"`
+	X2 int `json:"x2"`
+	Y2 int `json:"y2"`
+}
+
+type target struct {
+	Timestamp          string  `json:"timestamp"`
+	CroppedFilename    string  `json:"cropped_filename"`
+	CroppedImageBase64 string  `json:"cropped_image_base64"`
+	Bbox               bbox    `json:"bbox"`
+	PlaneLat           float64 `json:"plane_lat"`
+	PlaneLon           float64 `json:"plane_lon"`
+	PlaneAlt           float64 `json:"alt"`
 }
 
 func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -622,7 +643,33 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "POST":
-		// _, _ := ioutil.ReadAll(r.Body)
+		var t target
+		bodyData, _ := ioutil.ReadAll(r.Body)
+		err := json.Unmarshal(bodyData, &t)
+		if err != nil {
+			Log.Fatal(err)
+		}
+
+		inputTimeLayout := "Mon Jan 02 2006 15:04:05 GMT-0700"
+		inputTime, err := time.Parse(inputTimeLayout, t.Timestamp)
+		queryStartTime := inputTime.Format(time.RFC3339)
+		queryEndTime := (inputTime.Add(time.Second))
+
+		bucket := "mavlink" // TODO: change these to be stored in struct
+		token := "influxdbToken"
+		org := "TritonUAS"
+		uri := "http://localhost:8086"
+
+		client := influxdb2.NewClient(uri, token)
+		queryAPI := client.QueryAPI(org)
+		planeLatQuery := fmt.Sprintf(`from(bucket:"%s") |> range(start: %s, stop: %s) |> first() |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, bucket, queryStartTime, queryEndTime)
+		result, err := queryAPI.Query(context.Background(), planeLatQuery)
+		if result.Next() {
+			Log.Info(result.Record().Value())
+			Log.Infof("%T", result.Record().Value())
+		}
+
+		// request, err := http.NewRequest("POST", "http://localhost:5040/upload", bytes.NewReader(body.Bytes()))
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
