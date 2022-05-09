@@ -6,18 +6,17 @@ services:
     ports:
       - 5000:5000
     environment:
-      - INTEROP_IP=host.docker.internal
+      - INTEROP_IP=172.17.0.1
       - INTEROP_PORT=8000
-      - INTEROP_USER=testadmin
-      - INTEROP_PASS=testpass
-      - RTPP_IP=host.docker.internal
+      - RTPP_IP=172.17.0.1
       - RTPP_PORT=5010
-      - MAV_DEVICE=tcp:sitl:5760
-      # - MAV_DEVICE=udp:mavproxy:14555
+      - INTEROP_USER=ucsdauvsi
+      - INTEROP_PASS=tritons
+      - MAV_DEVICE=serial:/dev/ttyUSB0
       - MAV_OUTPUT1=udp:192.168.1.2:14551
       - MAV_OUTPUT2=udp:192.168.1.7:14551
-      - MAV_OUTPUT3=udp:host.docker.internal:14551
-      # - MAV_OUTPUT4=udp:172.17.0.1:14551
+      - MAV_OUTPUT3=""
+      - MAV_OUTPUT4=""
       - MAV_OUTPUT5=""
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
@@ -26,8 +25,8 @@ services:
       - HUB_PATH=/go/src/github.com/tritonuas/hub
     volumes:
       - missions:/go/src/github.com/tritonuas/hub/missions
-    extra_hosts:
-      - host.docker.internal:host-gateway
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
       
   influxdb:
     image: influxdb:2.0-alpine
@@ -39,12 +38,9 @@ services:
     image: grafana/grafana:7.5.5
     ports:
       - 3000:3000
-    depends_on:
-      - hub 
     environment: 
       - GF_USERS_DEFAULT_THEME=dark
       - GF_USERS_HOME_PAGE=/dashboards
-        #- GF_INSTALL_PLUGINS=briangann-gauge-panel
       - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -70,15 +66,6 @@ services:
       --host http://influxdb:8086 
       --force
     restart: on-failure:20
-  sitl:
-    image: tritonuas/plane.rascal
-    ports:
-      - 5760:5760
-    environment:
-      - "SITL_HOME=38.145844,-76.42638,8,0"
-      - SITL_SPEEDUP=1
-    volumes:
-      - sitl:/app/logs
   dozzle:
     container_name: dozzle
     image: amir20/dozzle:latest
@@ -86,34 +73,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 9999:8080
-  # mavproxy:
-  #   image: tritonuas/mavproxy
-  #   # depends_on: 
-  #   #   - sitl
-  #   ports:
-  #     - "5761:5762"
-  #     - "14551:14551"
-  #   environment:
-  #     - "MASTER=--master=tcp:sitl:5760"
-  #     # - "OUT1=--out=udp:172.17.0.1:14550"
-  #     # Forwards messages to MissionPlanner/QGC
-  #     - "OUT1=--out=172.17.0.1:14550"
-  #     # Forwards messages to hub
-  #     - "OUT2=--out=udpin:mavproxy:14551"
-  #     - "OUT2=--out=udp:mavproxy:14555"
-  #     - "OUT3=--out=udp:192.168.1.2:14551"
-  #     - "OUT4=--out=udp:192.168.1.7:14551"
-  #     # - "OUT3=--out=udp:mavproxy:14556"
-  #     # - "OUT4=--out=tcpin:mavproxy:5761"
-  #     # - "OUT5=--out=udp:mavproxy:5762"
-  #     # - OUT6=
-  #     # - OUT7=
-  #   restart: always
-  #   # logging:
-  #   #   driver: none
 
 volumes:
   grafana_data:
   missions:
-  sitl:
   influxdb_data:

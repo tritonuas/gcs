@@ -16,6 +16,7 @@ import (
 
 	cv "github.com/tritonuas/hub/internal/computer_vision"
 	ic "github.com/tritonuas/hub/internal/interop"
+	// mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 )
 
@@ -39,6 +40,8 @@ type Server struct {
 
 	missionID MissionID
 
+	gcsWaypoint map[string]float64
+
 	//mission TODO Actually hold the mission object for pyplanner to request
 }
 
@@ -48,7 +51,16 @@ func (s *Server) Run(
 	port string,
 	interopChannel chan *ic.Client,
 	interopMissionID int,
-	telemetryChannel chan *ic.Telemetry) {
+	rtppChannel chan *pp.Client,
+	telemetryChannel chan *ic.Telemetry,
+	influxdbURI string,
+	influxToken string,
+	influxBucket string,
+	influxOrg string,
+	sendWaypointToPlaneChannel chan *pp.Path) {
+
+	// receives "true" when the mission is started
+	missionStartChannel := make(chan bool)
 
 	s.missionID = MissionID{ID: interopMissionID}
 
@@ -59,22 +71,22 @@ func (s *Server) Run(
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
+	go s.ConnectToRTPP(rtppChannel)
 	mux := http.NewServeMux()
+	mux.Handle("/hub/gcs", &gcsPositionHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
+
 	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})       // get info about teams from interop
 	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s}) // get mission from interop using server's mission ID
 	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})  // get other teams telem info from interop
 
 	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
-	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s})
-	// POST: sets the id in the server, and then gets the mission associated with the id, and then generates a path from that mission, then sends the path to the plane
-	// right now should return back the path that was generated
+	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
+	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s, waypointChan: sendWaypointToPlaneChannel, missionStartChan: missionStartChannel})
 
-	mux.Handle("/hub/plane/telemetry", &planeTelemHandler{server: s})
-
-	// 3. rename this to something to do with path planning, maybe move down here    V
-	// 4. make accept get request which sends a get request to the path planning server at endpoint /path endpoint in the pathplanning server
+	mux.Handle("/hub/path", &pathCacherHandler{server: s})
 
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
+	mux.Handle("/hub/plane/telemetry", &planeTelemetryHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
 
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
@@ -87,7 +99,7 @@ func (s *Server) Run(
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 
-	go s.CacheAndUploadTelem(telemetryChannel)
+	go s.CacheAndUploadTelem(influxdbURI, influxToken, influxBucket, influxOrg, missionStartChannel)
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
 }
@@ -97,23 +109,154 @@ func (s *Server) ConnectToInterop(channel chan *ic.Client) {
 	Log.Info("Server client object initialized: Interop fully connected.")
 }
 
-// CacheAndUploadTelem sends the telemetry to the server and caches it and uploads it to interop
-// continually as telemetry data is received from mavlink
-func (s *Server) CacheAndUploadTelem(channel chan *ic.Telemetry) {
+func (s *Server) ConnectToRTPP(channel chan *pp.Client) {
+	s.pathPlanningClient = <-channel
+	Log.Info("Server client object initialized: RTPP fully connected.")
+}
+
+// CacheAndUploadTelem queries the database for telemetry and posts it to the interop server
+func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, org string, missionStartChannel chan bool) {
+	client := influxdb2.NewClient(uri, token)
+	queryAPI := client.QueryAPI(org)
+
+	latQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, bucket)
+	lonQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lon")`, bucket)
+	altQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "alt")`, bucket)
+	hdgQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "hdg")`, bucket)
+
+	queryStrings := make([]string, 4) 
+	queryStrings[0]=latQueryString
+	queryStrings[1]=lonQueryString
+	queryStrings[2]=altQueryString
+	queryStrings[3]=hdgQueryString
+
+	fields := make([]string, 4)
+	fields[0] = "latitude"
+	fields[1] = "longitude"
+	fields[2] = "altitude"
+	fields[3] = "heading"
+
+	Log.Info("Waiting for mission to start to begin uploaded telemetry to the interop server.")
+	_ = <-missionStartChannel
+	Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
+
+	loop:
 	for true {
-		telem := <-channel
-		telemData, _ := json.Marshal(&telem)
-		s.telemetry = telemData
+		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
+		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself 
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				Log.Errorf("Error querying Influx for telemetry data: %s ", err.Error())
+				continue loop
+			} else {
+				if result.Next() {
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
+				} else {
+					Log.Errorf("Error querying Influx for telemetry data: no value found ", err.Error())
+					continue loop	
+				}
+			}
+		}
+		jsonMap := make(map[string]float64)
+		for i, field := range fields {
+			val, _ := strconv.ParseFloat(results[i], 64)
+			if field == "latitude" || field == "longitude" {
+				val /= 1e7
+			}
+			if field == "altitude" {
+				val /= 1000
+			}
+			if field == "heading" {
+				val /= 100
+			}
+			jsonMap[field] = val
+		}
+
+		jsonStr, _ := json.Marshal(jsonMap)
 
 		// TODO: consider putting a rate limit on this so we don't spam the interop server?
 		if s.client != nil && s.client.IsConnected() {
-			s.client.PostTelemetry(telemData)
+			s.client.PostTelemetry(jsonStr)
 		}
+
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
 func logRequestInfo(r *http.Request) {
 	Log.Infof("Request to Hub from %s: %s %s", r.RemoteAddr, r.Method, r.URL)
+}
+
+type gcsPositionHandler struct {
+	server *Server
+	uri    string
+	token  string
+	org    string
+	bucket string
+}
+
+func (m *gcsPositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "POST":
+		client := influxdb2.NewClient(m.uri, m.token)
+		queryAPI := client.QueryAPI(m.org)
+
+		latQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, m.bucket)
+		lonQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lon")`, m.bucket)
+
+		queryStrings := make([]string, 2)
+		queryStrings[0] = latQueryString
+		queryStrings[1] = lonQueryString
+
+		fields := make([]string, 2)
+		fields[0] = "latitude"
+		fields[1] = "longitude"
+
+		// Log.Info("Waiting for mission to start to begin uploaded telemetry to the interop server.")
+		// _ = <-m.server.missionStartChannel
+		// Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
+
+		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
+		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
+				return
+			} else {
+				if result.Next() {
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
+					return
+				}
+			}
+		}
+		jsonMap := make(map[string]float64)
+		for i, field := range fields {
+			val, _ := strconv.ParseFloat(results[i], 64)
+			if field == "latitude" || field == "longitude" {
+				val /= 1e7
+			}
+			jsonMap[field] = val
+		}
+
+		m.server.gcsWaypoint = jsonMap
+		client.Close()
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 type missionHandler struct {
@@ -129,7 +272,7 @@ type missionHandler struct {
 
 // MissionID is an object used to capture a mission ID parameter
 type MissionID struct {
-	ID int `json:"id"`
+	ID int `json:"id,omitempty"`
 }
 
 func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -152,11 +295,11 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type missionHandlerStart struct {
+type missionHandlerInitialize struct {
 	server *Server
 }
 
-func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//cut path_plan/initialize code
 	logRequestInfo(r)
 
@@ -179,10 +322,12 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if jsonErr != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(jsonErr.Error()))
+			w.Write(missionID)
 			break
 		}
 
 		m.server.missionID = id
+		fmt.Println(id.ID)
 
 		missionData, err := m.server.client.GetMission(id.ID) //gets mission data from interop server
 
@@ -208,7 +353,7 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		//Make the GET request to the PathPlan Server
 		//path, err := json.Marhsall(p.path.Waypoint)
-		path, pathBinary, err := m.server.pathPlanningClient.GetPath()
+		path, pathBinary, err := m.server.pathPlanningClient.GetPath(m.server.gcsWaypoint["latitude"], m.server.gcsWaypoint["longitude"])
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)
@@ -219,6 +364,63 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not implemented"))
+	}
+}
+
+//Sends waypoints to the plane
+type missionHandlerStart struct {
+	server       *Server
+	waypointChan chan *pp.Path
+	missionStartChan chan bool
+}
+
+func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "POST":
+		{
+			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
+			m.waypointChan <- m.server.path
+			m.missionStartChan <- true
+			message := fmt.Sprintf("Attempting to send %d waypoints to plane", len(m.server.path.GetPath()))
+			w.Write([]byte(message))
+			Log.Info(message)
+		}
+	default:
+		{
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("Not implemented"))
+		}
+	}
+}
+
+type pathCacherHandler struct {
+	server *Server
+}
+
+func (m pathCacherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "GET":
+		{
+			if m.server.path == nil {
+				errMsg := "Path has not been initialized yet"
+				Log.Error(errMsg)
+				w.Write([]byte(errMsg))
+				break
+			}
+			data, err := json.Marshal(m.server.path.Waypoints)
+			if err != nil {
+				Log.Error(err)
+				w.Write([]byte(err.Error()))
+			}
+			w.Write(data)
+		}
+	default:
+		{
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("Not implemented"))
+		}
 	}
 }
 
@@ -285,6 +487,78 @@ func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		w.Write(t.server.telemetry)
 		Log.Info("Successfully retrieved our plane's telemetry.")
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
+}
+
+// Handles GET requests that ask for our Plane's telemetry data
+type planeTelemetryHandler struct {
+	server *Server
+	uri    string
+	token  string
+	org    string
+	bucket string
+}
+
+func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "GET":
+		client := influxdb2.NewClient(t.uri, t.token)
+		queryAPI := client.QueryAPI(t.org)
+		id := r.URL.Query().Get("id")
+		fieldsSeparatedByCommas := r.URL.Query().Get("field")
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Missing id parameter"))
+			break
+		}
+		if fieldsSeparatedByCommas == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Missing field parameter"))
+			break
+		}
+		// split up the field param by comma
+		// fields is an array where each index is a value we want to get from the database
+		fields := strings.Split(fieldsSeparatedByCommas, ",")
+		// each fieldString is a query string with one of the fields from fields
+		queryStrings := []string{}
+		for _, f := range fields {
+			Log.Infof("current f: %s", f)
+			queryStrings = append(queryStrings,
+				fmt.Sprintf(`from(bucket:"%s") |> range(start: -5m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
+					t.bucket, id, f))
+		}
+		// Go through the query strings we made and put them in this results slice
+		// results := []influxdb2.QueryTableResult{}
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
+				return
+			} else {
+				if result.Next() {
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
+					return
+				}
+			}
+		}
+		jsonMap := make(map[string]interface{})
+		for i, field := range fields {
+			jsonMap[field] = results[i]
+		}
+		jsonStr, _ := json.Marshal(jsonMap)
+		w.Write([]byte(jsonStr))
+
+		client.Close()
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not Implemented"))
