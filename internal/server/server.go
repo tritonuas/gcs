@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -94,6 +95,8 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/cv/cropped/", &CVCroppedHandler{server: s})
 	mux.Handle("/hub/cv/result/", &CVResultHandler{server: s})
+
+	mux.Handle("/hub/obc/image/", &OBCImageRequestHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -980,10 +983,43 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.server.cvData.Images = append(h.server.cvData.Images, image) // saves unmarshalled data to list of cv images
 		Log.Info(h.server.cvData.Images)
 
-		//TODO: make sure the json parsing is right in computer_vision.go; try to find an example json input for reference
-
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not implemented"))
+	}
+}
+type OBCImageRequestHandler struct {
+	server *Server
+}
+
+func (h OBCImageRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
+	switch r.Method {
+	case "POST":
+		values := map[string]string{
+			"image": "~/Downloads/cropped0_1725909771_geotag.jpg",
+			"filename": "",
+			"longitude": "",
+			"latitude": "",
+			"altitude": "",
+			"heading": "",
+			"time": "",
+			"groundspeed": "",
+			"airspeed": "",
+			"roll": "",
+			"pitch": "",
+			"yaw": "",
+		}
+	
+		jsonValue, _ := json.Marshal(values)
+	
+		resp, err := http.Post("http://localhost:5001/upload", "image/jpeg", bytes.NewBuffer(jsonValue))
+	
+		if (err != nil) {
+			Log.Error(err)
+		}
+	
+		fmt.Println(resp) // idk what to do with resp so i just printed it
 	}
 }
