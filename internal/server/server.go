@@ -8,29 +8,37 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
+	// mav "github.com/tritonuas/hub/internal/mavlink"
+	pp "github.com/tritonuas/hub/internal/path_plan"
 )
 
 var Log = logrus.New()
 
+// https://app.clickup.com/t/28rwhv5
+
 // Server provides the implementation for the hub server that communicates
 // with other parts of the plane's system and houston
 type Server struct {
-	port   string
-	client *ic.Client
+	port               string
+	client             *ic.Client
+	pathPlanningClient *pp.Client
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
-	path *Path // Holds the path of the plane, see the definition of the struct for more details
+	path *pp.Path // Holds the path of the plane, see the definition of the struct for more details
 
 	homePosition *ic.Position // Home position of the plane, which must be set by us
 
-	missionID MissionID // ID of the mission that we are assigned
+	missionID MissionID
+
+	gcsWaypoint map[string]float64
 
 	//mission TODO Actually hold the mission object for pyplanner to request
 }
@@ -41,24 +49,36 @@ func (s *Server) Run(
 	port string,
 	interopChannel chan *ic.Client,
 	interopMissionID int,
+	rtppChannel chan *pp.Client,
 	telemetryChannel chan *ic.Telemetry,
 	influxdbURI string,
 	influxToken string,
 	influxBucket string,
-	influxOrg string) {
+	influxOrg string,
+	sendWaypointToPlaneChannel chan *pp.Path) {
+
+	// receives "true" when the mission is started
+	missionStartChannel := make(chan bool)
 
 	s.missionID = MissionID{ID: interopMissionID}
 
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
+	go s.ConnectToRTPP(rtppChannel)
 	mux := http.NewServeMux()
-	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})
-	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s})
-	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})
-	mux.Handle("/hub/mission", &missionHandler{server: s})
-	mux.Handle("/hub/plane/position", &planePositionHandler{server: s})
-	mux.Handle("/hub/plane/path", &planePathHandler{server: s})
+	mux.Handle("/hub/gcs", &gcsPositionHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
+
+	mux.Handle("/hub/interop/teams", &interopTeamHandler{server: s})       // get info about teams from interop
+	mux.Handle("/hub/interop/missions", &interopMissionHandler{server: s}) // get mission from interop using server's mission ID
+	mux.Handle("/hub/interop/telemetry", &interopTelemHandler{server: s})  // get other teams telem info from interop
+
+	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
+	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
+	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s, waypointChan: sendWaypointToPlaneChannel, missionStartChan: missionStartChannel})
+
+	mux.Handle("/hub/path", &pathCacherHandler{server: s})
+
 	mux.Handle("/hub/plane/home", &planeHomeHandler{server: s})
 	mux.Handle("/hub/plane/telemetry", &planeTelemetryHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg})
 
@@ -66,16 +86,11 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
-	/*
-		mux.Handle("/hub/interop/odlcs", )
-		mux.Handle("/hub/interop/odlc/image/", )
-	*/
-
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 	})
 
-	go s.CacheAndUploadTelem(telemetryChannel)
+	go s.CacheAndUploadTelem(influxdbURI, influxToken, influxBucket, influxOrg, missionStartChannel)
 	handler := c.Handler(mux)
 	http.ListenAndServe(s.port, handler)
 }
@@ -85,23 +100,154 @@ func (s *Server) ConnectToInterop(channel chan *ic.Client) {
 	Log.Info("Server client object initialized: Interop fully connected.")
 }
 
-// CacheAndUploadTelem sends the telemetry to the server and caches it and uploads it to interop
-// continually as telemetry data is received from mavlink
-func (s *Server) CacheAndUploadTelem(channel chan *ic.Telemetry) {
+func (s *Server) ConnectToRTPP(channel chan *pp.Client) {
+	s.pathPlanningClient = <-channel
+	Log.Info("Server client object initialized: RTPP fully connected.")
+}
+
+// CacheAndUploadTelem queries the database for telemetry and posts it to the interop server
+func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, org string, missionStartChannel chan bool) {
+	client := influxdb2.NewClient(uri, token)
+	queryAPI := client.QueryAPI(org)
+
+	latQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, bucket)
+	lonQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lon")`, bucket)
+	altQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "alt")`, bucket)
+	hdgQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "hdg")`, bucket)
+
+	queryStrings := make([]string, 4)
+	queryStrings[0] = latQueryString
+	queryStrings[1] = lonQueryString
+	queryStrings[2] = altQueryString
+	queryStrings[3] = hdgQueryString
+
+	fields := make([]string, 4)
+	fields[0] = "latitude"
+	fields[1] = "longitude"
+	fields[2] = "altitude"
+	fields[3] = "heading"
+
+	Log.Info("Waiting for mission to start to begin uploaded telemetry to the interop server.")
+	_ = <-missionStartChannel
+	Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
+
+loop:
 	for true {
-		telem := <-channel
-		telemData, _ := json.Marshal(&telem)
-		s.telemetry = telemData
+		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
+		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				Log.Errorf("Error querying Influx for telemetry data: %s ", err.Error())
+				continue loop
+			} else {
+				if result.Next() {
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
+				} else {
+					Log.Errorf("Error querying Influx for telemetry data: no value found ", err.Error())
+					continue loop
+				}
+			}
+		}
+		jsonMap := make(map[string]float64)
+		for i, field := range fields {
+			val, _ := strconv.ParseFloat(results[i], 64)
+			if field == "latitude" || field == "longitude" {
+				val /= 1e7
+			}
+			if field == "altitude" {
+				val /= 1000
+			}
+			if field == "heading" {
+				val /= 100
+			}
+			jsonMap[field] = val
+		}
+
+		jsonStr, _ := json.Marshal(jsonMap)
 
 		// TODO: consider putting a rate limit on this so we don't spam the interop server?
 		if s.client != nil && s.client.IsConnected() {
-			s.client.PostTelemetry(telemData)
+			s.client.PostTelemetry(jsonStr)
 		}
+
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
 func logRequestInfo(r *http.Request) {
 	Log.Infof("Request to Hub from %s: %s %s", r.RemoteAddr, r.Method, r.URL)
+}
+
+type gcsPositionHandler struct {
+	server *Server
+	uri    string
+	token  string
+	org    string
+	bucket string
+}
+
+func (m *gcsPositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "POST":
+		client := influxdb2.NewClient(m.uri, m.token)
+		queryAPI := client.QueryAPI(m.org)
+
+		latQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, m.bucket)
+		lonQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lon")`, m.bucket)
+
+		queryStrings := make([]string, 2)
+		queryStrings[0] = latQueryString
+		queryStrings[1] = lonQueryString
+
+		fields := make([]string, 2)
+		fields[0] = "latitude"
+		fields[1] = "longitude"
+
+		// Log.Info("Waiting for mission to start to begin uploaded telemetry to the interop server.")
+		// _ = <-m.server.missionStartChannel
+		// Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
+
+		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
+		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself
+		var results []string
+		for _, queryString := range queryStrings {
+			result, err := queryAPI.Query(context.Background(), queryString)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("Error Querying InfluxDB: %s", err)))
+				return
+			} else {
+				if result.Next() {
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
+					return
+				}
+			}
+		}
+		jsonMap := make(map[string]float64)
+		for i, field := range fields {
+			val, _ := strconv.ParseFloat(results[i], 64)
+			if field == "latitude" || field == "longitude" {
+				val /= 1e7
+			}
+			jsonMap[field] = val
+		}
+
+		m.server.gcsWaypoint = jsonMap
+		client.Close()
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not Implemented"))
+	}
 }
 
 type missionHandler struct {
@@ -117,7 +263,7 @@ type missionHandler struct {
 
 // MissionID is an object used to capture a mission ID parameter
 type MissionID struct {
-	ID int `json:"id"`
+	ID int `json:"id,omitempty"`
 }
 
 func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -125,29 +271,147 @@ func (m *missionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		idData, _ := json.Marshal(m.server.missionID)
-		w.Write(idData)
-		Log.Infof("Successfully retrieved mission ID information: id = %d", m.server.missionID)
-
-	case "POST":
-		// Change the stored mission ID
-		idData, _ := ioutil.ReadAll(r.Body)
-		var id MissionID
-		err := json.Unmarshal(idData, &id)
+		idData, err := json.Marshal(m.server.missionID)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("Unable to parse mission id: %s", err.Error())))
-			Log.Errorf("Unable to parse mission id: %s", err.Error())
+			//w.Write(err.Message)
 		} else {
-			oldID := m.server.missionID
-			m.server.missionID = id
-			w.Write([]byte(fmt.Sprintf("Successfully updated mission id from %d to %d", oldID, m.server.missionID)))
-			Log.Infof("Successfully updated mission id from %d to %d", oldID, m.server.missionID)
+			w.Write(idData)
+			Log.Infof("Successfully retrieved mission ID information: id = %d", m.server.missionID)
 		}
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not implemented"))
+	}
+}
+
+type missionHandlerInitialize struct {
+	server *Server
+}
+
+func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	//cut path_plan/initialize code
+	logRequestInfo(r)
+
+	if m.server.pathPlanningClient == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Path Planning connection not established"))
+		Log.Errorf("Unable to get data from Path Planning; connection not established")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		//use post function from pp client
+		missionID, _ := ioutil.ReadAll(r.Body) //reads mission ID from post request body
+		//err := ic.NewInteropError()
+
+		var id MissionID
+		jsonErr := json.Unmarshal(missionID, &id)
+
+		if jsonErr != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(jsonErr.Error()))
+			w.Write(missionID)
+			break
+		}
+
+		m.server.missionID = id
+		fmt.Println(id.ID)
+
+		missionData, err := m.server.client.GetMission(id.ID) //gets mission data from interop server
+
+		if err.Post {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+			Log.Errorf("Unable to send data to path planning: %s", err.Message)
+			break
+		} else {
+			Log.Infof("Successfully requested mission information from interop")
+		}
+
+		ppErr := m.server.pathPlanningClient.PostMission(missionData) //calls pp client post function
+
+		if ppErr.Post {
+			w.WriteHeader(ppErr.Status)
+			w.Write(ppErr.Message)
+			Log.Errorf("Unable to post mission data to path planning: %s", ppErr.Message)
+			break
+		}
+
+		//copied path_plan/plath code for 3d sub bullet
+
+		//Make the GET request to the PathPlan Server
+		//path, err := json.Marhsall(p.path.Waypoint)
+		path, pathBinary, err := m.server.pathPlanningClient.GetPath(m.server.gcsWaypoint["latitude"], m.server.gcsWaypoint["longitude"])
+		if err.Get {
+			w.WriteHeader(err.Status)
+			w.Write(err.Message)
+		} else {
+			m.server.path = &path //caching the path
+			w.Write(pathBinary)
+		}
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
+
+//Sends waypoints to the plane
+type missionHandlerStart struct {
+	server           *Server
+	waypointChan     chan *pp.Path
+	missionStartChan chan bool
+}
+
+func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "POST":
+		{
+			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
+			m.waypointChan <- m.server.path
+			m.missionStartChan <- true
+			message := fmt.Sprintf("Attempting to send %d waypoints to plane", len(m.server.path.GetPath()))
+			w.Write([]byte(message))
+			Log.Info(message)
+		}
+	default:
+		{
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("Not implemented"))
+		}
+	}
+}
+
+type pathCacherHandler struct {
+	server *Server
+}
+
+func (m pathCacherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+	switch r.Method {
+	case "GET":
+		{
+			if m.server.path == nil {
+				errMsg := "Path has not been initialized yet"
+				Log.Error(errMsg)
+				w.Write([]byte(errMsg))
+				break
+			}
+			data, err := json.Marshal(m.server.path.Waypoints)
+			if err != nil {
+				Log.Error(err)
+				w.Write([]byte(err.Error()))
+			}
+			w.Write(data)
+		}
+	default:
+		{
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("Not implemented"))
+		}
 	}
 }
 
@@ -196,57 +460,12 @@ func (p *planeHomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handles POST requests
-type planePathHandler struct {
+// Handles GET requests that ask for our Plane's telemetry data
+type planeTelemHandler struct {
 	server *Server
 }
 
-func (p *planePathHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logRequestInfo(r)
-
-	switch r.Method {
-	case "GET":
-		if p.server.path != nil && p.server.path.GetOriginalJSON() != nil {
-			pathData := p.server.path.GetOriginalJSON()
-			w.Write([]byte(pathData))
-			Log.Info("Successfully retrieved path data.")
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("No path found."))
-			Log.Error("No path found.")
-		}
-		break
-
-	case "POST":
-		pathData, _ := ioutil.ReadAll(r.Body)
-
-		var err error
-		p.server.path, err = CreatePath(pathData)
-
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("Error processing path data: %s", err.Error())))
-			Log.Errorf("Error processing path data: %s", err.Error())
-			break
-		}
-
-		p.server.path.Display()
-
-		w.Write([]byte("Successfully uploaded path to hub"))
-		Log.Info("Successfully updated stored path.")
-
-	default:
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("Not Implemented"))
-	}
-}
-
-// Handles GET requests that ask for our Plane's position data
-type planePositionHandler struct {
-	server *Server
-}
-
-func (t *planePositionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (t *planeTelemHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 	switch r.Method {
 	case "GET":
@@ -300,8 +519,8 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		for _, f := range fields {
 			Log.Infof("current f: %s", f)
 			queryStrings = append(queryStrings,
-							fmt.Sprintf(`from(bucket:"%s")|> range(start: -5m) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
-							t.bucket, id, f))
+				fmt.Sprintf(`from(bucket:"%s") |> range(start: -5m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "%s") |> filter(fn: (r) => r._field == "%s")`,
+					t.bucket, id, f))
 		}
 		// Go through the query strings we made and put them in this results slice
 		// results := []influxdb2.QueryTableResult{}
@@ -314,7 +533,8 @@ func (t *planeTelemetryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 				return
 			} else {
 				if result.Next() {
-					results = append(results, fmt.Sprint(result.Record().Value()))
+					val := fmt.Sprint(result.Record().Value())
+					results = append(results, val)
 				} else {
 					w.WriteHeader(http.StatusBadRequest)
 					w.Write([]byte(fmt.Sprintf("Requested telemetry with query %s not found in InfluxDB. Check the id and field in the Mavlink documentation at http://mavlink.io/en/messages/common.html", queryString)))
@@ -647,232 +867,8 @@ func (o *interopOdlcImageHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-/* old code:
-func (o *interopOdlcHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logRequestInfo(r)
-	if o.server.client == nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Interop connection not established"))
-		Log.Errorf("Unable to get odlc data from Interop because connection to Interop not established")
-		return
-	}
-	// I hate this function and we should seriously considering either fixing it or making
-	// it way simpler by not attempting to match exactly the API interop uses, and instead
-	// only implementing the ones that we want to use
-
-	// initialize this value to -99, and update if the user specifies a mission
-	const noMission int = -99
-	missionID := noMission
-	// Will be set to true if the user is trying to access/post image data
-	imageRequest := false
-	// This split string array should be in the format ["", "api", "odlcs" ]
-	// OR ["", "api", "odlcs", "X"] where X is the mission value
-	// OR if the user is trying to specify an image, then the format will be like this:
-	// ["", "api", "odlcs", "X", "image"] (len = 5)
-	splitURI := strings.Split(r.URL.Path, "/")
-
-	// THIS CODE SUCKS AND IF THE NUMBER OF WORDS IN THE URL CHANGES THESE HAVE TO CHANGE AS WELL
-	// I WANT TO NUKE THIS FUNCTION AND FIX THIS SOME DAY
-	// UNTIL THEN, SORRY
-
-	if len(splitURI) == 5 || len(splitURI) == 6 {
-		// update mission to the value they want it to be
-		var err error
-		missionID, err = strconv.Atoi(splitURI[4])
-		if err != nil {
-			// Either the user didn't supply a mission, or they provided a non integer
-			// value. Either way, we will assume they didn't try to specifiy an ID
-			// and override whatever junk value was placed into missionID
-			missionID = noMission
-		}
-		if len(splitURI) == 6 && splitURI[len(splitURI)-1] == "image" { // Check if user trying to do something with images
-			imageRequest = true
-		}
-	}
-
-	if imageRequest {
-		if missionID == noMission {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Bad Request Format - Must provide a valid mission ID for odlc image requests"))
-			Log.Error("Bad Request Format - Must provide a valid mission ID for odlc image requests")
-		} else {
-			switch r.Method {
-			case "GET":
-				image, err := o.server.client.GetODLCImage(missionID)
-				if err.Get {
-					w.WriteHeader(err.Status)
-					w.Write(err.Message)
-					Log.Errorf("Unable to get ODLC image from Interop: %s", err.Message)
-				} else {
-					// This Write statement corresponds to a successful request in the format
-					// GET /interop/odlcs/X/image
-					w.Write(image)
-					Log.Info("Successfully retrieved ODLC image from Interop.")
-				}
-			case "PUT":
-				image, _ := ioutil.ReadAll(r.Body)
-				err := o.server.client.PutODLCImage(missionID, image)
-				if err.Put {
-					w.WriteHeader(err.Status)
-					w.Write(err.Message)
-					Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
-				} else {
-					// This Write statement corresponds to a successful request in the format
-					// PUT /interop/odlcs/X/image
-					w.Write([]byte(fmt.Sprintf("Successfully uploaded odlc image for odlc %d", missionID)))
-					Log.Infof("Successfully uploaded ODLC image for ODLC %d", missionID)
-				}
-			case "DELETE":
-				err := o.server.client.DeleteODLCImage(missionID)
-				if err.Delete {
-					w.WriteHeader(err.Status)
-					w.Write(err.Message)
-					Log.Errorf("Unable to update ODLC image on Interop: %s", err.Message)
-				} else {
-					// This Write statement corresponds to a successful request in the format
-					// DELETE /interop/odlcs/X/image
-					w.Write([]byte(fmt.Sprintf("Successfully deleted ODLC image for ODLC %d", missionID)))
-					Log.Infof("Successfully deleted ODLC image for ODLC %d", missionID)
-				}
-			default:
-				w.WriteHeader(http.StatusNotImplemented)
-				w.Write([]byte("Not implemented"))
-			}
-		}
-	} else { // not an image request
-		switch r.Method {
-		case "GET":
-			// Check for ?mission=X query param
-			if len(r.URL.Query()) > 0 {
-				if val, ok := r.URL.Query()["mission"]; ok {
-					// Verify that mission wasn't also set in the URI
-					if missionID == noMission {
-						var err error
-						missionID, err = strconv.Atoi(val[0])
-						if err != nil {
-							w.WriteHeader(http.StatusBadRequest)
-							w.Write([]byte("Bad Request Format - Expected valid integer X in query parameter ?mission=X"))
-							Log.Errorf("Bad Request Format - Exptected valid integer X in query parameter ?mission=X")
-							return
-						}
-						odlcsData, intErr := o.server.client.GetODLCs(missionID)
-						if intErr.Get {
-							w.WriteHeader(intErr.Status)
-							w.Write(intErr.Message)
-							Log.Errorf("Unable to retrieve ODLCS via mission ID %d from Interop: %s", missionID, intErr.Message)
-						} else {
-							// Everything is OK!
-							// This Write statement corresponds to a successful GET request in the format:
-							// GET /interop/odlcs?mission=X where X is a valid integer
-							w.Write(odlcsData)
-							Log.Infof("Successfully retrieved ODLCS via mission ID %d from Interop", missionID)
-						}
-					} else {
-						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}"))
-						Log.Errorf("Bad Request Format - Cannot provide both query parameter ?mission and mission param like /api/odlcs/{id}")
-					}
-				} else {
-					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte("Bad Request Format - Cannot provide query parameters other than ?mission"))
-					Log.Errorf("Bad Request Format - Cannot provide query parameters other than ?mission")
-				}
-			} else {
-				// There was no query param
-				if missionID == noMission {
-					// The user didn't provide a specific mission, so they want a list of all the odlcs
-					// (We still pass through missionID since a negative number parameter to this function
-					// signifies that we don't want to restrict it to a specific mission)
-					odlcsData, intErr := o.server.client.GetODLCs(missionID)
-					if intErr.Get {
-						w.WriteHeader(intErr.Status)
-						w.Write(intErr.Message)
-						Log.Errorf("Unable to retrieve ODLCs from Interop: %s", intErr.Message)
-					} else {
-						// Everything is OK!
-						// This Write statement corresponds to a successful GET request in the format:
-						// GET /interop/odlcs/
-						w.Write(odlcsData)
-						Log.Infof("Successfully retrieved ODLCs from Interop")
-					}
-				} else {
-					// The user wants the odlc data from a specific ODLC, and the id of that odlc
-					// is stored in missionID
-					odlcData, intErr := o.server.client.GetODLC(missionID)
-					if intErr.Get {
-						w.WriteHeader(intErr.Status)
-						w.Write(intErr.Message)
-						Log.Errorf("Unable to retrieve ODLC %d from Interop: %s", missionID, intErr.Message)
-					} else {
-						// Everything is OK!
-						// This Write statment corresponds to a successful GET request in the format:
-						// GET /interop/odlcs/X where X is a valid integer
-						w.Write(odlcData)
-						Log.Infof("Successfully retrieved ODLC %d from Interop", missionID)
-					}
-				}
-			}
-		case "POST":
-			if missionID == noMission {
-				odlcData, _ := ioutil.ReadAll(r.Body)
-				// Make the POST request to the interop server
-				updatedODLC, err := o.server.client.PostODLC(odlcData)
-				if err.Post {
-					w.WriteHeader(err.Status)
-					w.Write(err.Message)
-					Log.Errorf("Unable to upload ODLC to Interop: %s", err.Message)
-				} else {
-					// This Write statement corresponds to a successful POST request in the format:
-					// POST /interop/odlcs
-					w.Write(updatedODLC)
-					Log.Infof("Successfully uploaded ODLC to Interop")
-				}
-			} else {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Bad Request Format - Cannot provide a mission ID for a POST request."))
-				Log.Errorf("Bad Request Format - Cannot provide a mission ID for a POST request.")
-			}
-		case "PUT":
-			if missionID == noMission {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Bad Request Format - Must provide a mission ID for a PUT request"))
-				Log.Error("Bad Request Format - Must provide a mission ID for a PUT request")
-			} else {
-				odlcData, _ := ioutil.ReadAll(r.Body)
-				updatedOdlc, err := o.server.client.PutODLC(missionID, odlcData)
-				if err.Put {
-					w.WriteHeader(err.Status)
-					w.Write(err.Message)
-					Log.Errorf("Unable to update ODLC %d on Interop: %s", missionID, err.Message)
-				} else {
-					// This Write statement corresponds to a successful PUT request in the format:
-					// PUT /interop/odlcs/X where X is a valid integer
-					w.Write(updatedOdlc)
-					Log.Infof("Successfully updated ODLC %d on Interop", missionID)
-				}
-			}
-		case "DELETE":
-			if missionID == noMission {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Bad Request Format - Must provide a mission ID for a DELETE request."))
-				Log.Errorf("Bad Request Format - Must provide a mission ID for a DELETE request.")
-			} else {
-				err := o.server.client.DeleteODLC(missionID)
-				if err.Delete {
-					w.WriteHeader(err.Status)
-					w.Write(err.Message)
-					Log.Errorf("Unable to delete ODLC %d on Interop: %s", missionID, err.Message)
-				} else {
-					// This Write statement corresponds to a successful DELETE request in the format:
-					// DELETE /interop/odlcs/X where X is a valid integer
-					w.Write([]byte(fmt.Sprintf("Successfully deleted odlc %d", missionID)))
-					Log.Infof("Successfuly deleted ODLC %d on Interop", missionID)
-				}
-			}
-		default:
-			w.WriteHeader(http.StatusNotImplemented)
-			w.Write([]byte("Not Implemented"))
-		}
-	}
-}
+/*
+Use path planning client to send the static mission data to path planning when Hub receives a POST request
+at /hub/pathplanning/initialize with the following request body { "id": [mission_id] }.
+Then should use the path planning client to forward the static mission data to path planning
 */

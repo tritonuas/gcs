@@ -1,8 +1,8 @@
-package interop
+package utils
 
 import "strings"
 
-type InteropError struct {
+type HTTPError struct {
 	Get     bool   // Signifies error from a get request
 	Post    bool   // Signifies error from a post request
 	Put     bool   // Signifies error from a put request
@@ -11,10 +11,10 @@ type InteropError struct {
 	Status  int    // Holds the HTTP status code
 }
 
-// NewInteropError creates an InteropError object with all error flags set to
+// NewRTPPError creates an RTPPError object with all error flags set to
 // false.
-func NewInteropError() *InteropError {
-	err := &InteropError{
+func NewHTTPError() *HTTPError {
+	err := &HTTPError{
 		Get:     false,
 		Post:    false,
 		Put:     false,
@@ -26,9 +26,9 @@ func NewInteropError() *InteropError {
 	return err
 }
 
-// SetError sets the attributes of the interop error accordingly to the parameters
+// SetError sets the attributes of the RTPP error accordingly to the parameters
 // passed through
-func (i *InteropError) SetError(errType string, message []byte, status int) {
+func (i *HTTPError) SetError(errType string, message []byte, status int) {
 	errType = strings.ToUpper(errType)
 	switch errType {
 	case "GET":

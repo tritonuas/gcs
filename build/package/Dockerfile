@@ -2,7 +2,6 @@ FROM golang:1.14
 
 # Move to working directory /build
 WORKDIR /build
-COPY . .
 
 # Install some necessary dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -13,6 +12,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Install protoc compilation for golang
 RUN go get google.golang.org/protobuf/cmd/protoc-gen-go
 
+COPY . .
 # Compile protobufs for golang
 RUN make compile-protos
 
