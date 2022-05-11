@@ -115,11 +115,11 @@ func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, or
 	altQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "alt")`, bucket)
 	hdgQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "hdg")`, bucket)
 
-	queryStrings := make([]string, 4) 
-	queryStrings[0]=latQueryString
-	queryStrings[1]=lonQueryString
-	queryStrings[2]=altQueryString
-	queryStrings[3]=hdgQueryString
+	queryStrings := make([]string, 4)
+	queryStrings[0] = latQueryString
+	queryStrings[1] = lonQueryString
+	queryStrings[2] = altQueryString
+	queryStrings[3] = hdgQueryString
 
 	fields := make([]string, 4)
 	fields[0] = "latitude"
@@ -131,11 +131,11 @@ func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, or
 	_ = <-missionStartChannel
 	Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
 
-	loop:
+loop:
 	for true {
 		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
 		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
-		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself 
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself
 		var results []string
 		for _, queryString := range queryStrings {
 			result, err := queryAPI.Query(context.Background(), queryString)
@@ -148,7 +148,7 @@ func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, or
 					results = append(results, val)
 				} else {
 					Log.Errorf("Error querying Influx for telemetry data: no value found ", err.Error())
-					continue loop	
+					continue loop
 				}
 			}
 		}
@@ -360,8 +360,8 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 //Sends waypoints to the plane
 type missionHandlerStart struct {
-	server       *Server
-	waypointChan chan *pp.Path
+	server           *Server
+	waypointChan     chan *pp.Path
 	missionStartChan chan bool
 }
 
