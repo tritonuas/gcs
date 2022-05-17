@@ -6,9 +6,9 @@ services:
     ports:
       - 5000:5000
     environment:
-      - INTEROP_IP=172.17.0.1
+      - INTEROP_IP=host.docker.internal
       - INTEROP_PORT=8000
-      - RTPP_IP=172.17.0.1
+      - RTPP_IP=host.docker.internal
       - RTPP_PORT=5010
       - INTEROP_USER=ucsdauvsi
       - INTEROP_PASS=tritons
@@ -27,6 +27,8 @@ services:
       - missions:/go/src/github.com/tritonuas/hub/missions
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
+    extra_hosts:
+      - host.docker.internal:host-gateway
       
   influxdb:
     image: influxdb:2.0-alpine
