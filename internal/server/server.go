@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,8 +17,10 @@ import (
 
 	cv "github.com/tritonuas/hub/internal/computer_vision"
 	ic "github.com/tritonuas/hub/internal/interop"
+
 	// mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
+	ut "github.com/tritonuas/hub/internal/utils"
 )
 
 var Log = logrus.New()
@@ -92,7 +95,7 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
 
-	mux.Handle("/hub/cv/cropped/", &CVCroppedHandler{server: s})
+	mux.Handle("/hub/cv/cropped/", &CVCroppedHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg}) // eventually these influx variables will be in an influxclient struct
 	mux.Handle("/hub/cv/result/", &CVResultHandler{server: s})
 
 	c := cors.New(cors.Options{
@@ -124,11 +127,11 @@ func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, or
 	altQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "alt")`, bucket)
 	hdgQueryString := fmt.Sprintf(`from(bucket:"%s") |> range(start: -1m) |> tail(n: 1, offset: 0) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "hdg")`, bucket)
 
-	queryStrings := make([]string, 4) 
-	queryStrings[0]=latQueryString
-	queryStrings[1]=lonQueryString
-	queryStrings[2]=altQueryString
-	queryStrings[3]=hdgQueryString
+	queryStrings := make([]string, 4)
+	queryStrings[0] = latQueryString
+	queryStrings[1] = lonQueryString
+	queryStrings[2] = altQueryString
+	queryStrings[3] = hdgQueryString
 
 	fields := make([]string, 4)
 	fields[0] = "latitude"
@@ -140,11 +143,11 @@ func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, or
 	_ = <-missionStartChannel
 	Log.Info("Mission has been started so we will begin to upload telemetry to the interop server.")
 
-	loop:
+loop:
 	for true {
 		// Note: this code is basically copied from /hub/plane/telemetry endpoint.
 		// In the future we should abstract out this logic into a separate module that just deals with interfacing with the influx db
-		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself 
+		// so that this code and the code in /hub/plane/telemtry just uses this module instead of having to do the dirty work itself
 		var results []string
 		for _, queryString := range queryStrings {
 			result, err := queryAPI.Query(context.Background(), queryString)
@@ -157,7 +160,7 @@ func (s *Server) CacheAndUploadTelem(uri string, token string, bucket string, or
 					results = append(results, val)
 				} else {
 					Log.Errorf("Error querying Influx for telemetry data: no value found ", err.Error())
-					continue loop	
+					continue loop
 				}
 			}
 		}
@@ -369,8 +372,8 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 //Sends waypoints to the plane
 type missionHandlerStart struct {
-	server       *Server
-	waypointChan chan *pp.Path
+	server           *Server
+	waypointChan     chan *pp.Path
 	missionStartChan chan bool
 }
 
@@ -885,6 +888,9 @@ Then should use the path planning client to forward the static mission data to p
 // Handles requests from the jetson that include the cropped/salienced image
 type CVCroppedHandler struct {
 	server *Server
+	uri    string
+	token  string
+	org    string
 	bucket string
 }
 
@@ -902,7 +908,7 @@ type target struct {
 	Bbox               bbox    `json:"bbox"`
 	PlaneLat           float64 `json:"plane_lat"`
 	PlaneLon           float64 `json:"plane_lon"`
-	PlaneAlt           float64 `json:"alt"`
+	PlaneAlt           float64 `json:"plane_alt"`
 }
 
 func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -924,26 +930,53 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Log.Fatal(err)
 		}
 
-		inputTimeLayout := "Mon Jan 02 2006 15:04:05 GMT-0700"
-		inputTime, err := time.Parse(inputTimeLayout, t.Timestamp)
+		// TODO: wip. still need to format from camera timestamp
+		// inputTimeLayout := "2006-01-02 Mon Jan 02 2006 15:04:05 GMT-0700"
+		// inputTime, err := time.Parse(inputTimeLayout, t.Timestamp)
+		inputTime := time.Now().Add(-5 * time.Second)
 		queryStartTime := inputTime.Format(time.RFC3339)
-		queryEndTime := (inputTime.Add(time.Second))
+		// queryEndTime := (inputTime.Add(time.Second)).Format(time.RFC3339)
 
-		bucket := "mavlink" // TODO: change these to be stored in struct
-		token := "influxdbToken"
-		org := "TritonUAS"
-		uri := "http://localhost:8086"
+		client := influxdb2.NewClient(h.uri, h.token)
+		queryAPI := client.QueryAPI(h.org)
+		Log.Info("Queryapi", queryAPI)
 
-		client := influxdb2.NewClient(uri, token)
-		queryAPI := client.QueryAPI(org)
-		planeLatQuery := fmt.Sprintf(`from(bucket:"%s") |> range(start: %s, stop: %s) |> first() |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "lat")`, bucket, queryStartTime, queryEndTime)
-		result, err := queryAPI.Query(context.Background(), planeLatQuery)
-		if result.Next() {
-			Log.Info(result.Record().Value())
-			Log.Infof("%T", result.Record().Value())
+		telem := make(map[string]float64)
+		fields := []string{"lat", "lon", "alt"}
+		for _, field := range fields {
+			planeLatQuery := fmt.Sprintf(`from(bucket:"%s") |> range(start: %s) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "%s")`, h.bucket, queryStartTime, field)
+			result, err := queryAPI.Query(context.Background(), planeLatQuery)
+			if err != nil {
+				Log.Error(err)
+			}
+			if result != nil && result.Next() {
+				var ok bool
+				telem[field], ok = result.Record().Value().(float64)
+				if !ok {
+					telem[field] = 0
+					Log.Error("Could not parse %s from InfluxDB")
+				}
+			} else {
+				Log.Debug("Could not find %s field in InfluxDB", field)
+			}
 		}
+		t.PlaneLat = telem[fields[0]]
+		t.PlaneLon = telem[fields[1]]
+		t.PlaneAlt = telem[fields[2]]
 
-		// request, err := http.NewRequest("POST", "http://localhost:5040/upload", bytes.NewReader(body.Bytes()))
+		data, err := json.Marshal(t)
+		if err != nil {
+			Log.Error(err)
+			w.Write([]byte(err.Error()))
+			break
+		}
+		Log.Info(string(data))
+		// resp, err := http.Post("http://localhost:5040/upload", "application/json", bytes.NewBuffer(data))
+		httpClient := ut.NewClient("host.docker.internal:5040", 30) // TODO: change this to be env variable
+		// TODO: also make a CVS client (maybe OBC client as well)
+		resp, e := httpClient.Post("/upload", bytes.NewBuffer(data))
+		Log.Error(string(e.Message))
+		Log.Info(resp)
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
