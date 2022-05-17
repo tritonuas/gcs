@@ -484,7 +484,7 @@ func RunMavlink(
 					if int(msg.Seq) == 0 {
 						cur = 1
 					}
-					Log.Infof("Sending waypoint %v", msg.Seq)
+                    Log.Infof("Sending waypoint %v accept: %v", msg.Seq, int32(pathReadyForPlane.Waypoints[msg.Seq].AcceptRadius))
 					node.WriteMessageAll(&common.MessageMissionItemInt{
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
@@ -494,7 +494,7 @@ func RunMavlink(
 						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
 						Autocontinue:    0,                                                           // always 0
 						Param1:          0,                                                           // Hold Time: ignored by fixed wing planes
-						Param2:          0,                                                           // Accept Radius (radial threshold in meters for a waypoint to be hit)
+						Param2:          float32(pathReadyForPlane.Waypoints[msg.Seq].AcceptRadius),                                                           // Accept Radius (radial threshold in meters for a waypoint to be hit)
 						Param3:          0,                                                           // Pass Radius (idk what this is exactly yet)
 						Param4:          float32(math.NaN()),                                         // Yaw to enter waypoint at
 						X:               int32(pathReadyForPlane.Waypoints[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
@@ -518,7 +518,7 @@ func RunMavlink(
 					if int(msg.Seq) == 0 {
 						cur = 1
 					}
-					Log.Infof("Sending waypoint %v", msg.Seq)
+                    Log.Infof("Sending waypoint %v accept: %v", msg.Seq, int32(pathReadyForPlane.Waypoints[msg.Seq].AcceptRadius))
 					node.WriteMessageAll(&common.MessageMissionItemInt{
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
@@ -528,7 +528,7 @@ func RunMavlink(
 						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
 						Autocontinue:    0,                                                           // always 0
 						Param1:          0,                                                           // Hold Time: ignored by fixed wing planes
-						Param2:          0,                                                           // Accept Radius (radial threshold in meters for a waypoint to be hit)
+						Param2:          float32(pathReadyForPlane.Waypoints[msg.Seq].AcceptRadius),                                                           // Accept Radius (radial threshold in meters for a waypoint to be hit)
 						Param3:          0,                                                           // Pass Radius (idk what this is exactly yet)
 						Param4:          float32(math.NaN()),                                         // Yaw to enter waypoint at
 						X:               int32(pathReadyForPlane.Waypoints[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)

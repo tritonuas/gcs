@@ -21,6 +21,7 @@ type Waypoint struct {
 	Longitude float64 `json:"longitude"`
 	Altitude  float64 `json:"altitude"`
 	Heading   float64 `json:"heading"`
+    AcceptRadius float64 `json:"accept-radius"`
 }
 
 //My implementation of a path struct in here not too sure if it should be a float64 slice or a waypoint slice
