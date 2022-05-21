@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +17,7 @@ import (
 
 	cv "github.com/tritonuas/hub/internal/computer_vision"
 	ic "github.com/tritonuas/hub/internal/interop"
+
 	// mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 )
@@ -95,8 +96,6 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/cv/cropped/", &CVCroppedHandler{server: s})
 	mux.Handle("/hub/cv/result/", &CVResultHandler{server: s})
-
-	mux.Handle("/hub/obc/image/", &OBCImageRequestHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -891,23 +890,6 @@ type CVCroppedHandler struct {
 	bucket string
 }
 
-type bbox struct {
-	X1 int `json:"x1"`
-	Y1 int `json:"y1"`
-	X2 int `json:"x2"`
-	Y2 int `json:"y2"`
-}
-
-type target struct {
-	Timestamp          string  `json:"timestamp"`
-	CroppedFilename    string  `json:"cropped_filename"`
-	CroppedImageBase64 string  `json:"cropped_image_base64"`
-	Bbox               bbox    `json:"bbox"`
-	PlaneLat           float64 `json:"plane_lat"`
-	PlaneLon           float64 `json:"plane_lon"`
-	PlaneAlt           float64 `json:"alt"`
-}
-
 func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 
@@ -920,7 +902,7 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "POST":
-		var t target
+		var t cv.UnclassifiedODLC
 		bodyData, _ := ioutil.ReadAll(r.Body)
 		err := json.Unmarshal(bodyData, &t)
 		if err != nil {
@@ -972,54 +954,62 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		imageData, _ := ioutil.ReadAll(r.Body)
-		// fmt.Printf(string(imageData) + "\n")
 
-		var image cv.Image
+		var image cv.ClassifiedODLC
 
 		err := json.Unmarshal(imageData, &image)
 		if err != nil {
 			Log.Error(err)
 		}
-		h.server.cvData.Images = append(h.server.cvData.Images, image) // saves unmarshalled data to list of cv images
-		Log.Info(h.server.cvData.Images)
+		h.server.cvData.ClassifiedODLCs = append(h.server.cvData.ClassifiedODLCs, image) // saves unmarshalled data to list of cv images
+		// Log.Info(h.server.cvData.ClassifiedODLCs)
 
+		var odlc ic.Odlc
+
+		// assign values to odlc struct
+		var missionID = int32(h.server.missionID.ID)
+		odlc.Mission = &missionID
+		var odlcType = ic.Odlc_STANDARD
+		odlc.Type = &odlcType
+		odlc.Latitude = &image.Latitude
+		odlc.Longitude = &image.Longitude
+		odlc.Orientation = ic.Odlc_Orientation(ic.Odlc_Orientation_value[image.Orientation]).Enum()
+		odlc.Shape = ic.Odlc_Shape(image.Shape).Enum()
+		odlc.Alphanumeric = &image.Char
+		odlc.ShapeColor = ic.Odlc_Color(image.ShapeColor).Enum()
+		odlc.AlphanumericColor = ic.Odlc_Color(image.CharColor).Enum()
+		var autonomous = true
+		odlc.Autonomous = &autonomous
+
+		jsonStr, _ := json.Marshal(odlc)
+		
+		// gets a json of the same odlc returned with the id
+		jsonStr, httpErr := h.server.client.PostODLC(jsonStr) // this currently doesn't work
+		if httpErr.Post {
+			Log.Error("failed to post odlc: ", httpErr)
+		}
+
+		// convert back to odlc
+		err = json.Unmarshal(jsonStr, &odlc)
+		if err != nil {
+			Log.Error(err)
+		}
+
+		// decode base64 data into image
+		data, err := base64.StdEncoding.DecodeString(image.CroppedImageBase64)
+		if err != nil {
+			Log.Error("decoding error: ", err)
+		}
+
+		// sends odlc with image to server
+		httpErr = h.server.client.PutODLCImage(int(*odlc.Id), data)
+		if httpErr.Put {
+			Log.Error("failed to put odlc: ", httpErr)
+			Log.Error("put fail message: ", string(httpErr.Message))
+		}
+		
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not implemented"))
-	}
-}
-type OBCImageRequestHandler struct {
-	server *Server
-}
-
-func (h OBCImageRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logRequestInfo(r)
-
-	switch r.Method {
-	case "POST":
-		values := map[string]string{
-			"image": "~/Downloads/cropped0_1725909771_geotag.jpg",
-			"filename": "",
-			"longitude": "",
-			"latitude": "",
-			"altitude": "",
-			"heading": "",
-			"time": "",
-			"groundspeed": "",
-			"airspeed": "",
-			"roll": "",
-			"pitch": "",
-			"yaw": "",
-		}
-	
-		jsonValue, _ := json.Marshal(values)
-	
-		resp, err := http.Post("http://localhost:5001/upload", "image/jpeg", bytes.NewBuffer(jsonValue))
-	
-		if (err != nil) {
-			Log.Error(err)
-		}
-	
-		fmt.Println(resp) // idk what to do with resp so i just printed it
 	}
 }

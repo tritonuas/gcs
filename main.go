@@ -16,7 +16,7 @@ import (
 
 var log = logrus.New()
 var ENVS = map[string]*string{
-	"HUB_ADDR":           flag.String("hub_addr", "5001", "http service hub_address"),
+	"HUB_ADDR":           flag.String("hub_addr", "5000", "http service hub_address"),
 	"HUB_PATH":           flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
 	"INTEROP_IP":         flag.String("interop_ip", "127.0.0.1", "ip of interop computer"),
 	"INTEROP_PORT":       flag.String("interop_port", "8000", "port of interop computer"),
