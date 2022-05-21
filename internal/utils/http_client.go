@@ -61,8 +61,8 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 	// If err is not nil, then the server is not online and we need to back out
 	// so that nothing crashes
 	if err != nil {
-		Log.Debug(err)
-		httpErr.SetError("POST", []byte("RTPP Server Offline"), http.StatusBadGateway)
+		Log.Info(err)
+		httpErr.SetError("POST", []byte("Server Offline"), http.StatusBadGateway)
 		return nil, *httpErr
 	}
 
@@ -75,7 +75,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	Log.Debugf("Making Request to RTPP: POST - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request : POST - %s - %d", uri, resp.StatusCode)
 
 	return body, *httpErr
 }
@@ -88,7 +88,7 @@ func (c *Client) Get(uri string) ([]byte, HTTPError) {
 
 	if err != nil {
 		Log.Warn(err)
-		httpErr.SetError("GET", []byte("RTPP Server Offline"), http.StatusBadGateway)
+		httpErr.SetError("GET", []byte("Server Offline"), http.StatusBadGateway)
 		return nil, *httpErr
 	}
 
@@ -102,7 +102,7 @@ func (c *Client) Get(uri string) ([]byte, HTTPError) {
 		Log.Debug(resErr)
 	}
 
-	Log.Debugf("Making Request to RTPP: GET - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request: GET - %s - %d", uri, resp.StatusCode)
 
 	return body, *httpErr
 }
@@ -122,7 +122,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		httpErr.SetError("PUT", []byte("Interop Server Offline"), http.StatusBadGateway)
+		httpErr.SetError("PUT", []byte("Server Offline"), http.StatusBadGateway)
 		return nil, *httpErr
 	}
 
@@ -135,7 +135,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Debugf("Making Request to Interop: PUT - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request to: PUT - %s - %d", uri, resp.StatusCode)
 	return body, *httpErr
 }
 
@@ -151,7 +151,7 @@ func (c *Client) Delete(uri string) ([]byte, HTTPError) {
 	// so that nothing crashes
 	if err != nil {
 		Log.Debug(err)
-		httpErr.SetError("DELETE", []byte("Interop Server Offline"), http.StatusBadGateway)
+		httpErr.SetError("DELETE", []byte("Server Offline"), http.StatusBadGateway)
 		return nil, *httpErr
 	}
 
@@ -164,6 +164,6 @@ func (c *Client) Delete(uri string) ([]byte, HTTPError) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	Log.Debugf("Making Request to Interop: DELETE - %s - %d", uri, resp.StatusCode)
+	Log.Debugf("Making Request to: DELETE - %s - %d", uri, resp.StatusCode)
 	return body, *httpErr
 }
