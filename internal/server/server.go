@@ -989,12 +989,12 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var image cv.ClassifiedODLC
 
+		// unmarshal posted image data and store into image (classified ODLC struct)
 		err := json.Unmarshal(imageData, &image)
 		if err != nil {
 			Log.Error(err)
 		}
 		h.server.cvData.ClassifiedODLCs = append(h.server.cvData.ClassifiedODLCs, image) // saves unmarshalled data to list of cv images
-		// Log.Info(h.server.cvData.ClassifiedODLCs)
 
 		var odlc ic.Odlc
 
@@ -1013,10 +1013,11 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var autonomous = true
 		odlc.Autonomous = &autonomous
 
+		// marshal values into json
 		jsonStr, _ := json.Marshal(odlc)
 		
 		// gets a json of the same odlc returned with the id
-		jsonStr, httpErr := h.server.client.PostODLC(jsonStr) // this currently doesn't work
+		jsonStr, httpErr := h.server.client.PostODLC(jsonStr)
 		if httpErr.Post {
 			Log.Error("failed to post odlc: ", httpErr)
 		}
