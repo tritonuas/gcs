@@ -94,7 +94,7 @@ func main() {
 
 	// Do other things...
 	telemetryChannel := make(chan *ic.Telemetry, 100)
-	sendWaypointToPlaneChannel := make(chan *pp.Path)
+	uploadMissionChan := make(chan *hs.MissionUpload)
 
 	// begins to send messages from the plane to InfluxDB
 	mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
@@ -108,7 +108,7 @@ func main() {
 		*ENVS["INFLUXDB_URI"],
 		mavOutputs,
 		telemetryChannel,
-		sendWaypointToPlaneChannel)
+		uploadMissionChan)
 
 	var server *hs.Server
 	server = new(hs.Server)
@@ -133,6 +133,6 @@ func main() {
 		*ENVS["INFLUXDB_TOKEN"],
 		*ENVS["INFLUXDB_BUCKET"],
 		*ENVS["INFLUXDB_ORG"],
-		sendWaypointToPlaneChannel)
+		uploadMissionChan)
 
 }

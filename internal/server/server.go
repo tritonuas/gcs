@@ -23,6 +23,11 @@ var Log = logrus.New()
 
 // https://app.clickup.com/t/28rwhv5
 
+type MissionUpload struct {
+	Path         *pp.Path // Holds the path of the plane, see the definition of the struct for more details
+	LostCommsPos *ic.Position
+}
+
 // Server provides the implementation for the hub server that communicates
 // with other parts of the plane's system and houston
 type Server struct {
@@ -32,11 +37,13 @@ type Server struct {
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
-	path *pp.Path // Holds the path of the plane, see the definition of the struct for more details
+	missionUpload *MissionUpload
 
 	homePosition *ic.Position // Home position of the plane, which must be set by us
 
 	missionID MissionID
+
+	mission *ic.Mission
 
 	gcsWaypoint map[string]float64
 
@@ -55,7 +62,7 @@ func (s *Server) Run(
 	influxToken string,
 	influxBucket string,
 	influxOrg string,
-	sendWaypointToPlaneChannel chan *pp.Path) {
+	sendWaypointToPlaneChannel chan *MissionUpload) {
 
 	// receives "true" when the mission is started
 	missionStartChannel := make(chan bool)
@@ -75,7 +82,7 @@ func (s *Server) Run(
 
 	mux.Handle("/hub/mission/id", &missionHandler{server: s}) // GET: get current id we're using
 	mux.Handle("/hub/mission/initialize", &missionHandlerInitialize{server: s})
-	mux.Handle("/hub/mission/start", &missionHandlerStart{server: s, waypointChan: sendWaypointToPlaneChannel, missionStartChan: missionStartChannel})
+	mux.Handle("/hub/mission/send", &missionHandlerStart{server: s, missionUploadChan: sendWaypointToPlaneChannel, missionStartChan: missionStartChannel})
 
 	mux.Handle("/hub/path", &pathCacherHandler{server: s})
 
@@ -320,15 +327,28 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		m.server.missionID = id
 		fmt.Println(id.ID)
 
-		missionData, err := m.server.client.GetMission(id.ID) //gets mission data from interop server
+		missionData, httpError := m.server.client.GetMission(id.ID) //gets mission data from interop server
 
-		if err.Post {
-			w.WriteHeader(err.Status)
-			w.Write(err.Message)
-			Log.Errorf("Unable to send data to path planning: %s", err.Message)
+		if httpError.Post {
+			w.WriteHeader(httpError.Status)
+			w.Write(httpError.Message)
+			Log.Errorf("Unable to send data to path planning: %s", httpError.Message)
 			break
-		} else {
-			Log.Infof("Successfully requested mission information from interop")
+		}
+
+		Log.Infof("Successfully requested mission information from interop")
+
+		var mission ic.Mission
+		err := json.Unmarshal(missionData, &mission)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Could not unmarshall mission json from Interop"))
+			Log.Error("Could not unmarshall mission json from Interop")
+			break
+		}
+		m.server.mission = &mission
+		m.server.missionUpload = &MissionUpload{
+			LostCommsPos: mission.LostCommsPos,
 		}
 
 		ppErr := m.server.pathPlanningClient.PostMission(missionData) //calls pp client post function
@@ -344,12 +364,15 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 		//Make the GET request to the PathPlan Server
 		//path, err := json.Marhsall(p.path.Waypoint)
-		path, pathBinary, err := m.server.pathPlanningClient.GetPath(m.server.gcsWaypoint["latitude"], m.server.gcsWaypoint["longitude"])
-		if err.Get {
-			w.WriteHeader(err.Status)
-			w.Write(err.Message)
+		path, pathBinary, httpErr := m.server.pathPlanningClient.GetPath(m.server.gcsWaypoint["latitude"], m.server.gcsWaypoint["longitude"])
+		if httpErr.Get {
+			w.WriteHeader(httpErr.Status)
+			w.Write(httpErr.Message)
 		} else {
-			m.server.path = &path //caching the path
+			if m.server.missionUpload == nil {
+				Log.Error("missionUpload is nil")
+			}
+			m.server.missionUpload.Path = &path //caching the path
 			w.Write(pathBinary)
 		}
 	default:
@@ -360,9 +383,9 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 //Sends waypoints to the plane
 type missionHandlerStart struct {
-	server           *Server
-	waypointChan     chan *pp.Path
-	missionStartChan chan bool
+	server            *Server
+	missionUploadChan chan *MissionUpload
+	missionStartChan  chan bool
 }
 
 func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -371,9 +394,9 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		{
 			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
-			m.waypointChan <- m.server.path
+			m.missionUploadChan <- m.server.missionUpload
 			m.missionStartChan <- true
-			message := fmt.Sprintf("Attempting to send %d waypoints to plane", len(m.server.path.GetPath()))
+			message := fmt.Sprintf("Attempting to upload mission with %d waypoints to plane", len(m.server.missionUpload.Path.GetPath()))
 			w.Write([]byte(message))
 			Log.Info(message)
 		}
@@ -394,13 +417,13 @@ func (m pathCacherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		{
-			if m.server.path == nil {
+			if m.server.missionUpload.Path == nil {
 				errMsg := "Path has not been initialized yet"
 				Log.Error(errMsg)
 				w.Write([]byte(errMsg))
 				break
 			}
-			data, err := json.Marshal(m.server.path.Waypoints)
+			data, err := json.Marshal(m.server.missionUpload.Path.Waypoints)
 			if err != nil {
 				Log.Error(err)
 				w.Write([]byte(err.Error()))
