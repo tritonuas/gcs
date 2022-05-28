@@ -914,21 +914,14 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Log.Fatal(err)
 		}
 
-		// TODO: wip. still need to format from camera timestamp
-		// inputTimeLayout := "2006-01-02 Mon Jan 02 2006 15:04:05 GMT-0700"
-		// inputTime, err := time.Parse(inputTimeLayout, t.Timestamp)
-		inputTime := time.Now().Add(-5 * time.Second)
-		queryStartTime := inputTime.Format(time.RFC3339)
-		// queryEndTime := (inputTime.Add(time.Second)).Format(time.RFC3339)
-
 		client := influxdb2.NewClient(h.uri, h.token)
 		queryAPI := client.QueryAPI(h.org)
 		Log.Info("Queryapi", queryAPI)
 
 		telem := make(map[string]float64)
-		fields := []string{"lat", "lon", "alt"}
+		fields := []string{"lat", "lon", "relative_alt", "hdg"}
 		for _, field := range fields {
-			planeLatQuery := fmt.Sprintf(`from(bucket:"%s") |> range(start: %s) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "%s")`, h.bucket, queryStartTime, field)
+			planeLatQuery := fmt.Sprintf(`from(bucket:"%s") |> range(start: %s) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "%s") |> first()`, h.bucket, t.Timestamp, field)
 			result, err := queryAPI.Query(context.Background(), planeLatQuery)
 			if err != nil {
 				Log.Error(err)
@@ -944,9 +937,10 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Log.Debug("Could not find %s field in InfluxDB", field)
 			}
 		}
-		t.PlaneLat = telem[fields[0]]
-		t.PlaneLon = telem[fields[1]]
-		t.PlaneAlt = telem[fields[2]]
+		t.PlaneLat = telem[fields[0]]/1e7
+		t.PlaneLon = telem[fields[1]]/1e7
+		t.PlaneAlt = telem[fields[2]]/1000
+		t.PlaneHead = telem[fields[3]]/100
 
 		data, err := json.Marshal(t)
 		if err != nil {
@@ -954,6 +948,11 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(err.Error()))
 			break
 		}
+		Log.Info("this print statement v")
+		Log.Info(t.PlaneLat)
+		Log.Info(t.PlaneLon)
+		Log.Info(t.PlaneAlt)
+		Log.Info(t.PlaneHead)
 		Log.Info(string(data))
 		// resp, err := http.Post("http://localhost:5040/upload", "application/json", bytes.NewBuffer(data))
 		httpClient := ut.NewClient("host.docker.internal:5040", 30) // TODO: change this to be env variable

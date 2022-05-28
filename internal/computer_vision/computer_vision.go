@@ -20,6 +20,7 @@ type UnclassifiedODLC struct {
 	PlaneLat           float64 `json:"plane_lat"`
 	PlaneLon           float64 `json:"plane_lon"`
 	PlaneAlt           float64 `json:"alt"`
+	PlaneHead          float64 `json:"head"`
 }
 
 type Bbox struct {
