@@ -992,7 +992,8 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// unmarshal posted image data and store into image (classified ODLC struct)
 		err := json.Unmarshal(imageData, &image)
 		if err != nil {
-			Log.Error(err)
+			Log.Error("error unmarshalling image data: ", err)
+			return
 		}
 		h.server.cvData.ClassifiedODLCs = append(h.server.cvData.ClassifiedODLCs, image) // saves unmarshalled data to list of cv images
 
@@ -1013,25 +1014,31 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var autonomous = true
 		odlc.Autonomous = &autonomous
 
+		// have to convert the alphanumeric to uppercase because the PostODLC function returns an error otherwise
+		image.Char = strings.ToUpper(image.Char)
+
 		// marshal values into json
 		jsonStr, _ := json.Marshal(odlc)
 		
 		// gets a json of the same odlc returned with the id
 		jsonStr, httpErr := h.server.client.PostODLC(jsonStr)
 		if httpErr.Post {
-			Log.Error("failed to post odlc: ", httpErr)
+			Log.Error("failed to post odlc: ", string(httpErr.Message))
+			return
 		}
 
 		// convert back to odlc
 		err = json.Unmarshal(jsonStr, &odlc)
 		if err != nil {
 			Log.Error(err)
+			return
 		}
 
 		// decode base64 data into image
 		data, err := base64.StdEncoding.DecodeString(image.CroppedImageBase64)
 		if err != nil {
 			Log.Error("decoding error: ", err)
+			return
 		}
 
 		// sends odlc with image to server
@@ -1039,6 +1046,7 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if httpErr.Put {
 			Log.Error("failed to put odlc: ", httpErr)
 			Log.Error("put fail message: ", string(httpErr.Message))
+			return
 		}
 		
 	default:
