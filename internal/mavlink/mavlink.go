@@ -471,7 +471,8 @@ func RunMavlink(
 					Log.Infof("Type: %v, MissionType: %v", msg.Type.String(), msg.MissionType.String())
 				case *common.MessageCommandAck:
 					if msg.Command == common.MAV_CMD_DO_SET_HOME {
-						Log.Infof("Plane successfully updated its home position. Result: %v", msg.Result.String())
+						Log.Info(msg.Result)
+						Log.Infof("Plane successfully updated its home position. Result test: %v - %v", msg.Result, msg.ResultParam2)
 					} else {
 						Log.Infof("Received acknowledgment for message ID %s. Result: %s", msg.Command.String(), msg.Result.String())
 					}
@@ -906,18 +907,32 @@ func RunMavlink(
 		Log.Info("Received waypoints from PP and letting plane know")
 
 		//sets the home position to the Lost Comms position from the interop server for the current mission
-		node.WriteMessageAll(&common.MessageCommandLong{
+		// node.WriteMessageAll(&common.MessageCommandLong{
+		// 	TargetSystem:    1,
+		// 	TargetComponent: 0,
+		// 	Command:         common.MAV_CMD_DO_SET_HOME,
+		// 	Confirmation:    0,
+		// 	Param1:          0,                                        // use the specified position (instead of current pos)
+		// 	Param5:          float32(*mission.LostCommsPos.Latitude),  // lat
+		// 	Param6:          float32(*mission.LostCommsPos.Longitude), // lon
+		// 	Param7:          90,
+		// })
+		Log.Infof("Set home position to %v", mission.LostCommsPos)
+		node.WriteMessageAll(&common.MessageCommandInt{
 			TargetSystem:    1,
-			TargetComponent: 1,
+			TargetComponent: 0,
+			Frame:           common.MAV_FRAME_GLOBAL_RELATIVE_ALT,
 			Command:         common.MAV_CMD_DO_SET_HOME,
-			Confirmation:    0,
-			Param1:          0, // use the specified position (instead of current pos)
-			Param2:          0, // Param2/3 are empty
-			Param3:          0,
-			Param4:          float32(math.NaN()),                      // yaw
-			Param5:          float32(*mission.LostCommsPos.Latitude),  // lat
-			Param6:          float32(*mission.LostCommsPos.Longitude), // lon
-			Param7:          90,
+			Param1:          0,
+			X:               int32(*mission.LostCommsPos.Latitude * 1e7),
+			Y:               int32(*mission.LostCommsPos.Longitude * 1e7),
+			Z:               90,
+		})
+		node.WriteMessageAll(&common.MessageSetHomePosition{
+			TargetSystem: 1,
+			Latitude:     int32(*mission.LostCommsPos.Latitude * 1e7),
+			Longitude:    int32(*mission.LostCommsPos.Longitude * 1e7),
+			Altitude:     90,
 		})
 		node.WriteMessageAll(&common.MessageMissionClearAll{
 			TargetSystem:    1,

@@ -394,6 +394,7 @@ func (m missionHandlerStart) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		{
 			// sends waypoints from path planning to a waypoint channel (which will be transmitted to the plane)
+			Log.Error(m.server.missionUpload.LostCommsPos)
 			m.missionUploadChan <- m.server.missionUpload
 			m.missionStartChan <- true
 			message := fmt.Sprintf("Attempting to upload mission with %d waypoints to plane", len(m.server.missionUpload.Path.GetPath()))
