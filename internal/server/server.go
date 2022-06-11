@@ -939,10 +939,10 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Log.Debug("Could not find %s field in InfluxDB", field)
 			}
 		}
-		t.PlaneLat = telem[fields[0]]/1e7
-		t.PlaneLon = telem[fields[1]]/1e7
-		t.PlaneAlt = telem[fields[2]]/1000
-		t.PlaneHead = telem[fields[3]]/100
+		t.PlaneLat = telem[fields[0]] / 1e7
+		t.PlaneLon = telem[fields[1]] / 1e7
+		t.PlaneAlt = telem[fields[2]] / 1000
+		t.PlaneHead = telem[fields[3]] / 100
 
 		data, err := json.Marshal(t)
 		if err != nil {
@@ -1022,13 +1022,14 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// marshal values into json
 		jsonStr, _ := json.Marshal(odlc)
-		
+
 		// gets a json of the same odlc returned with the id
 		jsonStr, httpErr := h.server.client.PostODLC(jsonStr)
 		if httpErr.Post {
 			Log.Error("failed to post odlc: ", string(httpErr.Message))
 			return
 		}
+		Log.Info("Posted ODLC to Interop")
 
 		// convert back to odlc
 		err = json.Unmarshal(jsonStr, &odlc)
@@ -1051,7 +1052,8 @@ func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Log.Error("put fail message: ", string(httpErr.Message))
 			return
 		}
-		
+		Log.Info("Put ODLC to Interop")
+
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		w.Write([]byte("Not implemented"))
