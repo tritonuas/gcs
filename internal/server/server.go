@@ -895,6 +895,8 @@ type CVCroppedHandler struct {
 	bucket string
 }
 
+// TODO: extremely scuffed code that needs refactoring. need to make a CVS and
+// OBC client
 func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logRequestInfo(r)
 
@@ -953,13 +955,15 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Log.Info(t.PlaneLon)
 		Log.Info(t.PlaneAlt)
 		Log.Info(t.PlaneHead)
-		Log.Info(string(data))
+		//Log.Info(string(data))
 		// resp, err := http.Post("http://localhost:5040/upload", "application/json", bytes.NewBuffer(data))
-		httpClient := ut.NewClient("host.docker.internal:5040", 30) // TODO: change this to be env variable
+		httpClient := ut.NewClient("172.17.0.1:5040", 30) // TODO: change this to be env variable
 		// TODO: also make a CVS client (maybe OBC client as well)
-		resp, e := httpClient.Post("/upload", bytes.NewBuffer(data))
-		Log.Error(string(e.Message))
-		Log.Info(resp)
+		_, httpErr := httpClient.Post("/upload", bytes.NewBuffer(data))
+		if httpErr.Post {
+			Log.Error("failed to post cropped target to CVS: ", string(httpErr.Message))
+			return
+		}
 
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
