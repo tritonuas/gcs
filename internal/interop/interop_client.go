@@ -21,10 +21,10 @@ var Log = logrus.New()
 
 type Client struct {
 	httpClient *ut.Client
-	url      string
-	username string
-	password string
-	timeout  int
+	url        string
+	username   string
+	password   string
+	timeout    int
 }
 
 // IsConnected checks to see if hte http client object is not null
