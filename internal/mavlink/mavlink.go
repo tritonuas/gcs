@@ -3,7 +3,6 @@ package mav
 import (
 	// "bytes"
 	"context"
-	"math"
 
 	// "math/rand"
 
@@ -489,14 +488,14 @@ func RunMavlink(
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
 						Seq:             msg.Seq,
-						Frame:           common.MAV_FRAME_GLOBAL_RELATIVE_ALT,                        // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Frame:           common.MAV_FRAME_GLOBAL,                                     // global frame allows us to give global coordinates (lat/lon in degrees for example)
 						Command:         common.MAV_CMD_NAV_WAYPOINT,                                 // type of command (we want to send waypoints)
 						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
 						Autocontinue:    0,                                                           // always 0
 						Param1:          0,                                                           // Hold Time: ignored by fixed wing planes
 						Param2:          float32(pathReadyForPlane.Waypoints[msg.Seq].AcceptRadius),  // Accept Radius (radial threshold in meters for a waypoint to be hit)
 						Param3:          0,                                                           // Pass Radius (idk what this is exactly yet)
-						Param4:          float32(math.NaN()),                                         // Yaw to enter waypoint at
+						Param4:          float32(pathReadyForPlane.Waypoints[msg.Seq].Heading),       // Yaw to enter waypoint at
 						X:               int32(pathReadyForPlane.Waypoints[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
 						Y:               int32(pathReadyForPlane.Waypoints[msg.Seq].Longitude * 1e7), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
 						Z:               float32(pathReadyForPlane.Waypoints[msg.Seq].Altitude),      // altitude in meters over mean sea level (MSL)
@@ -523,14 +522,14 @@ func RunMavlink(
 						TargetSystem:    1, // SystemID of the plane
 						TargetComponent: 0, // ComponentID
 						Seq:             msg.Seq,
-						Frame:           common.MAV_FRAME_GLOBAL_RELATIVE_ALT,                        // global frame allows us to give global coordinates (lat/lon in degrees for example)
+						Frame:           common.MAV_FRAME_GLOBAL,                                     // global frame allows us to give global coordinates (lat/lon in degrees for example)
 						Command:         common.MAV_CMD_NAV_WAYPOINT,                                 // type of command (we want to send waypoints)
 						Current:         uint8(cur),                                                  // if it's the current waypoint or not?
 						Autocontinue:    0,                                                           // always 0
 						Param1:          0,                                                           // Hold Time: ignored by fixed wing planes
 						Param2:          float32(pathReadyForPlane.Waypoints[msg.Seq].AcceptRadius),  // Accept Radius (radial threshold in meters for a waypoint to be hit)
 						Param3:          0,                                                           // Pass Radius (idk what this is exactly yet)
-						Param4:          float32(math.NaN()),                                         // Yaw to enter waypoint at
+						Param4:          float32(pathReadyForPlane.Waypoints[msg.Seq].Heading),       // Yaw to enter waypoint at
 						X:               int32(pathReadyForPlane.Waypoints[msg.Seq].Latitude * 1e7),  // Latitude of waypoint (accepts an int which is the latitude * 10^7)
 						Y:               int32(pathReadyForPlane.Waypoints[msg.Seq].Longitude * 1e7), // Longitude of waypoint (accepts an int which is the latitude * 10^7)
 						Z:               float32(pathReadyForPlane.Waypoints[msg.Seq].Altitude),      // altitude in meters over mean sea level (MSL)
