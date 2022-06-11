@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,9 +16,12 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
+	cv "github.com/tritonuas/hub/internal/computer_vision"
 	ic "github.com/tritonuas/hub/internal/interop"
+
 	// mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
+	ut "github.com/tritonuas/hub/internal/utils"
 )
 
 var Log = logrus.New()
@@ -29,6 +34,7 @@ type Server struct {
 	port               string
 	client             *ic.Client
 	pathPlanningClient *pp.Client
+	cvData             *cv.ComputerVisionData
 
 	telemetry []byte // Holds the most recent telemetry data sent to the interop server
 
@@ -62,6 +68,10 @@ func (s *Server) Run(
 
 	s.missionID = MissionID{ID: interopMissionID}
 
+	s.pathPlanningClient = pp.NewClient("127.0.0.1:5000", 5)
+
+	s.cvData = cv.InitializeData()
+
 	s.port = fmt.Sprintf(":%s", port)
 	s.client = nil
 	go s.ConnectToInterop(interopChannel)
@@ -85,6 +95,9 @@ func (s *Server) Run(
 	mux.Handle("/hub/interop/odlc/", &interopOdlcHandler{server: s})
 	mux.Handle("/hub/interop/odlcs", &interopOdlcsHandler{server: s})
 	mux.Handle("/hub/interop/odlc/image/", &interopOdlcImageHandler{server: s})
+
+	mux.Handle("/hub/cv/cropped/", &CVCroppedHandler{server: s, uri: influxdbURI, token: influxToken, bucket: influxBucket, org: influxOrg}) // eventually these influx variables will be in an influxclient struct
+	mux.Handle("/hub/cv/result/", &CVResultHandler{server: s})
 
 	c := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
@@ -872,3 +885,177 @@ Use path planning client to send the static mission data to path planning when H
 at /hub/pathplanning/initialize with the following request body { "id": [mission_id] }.
 Then should use the path planning client to forward the static mission data to path planning
 */
+
+// Handles requests from the jetson that include the cropped/salienced image
+type CVCroppedHandler struct {
+	server *Server
+	uri    string
+	token  string
+	org    string
+	bucket string
+}
+
+// TODO: extremely scuffed code that needs refactoring. need to make a CVS and
+// OBC client
+func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
+	if h.server.cvData == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Computer Vision Server connection not established"))
+		Log.Errorf("Unable to receive data from CVS; connection not established")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		var t cv.UnclassifiedODLC
+		bodyData, _ := ioutil.ReadAll(r.Body)
+		err := json.Unmarshal(bodyData, &t)
+		if err != nil {
+			Log.Fatal(err)
+		}
+
+		client := influxdb2.NewClient(h.uri, h.token)
+		queryAPI := client.QueryAPI(h.org)
+		Log.Info("Queryapi", queryAPI)
+
+		telem := make(map[string]float64)
+		fields := []string{"lat", "lon", "relative_alt", "hdg"}
+		for _, field := range fields {
+			planeLatQuery := fmt.Sprintf(`from(bucket:"%s") |> range(start: %s) |> filter(fn: (r) => r.ID == "33") |> filter(fn: (r) => r._field == "%s") |> first()`, h.bucket, t.Timestamp, field)
+			result, err := queryAPI.Query(context.Background(), planeLatQuery)
+			if err != nil {
+				Log.Error(err)
+			}
+			if result != nil && result.Next() {
+				var ok bool
+				telem[field], ok = result.Record().Value().(float64)
+				if !ok {
+					telem[field] = 0
+					Log.Error("Could not parse %s from InfluxDB")
+				}
+			} else {
+				Log.Debug("Could not find %s field in InfluxDB", field)
+			}
+		}
+		t.PlaneLat = telem[fields[0]] / 1e7
+		t.PlaneLon = telem[fields[1]] / 1e7
+		t.PlaneAlt = telem[fields[2]] / 1000
+		t.PlaneHead = telem[fields[3]] / 100
+
+		data, err := json.Marshal(t)
+		if err != nil {
+			Log.Error(err)
+			w.Write([]byte(err.Error()))
+			break
+		}
+		Log.Info("this print statement v")
+		Log.Info(t.PlaneLat)
+		Log.Info(t.PlaneLon)
+		Log.Info(t.PlaneAlt)
+		Log.Info(t.PlaneHead)
+		//Log.Info(string(data))
+		// resp, err := http.Post("http://localhost:5040/upload", "application/json", bytes.NewBuffer(data))
+		httpClient := ut.NewClient("172.17.0.1:5040", 30) // TODO: change this to be env variable
+		// TODO: also make a CVS client (maybe OBC client as well)
+		_, httpErr := httpClient.Post("/upload", bytes.NewBuffer(data))
+		if httpErr.Post {
+			Log.Error("failed to post cropped target to CVS: ", string(httpErr.Message))
+			return
+		}
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
+
+// Handles requests from the computer vision server with the predicted results
+type CVResultHandler struct {
+	server *Server
+}
+
+func (h CVResultHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logRequestInfo(r)
+
+	if h.server.cvData == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Computer Vision Server connection not established"))
+		Log.Errorf("Unable to receive data from CVS; connection not established")
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		imageData, _ := ioutil.ReadAll(r.Body)
+
+		var image cv.ClassifiedODLC
+
+		// unmarshal posted image data and store into image (classified ODLC struct)
+		err := json.Unmarshal(imageData, &image)
+		if err != nil {
+			Log.Error("error unmarshalling image data: ", err)
+			return
+		}
+		h.server.cvData.ClassifiedODLCs = append(h.server.cvData.ClassifiedODLCs, image) // saves unmarshalled data to list of cv images
+
+		var odlc ic.Odlc
+
+		// assign values to odlc struct
+		var missionID = int32(h.server.missionID.ID)
+		odlc.Mission = &missionID
+		var odlcType = ic.Odlc_STANDARD
+		odlc.Type = &odlcType
+		odlc.Latitude = &image.Latitude
+		odlc.Longitude = &image.Longitude
+		odlc.Orientation = ic.Odlc_Orientation(ic.Odlc_Orientation_value[image.Orientation]).Enum()
+		odlc.Shape = ic.Odlc_Shape(image.Shape).Enum()
+		odlc.Alphanumeric = &image.Char
+		odlc.ShapeColor = ic.Odlc_Color(image.ShapeColor).Enum()
+		odlc.AlphanumericColor = ic.Odlc_Color(image.CharColor).Enum()
+		var autonomous = true
+		odlc.Autonomous = &autonomous
+
+		// have to convert the alphanumeric to uppercase because the PostODLC function returns an error otherwise
+		image.Char = strings.ToUpper(image.Char)
+
+		// marshal values into json
+		jsonStr, _ := json.Marshal(odlc)
+
+		// gets a json of the same odlc returned with the id
+		jsonStr, httpErr := h.server.client.PostODLC(jsonStr)
+		if httpErr.Post {
+			Log.Error("failed to post odlc: ", string(httpErr.Message))
+			return
+		}
+		Log.Info("Posted ODLC to Interop")
+
+		// convert back to odlc
+		err = json.Unmarshal(jsonStr, &odlc)
+		if err != nil {
+			Log.Error(err)
+			return
+		}
+
+		// decode base64 data into image
+		data, err := base64.StdEncoding.DecodeString(image.CroppedImageBase64)
+		if err != nil {
+			Log.Error("decoding error: ", err)
+			return
+		}
+
+		// sends odlc with image to server
+		httpErr = h.server.client.PutODLCImage(int(*odlc.Id), data)
+		if httpErr.Put {
+			Log.Error("failed to put odlc: ", httpErr)
+			Log.Error("put fail message: ", string(httpErr.Message))
+			return
+		}
+		Log.Info("Put ODLC to Interop")
+
+	default:
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("Not implemented"))
+	}
+}
