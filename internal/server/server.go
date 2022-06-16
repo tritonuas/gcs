@@ -357,7 +357,7 @@ func (m missionHandlerInitialize) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 		//Make the GET request to the PathPlan Server
 		//path, err := json.Marhsall(p.path.Waypoint)
-		path, pathBinary, err := m.server.pathPlanningClient.GetPath(m.server.gcsWaypoint["latitude"], m.server.gcsWaypoint["longitude"])
+		path, pathBinary, err := m.server.pathPlanningClient.GetPath()
 		if err.Get {
 			w.WriteHeader(err.Status)
 			w.Write(err.Message)

@@ -69,7 +69,7 @@ func (c *Client) PostMission(mission []byte) ut.HTTPError {
 }
 
 //Make latitude, longitue, heading, and altitude not be hard coded
-func (c *Client) GetPath(latitude float64, longitude float64) (Path, []byte, ut.HTTPError) {
+func (c *Client) GetPath() (Path, []byte, ut.HTTPError) {
 	url := fmt.Sprintf("/path/full")
 	pathBinary, err := c.httpClient.Get(url)
 	Log.Info(pathBinary)
