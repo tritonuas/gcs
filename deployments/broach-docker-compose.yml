@@ -6,12 +6,12 @@ services:
     ports:
       - 5000:5000
     environment:
-      - INTEROP_IP=host.docker.internal
-      - INTEROP_PORT=8000
+      - INTEROP_IP=10.10.130.10
+      - INTEROP_PORT=80
       - RTPP_IP=host.docker.internal
       - RTPP_PORT=5010
-      - INTEROP_USER=ucsdauvsi
-      - INTEROP_PASS=tritons
+      - INTEROP_USER=university-of-california-san-diego
+      - INTEROP_PASS=4173337078
       - MAV_DEVICE=serial:/dev/ttyUSB0
       - MAV_OUTPUT1=udp:192.168.1.2:14551
       - MAV_OUTPUT2=udp:192.168.1.7:14551
@@ -41,7 +41,7 @@ services:
     ports:
       - 3000:3000
     environment: 
-      - GF_USERS_DEFAULT_THEME=dark
+      - GF_USERS_DEFAULT_THEME=light
       - GF_USERS_HOME_PAGE=/dashboards
       - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
       - GF_AUTH_DISABLE_LOGIN_FORM=true
