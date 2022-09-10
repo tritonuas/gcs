@@ -467,7 +467,7 @@ func RunMavlink(
 					}
 					checkForPathAck = false
 					Log.Info("Received acknowledgement from team", msg)
-					Log.Info("Type: %v, MissionType: %v", msg.Type, msg.MissionType)
+					Log.Infof("Type: %v, MissionType: %v", msg.Type, msg.MissionType)
 					// **/
 				case *common.MessageMissionRequest:
 					Log.Debug("Plane requested deprecated MISSON_REQUEST instead of MISSION_REQUEST_INT")

@@ -73,9 +73,8 @@ submodulesupdate:
 # --------------------------------------------------------------------
 .PHONY: test
 
-PACKAGES = $(shell go list -f '{{ join .Imports "\n" }}' )
 test:
-	go test -race $(PACKAGES)
+	go test -race ./...
 
 # Style/formatting
 # --------------------------------------------------------------------

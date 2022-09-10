@@ -160,7 +160,7 @@ loop:
 					val := fmt.Sprint(result.Record().Value())
 					results = append(results, val)
 				} else {
-					Log.Errorf("Error querying Influx for telemetry data: no value found ", err.Error())
+					Log.Error("Error querying Influx for telemetry data: no value found")
 					continue loop
 				}
 			}
@@ -933,10 +933,10 @@ func (h CVCroppedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				telem[field], ok = result.Record().Value().(float64)
 				if !ok {
 					telem[field] = 0
-					Log.Error("Could not parse %s from InfluxDB")
+					Log.Errorf("Could not parse %s from InfluxDB", field)
 				}
 			} else {
-				Log.Debug("Could not find %s field in InfluxDB", field)
+				Log.Debugf("Could not find %s field in InfluxDB", field)
 			}
 		}
 		t.PlaneLat = telem[fields[0]] / 1e7
