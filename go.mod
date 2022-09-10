@@ -9,5 +9,5 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.4.2
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 )
