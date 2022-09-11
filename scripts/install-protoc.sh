@@ -1,7 +1,7 @@
 #!/bin/bash
 
 COMMAND=protoc
-COMMAND-GEN-GO=protoc-gen-go
+COMMAND_GEN_GO=protoc-gen-go
 BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -9,12 +9,12 @@ NC='\033[0m' # No Color
 # Exit script if protobuf compiler already installed
 if command -v  $COMMAND &> /dev/null; then
     echo -e "${BLUE}${COMMAND} already installed${NC}"
-    protoc --version
+    ${COMMAND} --version
 fi
 
-if command -v  ${COMMAND-GEN-GO} &> /dev/null; then
-    echo -e "${BLUE}${COMMAND-GEN-GO} already installed${NC}"
-    protoc --version
+if command -v  ${COMMAND_GEN_GO} &> /dev/null; then
+    echo -e "${BLUE}${COMMAND_GEN_GO} already installed${NC}"
+    ${COMMAND_GEN_GO} --version
 fi
 
 # Install protobuf-compiler on linux or OSX
@@ -36,7 +36,7 @@ fi
 
 # Install protoc-gen-go for go compiling
 echo -e "${BLUE}Installing protoc-gen-go${NC}"
-go get google.golang.org/protobuf/cmd/protoc-gen-go
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 echo -e "${BLUE}Setting PATH for protoc-gen-go${NC}"
 echo "export PATH=$PATH:$(go env GOPATH)/bin" >> $HOME/.profile
