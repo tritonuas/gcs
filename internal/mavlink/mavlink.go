@@ -1,22 +1,13 @@
 package mav
 
 import (
-	// "bytes"
 	"context"
-
-	// "math/rand"
 
 	"fmt"
 	"net"
-	"os"
-	"strconv"
 	"strings"
 
-	// "sync"
 	"time"
-
-	"encoding/xml"
-	"io/ioutil"
 
 	ic "github.com/tritonuas/hub/internal/interop"
 	pp "github.com/tritonuas/hub/internal/path_plan"
@@ -26,11 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/aler9/gomavlib"
-	// "github.com/aler9/gomavlib/pkg/dialect"
 	"github.com/aler9/gomavlib/pkg/dialects/common"
-	"github.com/aler9/gomavlib/pkg/msg"
 
-	// "github.com/aler9/gomavlib/pkg/parser"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 )
@@ -42,172 +30,21 @@ const systemID byte = 125
 // connRefreshTimer is the number of seconds Hub will wait until attempting to reconnect to the plane
 const connRefreshTimer int = 5
 
-// Mavlink structs for mavlink messages from xml files
-type Mavlink struct {
-	XMLName  xml.Name `xml:"mavlink"`
-	Enums    Enums    `xml:"enums"`
-	Messages Messages `xml:"messages"`
-}
-
-// Enums struct for enums portion of mavlink message xml files
-type Enums struct {
-	XMLName xml.Name `xml:"enums"`
-	Enums   []Enum   `xml:"enum"`
-}
-
-// Enum struct for individual enums in mavlink messages
-type Enum struct {
-	XMLName xml.Name `xml:"enum"`
-	Entries []Entry  `xml:"entry"`
-	Name    string   `xml:"name,attr"`
-}
-
-// Entry struct that holds the cases of each enum type
-type Entry struct {
-	XMLName xml.Name `xml:"entry"`
-	Value   string   `xml:"value,attr"`
-	Name    string   `xml:"name,attr"`
-}
-
-// Messages struct for messages portion of mavlink message xml files
-type Messages struct {
-	XMLName  xml.Name  `xml:"messages"`
-	Messages []Message `xml:"message"`
-}
-
-// Message struct for individual message data
-type Message struct {
-	XMLName xml.Name `xml:"message"`
-	ID      string   `xml:"id,attr"`
-	MsgName string   `xml:"name,attr"`
-	Fields  []Field  `xml:"field"`
-}
-
-// Field Struct for individual fields found in a Message
-type Field struct {
-	XMLName xml.Name `xml:"field"`
-	Name    string   `xml:"name,attr"`
-	Enum    string   `xml:"enum,attr"`
-}
-
 // Log is the logger for the mavlink interface
 var Log = logrus.New()
-
-// parseValues converts the values from a mavlink message in a convenient array of values.
-// It takes in a mavlink message and formats the values into an array to
-// allow each value to be easily accessible.
-func parseValues(message msg.Message) []string {
-	str := fmt.Sprintf("%v", message)
-
-	//Removes the outer brackets from mavlink messages
-	str = str[2 : len(str)-1]
-
-	return strings.Fields(str)
-}
-
-// convertToFloats converts mavlink message values to float values so that InfluxDB can process them.
-// It takes in an array of values (in the same format that the function parseValues returns) and
-// a message ID number to aid with troubleshooting parsing errors
-func convertToFloats(stringValues []string, msgID uint32) []float64 {
-	//floatValues creates an empty slice that allocates enough space to hold the values retrieved from a mavlink message
-	//The slice is of type float64 because strconv.ParseFloat() returns float64 values. According to the
-	//strconv.ParseFloat() documentation: "When bitSize=32, the result still has type float64, but it will be
-	//convertible to float32 without changing its value.""
-	floatValues := make([]float64, len(stringValues))
-
-	for idx := range stringValues {
-		floatVal, err := strconv.ParseFloat(stringValues[idx], 32)
-		if err != nil {
-			Log.Warn("Mavlink Message with ID", msgID, "is causing a parsing error.")
-		}
-		floatValues[idx] = floatVal
-	}
-
-	return floatValues
-}
-
-// getParameterNames retreive mavlink message paramters based on the message ID and type of .xml file to look in
-// getParameterNames retrieves the corresponding field names for the values returned by a mavlink message.
-// It takes a message ID number so that it can find the field names that belong to that message. It also
-// takes a Mavlink struct to determine what type of Mavlink message to look for. Example message types:
-// common mavlink (https://mavlink.io/en/messages/common.html), ardupilotmega(https://mavlink.io/en/messages/ardupilotmega.html).
-func getParameterNames(msgID uint32, mavlink Mavlink) ([]string, string) {
-	var parameterNames []string
-	var msgName string
-
-	//TODO: improve this search algorithm
-	for i := 0; i < len(mavlink.Messages.Messages); i++ {
-		id := mavlink.Messages.Messages[i].ID
-		msgName = mavlink.Messages.Messages[i].MsgName
-		intID, err := strconv.Atoi(id)
-		if err != nil {
-			Log.Warn("Mavlink Message with ID", msgID, "is causing a parsing error.")
-		}
-		if intID == int(msgID) {
-			for j := 0; j < len(mavlink.Messages.Messages[i].Fields); j++ {
-				parameterNames = append(parameterNames, mavlink.Messages.Messages[i].Fields[j].Name)
-			}
-			break
-		}
-	}
-	return parameterNames, msgName
-}
-
-// getEnumTypeFromField retrives the name of an enum type based on message ID and the index the enum appears in a field
-func getEnumTypeFromField(msgID uint32, fieldIndex int, mavlink Mavlink) string {
-	for i := 0; i < len(mavlink.Messages.Messages); i++ {
-		id := mavlink.Messages.Messages[i].ID
-		intID, err := strconv.Atoi(id)
-		if err != nil {
-			Log.Warn("Mavlink Message with ID", msgID, "is causing a parsing error.")
-		}
-		if intID == int(msgID) {
-			enumType := mavlink.Messages.Messages[i].Fields[fieldIndex].Enum
-			return enumType
-		}
-	}
-	return ""
-}
-
-// getIntValFromEnum Retrive the integer representation of an enum string representation.
-// It takes a message ID number to look for the enum in, the index the enum appears in within the message's
-// list of field names, the value of the enum as given by the mavlink message, and a Mavlink struct to determine
-// what kind of mavlink message to search for
-func getIntValFromEnum(msgID uint32, fieldIndex int, enumVal string, mavlink Mavlink) int {
-
-	enumType := getEnumTypeFromField(msgID, fieldIndex, mavlink)
-
-	for i := 0; i < len(mavlink.Enums.Enums); i++ {
-		if mavlink.Enums.Enums[i].Name == enumType {
-			for j := 0; j < len(mavlink.Enums.Enums[i].Entries); j++ {
-				if mavlink.Enums.Enums[i].Entries[j].Name == enumVal {
-					stringValue := mavlink.Enums.Enums[i].Entries[j].Value
-					value, err := strconv.Atoi(stringValue)
-					if err != nil {
-						//invalid enum value
-						return -1
-					}
-					return value
-				}
-			}
-		}
-	}
-	//returns an invalid enum value
-	return -1
-}
 
 // Retrieves the type of endpoint based on the address prefix
 func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
 	switch endpointType {
 	case "serial":
-		return gomavlib.EndpointSerial{fmt.Sprintf("%s:57600", address)}
+		return gomavlib.EndpointSerial{Address: fmt.Sprintf("%s:57600", address)}
 
 	case "udp":
-		return gomavlib.EndpointUDPClient{address}
+		return gomavlib.EndpointUDPClient{Address: address}
 
 	case "tcp":
-		return gomavlib.EndpointTCPClient{address}
+		return gomavlib.EndpointTCPClient{Address: address}
 
 	default:
 		return nil
@@ -358,28 +195,6 @@ func RunMavlink(
 	defer node.Close()
 
 	Log.Infof("Successfully connected to plane at %s %s", mavDeviceType, mavDeviceAddress)
-
-	//read xml files of messages
-	mavXML, err := os.Open(mavCommonPath)
-	arduXML, err := os.Open(mavArduPath)
-	if err != nil {
-		Log.Fatal("Error with opening Mavlink message files")
-	}
-	defer mavXML.Close()
-	defer arduXML.Close()
-	mavByteValue, err := ioutil.ReadAll(mavXML)
-	arduPilotByteValue, err := ioutil.ReadAll(arduXML)
-	if err != nil {
-		Log.Fatal("Error with reading Mavlink message files")
-	}
-
-	Log.Info("Successfully opened and read mavlink message files")
-
-	var mavlinkCommon Mavlink
-	var arduPilotMega Mavlink
-
-	xml.Unmarshal(mavByteValue, &mavlinkCommon)
-	xml.Unmarshal(arduPilotByteValue, &arduPilotMega)
 
 	if <-influxConnChan {
 		influxConnDone = true
