@@ -6,12 +6,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
-	ic "github.com/tritonuas/hub/internal/interop"
-	mav "github.com/tritonuas/hub/internal/mavlink"
-	pp "github.com/tritonuas/hub/internal/path_plan"
-	hs "github.com/tritonuas/hub/internal/server"
+	"github.com/gin-gonic/gin"
 )
 
 var log = logrus.New()
