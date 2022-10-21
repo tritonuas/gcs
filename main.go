@@ -16,13 +16,6 @@ var log = logrus.New()
 var ENVS = map[string]*string{
 	"HUB_ADDR":           flag.String("hub_addr", "5000", "http service hub_address"),
 	"HUB_PATH":           flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
-	"INTEROP_IP":         flag.String("interop_ip", "127.0.0.1", "ip of interop computer"),
-	"INTEROP_PORT":       flag.String("interop_port", "8000", "port of interop computer"),
-	"INTEROP_USER":       flag.String("interop_user", "ucsdauvsi", "username on interop computer"),
-	"INTEROP_PASS":       flag.String("interop_pass", "tritons", "password to interop computer"),
-	"INTEROP_TIMEOUT":    flag.String("interop_timeout", "10", "time limit in seconds on http requests to interop server"),
-	"INTEROP_RETRY_TIME": flag.String("interop_retry_time", "5", "how many seconds to wait after unsuccessful interop authentication"),
-	"INTEROP_MISSION_ID": flag.String("interop_mission_id", "1", "id of the mission assigned to us by the judges"),
 	"RTPP_IP":            flag.String("rtpp_ip", "127.0.0.1", "ip of rtpp computer"),
 	"RTPP_PORT":          flag.String("rtpp_port", "5010", "port of rtpp computer"),
 	"RTPP_TIMEOUT":       flag.String("rtpp_timeout", "360", "time limit in seconds on http requests to interop server"),
@@ -37,11 +30,7 @@ var ENVS = map[string]*string{
 	"INFLUXDB_TOKEN":     flag.String("influxdb_token", "influxdbToken", "token to allow read/write access to influx database"),
 	"INFLUXDB_BUCKET":    flag.String("influxdb_bucket", "mavlink", "bucket for the influx database"),
 	"INFLUXDB_ORG":       flag.String("influxdb_org", "TritonUAS", "org for the influx database"),
-	"IP":                 flag.String("ip", "*", "ip of interop computer"),
-	"SOCKET_ADDR":        flag.String("socket_addr", "127.0.0.1:6667", "ip + port of path planner zmq"),
 	"DEBUG_MODE":         flag.String("debug", "False", "Boolean to determine logging mode"),
-	"MAV_COMMON_PATH":    flag.String("mav_common_path", "mavlink/message_definitions/v1.0/common.xml", "path to file that contains common mavlink messages"),
-	"MAV_ARDU_PATH":      flag.String("mav_ardu_path", "./mavlink/message_definitions/v1.0/ardupilotmega.xml", "path to file that contains ardupilot mavlink messages"),
 }
 
 // setEnvVars will check for any hub related environment variables and
