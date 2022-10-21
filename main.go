@@ -10,6 +10,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+
+	ic "github.com/tritonuas/hub/internal/interop"
+	mav "github.com/tritonuas/hub/internal/mavlink"
+	pp "github.com/tritonuas/hub/internal/path_plan"
+	hs "github.com/tritonuas/hub/internal/server"
 )
 
 var log = logrus.New()
@@ -77,6 +82,7 @@ func main() {
 	rtppChannel := make(chan *pp.Client)
 	go pp.EstablishRTPPConnection(rtppRetryTime, rtppURL, rtppTimeout, rtppChannel)
 
+	/*
 	// TODO: Need to fix crazy channels, but keepign for now for Mavlink.go
 	telemetryChannel := make(chan *ic.Telemetry, 100)
 	sendWaypointToPlaneChannel := make(chan *pp.Path)
@@ -94,11 +100,21 @@ func main() {
 		mavOutputs,
 		telemetryChannel,
 		sendWaypointToPlaneChannel)
+		*/
 
 	// Set up GIN HTTP Server
 	startGinServer()
 }
 
 func startGinServer() {
-	
+	router := gin.Default()
+
+	router.GET("/test", func(c *gin.Context) {
+
+		c.JSON(http.StatusOK, gin.H{
+			"hello":  "this test was successful",
+		})
+	})
+
+	router.Run(":5000")
 }

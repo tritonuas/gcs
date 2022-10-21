@@ -29,10 +29,10 @@ build-docker:
 # --------------------------------------------------------------------
 .PHONY: run run-docker run-compose stop-compose run-broach-compose
 run:
-	./hub -interop_user=testuser -interop_pass=testpass
+	./hub 
 
 run-docker:
-	docker run -e INTEROP_USER=testuser -e INTEROP_PASS=testpass --network=host --name hub tritonuas/hub
+	docker run -e --network=host --name hub tritonuas/hub
 
 run-compose:
 	docker-compose -f deployments/docker-compose.yml up -d
