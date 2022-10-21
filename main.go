@@ -54,23 +54,21 @@ func setLoggers() {
 	mav.Log = log
 }
 
-func main() {
+// setEverything calls all the helper functions to set up the loggers,
+// environment vars, debug mode...
+func setupEverything() {
 	setLoggers()
 	setEnvVars()
 	// prioritize command line flags over environment variables
 	flag.Parse()
-
 	if *ENVS["DEBUG_MODE"] == "True" {
 		log.SetLevel(logrus.DebugLevel)
 		log.Debug("Logging Mode: DEBUG")
 	}
+}
 
-	// create client to interop
-	interopRetryTime, _ := strconv.Atoi(*ENVS["INTEROP_RETRY_TIME"])
-	interopTimeout, _ := strconv.Atoi(*ENVS["INTEROP_TIMEOUT"])
-	interopURL := fmt.Sprintf("%s:%s", *ENVS["INTEROP_IP"], *ENVS["INTEROP_PORT"])
-	interopChannel := make(chan *ic.Client)
-	go ic.EstablishInteropConnection(interopRetryTime, interopURL, *ENVS["INTEROP_USER"], *ENVS["INTEROP_PASS"], interopTimeout, interopChannel)
+func main() {
+	setupEverything()
 
 	// create client to rtpp
 	rtppRetryTime, _ := strconv.Atoi(*ENVS["RTPP_RETRY_TIME"])
@@ -79,7 +77,7 @@ func main() {
 	rtppChannel := make(chan *pp.Client)
 	go pp.EstablishRTPPConnection(rtppRetryTime, rtppURL, rtppTimeout, rtppChannel)
 
-	// Do other things...
+	// TODO: Need to fix crazy channels, but keepign for now for Mavlink.go
 	telemetryChannel := make(chan *ic.Telemetry, 100)
 	sendWaypointToPlaneChannel := make(chan *pp.Path)
 
@@ -97,29 +95,10 @@ func main() {
 		telemetryChannel,
 		sendWaypointToPlaneChannel)
 
-	var server *hs.Server
-	server = new(hs.Server)
+	// Set up GIN HTTP Server
+	startGinServer()
+}
 
-	port := "5000"
-	log.Infof("Creating Hub server at port %s", port)
-	interopMissionID, err := strconv.Atoi(*ENVS["INTEROP_MISSION_ID"])
-	if err != nil {
-		log.Warningf("Invalid interop mission id (cannot parse \"%s\" to int). Using default mission id 1.", *ENVS["INTEROP_MISSION_ID"])
-		interopMissionID = 1
-	} else {
-		log.Infof("Using interop mission id of %d", interopMissionID)
-	}
-
-	server.Run(
-		port,
-		interopChannel,
-		interopMissionID,
-		rtppChannel,
-		telemetryChannel,
-		*ENVS["INFLUXDB_URI"],
-		*ENVS["INFLUXDB_TOKEN"],
-		*ENVS["INFLUXDB_BUCKET"],
-		*ENVS["INFLUXDB_ORG"],
-		sendWaypointToPlaneChannel)
-
+func startGinServer() {
+	
 }
