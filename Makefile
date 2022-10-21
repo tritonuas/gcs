@@ -8,22 +8,16 @@ all: build run
 .PHONY: install-dependencies
 install-dependencies:
 	./scripts/install-go.sh
-	./scripts/install-protoc.sh
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git compile-protos build-go build-docker
-pre-build: configure-git submodulesupdate compile-protos
+.PHONY: pre-build build install-dependencies configure-git build-go build-docker
+pre-build: configure-git 
 
 build: build-go
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
-
-PROTOS_SRC_DIR = ./protos/interop
-PROTOS_DST_DIR = ./internal/interop
-compile-protos:
-	protoc -I=$(PROTOS_SRC_DIR) --go_out=$(PROTOS_DST_DIR) $(PROTOS_SRC_DIR)/interop_api.proto
 
 build-go:
 	go build
@@ -51,23 +45,6 @@ run-broach-compose:
 	
 stop-broach-compose:
 	docker-compose -f deployments/broach-docker-compose.yml down
-
-# Cleanup
-# --------------------------------------------------------------------
-.PHONY: clean submodulesclean submodulesupdate
-
-clean:
-	rm hub **/*.pb.go
-
-submodulesclean:
-	git submodule foreach git clean --ff -x -d
-	git submodule sync --recursive
-	git submodule update --init --force
-
-submodulesupdate:
-	git submodule update --init || true
-	git submodule sync
-	git submodule update --init
 
 # Testing
 # --------------------------------------------------------------------
