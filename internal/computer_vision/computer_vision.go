@@ -21,6 +21,7 @@ type UnclassifiedODLC struct {
 	PlaneLon           float64 `json:"plane_lon"`
 	PlaneAlt           float64 `json:"alt"`
 	PlaneHead          float64 `json:"head"`
+	Mannequin		   bool    `json:"mannequin"`
 }
 
 type Bbox struct {

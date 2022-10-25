@@ -3,17 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"net/http"
 
-	"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
 	mav "github.com/tritonuas/hub/internal/mavlink"
 	pp "github.com/tritonuas/hub/internal/path_plan"
+	"github.com/tritonuas/hub/internal/server"
 	hs "github.com/tritonuas/hub/internal/server"
 )
 
@@ -82,6 +83,8 @@ func main() {
 	rtppChannel := make(chan *pp.Client)
 	go pp.EstablishRTPPConnection(rtppRetryTime, rtppURL, rtppTimeout, rtppChannel)
 
+	server := server.Server{}
+
 	/*
 	// TODO: Need to fix crazy channels, but keepign for now for Mavlink.go
 	telemetryChannel := make(chan *ic.Telemetry, 100)
@@ -103,18 +106,5 @@ func main() {
 		*/
 
 	// Set up GIN HTTP Server
-	startGinServer()
-}
-
-func startGinServer() {
-	router := gin.Default()
-
-	router.GET("/test", func(c *gin.Context) {
-
-		c.JSON(http.StatusOK, gin.H{
-			"hello":  "this test was successful",
-		})
-	})
-
-	router.Run(":5000")
+	server.Start()
 }
