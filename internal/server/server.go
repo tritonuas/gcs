@@ -13,25 +13,25 @@ type Server struct {
 	unclassifiedTargets		[]cv.UnclassifiedODLC
 }
 
-func (s *Server) SetupRouter() *gin.Engine {
+func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 
-	router.POST("/obc/targets", s.postOBCTargets())
+	router.POST("/obc/targets", server.postOBCTargets())
 
 	return router
 }
 
-func (s *Server) Start() {
-	router := s.SetupRouter()
+func (server *Server) Start() {
+	router := server.SetupRouter()
 
 	router.Run(":5000")
 }
 
-func (s *Server) postOBCTargets() gin.HandlerFunc { 
+func (server *Server) postOBCTargets() gin.HandlerFunc { 
 	return func(c *gin.Context) {
 		unclassifiedODLCData := cv.UnclassifiedODLC{}
 		if (c.BindJSON(&unclassifiedODLCData) == nil) {
-			s.unclassifiedTargets = append(s.unclassifiedTargets, unclassifiedODLCData)
+			server.unclassifiedTargets = append(server.unclassifiedTargets, unclassifiedODLCData)
 			c.Status(http.StatusOK)
 		}
 	}
