@@ -28,7 +28,7 @@ build-docker:
 # Run
 # --------------------------------------------------------------------
 .PHONY: run run-docker run-compose stop-compose run-broach-compose
-run:
+run: build
 	./hub 
 
 run-docker:

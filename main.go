@@ -4,14 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 
 	ic "github.com/tritonuas/hub/internal/interop"
 	mav "github.com/tritonuas/hub/internal/mavlink"
-	pp "github.com/tritonuas/hub/internal/path_plan"
+	//pp "github.com/tritonuas/hub/internal/path_plan"
 	"github.com/tritonuas/hub/internal/server"
 	hs "github.com/tritonuas/hub/internal/server"
 )
@@ -74,12 +73,14 @@ func setupEverything() {
 func main() {
 	setupEverything()
 
+	/*
 	// create client to rtpp
 	rtppRetryTime, _ := strconv.Atoi(*ENVS["RTPP_RETRY_TIME"])
 	rtppTimeout, _ := strconv.Atoi(*ENVS["RTPP_TIMEOUT"])
 	rtppURL := fmt.Sprintf("%s:%s", *ENVS["RTPP_IP"], *ENVS["RTPP_PORT"])
 	rtppChannel := make(chan *pp.Client)
 	go pp.EstablishRTPPConnection(rtppRetryTime, rtppURL, rtppTimeout, rtppChannel)
+	*/
 
 	server := server.Server{}
 
