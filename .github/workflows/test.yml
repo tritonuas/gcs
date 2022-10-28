@@ -5,8 +5,6 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
 
 jobs:
   # go tests
@@ -18,7 +16,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.19
 
       - name: Checkout Repo
         uses: actions/checkout@v2
@@ -26,16 +24,8 @@ jobs:
           submodules: true
           token: ${{ secrets.SSH_TOKEN }}
 
-      - name: Install libzmq
-        run: |
-          sudo apt update
-          sudo apt install -y libzmq3-dev
-
       - name: Install dependencies
         run: make install-dependencies
-
-      - name: Compile protobufs
-        run: make compile-protos
 
       - name: Test
         run: make test
