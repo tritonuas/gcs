@@ -1,0 +1,78 @@
+# github.com/aler9/gomavlib v0.0.0-20220414051749-b209e19eb336
+## explicit
+github.com/aler9/gomavlib
+github.com/aler9/gomavlib/pkg/dialect
+github.com/aler9/gomavlib/pkg/dialects/common
+github.com/aler9/gomavlib/pkg/frame
+github.com/aler9/gomavlib/pkg/msg
+github.com/aler9/gomavlib/pkg/multibuffer
+github.com/aler9/gomavlib/pkg/parser
+github.com/aler9/gomavlib/pkg/udplistener
+github.com/aler9/gomavlib/pkg/x25
+# github.com/deepmap/oapi-codegen v1.3.13
+github.com/deepmap/oapi-codegen/pkg/runtime
+github.com/deepmap/oapi-codegen/pkg/types
+# github.com/goburrow/serial v0.1.0
+## explicit
+github.com/goburrow/serial
+# github.com/influxdata/influxdb-client-go/v2 v2.2.1
+## explicit
+github.com/influxdata/influxdb-client-go/v2
+github.com/influxdata/influxdb-client-go/v2/api
+github.com/influxdata/influxdb-client-go/v2/api/http
+github.com/influxdata/influxdb-client-go/v2/api/query
+github.com/influxdata/influxdb-client-go/v2/api/write
+github.com/influxdata/influxdb-client-go/v2/domain
+github.com/influxdata/influxdb-client-go/v2/internal/gzip
+github.com/influxdata/influxdb-client-go/v2/internal/http
+github.com/influxdata/influxdb-client-go/v2/internal/log
+github.com/influxdata/influxdb-client-go/v2/internal/write
+github.com/influxdata/influxdb-client-go/v2/log
+# github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839
+github.com/influxdata/line-protocol
+# github.com/konsorten/go-windows-terminal-sequences v1.0.2
+## explicit
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
+# github.com/rs/cors v1.7.0
+## explicit
+github.com/rs/cors
+# github.com/sirupsen/logrus v1.4.2
+## explicit
+github.com/sirupsen/logrus
+# github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
+github.com/tarm/serial
+# golang.org/x/net v0.0.0-20191112182307-2180aed22343
+golang.org/x/net/publicsuffix
+# golang.org/x/sys v0.0.0-20191115151921-52ab43148777
+golang.org/x/sys/unix
+# google.golang.org/protobuf v1.28.1
+## explicit
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genid
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/order
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
+# gopkg.in/yaml.v2 v2.3.0
+gopkg.in/yaml.v2
