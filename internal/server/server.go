@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
@@ -15,12 +17,15 @@ var Log = logrus.New()
 */
 type Server struct {
 	UnclassifiedTargets		[]cv.UnclassifiedODLC
+	MissionTime				time.Time
 }
 
 func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.POST("/obc/targets", server.postOBCTargets())
+	router.GET("/hub/time", server.getTimeElapsed())
+	router.POST("/hub/time", server.startMissionTimer())
 
 	return router
 }
@@ -45,3 +50,21 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 	}
 }
 
+func (server *Server) getTimeElapsed() gin.HandlerFunc {
+	return func (c *gin.Context) {
+		// if time hasn't been initialized yet, throw error
+		if (server.MissionTime == time.Time{}) {
+			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
+		} else {
+			c.String(http.StatusOK, time.Since(server.MissionTime).String())
+		}
+		
+	}
+}
+
+func (server *Server) startMissionTimer() gin.HandlerFunc {
+	return func (c *gin.Context) {
+		server.MissionTime = time.Now()
+		c.String(http.StatusOK, "Mission timer successfully started")
+	}
+}
