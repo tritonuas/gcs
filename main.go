@@ -84,11 +84,6 @@ func main() {
 
 	server := server.Server{}
 
-	/*
-	// TODO: Need to fix crazy channels, but keepign for now for Mavlink.go
-	telemetryChannel := make(chan *ic.Telemetry, 100)
-	sendWaypointToPlaneChannel := make(chan *pp.Path)
-
 	// begins to send messages from the plane to InfluxDB
 	mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
 	go mav.RunMavlink(
@@ -99,10 +94,7 @@ func main() {
 		*ENVS["INFLUXDB_ORG"],
 		*ENVS["MAV_DEVICE"],
 		*ENVS["INFLUXDB_URI"],
-		mavOutputs,
-		telemetryChannel,
-		sendWaypointToPlaneChannel)
-		*/
+		mavOutputs)
 
 	// Set up GIN HTTP Server
 	server.Start()
