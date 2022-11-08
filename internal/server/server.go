@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-<<<<<<< HEAD
 	"strconv"
-=======
 	"time"
->>>>>>> deaa23d (added mission timer / timer initializer)
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,16 +23,41 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
-	UnclassifiedTargets		[]cv.UnclassifiedODLC
-	MissionTime				time.Time
+	UnclassifiedTargets []cv.UnclassifiedODLC	`json:"unclassified_targets"`
+	Bottles             []Bottle
+	MissionTime         time.Time
+}
+
+/*
+Stores the basic information about the intended target of each water bottle (letter, letter color, shape, shape color), as well whether it should be dropped on a manikin (IsManikin) and which slot of the airdrop mechanism it is in (DropIndex).
+
+Example: white A on blue triangle
+
+NOTE: might have to change this after we know exactly what houston inputs for each bottle
+*/
+type Bottle struct {
+	Alphanumeric      	string 	`json:"alphanumeric"`
+	AlphanumericColor 	string 	`json:"alphanumeric_color"`
+	Shape             	string 	`json:"shape"`
+	ShapeColor        	string 	`json:"shape_color"`
+	DropIndex         	int    	`json:"drop_index"`
+	IsMannikin			bool	`json:"is_mannikin"`
+}
+
+type Bottles struct {
+	Bottles []Bottle `json:"bottles"`
 }
 
 func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.POST("/obc/targets", server.postOBCTargets())
+
 	router.GET("/hub/time", server.getTimeElapsed())
 	router.POST("/hub/time", server.startMissionTimer())
+
+	router.POST("/plane/airdrop", server.uploadDropOrder())
+	router.GET("/plane/airdrop", server.getDropOrder())
 
 	return router
 }
@@ -65,21 +88,61 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 	}
 }
 
+/*
+Returns the current time that has passed since the mission started.
+*/
 func (server *Server) getTimeElapsed() gin.HandlerFunc {
-	return func (c *gin.Context) {
+	return func(c *gin.Context) {
 		// if time hasn't been initialized yet, throw error
 		if (server.MissionTime == time.Time{}) {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
 			c.String(http.StatusOK, time.Since(server.MissionTime).String())
 		}
-		
 	}
 }
 
+/*
+Starts a timer when the mission begins, in order to keep track of how long the mission has gone on.
+*/
 func (server *Server) startMissionTimer() gin.HandlerFunc {
-	return func (c *gin.Context) {
+	return func(c *gin.Context) {
 		server.MissionTime = time.Now()
 		c.String(http.StatusOK, "Mission timer successfully started")
+	}
+}
+
+/*
+User (person manning ground control station) will type in the ODLC info on each water bottle as well as the ordering of each bottle in the plane, and then click a button on Houston to upload it.
+
+Also note that one of the bottles should dropped on a manikin (won't have alphanumeric/color?)
+
+IDEA (to implement in the future): check to make sure the length of the bottle slice is no more than 5 (there should only be 5 bottles uploaded, but if there's some error we might want to be able to upload less).
+*/
+func (server *Server) uploadDropOrder() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bottleOrdering := []Bottle{}
+
+		err := c.BindJSON(&bottleOrdering)
+
+		if err == nil {
+			server.Bottles = bottleOrdering
+		} else {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+	}
+}
+
+/*
+Returns the information (drop index, which target to drop on, etc.) about each water bottle as it has been entered by the person manning the ground control station.
+*/
+func (server *Server) getDropOrder() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// need to use reflect.DeepEqual() to check if a struct is empty because can't just do "if (server.Bottles == nil)". why? idk go sucks i guess
+		if (reflect.DeepEqual(server.Bottles, Bottles{})) {
+			c.String(http.StatusBadRequest, "ERROR: drop order not yet initialized")
+		} else {
+			c.JSON(http.StatusOK, server.Bottles)
+		}
 	}
 }
