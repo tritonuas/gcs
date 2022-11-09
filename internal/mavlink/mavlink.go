@@ -9,7 +9,6 @@ import (
 
 	"time"
 
-	ic "github.com/tritonuas/hub/internal/interop"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 
 	"github.com/goburrow/serial"
@@ -54,15 +53,12 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 // RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
 // mavCommonPath and mavArduPath point to the mavlink message files
 func RunMavlink(
-	mavCommonPath string,
-	mavArduPath string,
 	token string,
 	bucket string,
 	org string,
 	mavDevice string,
 	influxdbURI string,
 	mavOutputs []string,
-	telemetryChannel chan *ic.Telemetry,
 	sendWaypointToPlaneChannel chan *pp.Path) {
 
 	influxConnDone := false
