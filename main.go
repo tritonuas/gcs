@@ -87,8 +87,6 @@ func main() {
 	// begins to send messages from the plane to InfluxDB
 	mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
 	go mav.RunMavlink(
-		*ENVS["MAV_COMMON_PATH"],
-		*ENVS["MAV_ARDU_PATH"],
 		*ENVS["INFLUXDB_TOKEN"],
 		*ENVS["INFLUXDB_BUCKET"],
 		*ENVS["INFLUXDB_ORG"],

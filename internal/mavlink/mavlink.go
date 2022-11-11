@@ -9,7 +9,6 @@ import (
 
 	"time"
 
-	ic "github.com/tritonuas/hub/internal/interop"
 	pp "github.com/tritonuas/hub/internal/path_plan"
 
 	"github.com/goburrow/serial"
@@ -54,16 +53,13 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 // RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
 // mavCommonPath and mavArduPath point to the mavlink message files
 func RunMavlink(
-	mavCommonPath string,
-	mavArduPath string,
 	token string,
 	bucket string,
 	org string,
 	mavDevice string,
 	influxdbURI string,
 	mavOutputs []string,
-	telemetryChannel chan *ic.Telemetry,
-	sendWaypointToPlaneChannel chan *pp.Path) {
+) {
 
 	influxConnDone := false
 
@@ -213,12 +209,14 @@ func RunMavlink(
 	mavRouterParser := func() {
 		//loop through incoming events from the plane
 		for evt := range node.Events() {
+			Log.Info("received event")
 			if rawFrame, ok := evt.(*gomavlib.EventFrame); ok {
 
 				// Forwards mavlink messages to other clients
 				nh.onEventFrame(rawFrame)
 
 				// nodeMutex.Lock()
+				Log.Info("routing packets")
 				node.WriteFrameExcept(rawFrame.Channel, rawFrame.Frame)
 				// nodeMutex.Unlock()
 
@@ -359,29 +357,31 @@ func RunMavlink(
 		}
 	}
 
+	Log.Info("starting router")
 	go mavRouterParser()
 
 	defer client.Close()
 
-	for {
-		pathFromPP := <-sendWaypointToPlaneChannel
-		Log.Info("Received waypoints from PP and letting plane know")
-		// nodeMutex.Lock()
-		node.WriteMessageAll(&common.MessageMissionClearAll{
-			TargetSystem:    1,
-			TargetComponent: 0,
-			MissionType:     0,
-		})
-		// let the plane know that we want to upload a given number of messages
-		node.WriteMessageAll(&common.MessageMissionCount{
-			TargetSystem:    1,
-			TargetComponent: 0,
-			Count:           uint16(len(pathFromPP.Waypoints)),
-			MissionType:     common.MAV_MISSION_TYPE_MISSION,
-		})
-		// nodeMutex.Unlock()
-		//pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
-		pathReadyForPlane = pathFromPP
-	}
+	// NOTE: this was commented out until we find a better way to do this instead of sending the entire path over a channel
+	// for {
+		// pathFromPP := <-sendWaypointToPlaneChannel
+		// Log.Info("Received waypoints from PP and letting plane know")
+		// // nodeMutex.Lock()
+		// node.WriteMessageAll(&common.MessageMissionClearAll{
+		// 	TargetSystem:    1,
+		// 	TargetComponent: 0,
+		// 	MissionType:     0,
+		// })
+		// // let the plane know that we want to upload a given number of messages
+		// node.WriteMessageAll(&common.MessageMissionCount{
+		// 	TargetSystem:    1,
+		// 	TargetComponent: 0,
+		// 	Count:           uint16(len(pathFromPP.Waypoints)),
+		// 	MissionType:     common.MAV_MISSION_TYPE_MISSION,
+		// })
+		// // nodeMutex.Unlock()
+		// //pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
+		// pathReadyForPlane = pathFromPP
+	// }
 
 }
