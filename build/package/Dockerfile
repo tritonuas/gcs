@@ -13,8 +13,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 COPY . .
-# Compile protobufs for golang
-#RUN make compile-protos
 
 # Build hub
 RUN go build
