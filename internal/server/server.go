@@ -41,6 +41,7 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 func (server *Server) Start() {
 	router := server.SetupRouter()
+	
 
 	router.Run(":5000")
 }

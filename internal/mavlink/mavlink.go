@@ -210,7 +210,11 @@ func RunMavlink(
 		//loop through incoming events from the plane
 		for evt := range node.Events() {
 			Log.Info("received event")
-			if rawFrame, ok := evt.(*gomavlib.EventFrame); ok {
+			Log.Info(evt)
+			rawFrame, ok := evt.(*gomavlib.EventFrame)
+			Log.Info(rawFrame)
+			Log.Info(ok)
+			if ok {
 
 				// Forwards mavlink messages to other clients
 				nh.onEventFrame(rawFrame)
@@ -261,20 +265,25 @@ func RunMavlink(
 
 				// testing new parsing
 				switch msg := decodedFrame.GetMessage().(type) {
+
 				// /**
 				case *common.MessageGlobalPositionInt:
+					Log.Info("global pos int")
 					fields := []string{"alt", "lat", "lon", "relative_alt", "vx", "vy", "hdg"}
 					vals := []float64{float64(msg.Alt), float64(msg.Lat), float64(msg.Lon), float64(msg.RelativeAlt), float64(msg.Vx), float64(msg.Vy), float64(msg.Hdg)}
 					writeToInflux(msg.GetID(), "GLOBAL_POSITION_INT", fields, vals, writeAPI)
 				case *common.MessageAttitude:
+					Log.Info("attitude")
 					fields := []string{"pitch", "pitchspeed", "roll", "rollspeed", "yaw", "yawspeed"}
 					vals := []float64{float64(msg.Pitch), float64(msg.Pitchspeed), float64(msg.Roll), float64(msg.Rollspeed), float64(msg.Yaw), float64(msg.Yawspeed)}
 					writeToInflux(msg.GetID(), "ATTITUDE", fields, vals, writeAPI)
 				case *common.MessageVfrHud:
+					Log.Info("vfr hud")
 					fields := []string{"airspeed", "alt", "climb", "groundspeed", "heading", "throttle"}
 					vals := []float64{float64(msg.Airspeed), float64(msg.Alt), float64(msg.Climb), float64(msg.Groundspeed), float64(msg.Heading), float64(msg.Throttle)}
 					writeToInflux(msg.GetID(), "VFR_HUD", fields, vals, writeAPI)
 				case *common.MessageMissionAck:
+					Log.Info("mission ack")
 					if msg.Type == common.MAV_MISSION_ACCEPTED && pathReadyForPlane != nil && checkForPathAck {
 						pathReadyForPlane.PlaneAcknowledged = true
 					}
@@ -283,6 +292,7 @@ func RunMavlink(
 					Log.Infof("Type: %v, MissionType: %v", msg.Type, msg.MissionType)
 					// **/
 				case *common.MessageMissionRequest:
+					Log.Info("messagem ission request")
 					Log.Debug("Plane requested deprecated MISSON_REQUEST instead of MISSION_REQUEST_INT")
 					if pathReadyForPlane == nil {
 						Log.Error("Waypoints not received from Path Planning server yet")
@@ -318,6 +328,7 @@ func RunMavlink(
 						checkForPathAck = true
 					}
 				case *common.MessageMissionRequestInt:
+					Log.Info("message mission requets int")
 					if pathReadyForPlane == nil {
 						Log.Error("Waypoints not received from Path Planning server yet")
 						break
@@ -351,6 +362,11 @@ func RunMavlink(
 					if int(msg.Seq) == len(pathReadyForPlane.Waypoints)-1 {
 						checkForPathAck = true
 					}
+
+				default:
+					Log.Info("default")
+					Log.Info(msg)
+					Log.Info(msg.GetID())
 				}
 
 			}
