@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 	"reflect"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -23,7 +24,7 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
-	UnclassifiedTargets []cv.UnclassifiedODLC	`json:"unclassified_targets"`
+	UnclassifiedTargets []cv.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             []Bottle
 	MissionTime         time.Time
 }
@@ -36,12 +37,12 @@ Example: white A on blue triangle
 NOTE: might have to change this after we know exactly what houston inputs for each bottle
 */
 type Bottle struct {
-	Alphanumeric      	string 	`json:"alphanumeric"`
-	AlphanumericColor 	string 	`json:"alphanumeric_color"`
-	Shape             	string 	`json:"shape"`
-	ShapeColor        	string 	`json:"shape_color"`
-	DropIndex         	int    	`json:"drop_index"`
-	IsMannikin			bool	`json:"is_mannikin"`
+	Alphanumeric      string `json:"alphanumeric"`
+	AlphanumericColor string `json:"alphanumeric_color"`
+	Shape             string `json:"shape"`
+	ShapeColor        string `json:"shape_color"`
+	DropIndex         int    `json:"drop_index"`
+	IsMannikin        bool   `json:"is_mannikin"`
 }
 
 type Bottles struct {
@@ -58,6 +59,7 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 	router.POST("/plane/airdrop", server.uploadDropOrder())
 	router.GET("/plane/airdrop", server.getDropOrder())
+	router.PATCH("/plane/airdrop", server.updateDropOrder())
 
 	return router
 }
@@ -127,6 +129,7 @@ func (server *Server) uploadDropOrder() gin.HandlerFunc {
 
 		if err == nil {
 			server.Bottles = bottleOrdering
+			c.String(http.StatusOK, "Bottles successfully uploaded!")
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -139,10 +142,37 @@ Returns the information (drop index, which target to drop on, etc.) about each w
 func (server *Server) getDropOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// need to use reflect.DeepEqual() to check if a struct is empty because can't just do "if (server.Bottles == nil)". why? idk go sucks i guess
-		if (reflect.DeepEqual(server.Bottles, Bottles{})) {
+		if (reflect.DeepEqual(server.Bottles, Bottles{}.Bottles)) {
 			c.String(http.StatusBadRequest, "ERROR: drop order not yet initialized")
 		} else {
 			c.JSON(http.StatusOK, server.Bottles)
+		}
+	}
+}
+
+/*
+Updates the information about a single water bottle as it was entered by the person manning the ground control station.
+
+This would be useful if there was a mistake when uploading the original drop ordering, so the information for a single bottle can be updated given an id.
+
+If all bottles need to be updated at once, the user should just use the POST request (uploadDropOrder(); will clear everything and overwrite with the post body).
+*/
+func (server *Server) updateDropOrder() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bottleToUpdate := Bottle{}
+		err := c.BindJSON(&bottleToUpdate)
+
+		// loop through each of the bottles that are currently uploaded and find the one with the right id, and then overwrite its values
+		for i, bottle := range server.Bottles {
+			if bottle.DropIndex == bottleToUpdate.DropIndex {
+				server.Bottles[i] = bottleToUpdate
+			}
+		}
+
+		if err == nil {
+			c.String(http.StatusOK, "Bottle %d has been updated!", bottleToUpdate.DropIndex)
+		} else {
+			c.String(http.StatusBadRequest, err.Error())
 		}
 	}
 }
