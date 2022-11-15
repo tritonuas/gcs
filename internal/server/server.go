@@ -142,6 +142,9 @@ Updates the information about a single water bottle as it was entered by the per
 
 This would be useful if there was a mistake when uploading the original drop ordering, so the information for a single bottle can be updated given an id.
 
+NOTE: this is currently not capable of updating a bottle's dropIndex in case it was entered incorrectly (because identifying the bottle to update is dependent on the dropIndex in the patch request body).
+If we want to change this, one solution would be to have an extra field in the json body for the dropIndex to update, and then in the proceeding struct the user would be able to enter a replacement dropIndex.
+
 If all bottles need to be updated at once, the user should just use the POST request (uploadDropOrder(); will clear everything and overwrite with the post body).
 */
 func (server *Server) updateDropOrder() gin.HandlerFunc {
