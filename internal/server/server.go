@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	cv "github.com/tritonuas/hub/internal/computer_vision"
 	mav "github.com/tritonuas/hub/internal/mavlink"
+	"github.com/tritonuas/hub/internal/utils"
 )
 
 var Log = logrus.New()
@@ -20,8 +22,10 @@ Stores the server state and data that the server deals with.
 */
 type Server struct {
 	UnclassifiedTargets []cv.UnclassifiedODLC
-	TelemetryLatest     *mav.Telemetry
-	TelemetryHistory    []mav.Telemetry
+	telemetryLatest     *mav.Telemetry
+	telemetryHistory    []mav.Telemetry
+	// Convert methods to use influx's data
+	influxClient utils.InfluxClient
 }
 
 func (server *Server) SetupRouter() *gin.Engine {
@@ -49,47 +53,52 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 		if err == nil {
 			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData)
 			c.String(http.StatusOK, "Accepted ODLC data")
+			return
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
+			return
 		}
 	}
 }
 
-// Todo: Get from InfluxDB if none cached.
 func (server *Server) getTelemetry() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		telem := server.TelemetryLatest
+		telem := server.telemetryLatest
 
 		if telem == nil {
 			// First telemetry hasn't been entered yet.
 			c.Status(http.StatusNoContent)
+			return
 		} else {
-			c.JSON(http.StatusOK, *server.TelemetryLatest)
+			c.JSON(http.StatusOK, *server.telemetryLatest)
+			return
 		}
 	}
 }
 
-// Todo: Post to InfluxDB.
 func (server *Server) postTelemetry() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		jsonData, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
-			c.Status(400)
-		}
-
-		if jsonData == nil {
-			// First telemetry hasn't been entered yet.
-			c.Status(http.StatusNoContent)
+			c.Status(http.StatusBadRequest)
+			return
+		} else if jsonData == nil || len(jsonData) == 0 {
+			// Nothing was passed.
+			c.Status(http.StatusBadRequest)
+			return
 		} else {
 			newTelem := mav.Telemetry{}
-			json.Unmarshal(jsonData, newTelem)
+			json.Unmarshal(jsonData, &newTelem)
+			restringifed, _ := json.Marshal(newTelem)
 			if !mav.ValidateTelemetry(newTelem) {
-				c.Status(400)
+				c.Status(http.StatusBadRequest)
+				return
 			}
-			server.TelemetryHistory = append(server.TelemetryHistory, newTelem)
-			*server.TelemetryLatest = newTelem
+			server.telemetryHistory = append(server.telemetryHistory, newTelem)
+			server.telemetryLatest = &newTelem
 			c.Status(http.StatusNoContent)
+			return
 		}
 	}
 }
@@ -102,22 +111,27 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 		strData, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			c.Status(400)
+			return
 		}
 
 		index, err := strconv.Atoi(string(strData))
 		// Invalid request data
 		if err != nil {
 			c.Status(400)
+			return
 		}
 		// Valid, but no Telemetry to return
-		if index == 0 && server.TelemetryLatest == nil {
+		if index == 0 && server.telemetryLatest == nil {
 			c.Status(http.StatusNoContent)
+			return
 		}
 		// Invalid index to get
-		if index < 0 || index >= len(server.TelemetryHistory) {
+		if index < 0 || index >= len(server.telemetryHistory) {
 			c.Status(400)
+			return
 		}
 		// Return the index'th telemetry back.
-		c.JSON(http.StatusOK, server.TelemetryHistory[len(server.TelemetryHistory)-index-1])
+		c.JSON(http.StatusOK, server.telemetryHistory[len(server.telemetryHistory)-index-1])
+		return
 	}
 }

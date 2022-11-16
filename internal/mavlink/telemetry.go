@@ -16,8 +16,10 @@ type Telemetry struct {
 }
 
 func ValidateTelemetry(t Telemetry) bool {
-	return (-90 <= t.Latitude && t.Latitude <= 90 &&
-		-180 <= t.Longitude && t.Longitude <= 180 &&
-		-1500 <= t.Altitude && t.Altitude <= 330000 &&
-		0 <= t.Heading && t.Heading <= 360)
+	containsData := t.Latitude != 0 || t.Longitude != 0 || t.Altitude != 0 || t.Heading != 0
+	validLatLong := (-90 <= t.Latitude && t.Latitude <= 90 &&
+		-180 <= t.Longitude && t.Longitude <= 180)
+	validAlt := -1500 <= t.Altitude && t.Altitude <= 330000
+	validHeading := 0 <= t.Heading && t.Heading <= 360
+	return containsData && validLatLong && validAlt && validHeading
 }

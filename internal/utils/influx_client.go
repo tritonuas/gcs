@@ -4,14 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	influxApi "github.com/influxdata/influxdb-client-go/v2/api"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
 )
 
 type InfluxClient struct {
 	client   influxdb2.Client
 	queryAPI influxApi.QueryAPI
+	writeAPI influxApi.WriteAPI
 	uri      string
 	token    string
 	bucket   string
@@ -22,8 +25,18 @@ type InfluxClient struct {
 func NewInfluxClient(uri string, token string, bucket string, org string) InfluxClient {
 	client := influxdb2.NewClient(uri, token)
 	queryAPI := client.QueryAPI(org)
+	writeAPI := client.WriteAPI(org, bucket)
 
-	return InfluxClient{client, queryAPI, uri, token, bucket, org}
+	return InfluxClient{client, queryAPI, writeAPI, uri, token, bucket, org}
+}
+
+func (this InfluxClient) WriteData(id int, object string) bool {
+	this.writeAPI.WriteRecord(object)
+	pt := new(write.Point)
+	pt.AddField("everything", object)
+	pt.SetTime(time.Now())
+	this.writeAPI.WritePoint(pt)
+	return true
 }
 
 // QueryLatest queries the latest entry of the given field(s) in InfluxDB (from the subset of mavlink messages of the given type).
