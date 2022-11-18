@@ -63,13 +63,17 @@ func (server *Server) Start() {
 	router.Run(":5000")
 }
 
+
+/*
+User (plane/jetson) sends cropped image, bounding box, and other plane telemetry, and it is saved in the server struct.
+*/
 func (server *Server) postOBCTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		unclassifiedODLCData := cv.UnclassifiedODLC{}
+		unclassifiedODLCData := []cv.UnclassifiedODLC{}
 		err := c.BindJSON(&unclassifiedODLCData)
 
 		if err == nil {
-			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData)
+			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData...)
 			c.String(http.StatusOK, "Accepted ODLC data")
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
@@ -97,7 +101,7 @@ Starts a timer when the mission begins, in order to keep track of how long the m
 func (server *Server) startMissionTimer() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		server.MissionTime = time.Now()
-		c.String(http.StatusOK, "Mission timer successfully started")
+		c.String(http.StatusOK, "Mission timer successfully started!")
 	}
 }
 
