@@ -1,4 +1,5 @@
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+OS := $(shell uname)
 
 .PHONY: all
 all: build run
@@ -6,8 +7,18 @@ all: build run
 # Dependencies
 # --------------------------------------------------------------------
 .PHONY: install-dependencies
-install-dependencies:
+install-dependencies: install-linter
 	./scripts/install-go.sh
+
+.PHONY: install-linter
+install-linter:
+	$(info Installing golangci-lint for $(OS))
+	@if [ $(OS) = "Darwin" ] ; then\
+		brew install golangci-lint;\
+		brew upgrade golangci-lint;\
+	elif [ $(OS) = "Linux" ] ; then\
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1 ;\
+	fi;\
 
 # Build
 # --------------------------------------------------------------------
@@ -58,3 +69,9 @@ test:
 .PHONY: fmt
 fmt:
 	gofmt -w -l $(GOFILES_NOVENDOR)
+
+# Linting
+# --------------------------------------------------------------------
+.PHONY: lint 
+lint:
+	golangci-lint run
