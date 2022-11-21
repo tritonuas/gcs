@@ -1,13 +1,13 @@
 package computer_vision
 
 type ClassifiedODLC struct {
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	Orientation string  `json:"orientation"`
-	Shape       int     `json:"shape"`
-	Char        string  `json:"char"`
-	ShapeColor  int     `json:"shape_color"`
-	CharColor   	   int     `json:"char_color"`
+	Latitude           float64 `json:"latitude"`
+	Longitude          float64 `json:"longitude"`
+	Orientation        string  `json:"orientation"`
+	Shape              int     `json:"shape"`
+	Char               string  `json:"char"`
+	ShapeColor         int     `json:"shape_color"`
+	CharColor          int     `json:"char_color"`
 	CroppedImageBase64 string  `json:"cropped_image_base64"`
 	CroppedFilename    string  `json:"cropped_filename"`
 }
@@ -21,7 +21,7 @@ type UnclassifiedODLC struct {
 	PlaneLon           float64 `json:"plane_lon"`
 	PlaneAlt           float64 `json:"alt"`
 	PlaneHead          float64 `json:"head"`
-	Mannequin		   bool    `json:"mannequin"`
+	Mannequin          bool    `json:"mannequin"`
 }
 
 type Bbox struct {
@@ -36,7 +36,7 @@ type ComputerVisionData struct {
 }
 
 func InitializeData() *ComputerVisionData {
-	data := &ComputerVisionData {
+	data := &ComputerVisionData{
 		ClassifiedODLCs: []ClassifiedODLC{},
 	}
 

@@ -93,3 +93,20 @@ docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' con
 ```sh
 make test
 ```
+
+## Lint
+
+```sh
+make lint
+```
+
+If you want to disable the linter for a specific line then add `//nolint: lint_type`.
+```go
+
+```
+
+## Format
+
+```sh
+make fmt
+```

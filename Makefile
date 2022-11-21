@@ -7,7 +7,7 @@ all: build run
 # Dependencies
 # --------------------------------------------------------------------
 .PHONY: install-dependencies
-install-dependencies: install-linter
+install-dependencies: install-linter install-fmter
 	./scripts/install-go.sh
 
 .PHONY: install-linter
@@ -19,6 +19,9 @@ install-linter:
 	elif [ $(OS) = "Linux" ] ; then\
 		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1 ;\
 	fi;\
+
+install-fmter:
+	go install golang.org/x/tools/cmd/goimports@latest
 
 # Build
 # --------------------------------------------------------------------
@@ -68,7 +71,7 @@ test:
 # --------------------------------------------------------------------
 .PHONY: fmt
 fmt:
-	gofmt -w -l $(GOFILES_NOVENDOR)
+	goimports -w -l $(GOFILES_NOVENDOR)
 
 # Linting
 # --------------------------------------------------------------------
