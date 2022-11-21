@@ -1,4 +1,4 @@
-package computer_vision
+package computervision
 
 type ClassifiedODLC struct {
 	Latitude           float64 `json:"latitude"`
@@ -31,12 +31,12 @@ type Bbox struct {
 	Y2 int `json:"y2"`
 }
 
-type ComputerVisionData struct {
+type Data struct {
 	ClassifiedODLCs []ClassifiedODLC
 }
 
-func InitializeData() *ComputerVisionData {
-	data := &ComputerVisionData{
+func InitializeData() *Data {
+	data := &Data{
 		ClassifiedODLCs: []ClassifiedODLC{},
 	}
 
