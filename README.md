@@ -102,7 +102,7 @@ make lint
 
 If you want to disable the linter for a specific line then add `//nolint: lint_type`.
 ```go
-
+data, _ := fetchData() //nolint: errcheck
 ```
 
 ## Format
