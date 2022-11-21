@@ -10,7 +10,8 @@ import (
 
 	ic "github.com/tritonuas/hub/internal/interop"
 	mav "github.com/tritonuas/hub/internal/mavlink"
-	//pp "github.com/tritonuas/hub/internal/path_plan"
+
+	// pp "github.com/tritonuas/hub/internal/path_plan"
 	"github.com/tritonuas/hub/internal/server"
 	hs "github.com/tritonuas/hub/internal/server"
 )
@@ -84,15 +85,25 @@ func main() {
 
 	server := server.Server{}
 
-	// begins to send messages from the plane to InfluxDB
-	mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
-	go mav.RunMavlink(
-		*ENVS["INFLUXDB_TOKEN"],
-		*ENVS["INFLUXDB_BUCKET"],
-		*ENVS["INFLUXDB_ORG"],
-		*ENVS["MAV_DEVICE"],
-		*ENVS["INFLUXDB_URI"],
-		mavOutputs)
+	/*
+		// TODO: Need to fix crazy channels, but keepign for now for Mavlink.go
+		telemetryChannel := make(chan *ic.Telemetry, 100)
+		sendWaypointToPlaneChannel := make(chan *pp.Path)
+
+		// begins to send messages from the plane to InfluxDB
+		mavOutputs := []string{*ENVS["MAV_OUTPUT1"], *ENVS["MAV_OUTPUT2"], *ENVS["MAV_OUTPUT3"], *ENVS["MAV_OUTPUT4"], *ENVS["MAV_OUTPUT5"]}
+		go mav.RunMavlink(
+			*ENVS["MAV_COMMON_PATH"],
+			*ENVS["MAV_ARDU_PATH"],
+			*ENVS["INFLUXDB_TOKEN"],
+			*ENVS["INFLUXDB_BUCKET"],
+			*ENVS["INFLUXDB_ORG"],
+			*ENVS["MAV_DEVICE"],
+			*ENVS["INFLUXDB_URI"],
+			mavOutputs,
+			telemetryChannel,
+			sendWaypointToPlaneChannel)
+	*/
 
 	// Set up GIN HTTP Server
 	server.Start()

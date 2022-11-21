@@ -67,13 +67,12 @@ func (server *Server) SetupRouter() *gin.Engine {
 func (server *Server) Start() {
 	router := server.SetupRouter()
 
-	go server.checkMavlinkMessages(mavUpdates)
-
-	server.generalHistory = make(map[int]MavlinkMessageSeries)
-
-	router.Run(":5000")
+	err := router.Run(":5000")
+	if err != nil {
+		// TODO: decide if we want to make this a Log.Fatal and have Hub shutdown
+		Log.Errorf("Gin Engine crashed with the following error: %s", err)
+	}
 }
-
 
 /*
 User (plane/jetson) sends cropped image, bounding box, and other plane telemetry, and it is saved in the server struct.

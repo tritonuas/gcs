@@ -73,7 +73,8 @@ func NewClient(url string, username string, password string, timeout int) (*Clie
 
 	// jsonify authentication
 	auth := map[string]string{"username": username, "password": password}
-	authJSON, _ := json.Marshal(auth)
+	authJSON, err := json.Marshal(auth)
+	Log.Error(err)
 
 	// All endpoints are authenticated, so always login
 	_, intErr := client.httpClient.Post("/api/login", bytes.NewBuffer(authJSON))
