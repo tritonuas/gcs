@@ -1,4 +1,4 @@
-package path_plan
+package pathplan
 
 import (
 	"bytes"
