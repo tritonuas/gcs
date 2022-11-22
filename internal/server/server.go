@@ -20,6 +20,16 @@ type Server struct {
 	UnclassifiedTargets []cv.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             []Bottle
 	MissionTime         time.Time
+	FlightBounds        []Coordinate
+	AirDropBounds       []Coordinate
+}
+
+/*
+Make generic coordinate struct
+*/
+type Coordinate struct {
+	Latitude  float64 `json:"latitude,omitempty"`
+	Longitude float64 `json:"longitude,omitempty"`
 }
 
 /*
@@ -53,6 +63,13 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.POST("/plane/airdrop", server.uploadDropOrder())
 	router.GET("/plane/airdrop", server.getDropOrder())
 	router.PATCH("/plane/airdrop", server.updateDropOrder())
+
+	/* Change field to flight */
+	router.GET("/mission/bounds/field", server.getFieldBounds())
+	router.POST("/mission/bounds/field", server.uploadFieldBounds())
+
+	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
+	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
 
 	return router
 }
@@ -168,6 +185,60 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 
 		if err == nil {
 			c.String(http.StatusOK, "Bottle %d has been updated!", bottleToUpdate.DropIndex)
+		} else {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+	}
+}
+
+func (server *Server) getFieldBounds() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if server.FlightBounds == nil {
+			c.String(http.StatusBadRequest, "ERROR: Flight bounds not yet initialized")
+		} else {
+			c.JSON(http.StatusOK, server.FlightBounds)
+		}
+	}
+}
+
+/*
+Reads in longitude and latitude coordinates for field bounds and uploads to the server
+*/
+func (server *Server) uploadFieldBounds() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fieldBounds := []Coordinate{}
+		err := c.BindJSON(&fieldBounds)
+
+		if err == nil {
+			server.FlightBounds = fieldBounds
+			c.String(http.StatusOK, "Field Bounds has been uploaded", fieldBounds)
+		} else {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+	}
+}
+
+func (server *Server) getAirdropBounds() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if server.AirDropBounds == nil {
+			c.String(http.StatusBadRequest, "ERROR: Airdrop bound not yet initialized")
+		} else {
+			c.JSON(http.StatusOK, server.AirDropBounds)
+		}
+	}
+}
+
+/*
+Reads in longitude and latitude coordinates for airdrop bounds and uploads to the server
+*/
+func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		airDropBounds := []Coordinate{}
+		err := c.BindJSON(&airDropBounds)
+
+		if err == nil {
+			server.AirDropBounds = airDropBounds
+			c.String(http.StatusOK, "Airdop Bounds has been uploaded", airDropBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}

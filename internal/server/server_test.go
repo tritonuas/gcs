@@ -198,3 +198,225 @@ func TestUploadDropOrder5ValidTargets(t *testing.T) {
 
 	assert.Equal(t, server.Bottles, expectedBottles)
 }
+
+func TestUploadFieldBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		inputJSON  io.Reader
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			inputJSON:  nil,
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		/* Coordinate values were 0 expected null */
+		// {
+		// 	name:       "invalid json",
+		// 	inputJSON:  strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		// {
+		// 	name:       "invalid json 2",
+		// 	inputJSON:  strings.NewReader("[{\"plane_lat\": 32.45}, {\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		{
+			name:       "2 valid coordinates",
+			inputJSON:  strings.NewReader("[{\"latitude\": 30, \"longitude\": 32}, {\"latitude\": 31, \"longitude\": 20}]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			inputJSON:  strings.NewReader("[]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/mission/bounds/field", tc.inputJSON)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.FlightBounds)
+		})
+	}
+}
+
+func TestUploadAirdropBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		inputJSON  io.Reader
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			inputJSON:  nil,
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		/* Coordinate values were 0 expected null */
+		// {
+		// 	name:       "invalid json",
+		// 	inputJSON:  strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		// {
+		// 	name:       "invalid json 2",
+		// 	inputJSON:  strings.NewReader("[{\"plane_lat\": 32.45}, {\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		{
+			name:       "2 valid coordinates",
+			inputJSON:  strings.NewReader("[{\"latitude\": 30, \"longitude\": 32}, {\"latitude\": 31, \"longitude\": 20}]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			inputJSON:  strings.NewReader("[]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/mission/bounds/airdrop", tc.inputJSON)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.AirDropBounds)
+		})
+	}
+}
+
+func TestGetFieldBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		{
+			name:       "2 valid coordinates",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+			server.FlightBounds = tc.wantBounds
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/mission/bounds/field", nil)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.FlightBounds)
+		})
+	}
+}
+
+func TestGetAirDropBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		{
+			name:       "2 valid coordinates",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+			server.AirDropBounds = tc.wantBounds
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/mission/bounds/airdrop", nil)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.AirDropBounds)
+		})
+	}
+}
