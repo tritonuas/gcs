@@ -5,44 +5,35 @@
 [![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
 
 Hub is a back-end web-server that facilitates communication between other
-modules in the TUAS system, including
-[Houston](https://github.com/tritonuas/houston),
-[OBC](https://github.com/tritonuas/planeobc),
-and more. It also communicates with the
-[Interop Judging Server](https://github.com/auvsi-suas/interop)
-to grab the mission plans and submit waypoints. As of now, it does NOT deal with
-computer vision stuff; for that, see
-[matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).
-
-Hub is currently hosted on
-[Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
+modules in the TUAS system, including Computer Vision, Path Planning, and Houston (the frontend).
 
 ## Dependencies
 
-- go 1.14
-- protobuf-compiler
+- go 1.19
 - [docker](https://docs.docker.com/engine/install/)
 - [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
-
-Both of these should be handled with this script
-
-```sh
-# download git submodules
-make submodulesupdate
-# install go and protobuf-compiler
-make install-dependencies
-```
+- [golangci-lint](https://github.com/golangci/golangci-lint)
+- [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
 
 ## First Time Setup
-In order to compile the protobuf files needed to run Hub, execute the following command
+
+To install Docker, follow the instructions in the above links. 
+
+To install Go, the easiest way is to use [g](https://github.com/stefanmaric/g). The repo's 
+README contains installation instructions. Make sure to install and set up go 1.19. 
+
+To install the linter, run the following make command. If you encounter a permission denied error, 
+then rerun the command with sudo permissions.
+
+```sh
+make install-linter
 ```
-make compile-protos
+
+To install the formatter, run the following make command.
+
+```sh
+make install-fmter
 ```
-If this command doesn't work, then run
-```
-git submodule update --init
-```
-before trying the previous make command again
 
 ## Build
 
@@ -66,12 +57,12 @@ make run
 make run-docker
 ```
 
-Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot) Will include [Interop](https://github.com/auvsi-suas/interop) in the future)
+Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot)
 ``` sh
 make run-compose
 ```
 
-## Stop
+### Stop Compose
 ``` sh
 # Stop docker-compose workflow
 make stop-compose
@@ -79,14 +70,15 @@ make stop-compose
 
 ## Ports and Stuff
 
-Check [houston](https://github.com/tritonuas/houston) for usage instructions
-
-In houston, the `Backend Addr` always needs to match that of hub
+When running [houston2](https://github.com/tritonuas/houston2), you will need to enter the IP of Hub. This can be found by running the following
+command when you are running Hub as a docker container.
 
 ```sh
 # find IP of hub
 docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
 ```
+
+If you are running Hub locally on your machine, then the IP is just `localhost` or `127.0.0.1`
 
 ## Test
 

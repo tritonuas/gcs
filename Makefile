@@ -6,10 +6,6 @@ all: build run
 
 # Dependencies
 # --------------------------------------------------------------------
-.PHONY: install-dependencies
-install-dependencies: install-linter install-fmter
-	./scripts/install-go.sh
-
 .PHONY: install-linter
 install-linter:
 	$(info Installing golangci-lint for $(OS))
