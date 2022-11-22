@@ -15,33 +15,33 @@ import (
 func TestPostOBCTargets(t *testing.T) {
 	// TODO: include more values to check (currently only checks for http status code and number of targets uploaded)
 	// TODO: Test more accurate JSON values passed through once we get real values
-	test_cases := []struct {
+	testCases := []struct {
 		name           string
-		inputJson      io.Reader
+		inputJSON      io.Reader
 		wantCode       int
 		wantNumTargets int
 	}{
 		{
 			name:           "nil json",
-			inputJson:      nil,
+			inputJSON:      nil,
 			wantCode:       http.StatusBadRequest,
 			wantNumTargets: 0,
 		},
 		{
 			name:           "valid json (only timestamp)",
-			inputJson:      strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+			inputJSON:      strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
 			wantCode:       http.StatusOK,
 			wantNumTargets: 1,
 		},
 		{
 			name:           "valid json (only plane_lat)",
-			inputJson:      strings.NewReader("[{\"plane_lat\": 32.45}]"),
+			inputJSON:      strings.NewReader("[{\"plane_lat\": 32.45}]"),
 			wantCode:       http.StatusOK,
 			wantNumTargets: 1,
 		},
 	}
 
-	for _, tc := range test_cases {
+	for _, tc := range testCases {
 		// this line is needed to avoid a race condition when running tests in parallel.
 		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
 		tc := tc
@@ -54,7 +54,9 @@ func TestPostOBCTargets(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, _ := http.NewRequest("POST", "/obc/targets", tc.inputJson)
+			req, err := http.NewRequest("POST", "/obc/targets", tc.inputJSON)
+			assert.Nil(t, err)
+
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.wantCode, w.Code)
@@ -73,7 +75,8 @@ func TestStartMissionTime(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("POST", "/hub/time", nil)
+	req, err := http.NewRequest("POST", "/hub/time", nil)
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
@@ -90,12 +93,16 @@ func TestGetTimeElapsedValidCheck(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("POST", "/hub/time", nil)
+	req, err := http.NewRequest("POST", "/hub/time", nil)
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	w = httptest.NewRecorder()
 
-	req, _ = http.NewRequest("GET", "/hub/time", nil)
+	req, err = http.NewRequest("GET", "/hub/time", nil)
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -113,7 +120,8 @@ func TestGetTimeElapsedCheckBeforeTimerStarted(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("GET", "/hub/time", nil)
+	req, err := http.NewRequest("GET", "/hub/time", nil)
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
@@ -181,7 +189,8 @@ func TestUploadDropOrder5ValidTargets(t *testing.T) {
 								}
 							]`)
 
-	req, _ := http.NewRequest("POST", "/plane/airdrop", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewBuffer(jsonData))
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
