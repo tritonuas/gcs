@@ -66,20 +66,8 @@ func RunMavlink(
 	var pathReadyForPlane *pp.Path
 	var checkForPathAck bool
 
-	// startTime := time.Now()
-	// influxCount := 0
 	//write the data of a particular message to the local influxDB
 	writeToInflux := func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
-		// if rand.Intn(10) != 0 {
-		// 	Log.Error("Get trolled lol ඞ")
-		// 	return
-		// }
-		// if time.Since(startTime) < time.Second*30 {
-		// 	influxCount++
-		// } else {
-		// 	Log.Error("influx push count ", influxCount)
-		// }
-		// Log.Info("lol ඞ")
 		if !influxConnDone {
 			return
 		}
@@ -186,7 +174,6 @@ func RunMavlink(
 	if err != nil {
 		Log.Warn(err)
 	}
-	// var nodeMutex sync.Mutex
 
 	defer node.Close()
 
@@ -201,65 +188,19 @@ func RunMavlink(
 		Log.Error(err)
 	}
 	go nh.run()
-	// *gomavlib.Event
-
-	// startYawTime := time.Now()
-	// yawCount := 0
 
 	mavRouterParser := func() {
+		Log.Info("Starting Mavlink router")
 		//loop through incoming events from the plane
 		for evt := range node.Events() {
-			Log.Info("received event")
-			Log.Info(evt)
 			rawFrame, ok := evt.(*gomavlib.EventFrame)
-			Log.Info(rawFrame)
-			Log.Info(ok)
 			if ok {
 
 				// Forwards mavlink messages to other clients
 				nh.onEventFrame(rawFrame)
 
-				// nodeMutex.Lock()
-				Log.Info("routing packets")
 				node.WriteFrameExcept(rawFrame.Channel, rawFrame.Frame)
-				// nodeMutex.Unlock()
 
-				/** start of scuffness
-				// NOTE: must make dialect nil in the gomavlib nodeconf before enabling this horror
-				dialectDE, err := dialect.NewDecEncoder(common.Dialect)
-				if err != nil {
-					Log.Errorf("Could not create dialect encoder for Mavlink messages. Reason: %s", err)
-					continue
-				}
-				buf := bytes.NewBuffer(nil)
-				writer, err := parser.NewWriter(parser.WriterConf{
-					Writer:      buf,
-					DialectDE:   dialectDE,
-					OutVersion:  parser.V2,
-					OutSystemID: rawFrame.SystemID(),
-				})
-				err = writer.WriteFrame(rawFrame.Frame)
-				if err != nil {
-					Log.Error("could not write frame", err)
-					continue
-				}
-
-				reader, err := parser.NewReader(parser.ReaderConf{
-					Reader:    buf,
-					DialectDE: dialectDE,
-				})
-				if err != nil {
-					Log.Errorf("Could not create reader for Mavlink messages. Reason: %s", err)
-					continue
-				}
-
-				// read a message, encapsulated in a frame
-				decodedFrame, err := reader.Read()
-				if err != nil {
-					Log.Errorf("Could not read Mavlink message frame. Reason: %s", err)
-					continue
-				}
-				end of scuffness **/
 
 				decodedFrame := rawFrame.Frame
 
@@ -290,9 +231,8 @@ func RunMavlink(
 					checkForPathAck = false
 					Log.Info("Received acknowledgement from team", msg)
 					Log.Infof("Type: %v, MissionType: %v", msg.Type, msg.MissionType)
-					// **/
 				case *common.MessageMissionRequest:
-					Log.Info("messagem ission request")
+					Log.Info("message mission request")
 					Log.Debug("Plane requested deprecated MISSON_REQUEST instead of MISSION_REQUEST_INT")
 					if pathReadyForPlane == nil {
 						Log.Error("Waypoints not received from Path Planning server yet")
@@ -372,8 +312,6 @@ func RunMavlink(
 			}
 		}
 	}
-
-	Log.Info("starting router")
 
 	defer client.Close()
 	mavRouterParser()
