@@ -374,9 +374,9 @@ func RunMavlink(
 	}
 
 	Log.Info("starting router")
-	go mavRouterParser()
 
 	defer client.Close()
+	mavRouterParser()
 
 	// NOTE: this was commented out until we find a better way to do this instead of sending the entire path over a channel
 	// for {
