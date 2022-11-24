@@ -195,10 +195,13 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 			}
 		}
 
-		if (err == nil && bottleUpdated) {
-			c.String(http.StatusOK, "Bottle %d has been updated!", bottleToUpdate.DropIndex)
-		} else if err != nil {
+		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		if bottleUpdated {
+			c.String(http.StatusOK, "Bottle %d has been updated!", bottleToUpdate.DropIndex)
 		} else {
 			c.String(http.StatusBadRequest, "ERROR: Bottle %d not found. Make sure the entire drop order has been initialized before updating individual bottles!", bottleToUpdate.DropIndex)
 		}

@@ -142,9 +142,9 @@ func TestGetTimeElapsedValidCheck(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	/*
-	TODO: we should probably check that the timer keeps track of time properly (if you make a get request at 5 seconds it returns "5s").
-	I tried doing this using the time library, but it was hard to send a GET request exactly 5 seconds after starting the timer with a POST request due to the latency in each line of code.
-	Another idea for this would be to make sure the time is accurate within a certain margin of error to account for said latency.
+		TODO: we should probably check that the timer keeps track of time properly (if you make a get request at 5 seconds it returns "5s").
+		I tried doing this using the time library, but it was hard to send a GET request exactly 5 seconds after starting the timer with a POST request due to the latency in each line of code.
+		Another idea for this would be to make sure the time is accurate within a certain margin of error to account for said latency.
 	*/
 }
 
@@ -306,8 +306,7 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 								}
 							]`)
 
-
-    var jsonData2 = []byte(`[
+	var jsonData2 = []byte(`[
 								{
 									"alphanumeric": "B",
 									"alphanumeric_color": "black",
@@ -350,16 +349,20 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 								}
 							]`)
 
-	req, _ := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	assert.Equal(t, expectedBottles1stPost, server.Bottles)
 
-    w = httptest.NewRecorder()
+	w = httptest.NewRecorder()
 
-	req, _ = http.NewRequest("POST", "/plane/airdrop",bytes.NewReader(jsonData2))
+	req, err = http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData2))
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -419,20 +422,24 @@ func TestGetDropOrderValidCheck(t *testing.T) {
 									"is_mannikin": true
 								}
 							]`)
-	
+
 	// need to remove all the newlines, spaces, and tabs from the json body above; not sure why this isn't done automatically (I love golang! I love golang!)
 	jsonData = bytes.ReplaceAll(jsonData, []byte("\n"), []byte(""))
 	jsonData = bytes.ReplaceAll(jsonData, []byte("\t"), []byte(""))
 	jsonData = bytes.ReplaceAll(jsonData, []byte(" "), []byte(""))
 
-	req, _ := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	w = httptest.NewRecorder()
 
-	req, _ = http.NewRequest("GET", "/plane/airdrop", nil)
+	req, err = http.NewRequest("GET", "/plane/airdrop", nil)
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -449,7 +456,9 @@ func TestGetDropOrderBeforeBottlesUploaded(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("GET", "/plane/airdrop", nil)
+	req, err := http.NewRequest("GET", "/plane/airdrop", nil)
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -516,14 +525,15 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 								}
 							]`)
 
-	req, _ := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
 	// quick check to make sure post request was successful
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var singleBottleJsonData = []byte(`{
+	var singleBottleJSONData = []byte(`{
 											"alphanumeric": "4",
 											"alphanumeric_color": "gray",
 											"shape": "triangle",
@@ -534,7 +544,8 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 
 	w = httptest.NewRecorder()
 
-	req, _ = http.NewRequest("PATCH", "/plane/airdrop", bytes.NewReader(singleBottleJsonData))
+	req, err = http.NewRequest("PATCH", "/plane/airdrop", bytes.NewReader(singleBottleJSONData))
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
