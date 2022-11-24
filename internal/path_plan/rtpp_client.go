@@ -1,8 +1,7 @@
-package path_plan
+package pathplan
 
 import (
 	"bytes"
-	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -28,7 +27,7 @@ func EstablishRTPPConnection(waitTime int, rtppURL string, timeout int, c chan *
 	Log.Infof("Creating RTPP Client connected to %s", rtppURL)
 
 	var client *Client
-	//var err ut.HTTPError
+	// var err ut.HTTPError
 
 	for {
 		// Try creating a new client and authenticating it
@@ -68,9 +67,9 @@ func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	return err
 }
 
-//Make latitude, longitue, heading, and altitude not be hard coded
+// Make latitude, longitue, heading, and altitude not be hard coded
 func (c *Client) GetPath() (Path, []byte, ut.HTTPError) {
-	url := fmt.Sprintf("/path/full")
+	url := "/path/full"
 	pathBinary, err := c.httpClient.Get(url)
 	Log.Info(pathBinary)
 	return CreatePath(pathBinary), pathBinary, err

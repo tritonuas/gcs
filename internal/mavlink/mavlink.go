@@ -52,6 +52,7 @@ func getEndpoint(endpointType string, address string) gomavlib.EndpointConf {
 
 // RunMavlink contains the main loop that gathers mavlink messages from the plane and write to an InfluxDB
 // mavCommonPath and mavArduPath point to the mavlink message files
+// nolint: gocyclo
 func RunMavlink(
 	token string,
 	bucket string,
@@ -68,7 +69,7 @@ func RunMavlink(
 
 	// startTime := time.Now()
 	// influxCount := 0
-	//write the data of a particular message to the local influxDB
+	// write the data of a particular message to the local influxDB
 	writeToInflux := func(msgID uint32, msgName string, parameters []string, floatValues []float64, writeAPI api.WriteAPI) {
 		// if rand.Intn(10) != 0 {
 		// 	Log.Error("Get trolled lol ඞ")
@@ -99,7 +100,7 @@ func RunMavlink(
 	mavDeviceType := mavDeviceSplit[0]
 	mavDeviceAddress := strings.Join(mavDeviceSplit[1:], ":")
 
-	//verify connection to the plane according to the type of connection provided
+	// verify connection to the plane according to the type of connection provided
 	switch mavDeviceType {
 	case "serial":
 		for {
@@ -169,10 +170,10 @@ func RunMavlink(
 	influxConnChan := make(chan bool)
 	go influxCheck(influxConnChan)
 
-	//establishes plane connection
+	// establishes plane connection
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: endpoints,
-		//ardupilot message dialect
+		// ardupilot message dialect
 		Dialect: common.Dialect,
 		// Dialect:        nil,
 		OutVersion:     gomavlib.V2,
@@ -207,15 +208,20 @@ func RunMavlink(
 	// yawCount := 0
 
 	mavRouterParser := func() {
-		//loop through incoming events from the plane
-		for evt := range node.Events() {
-			if rawFrame, ok := evt.(*gomavlib.EventFrame); ok {
-
+		// loop through incoming events from the plane
+		for e := range node.Events() {
+			switch evt := e.(type) {
+			case *gomavlib.EventChannelOpen:
+				Log.Infof("Mavlink channel opened: %s", evt.Channel)
+			case *gomavlib.EventChannelClose:
+				Log.Infof("Mavlink channel closed: %s", evt.Channel)
+				nh.onEventChannelClose(evt)
+			case *gomavlib.EventFrame:
 				// Forwards mavlink messages to other clients
-				nh.onEventFrame(rawFrame)
+				nh.onEventFrame(evt)
 
 				// nodeMutex.Lock()
-				node.WriteFrameExcept(rawFrame.Channel, rawFrame.Frame)
+				node.WriteFrameExcept(evt.Channel, evt.Frame)
 				// nodeMutex.Unlock()
 
 				/** start of scuffness
@@ -255,7 +261,7 @@ func RunMavlink(
 				}
 				end of scuffness **/
 
-				decodedFrame := rawFrame.Frame
+				decodedFrame := evt.Frame
 
 				// testing new parsing
 				switch msg := decodedFrame.GetMessage().(type) {
@@ -376,7 +382,7 @@ func RunMavlink(
 			MissionType:     common.MAV_MISSION_TYPE_MISSION,
 		})
 		// nodeMutex.Unlock()
-		//pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
+		// pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
 		pathReadyForPlane = pathFromPP
 	}
 

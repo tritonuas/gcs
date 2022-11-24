@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -22,7 +22,7 @@ how *http.Client is created in here, though I think we don't even need that in t
 ones which seems interesting.
 */
 
-//change name of Client since it might mess with the inheritance for the other clients
+// change name of Client since it might mess with the inheritance for the other clients
 type Client struct {
 	client  *http.Client
 	url     string
@@ -40,7 +40,11 @@ func NewClient(url string, timeout int) *Client {
 		timeout: timeout,
 	}
 
-	cookieJar, _ := cookiejar.New(nil)
+	cookieJar, err := cookiejar.New(nil)
+	if err != nil {
+		Log.Debugf("Could not create client cookie jar. Reason: %s", err)
+	}
+
 	client.client = &http.Client{
 		Jar:     cookieJar,
 		Timeout: time.Duration(timeout) * time.Second,
@@ -49,10 +53,10 @@ func NewClient(url string, timeout int) *Client {
 	return client
 }
 
-//TODO - find a wway to rename the outputed strings to not be specific to a server but generalized, or have a way for
-//the clients to properly account for them
+// TODO - find a wway to rename the outputed strings to not be specific to a server but generalized, or have a way for
+// the clients to properly account for them
 
-//Post makes a POST request to the server
+// Post makes a POST request to the server
 func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
@@ -68,19 +72,28 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
+	errMsg, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errMsg = []byte("Unknown error message")
+		}
+
 		httpErr.SetError("POST", errMsg, resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		Log.Debug(err)
+		httpErr.SetError("POST", []byte("Could not read response body"), http.StatusInternalServerError)
+		return nil, *httpErr
+	}
 	Log.Debugf("Making Request : POST - %s - %d", uri, resp.StatusCode)
 
 	return body, *httpErr
 }
 
-//Get makes a GET request to the server
+// Get makes a GET request to the server
 func (c *Client) Get(uri string) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
@@ -93,11 +106,14 @@ func (c *Client) Get(uri string) ([]byte, HTTPError) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
+		errMsg, err := io.ReadAll(resp.Body)
+		if err != nil {
+			errMsg = []byte("Unknown error message")
+		}
 		httpErr.SetError("GET", errMsg, resp.StatusCode)
 	}
 	defer resp.Body.Close()
-	body, resErr := ioutil.ReadAll(resp.Body)
+	body, resErr := io.ReadAll(resp.Body)
 	if resErr != nil {
 		Log.Debug(resErr)
 	}
@@ -112,7 +128,12 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
 	// set the HTTP method, url, and request body
-	req, _ := http.NewRequest(http.MethodPut, c.url+uri, msg)
+	req, err := http.NewRequest(http.MethodPut, c.url+uri, msg)
+	if err != nil {
+		Log.Debug(err)
+		httpErr.SetError("PUT", []byte(fmt.Sprintf("Could not create request. Reason: %s", err)), http.StatusInternalServerError)
+		return nil, *httpErr
+	}
 
 	// set the request header Content-Type for json
 	req.Header.Set("Content-Type", "application/json")
@@ -128,12 +149,21 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
+	errMsg, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errMsg = []byte("Unknown error message")
+		}
+
 		httpErr.SetError("PUT", errMsg, resp.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		Log.Debug(err)
+		httpErr.SetError("PUT", []byte("Could not read response body"), http.StatusInternalServerError)
+		return nil, *httpErr
+	}
 
 	Log.Debugf("Making Request to: PUT - %s - %d", uri, resp.StatusCode)
 	return body, *httpErr
@@ -145,6 +175,12 @@ func (c *Client) Delete(uri string) ([]byte, HTTPError) {
 
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
+	if err != nil {
+		Log.Debug(err)
+		httpErr.SetError("DELETE", []byte(fmt.Sprintf("Could not create request. Reason: %s", err)), http.StatusInternalServerError)
+		return nil, *httpErr
+	}
+
 	resp, err := c.client.Do(req)
 
 	// If err is not nil, then the server is not online and we need to back out
@@ -157,12 +193,21 @@ func (c *Client) Delete(uri string) ([]byte, HTTPError) {
 
 	// The server is online, but we need to check the status code directly to
 	// see if there was a 4xx error
+	errMsg, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		errMsg, _ := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errMsg = []byte("Unknown error message")
+		}
+
 		httpErr.SetError("DELETE", errMsg, resp.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		Log.Debug(err)
+		httpErr.SetError("DELETE", []byte("Could not read response body"), http.StatusInternalServerError)
+		return nil, *httpErr
+	}
 
 	Log.Debugf("Making Request to: DELETE - %s - %d", uri, resp.StatusCode)
 	return body, *httpErr

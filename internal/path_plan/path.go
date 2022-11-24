@@ -1,4 +1,4 @@
-package path_plan
+package pathplan
 
 import (
 	"encoding/json"
@@ -17,14 +17,14 @@ FORMAT FOR A WAYPOINT SENT FROM PATHPLANNING:
 // Waypoint provides an easy way to parse the JSON sent by Path planning into separate
 // waypoints
 type Waypoint struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	Altitude  float64 `json:"altitude"`
-	Heading   float64 `json:"heading"`
-    AcceptRadius float64 `json:"accept-radius"`
+	Latitude     float64 `json:"latitude"`
+	Longitude    float64 `json:"longitude"`
+	Altitude     float64 `json:"altitude"`
+	Heading      float64 `json:"heading"`
+	AcceptRadius float64 `json:"accept-radius"`
 }
 
-//My implementation of a path struct in here not too sure if it should be a float64 slice or a waypoint slice
+// My implementation of a path struct in here not too sure if it should be a float64 slice or a waypoint slice
 
 type Path struct {
 	Waypoints         []Waypoint

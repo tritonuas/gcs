@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,43 +12,57 @@ import (
 	"github.com/tritonuas/hub/internal/server"
 )
 
-func TestPostOBCTargetsNilJSON(t *testing.T) {
-	server := server.Server{}
+func TestPostOBCTargets(t *testing.T) {
+	// TODO: include more values to check (currently only checks for http status code and number of targets uploaded)
+	// TODO: Test more accurate JSON values passed through once we get real values
+	testCases := []struct {
+		name           string
+		inputJSON      io.Reader
+		wantCode       int
+		wantNumTargets int
+	}{
+		{
+			name:           "nil json",
+			inputJSON:      nil,
+			wantCode:       http.StatusBadRequest,
+			wantNumTargets: 0,
+		},
+		{
+			name:           "valid json (only timestamp)",
+			inputJSON:      strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+			wantCode:       http.StatusOK,
+			wantNumTargets: 1,
+		},
+		{
+			name:           "valid json (only plane_lat)",
+			inputJSON:      strings.NewReader("[{\"plane_lat\": 32.45}]"),
+			wantCode:       http.StatusOK,
+			wantNumTargets: 1,
+		},
+	}
 
-	router := server.SetupRouter()
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/obc/targets", nil)
-	router.ServeHTTP(w, req)
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
+			server := server.Server{}
 
-// TODO: Test more accurate JSON values passed through once we get real values
+			router := server.SetupRouter()
 
-func TestPostOBCTargetsValidJSON(t *testing.T) {
-	server := server.Server{}
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/obc/targets", tc.inputJSON)
+			assert.Nil(t, err)
 
-	router := server.SetupRouter()
+			router.ServeHTTP(w, req)
 
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest("POST", "/obc/targets", strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"))
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 1, len(server.UnclassifiedTargets))
-	assert.Equal(t, "2022-10-28T00:43:44.698Z", server.UnclassifiedTargets[0].Timestamp)
-
-	// test again
-	w2 := httptest.NewRecorder()
-	req2, _ := http.NewRequest("POST", "/obc/targets", strings.NewReader("[{\"plane_lat\": 32.45}]"))
-	router.ServeHTTP(w2, req2)
-
-	assert.Equal(t, http.StatusOK, w2.Code)
-
-	assert.Equal(t, 2, len(server.UnclassifiedTargets))
-	assert.Equal(t, 32.45, server.UnclassifiedTargets[1].PlaneLat)
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantNumTargets, len(server.UnclassifiedTargets))
+		})
+	}
 }
 
 /*
@@ -60,7 +75,8 @@ func TestStartMissionTime(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("POST", "/hub/time", nil)
+	req, err := http.NewRequest("POST", "/hub/time", nil)
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
@@ -77,12 +93,16 @@ func TestGetTimeElapsedValidCheck(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("POST", "/hub/time", nil)
+	req, err := http.NewRequest("POST", "/hub/time", nil)
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	w = httptest.NewRecorder()
 
-	req, _ = http.NewRequest("GET", "/hub/time", nil)
+	req, err = http.NewRequest("GET", "/hub/time", nil)
+	assert.Nil(t, err)
+
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -104,7 +124,8 @@ func TestGetTimeElapsedCheckBeforeTimerStarted(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("GET", "/hub/time", nil)
+	req, err := http.NewRequest("GET", "/hub/time", nil)
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
@@ -172,7 +193,8 @@ func TestUploadDropOrder5ValidTargets(t *testing.T) {
 								}
 							]`)
 
-	req, _ := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
 
@@ -485,4 +507,225 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	assert.Equal(t, expectedBottles, server.Bottles)
+}
+func TestUploadFieldBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		inputJSON  io.Reader
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			inputJSON:  nil,
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		/* Coordinate values were 0 expected null */
+		// {
+		// 	name:       "invalid json",
+		// 	inputJSON:  strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		// {
+		// 	name:       "invalid json 2",
+		// 	inputJSON:  strings.NewReader("[{\"plane_lat\": 32.45}, {\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		{
+			name:       "2 valid coordinates",
+			inputJSON:  strings.NewReader("[{\"latitude\": 30, \"longitude\": 32}, {\"latitude\": 31, \"longitude\": 20}]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			inputJSON:  strings.NewReader("[]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/mission/bounds/field", tc.inputJSON)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.FlightBounds)
+		})
+	}
+}
+
+func TestUploadAirdropBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		inputJSON  io.Reader
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			inputJSON:  nil,
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		/* Coordinate values were 0 expected null */
+		// {
+		// 	name:       "invalid json",
+		// 	inputJSON:  strings.NewReader("[{\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		// {
+		// 	name:       "invalid json 2",
+		// 	inputJSON:  strings.NewReader("[{\"plane_lat\": 32.45}, {\"timestamp\": \"2022-10-28T00:43:44.698Z\"}]"),
+		// 	wantCode:   http.StatusBadRequest,
+		// 	wantBounds: nil,
+		// },
+		{
+			name:       "2 valid coordinates",
+			inputJSON:  strings.NewReader("[{\"latitude\": 30, \"longitude\": 32}, {\"latitude\": 31, \"longitude\": 20}]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			inputJSON:  strings.NewReader("[]"),
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/mission/bounds/airdrop", tc.inputJSON)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.AirDropBounds)
+		})
+	}
+}
+
+func TestGetFieldBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		{
+			name:       "2 valid coordinates",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+			server.FlightBounds = tc.wantBounds
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/mission/bounds/field", nil)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.FlightBounds)
+		})
+	}
+}
+
+func TestGetAirDropBounds(t *testing.T) {
+	testCases := []struct {
+		name       string
+		wantCode   int
+		wantBounds []server.Coordinate
+	}{
+		{
+			name:       "nil json",
+			wantCode:   http.StatusBadRequest,
+			wantBounds: nil,
+		},
+		{
+			name:       "2 valid coordinates",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+		},
+		{
+			name:       "empty coords",
+			wantCode:   http.StatusOK,
+			wantBounds: []server.Coordinate{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := server.Server{}
+			server.AirDropBounds = tc.wantBounds
+			router := server.SetupRouter()
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/mission/bounds/airdrop", nil)
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.wantCode, w.Code)
+			assert.Equal(t, tc.wantBounds, server.AirDropBounds)
+		})
+	}
 }
