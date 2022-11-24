@@ -169,17 +169,22 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 		bottleToUpdate := Bottle{}
 		err := c.BindJSON(&bottleToUpdate)
 
+		bottleUpdated := false
+
 		// loop through each of the bottles that are currently uploaded and find the one with the right id, and then overwrite its values
 		for i, bottle := range server.Bottles {
 			if bottle.DropIndex == bottleToUpdate.DropIndex {
 				server.Bottles[i] = bottleToUpdate
+				bottleUpdated = true
 			}
 		}
 
-		if err == nil {
+		if (err == nil && bottleUpdated) {
 			c.String(http.StatusOK, "Bottle %d has been updated!", bottleToUpdate.DropIndex)
-		} else {
+		} else if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
+		} else {
+			c.String(http.StatusBadRequest, "ERROR: Bottle %d not found. Make sure the entire drop order has been initialized before updating individual bottles!", bottleToUpdate.DropIndex)
 		}
 	}
 }
