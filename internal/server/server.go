@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -41,6 +40,7 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 func (server *Server) Start() {
 	router := server.SetupRouter()
+	
 
 	router.Run(":5000")
 }
@@ -90,7 +90,7 @@ func (server *Server) postTelemetry() gin.HandlerFunc {
 		} else {
 			newTelem := mav.Telemetry{}
 			json.Unmarshal(jsonData, &newTelem)
-			restringifed, _ := json.Marshal(newTelem)
+			// restringifed, _ := json.Marshal(newTelem) NOTE: commenting out this line because restringified was unused -- anthony
 			if !mav.ValidateTelemetry(newTelem) {
 				c.Status(http.StatusBadRequest)
 				return
