@@ -16,6 +16,8 @@ import (
 )
 
 var log = logrus.New()
+
+// Defines globally used variables for ports and IPs and other things.
 var ENVS = map[string]*string{
 	"HUB_ADDR":        flag.String("hub_addr", "5000", "http service hub_address"),
 	"HUB_PATH":        flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
@@ -56,7 +58,7 @@ func setLoggers() {
 	mav.Log = log
 }
 
-// setEverything calls all the helper functions to set up the loggers,
+// setupEverything calls all the helper functions to set up the loggers,
 // environment vars, debug mode...
 func setupEverything() {
 	setLoggers()
