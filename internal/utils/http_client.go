@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Log is the logger for the http client
 var Log = logrus.New()
 
 /*
@@ -29,10 +30,13 @@ type Client struct {
 	timeout int
 }
 
+// IsConnected checks if the client has been created
 func (c *Client) IsConnected() bool {
 	return c.client != nil
 }
 
+// NewClient creates an HTTP client to interact with an HTTP server
+// at a specified URL.
 func NewClient(url string, timeout int) *Client {
 	client := &Client{
 
@@ -53,7 +57,7 @@ func NewClient(url string, timeout int) *Client {
 	return client
 }
 
-// TODO - find a wway to rename the outputed strings to not be specific to a server but generalized, or have a way for
+// TODO - find a way to rename the outputed strings to not be specific to a server but generalized, or have a way for
 // the clients to properly account for them
 
 // Post makes a POST request to the server

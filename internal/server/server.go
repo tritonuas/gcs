@@ -18,6 +18,7 @@ import (
 	"github.com/tritonuas/hub/internal/utils"
 )
 
+// Log is the logger for the server
 var Log = logrus.New()
 
 /*
