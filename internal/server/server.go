@@ -96,8 +96,6 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 	router.GET("/connections", server.testConnections())
 
-	router.GET("/connections", server.testConnections())
-
 	router.POST("/obc/targets", server.postOBCTargets())
 
 	router.GET("/hub/time", server.getTimeElapsed())
