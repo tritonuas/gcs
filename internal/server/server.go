@@ -96,6 +96,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 	router.GET("/connections", server.testConnections())
 
+	router.GET("/connections", server.testConnections())
+
 	router.POST("/obc/targets", server.postOBCTargets())
 
 	router.GET("/hub/time", server.getTimeElapsed())
@@ -134,7 +136,7 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true})
+		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true});
 	}
 }
 
