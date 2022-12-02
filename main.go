@@ -13,7 +13,6 @@ import (
 
 	// pp "github.com/tritonuas/hub/internal/path_plan"
 	"github.com/tritonuas/hub/internal/server"
-	hs "github.com/tritonuas/hub/internal/server"
 )
 
 var log = logrus.New()
@@ -54,7 +53,6 @@ func setEnvVars() {
 // Add in other loggers for modules as needed
 func setLoggers() {
 	ic.Log = log
-	hs.Log = log
 	mav.Log = log
 }
 
