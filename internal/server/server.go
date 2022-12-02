@@ -62,6 +62,8 @@ type Bottles struct {
 func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 
+	router.GET("/connections", server.testConnections())
+
 	router.POST("/obc/targets", server.postOBCTargets())
 
 	router.GET("/hub/time", server.getTimeElapsed())
@@ -88,6 +90,16 @@ func (server *Server) Start() {
 	if err != nil {
 		// TODO: decide if we want to make this a Log.Fatal and have Hub shutdown
 		Log.Errorf("Gin Engine crashed with the following error: %s", err)
+	}
+}
+
+/*
+User testing all of hubs connections. Returns JSON of all the connection statuses.
+TODO: Actually test the connections instead of just returning True.
+*/
+func (server *Server) testConnections() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true})
 	}
 }
 
