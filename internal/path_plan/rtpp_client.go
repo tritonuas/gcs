@@ -8,15 +8,18 @@ import (
 	ut "github.com/tritonuas/hub/internal/utils"
 )
 
+// Log is the logger for the rttp client
 var Log = logrus.New()
 
+// Client is an HTTP client to communicate with the
+// Path Planning Server
 type Client struct {
 	httpClient *ut.Client
 	url        string
 	timeout    int
 }
 
-// IsConnected checks to see if the http client object is not null
+// IsConnected checks to see if the http client object is not nil
 func (c *Client) IsConnected() bool {
 	return c.httpClient != nil
 }
@@ -47,6 +50,8 @@ func EstablishRTPPConnection(waitTime int, rtppURL string, timeout int, c chan *
 	c <- client
 }
 
+// NewClient will create an HTTP client to communicate to the Path
+// Planning Server at the specified url.
 func NewClient(url string, timeout int) *Client {
 	client := &Client{
 
@@ -60,6 +65,8 @@ func NewClient(url string, timeout int) *Client {
 	return client
 }
 
+// PostMission will send competition mission specifications to
+// the Path Planning Server.
 func (c *Client) PostMission(mission []byte) ut.HTTPError {
 	// Post telemetry to server
 	_, err := c.httpClient.Post("/mission", bytes.NewReader(mission))

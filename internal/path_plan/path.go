@@ -24,13 +24,15 @@ type Waypoint struct {
 	AcceptRadius float64 `json:"accept-radius"`
 }
 
-// My implementation of a path struct in here not too sure if it should be a float64 slice or a waypoint slice
-
+// Path stores the waypoints of the mission the plane should fly and
+// if the plane has received the mission.
 type Path struct {
 	Waypoints         []Waypoint
 	PlaneAcknowledged bool
 }
 
+// CreatePath will create a Path struct given some waypoints in
+// JSON format.
 func CreatePath(waypointsIn []byte) Path {
 	var wpts []Waypoint
 	err := json.Unmarshal(waypointsIn, &wpts)
@@ -43,6 +45,7 @@ func CreatePath(waypointsIn []byte) Path {
 	return path
 }
 
+// GetPath
 func (p Path) GetPath() []Waypoint {
 	return p.Waypoints
 }
