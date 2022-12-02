@@ -8,7 +8,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	ic "github.com/tritonuas/hub/internal/interop"
 	mav "github.com/tritonuas/hub/internal/mavlink"
 
 	// pp "github.com/tritonuas/hub/internal/path_plan"
@@ -54,7 +53,6 @@ func setEnvVars() {
 // that all logs go through a central logger.
 // Add in other loggers for modules as needed
 func setLoggers() {
-	ic.Log = log
 	mav.Log = log
 }
 
