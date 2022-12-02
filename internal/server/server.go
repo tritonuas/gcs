@@ -11,6 +11,7 @@ import (
 	cv "github.com/tritonuas/hub/internal/computer_vision"
 )
 
+// Log is the logger for the server
 var Log = logrus.New()
 
 /*
