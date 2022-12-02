@@ -200,7 +200,7 @@ func TestUploadDropOrder5ValidTargets(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	assert.Equal(t, expectedBottles, server.Bottles)
+	assert.Equal(t, expectedBottles, server.Bottles.Bottles)
 }
 
 /*
@@ -322,7 +322,7 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	assert.Equal(t, expectedBottles1stPost, server.Bottles)
+	assert.Equal(t, expectedBottles1stPost, server.Bottles.Bottles)
 
 	w = httptest.NewRecorder()
 
@@ -333,7 +333,7 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	assert.Equal(t, expectedBottles2ndPost, server.Bottles)
+	assert.Equal(t, expectedBottles2ndPost, server.Bottles.Bottles)
 }
 
 /*
@@ -517,7 +517,7 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	assert.Equal(t, expectedBottles, server.Bottles)
+	assert.Equal(t, expectedBottles, server.Bottles.Bottles)
 }
 func TestUploadFieldBounds(t *testing.T) {
 	testCases := []struct {

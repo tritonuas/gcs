@@ -18,7 +18,7 @@ Stores the server state and data that the server deals with.
 */
 type Server struct {
 	UnclassifiedTargets []cv.UnclassifiedODLC `json:"unclassified_targets"`
-	Bottles             []Bottle
+	Bottles             Bottles
 	MissionTime         time.Time
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
@@ -48,12 +48,44 @@ type Bottle struct {
 	IsMannikin        bool   `json:"is_mannikin"`
 }
 
+/*
+Stores the information about each bottle in the plane; see the Bottle struct for more detail.
+
+We have this stored as its own struct so that we don't accidentally overwrite all the other JSON data stored in the Server struct when binding a JSON.
+Rather, we bind/overwrite the JSON data in this Bottles struct, which then updates the field in the Server struct.
+This way, there is no danger of overwriting anything other than the bottle drop ordering, thereby preventing the plane from blowing up :)
+*/
 type Bottles struct {
 	Bottles []Bottle `json:"bottles"`
 }
 
+/*
+We aren't hosting this online, so it's okay to allow requests from all origins to make Houston2's life easier
+*/
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+/*
+Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
+
+General route format is "/place/thing".
+*/
 func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
+	router.Use(CORSMiddleware())
 
 	router.GET("/connections", server.testConnections())
 
@@ -76,6 +108,9 @@ func (server *Server) SetupRouter() *gin.Engine {
 	return router
 }
 
+/*
+Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if you want the plane to fly.
+*/
 func (server *Server) Start() {
 	router := server.SetupRouter()
 
@@ -146,9 +181,9 @@ IDEA (to implement in the future): check to make sure the length of the bottle s
 */
 func (server *Server) uploadDropOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		bottleOrdering := []Bottle{}
+		bottleOrdering := Bottles{}
 
-		err := c.BindJSON(&bottleOrdering)
+		err := c.BindJSON(&bottleOrdering.Bottles)
 
 		if err == nil {
 			server.Bottles = bottleOrdering
@@ -165,10 +200,10 @@ Returns the information (drop index, which target to drop on, etc.) about each w
 func (server *Server) getDropOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// need to use reflect.DeepEqual() to check if a struct is empty because can't just do "if (server.Bottles == nil)". why? idk go sucks i guess
-		if (reflect.DeepEqual(server.Bottles, Bottles{}.Bottles)) {
+		if (reflect.DeepEqual(server.Bottles.Bottles, Bottles{}.Bottles)) {
 			c.String(http.StatusBadRequest, "ERROR: drop order not yet initialized")
 		} else {
-			c.JSON(http.StatusOK, server.Bottles)
+			c.JSON(http.StatusOK, server.Bottles.Bottles)
 		}
 	}
 }
@@ -191,9 +226,9 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 		bottleUpdated := false
 
 		// loop through each of the bottles that are currently uploaded and find the one with the right id, and then overwrite its values
-		for i, bottle := range server.Bottles {
+		for i, bottle := range server.Bottles.Bottles {
 			if bottle.DropIndex == bottleToUpdate.DropIndex {
-				server.Bottles[i] = bottleToUpdate
+				server.Bottles.Bottles[i] = bottleToUpdate
 				bottleUpdated = true
 			}
 		}

@@ -15,7 +15,7 @@ issues:
         - gosec
         - goconst
   include:
-    - EXC0012
+    - EXC0012 # requires function and variable comments
 linters:
   enable:
     - gosec
