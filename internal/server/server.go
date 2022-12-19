@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +18,7 @@ Stores the server state and data that the server deals with.
 */
 type Server struct {
 	UnclassifiedTargets []cv.UnclassifiedODLC `json:"unclassified_targets"`
-	Bottles             Bottles
+	Bottles             *Bottles
 	MissionTime         time.Time
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
@@ -187,7 +186,7 @@ func (server *Server) uploadDropOrder() gin.HandlerFunc {
 		err := c.BindJSON(&bottleOrdering.Bottles)
 
 		if err == nil {
-			server.Bottles = bottleOrdering
+			server.Bottles = &bottleOrdering
 			c.String(http.StatusOK, "Bottles successfully uploaded!")
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
@@ -200,8 +199,7 @@ Returns the information (drop index, which target to drop on, etc.) about each w
 */
 func (server *Server) getDropOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// need to use reflect.DeepEqual() to check if a struct is empty because can't just do "if (server.Bottles == nil)". why? idk go sucks i guess
-		if (reflect.DeepEqual(server.Bottles.Bottles, Bottles{}.Bottles)) {
+		if (server.Bottles == nil){
 			c.String(http.StatusBadRequest, "ERROR: drop order not yet initialized")
 		} else {
 			c.JSON(http.StatusOK, server.Bottles.Bottles)
