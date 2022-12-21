@@ -2,13 +2,14 @@ package server_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
-	"strconv"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tritonuas/hub/internal/server"
@@ -124,24 +125,24 @@ Tests that the mission timer starts and keeps track of the elapsed time accordin
 */
 func TestGetTimeElapsedValidCheck(t *testing.T) {
 	testCases := []struct {
-		name           string
-		waitTime       float64
-		errorMargin    float64
+		name        string
+		waitTime    float64
+		errorMargin float64
 	}{
 		{
-			name:           "no wait",
-			waitTime:       0.0, 
-			errorMargin:     0.01,
+			name:        "no wait",
+			waitTime:    0.0,
+			errorMargin: 0.01,
 		},
 		{
-			name:           "3 seconds",
-			waitTime:       3.0, 
-			errorMargin:     0.01,
+			name:        "3 seconds",
+			waitTime:    3.0,
+			errorMargin: 0.01,
 		},
 		{
-			name:           "6 seconds",
-			waitTime:       6.0, 
-			errorMargin:     0.01,
+			name:        "6 seconds",
+			waitTime:    6.0,
+			errorMargin: 0.01,
 		},
 	}
 
@@ -160,7 +161,7 @@ func TestGetTimeElapsedValidCheck(t *testing.T) {
 			req, err := http.NewRequest("POST", "/hub/time", nil)
 			assert.Nil(t, err)
 			router.ServeHTTP(w, req)
-			time.Sleep(time.Duration(tc.waitTime) * time.Second)	
+			time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
 			w = httptest.NewRecorder()
 			req, err = http.NewRequest("GET", "/hub/time", nil)
@@ -169,13 +170,13 @@ func TestGetTimeElapsedValidCheck(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, w.Code)
 
-			// will come out as "4.21423s"
+			// will come out as "4.21423" or "0.00012"
 			durationStr := w.Body.String()
-			// trimming the "s" at the end
-			durationStr = strings.TrimSuffix(durationStr, "s")
-			durationFloat, _ := strconv.ParseFloat(durationStr, 64)
+			fmt.Println(durationStr)
+			durationFloat, strerr := strconv.ParseFloat(durationStr, 64)
+			assert.Nil(t, strerr)
 
-			assert.LessOrEqual(t, durationFloat, tc.waitTime + tc.errorMargin)
+			assert.LessOrEqual(t, durationFloat, tc.waitTime+tc.errorMargin)
 		})
 	}
 }
