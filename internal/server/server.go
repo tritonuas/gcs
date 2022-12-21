@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -157,7 +158,7 @@ func (server *Server) getTimeElapsed() gin.HandlerFunc {
 		if (server.MissionTime == time.Time{}) {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
-			c.String(http.StatusOK, time.Since(server.MissionTime).String())
+			c.String(http.StatusOK, fmt.Sprintf("%f", time.Since(server.MissionTime).Seconds()))
 		}
 	}
 }
@@ -199,7 +200,7 @@ Returns the information (drop index, which target to drop on, etc.) about each w
 */
 func (server *Server) getDropOrder() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if (server.Bottles == nil){
+		if server.Bottles == nil {
 			c.String(http.StatusBadRequest, "ERROR: drop order not yet initialized")
 		} else {
 			c.JSON(http.StatusOK, server.Bottles.Bottles)
