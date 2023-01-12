@@ -123,12 +123,18 @@ func TestStartMissionTime(t *testing.T) {
 /*
 Tests that the mission timer starts and keeps track of the elapsed time accordingly when requested after the timer has been started.
 */
-func TestGetTimeElapsedValidCheck(t *testing.T) {
+func TestGetTimeElapsed(t *testing.T) {
 	testCases := []struct {
 		name        string
 		waitTime    float64
 		errorMargin float64
 	}{
+		// querying the mission timer before it has been initialized should return an error
+		{
+			name:		 "before timer start",
+			waitTime:    0.0,
+			errorMargin: 0.0,
+		},
 		{
 			name:        "no wait",
 			waitTime:    0.0,
@@ -158,45 +164,39 @@ func TestGetTimeElapsedValidCheck(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/hub/time", nil)
-			assert.Nil(t, err)
-			router.ServeHTTP(w, req)
-			time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
-			w = httptest.NewRecorder()
-			req, err = http.NewRequest("GET", "/hub/time", nil)
-			assert.Nil(t, err)
-			router.ServeHTTP(w, req)
+			var req *http.Request
+			var err error
+			
+			if (tc.name == "before timer start") {
+				req, err = http.NewRequest("GET", "/hub/time", nil)
+				assert.Nil(t, err)
 
-			assert.Equal(t, http.StatusOK, w.Code)
+				router.ServeHTTP(w, req)
+				assert.Equal(t, http.StatusBadRequest, w.Code)
+			} else {
+				req, err = http.NewRequest("POST", "/hub/time", nil)
+				assert.Nil(t, err)
+				router.ServeHTTP(w, req)
+				time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
-			// will come out as "4.21423" or "0.00012"
-			durationStr := w.Body.String()
-			fmt.Println(durationStr)
-			durationFloat, strerr := strconv.ParseFloat(durationStr, 64)
-			assert.Nil(t, strerr)
+				w = httptest.NewRecorder()
+				req, err = http.NewRequest("GET", "/hub/time", nil)
+				assert.Nil(t, err)
+				router.ServeHTTP(w, req)
 
-			assert.LessOrEqual(t, durationFloat, tc.waitTime+tc.errorMargin)
+				assert.Equal(t, http.StatusOK, w.Code)
+
+				// will come out as "4.21423" or "0.00012"
+				durationStr := w.Body.String()
+				fmt.Println(durationStr)
+				durationFloat, strerr := strconv.ParseFloat(durationStr, 64)
+				assert.Nil(t, strerr)
+
+				assert.LessOrEqual(t, durationFloat, tc.waitTime+tc.errorMargin)
+			}
 		})
 	}
-}
-
-/*
-Tests that querying the mission timer before it has been initialized returns an error.
-*/
-func TestGetTimeElapsedCheckBeforeTimerStarted(t *testing.T) {
-	server := server.Server{}
-
-	router := server.SetupRouter()
-
-	w := httptest.NewRecorder()
-
-	req, err := http.NewRequest("GET", "/hub/time", nil)
-	assert.Nil(t, err)
-
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 /*
