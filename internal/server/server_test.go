@@ -2,11 +2,14 @@ package server_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tritonuas/hub/internal/server"
@@ -87,31 +90,61 @@ func TestStartMissionTime(t *testing.T) {
 Tests that the mission timer starts and keeps track of the elapsed time accordingly when requested after the timer has been started.
 */
 func TestGetTimeElapsedValidCheck(t *testing.T) {
-	server := server.Server{}
+	testCases := []struct {
+		name        string
+		waitTime    float64
+		errorMargin float64
+	}{
+		{
+			name:        "no wait",
+			waitTime:    0.0,
+			errorMargin: 0.01,
+		},
+		{
+			name:        "3 seconds",
+			waitTime:    3.0,
+			errorMargin: 0.01,
+		},
+		{
+			name:        "6 seconds",
+			waitTime:    6.0,
+			errorMargin: 0.01,
+		},
+	}
 
-	router := server.SetupRouter()
+	for _, tc := range testCases {
+		// this line is needed to avoid a race condition when running tests in parallel.
+		// more info here: https://gist.github.com/posener/92a55c4cd441fc5e5e85f27bca008721
+		tc := tc
 
-	w := httptest.NewRecorder()
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	req, err := http.NewRequest("POST", "/hub/time", nil)
-	assert.Nil(t, err)
+			server := server.Server{}
+			router := server.SetupRouter()
 
-	router.ServeHTTP(w, req)
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/hub/time", nil)
+			assert.Nil(t, err)
+			router.ServeHTTP(w, req)
+			time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
-	w = httptest.NewRecorder()
+			w = httptest.NewRecorder()
+			req, err = http.NewRequest("GET", "/hub/time", nil)
+			assert.Nil(t, err)
+			router.ServeHTTP(w, req)
 
-	req, err = http.NewRequest("GET", "/hub/time", nil)
-	assert.Nil(t, err)
+			assert.Equal(t, http.StatusOK, w.Code)
 
-	router.ServeHTTP(w, req)
+			// will come out as "4.21423" or "0.00012"
+			durationStr := w.Body.String()
+			fmt.Println(durationStr)
+			durationFloat, strerr := strconv.ParseFloat(durationStr, 64)
+			assert.Nil(t, strerr)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	/*
-		TODO: we should probably check that the timer keeps track of time properly (if you make a get request at 5 seconds it returns "5s").
-		I tried doing this using the time library, but it was hard to send a GET request exactly 5 seconds after starting the timer with a POST request due to the latency in each line of code.
-		Another idea for this would be to make sure the time is accurate within a certain margin of error to account for said latency.
-	*/
+			assert.LessOrEqual(t, durationFloat, tc.waitTime+tc.errorMargin)
+		})
+	}
 }
 
 /*
