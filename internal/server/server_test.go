@@ -131,7 +131,7 @@ func TestGetTimeElapsed(t *testing.T) {
 	}{
 		// querying the mission timer before it has been initialized should return an error
 		{
-			name:		 "before timer start",
+			name:        "before timer start",
 			waitTime:    0.0,
 			errorMargin: 0.0,
 		},
@@ -167,8 +167,8 @@ func TestGetTimeElapsed(t *testing.T) {
 
 			var req *http.Request
 			var err error
-			
-			if (tc.name == "before timer start") {
+
+			if tc.name == "before timer start" {
 				req, err = http.NewRequest("GET", "/hub/time", nil)
 				assert.Nil(t, err)
 
