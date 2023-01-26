@@ -88,6 +88,7 @@ func TestStartMissionTime(t *testing.T) {
 
 /*
 Tests that the mission timer starts and keeps track of the elapsed time accordingly when requested after the timer has been started.
+TODO: maybe add expected http return code to struct
 */
 func TestGetTimeElapsed(t *testing.T) {
 	testCases := []struct {
