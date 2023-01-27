@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	pp "github.com/tritonuas/hub/internal/path_plan"
+	"github.com/tritonuas/hub/internal/obc/pp"
 
 	"github.com/goburrow/serial"
 
