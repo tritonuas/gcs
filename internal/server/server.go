@@ -8,9 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
-	cv "github.com/tritonuas/hub/internal/computer_vision"
-	"github.com/tritonuas/hub/internal/airdrop"
-
+	"github.com/tritonuas/hub/internal/cvs"
+	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
 
 // Log is the logger for the server
@@ -20,7 +19,7 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
-	UnclassifiedTargets []cv.UnclassifiedODLC `json:"unclassified_targets"`
+	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         time.Time
 	FlightBounds        []Coordinate
@@ -104,7 +103,7 @@ User (plane/jetson) sends cropped image, bounding box, and other plane telemetry
 */
 func (server *Server) postOBCTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		unclassifiedODLCData := []cv.UnclassifiedODLC{}
+		unclassifiedODLCData := []cvs.UnclassifiedODLC{}
 		err := c.BindJSON(&unclassifiedODLCData)
 
 		if err == nil {
@@ -267,7 +266,7 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 	}
 }
 
-
 /*
 CVS sends results (target coordinates, alphanumeric, shape, color) to Hub and forward target coordinates to RTPP.
 */
+//TODO:

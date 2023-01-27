@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tritonuas/hub/internal/obc/airdrop"
 	"github.com/tritonuas/hub/internal/server"
 )
 
@@ -170,7 +171,7 @@ func TestGetTimeElapsed(t *testing.T) {
 Tests that posting the drop order with 5 valid targets successfully updates the Bottles element in the server struct
 */
 func TestUploadDropOrder5ValidTargets(t *testing.T) {
-	expectedBottles := []server.Bottle{
+	expectedBottles := []airdrop.Bottle{
 		{"C", "brown", "square", "purple", 0, false},
 		{"X", "turquoise", "parallelogram", "lavender", 1, false},
 		{"A", "white", "triangle", "blue", 2, false},
@@ -241,7 +242,7 @@ func TestUploadDropOrder5ValidTargets(t *testing.T) {
 Tests that posting a new drop order multiple times consecutively overwrites all old values
 */
 func TestUploadDropOrderMultipleTimes(t *testing.T) {
-	expectedBottles1stPost := []server.Bottle{
+	expectedBottles1stPost := []airdrop.Bottle{
 		{"C", "brown", "square", "purple", 0, false},
 		{"X", "turquoise", "parallelogram", "lavender", 1, false},
 		{"A", "white", "triangle", "blue", 2, false},
@@ -249,7 +250,7 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 		{"", "", "", "", 4, true},
 	}
 
-	expectedBottles2ndPost := []server.Bottle{
+	expectedBottles2ndPost := []airdrop.Bottle{
 		{"B", "black", "circle", "red", 3, false},
 		{"C", "brown", "square", "purple", 0, false},
 		{"L", "white", "triangle", "blue", 2, false},
@@ -468,7 +469,7 @@ func TestGetDropOrderBeforeBottlesUploaded(t *testing.T) {
 Tests that using updateDropOrder() updates the values of a single bottle given the proper id
 */
 func TestUpdateDropOrderValidCheck(t *testing.T) {
-	expectedBottles := []server.Bottle{
+	expectedBottles := []airdrop.Bottle{
 		{"C", "brown", "square", "purple", 0, false},
 		{"X", "turquoise", "parallelogram", "lavender", 1, false},
 		{"4", "gray", "triangle", "purple", 2, false},

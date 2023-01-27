@@ -1,4 +1,4 @@
-package computervision
+package cvs
 
 // ClassifiedODLC represents the a target and its characteristics that are predicted by the Computer Vision pipeline.
 // This data will be provided by the Computer Vision Server.
@@ -41,13 +41,4 @@ type Bbox struct {
 // Computer Vision Data that Hub stores
 type Data struct {
 	ClassifiedODLCs []ClassifiedODLC
-}
-
-// Create an empty Computer Vision Data struct to be populated later
-func InitializeData() *Data {
-	data := &Data{
-		ClassifiedODLCs: []ClassifiedODLC{},
-	}
-
-	return data
 }
