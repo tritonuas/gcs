@@ -52,29 +52,35 @@ func TestPostOBCTargetsValidJSON(t *testing.T) {
 func TestInflux(t *testing.T) {
 	server := server.Server{}
 	router := server.SetupRouter()
-	w1 := httptest.NewRecorder()
-	w2 := httptest.NewRecorder()
-	w3 := httptest.NewRecorder()
-	w4 := httptest.NewRecorder()
 
 	// Request before data
+	w1 := httptest.NewRecorder()
 	req1, _ := http.NewRequest("GET", "/telemetry/latest", strings.NewReader(""))
 	router.ServeHTTP(w1, req1)
 	assert.Equal(t, http.StatusNoContent, w1.Code, "Get latest telemetry when empty should return NoContent(204).")
 
 	// Bad Post
+	w2 := httptest.NewRecorder()
 	req2, _ := http.NewRequest("POST", "/telemetry/latest", strings.NewReader("Hello! I'm not JSON data!"))
 	router.ServeHTTP(w2, req2)
 	assert.Equal(t, http.StatusBadRequest, w2.Code, "POST non-JSON or malformed JSON should return BadRequest(400).")
 
 	// Good Post
-	req3, _ := http.NewRequest("POST", "/telemetry/latest", strings.NewReader("{\"latitude\":1,\"longitude\":2,\"altitude\":3,\"heading\":4}"))
+	w3 := httptest.NewRecorder()
+	req3, _ := http.NewRequest("POST", "/telemetry/latest", strings.NewReader("{\"longitude\":2,\"altitude\":3,\"heading\":4,\"latitude\":1}"))
 	router.ServeHTTP(w3, req3)
 	assert.Equal(t, http.StatusNoContent, w3.Code, "POST telemetry JSON should return NoContent(204).")
 
 	// Get the data
+	w4 := httptest.NewRecorder()
 	req4, _ := http.NewRequest("GET", "/telemetry/latest", strings.NewReader(""))
 	router.ServeHTTP(w4, req4)
 	assert.Equal(t, http.StatusOK, w4.Code, "GET latest telemetry should return HTTP-OK(200).")
 	// assert.Equal(t, "{}", w.Body.String())
+
+	// Look at all of telemetry history
+	w5 := httptest.NewRecorder()
+	req5, _ := http.NewRequest("GET", "/telemetry/history", strings.NewReader(""))
+	router.ServeHTTP(w5, req5)
+	assert.Equal(t, http.StatusOK, w5.Code, "Request history expects HTTP-OK(200).")
 }
