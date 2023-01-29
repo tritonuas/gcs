@@ -307,24 +307,24 @@ func RunMavlink(
 
 	// NOTE: this was commented out until we find a better way to do this instead of sending the entire path over a channel
 	// for {
-		// pathFromPP := <-sendWaypointToPlaneChannel
-		// Log.Info("Received waypoints from PP and letting plane know")
-		// // nodeMutex.Lock()
-		// node.WriteMessageAll(&common.MessageMissionClearAll{
-		// 	TargetSystem:    1,
-		// 	TargetComponent: 0,
-		// 	MissionType:     0,
-		// })
-		// // let the plane know that we want to upload a given number of messages
-		// node.WriteMessageAll(&common.MessageMissionCount{
-		// 	TargetSystem:    1,
-		// 	TargetComponent: 0,
-		// 	Count:           uint16(len(pathFromPP.Waypoints)),
-		// 	MissionType:     common.MAV_MISSION_TYPE_MISSION,
-		// })
-		// // nodeMutex.Unlock()
-		// //pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
-		// pathReadyForPlane = pathFromPP
+	// pathFromPP := <-sendWaypointToPlaneChannel
+	// Log.Info("Received waypoints from PP and letting plane know")
+	// // nodeMutex.Lock()
+	// node.WriteMessageAll(&common.MessageMissionClearAll{
+	// 	TargetSystem:    1,
+	// 	TargetComponent: 0,
+	// 	MissionType:     0,
+	// })
+	// // let the plane know that we want to upload a given number of messages
+	// node.WriteMessageAll(&common.MessageMissionCount{
+	// 	TargetSystem:    1,
+	// 	TargetComponent: 0,
+	// 	Count:           uint16(len(pathFromPP.Waypoints)),
+	// 	MissionType:     common.MAV_MISSION_TYPE_MISSION,
+	// })
+	// // nodeMutex.Unlock()
+	// //pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
+	// pathReadyForPlane = pathFromPP
 	// }
 
 }
