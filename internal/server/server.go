@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -40,7 +41,10 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 func (server *Server) Start() {
 	router := server.SetupRouter()
-	
+
+	go server.checkMavlinkMessages(mavUpdates)
+
+	server.generalHistory = make(map[int]MavlinkMessageSeries)
 
 	router.Run(":5000")
 }
@@ -113,6 +117,12 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 			c.Status(400)
 			return
 		}
+
+		// Send everything
+		restringifed, _ := json.Marshal(server.generalHistory)
+		fmt.Printf("postTelemetry json: Unmarshalled: %s\n", restringifed)
+		c.String(400, string(restringifed))
+		return
 
 		index, err := strconv.Atoi(string(strData))
 		// Invalid request data
