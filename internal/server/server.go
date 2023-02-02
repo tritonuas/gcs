@@ -24,6 +24,7 @@ type Server struct {
 	MissionTime         time.Time
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
+	ClassifiedTargets	[]cvs.ClassifiedODLC
 }
 
 /*
@@ -72,8 +73,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
 	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
 
-	router.POST("/hub/targets", server.postCVSResults())
-	router.GET("/hub/targets", server.getStoredCVSResults())
+	router.POST("/cvs/targets", server.postCVSResults())
+	router.GET("/cvs/targets", server.getStoredCVSResults())
 
 	return router
 }
@@ -279,7 +280,8 @@ func (server *Server) postCVSResults() gin.HandlerFunc {
 
 		if err == nil {
 			c.String(http.StatusOK, "Successfully received CVS results")
-			// TODO: forward target coords to RTPP and save to some slice stored in hub
+			server.ClassifiedTargets = append(server.ClassifiedTargets, cvsResults)
+			//TODO: forward target coordinates to path planning when OBC2 client is finished
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -291,6 +293,10 @@ Request target data that was posted earlier via postCVSResults
 */
 func (server *Server) getStoredCVSResults() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		if (server.ClassifiedTargets == nil) {
+			c.String(http.StatusBadRequest, "ERROR: CVS results have not been posted yet")
+		} else {
+			c.JSON(http.StatusOK, server.ClassifiedTargets)
+		}
 	}
 }
