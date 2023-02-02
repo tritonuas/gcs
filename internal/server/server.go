@@ -72,6 +72,9 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
 	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
 
+	router.POST("/hub/targets", server.postCVSResults())
+	router.GET("/hub/targets", server.getStoredCVSResults())
+
 	return router
 }
 
@@ -259,7 +262,7 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 
 		if err == nil {
 			server.AirDropBounds = airDropBounds
-			c.String(http.StatusOK, "Airdop Bounds has been uploaded", airDropBounds)
+			c.String(http.StatusOK, "Airdrop Bounds has been uploaded", airDropBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -267,6 +270,27 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 }
 
 /*
-CVS sends results (target coordinates, alphanumeric, shape, color) to Hub and forward target coordinates to RTPP.
+CVS sends results (target coordinates, alphanumeric, shape, color) to Hub and forward target coordinates to RTPP
 */
-//TODO:
+func (server *Server) postCVSResults() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cvsResults := cvs.ClassifiedODLC{}
+		err := c.BindJSON(&cvsResults)
+
+		if err == nil {
+			c.String(http.StatusOK, "Successfully received CVS results")
+			// TODO: forward target coords to RTPP and save to some slice stored in hub
+		} else {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+	}
+}
+
+/*
+Request target data that was posted earlier via postCVSResults
+*/
+func (server *Server) getStoredCVSResults() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+	}
+}
