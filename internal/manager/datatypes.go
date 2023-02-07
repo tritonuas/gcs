@@ -31,6 +31,8 @@ func (state State) String() string {
 	switch (state) {
 	case DORMANT:
 		return "Dormant"
+	case ARMED:
+		return "Armed"
 	case TAKEOFF:
 		return "Takeoff"
 	case WAYPOINT:
