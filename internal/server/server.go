@@ -24,7 +24,7 @@ type Server struct {
 	MissionTime         time.Time
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
-	ClassifiedTargets	[]cvs.ClassifiedODLC
+	ClassifiedTargets   []cvs.ClassifiedODLC
 }
 
 /*
@@ -293,7 +293,7 @@ Request target data that was posted earlier via postCVSResults
 */
 func (server *Server) getStoredCVSResults() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if (server.ClassifiedTargets == nil) {
+		if server.ClassifiedTargets == nil {
 			c.String(http.StatusBadRequest, "ERROR: CVS results have not been posted yet")
 		} else {
 			c.JSON(http.StatusOK, server.ClassifiedTargets)
