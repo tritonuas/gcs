@@ -58,3 +58,53 @@ type StateChange struct {
 	new  State     // The new state
 	time time.Time // The time at which the change occurred
 }
+
+/*
+	This map says what state changes are valid
+	s2     in valid[s1] means that s1 -> s2 is a valid state change
+	s2 not in valid[s1] means that s1 -> s2 is not a valid state change
+*/
+valid := make(map[State][]State) // State -> []State
+// You have to be ARMED before TAKEOFF
+valid[DORMANT] = [ARMED]
+// You either end up on TAKEOFF or going back DORMANT 
+valid[ARMED] = [DORMANT, TAKEOFF]
+// After taking off you either have to immediately do WAYPOINT (by the rules) or potentially do LANDING early
+valid[TAKEOFF] = [WAYPOINT, LANDING]
+ // If this isn't the first waypoint run then you could theoretically have already done SEARCH, so you could go straight to AIRDROP
+valid[WAYPOINT] = [SEARCH, CV_LOITER, AIRDROP_APPROACH, LANDING]
+// After SEARCH, you either have to do CV_LOITER and wait for cv results, or you could potentially need to do LANDING early
+valid[SEARCH] [CV_LOITER, LANDING]
+// If you didn't find everything in SEARCH, you could potentially go back. Otherwise, either start AIRDROP_APPROACH or do LANDING early
+valid[CV_LOITER] = [SEARCH, AIRDROP_APPROACH, LANDING]
+// During an approach you'll either succeed or have to divert your path. Either way you enter AIRDROP_LOITER. The only exception is if it
+// is the last bottle, which makes you enter LANDING
+valid[AIRDROP_APPROACH] = [AIRDROP_LOITER, LANDING]
+// Once you're done with AIRDROP_LOITER, you go back to AIRDROP_APPROACH. Or, you do an early LANDING
+valid[AIRDROP_LOITER] = [AIRDROP_APPROACH, LANDING]
+// Once you land the plane is still ARMED, from which you can reenter DORMANT
+valid[LANDING] = [ARMED]
+
+/*
+	Check if a state transition is valid.
+*/
+func isValid(prev State, new State) bool {
+	for _, state := range valid[prev]{
+        if state == new {
+            return true
+        }
+    }
+    return false
+}
+
+/*
+	Uses the valid map to create a state change object and determine if it is valid
+	Returns nil if the state change is not valid
+*/
+func NewStateChange(prev State, new State) *StateChange {
+	if !isValid(prev, new) {
+		return nil
+	}
+
+	return &StateChange{prev, new, time.Now()}
+}
