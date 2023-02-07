@@ -11,17 +11,18 @@ import (
 type State int
 const (
 	// On the Ground
-	DORMANT State = iota // The plane is on the ground, but not armed
-	ARMED                // The plane is on the ground and armed. Ready for takeoff
+	OFF      State = iota // We haven't made an initial connection to the plane
+	DORMANT               // The plane is on the ground, but not armed
+	ARMED                 // The plane is on the ground and armed. Ready for takeoff
 
 	// In Flight
-	TAKEOFF              // The plane is taking off but hasn't started on waypoints yet
-	WAYPOINT             // The plane is flying its initial waypoint path
-	SEARCH               // The plane is either going towards the search zone or covering it
-	CV_LOITER            // The plane is loitering outside the search zone waiting for all the results from CV
-	AIRDROP_APPROACH     // The plane is approaching an airdrop point
-	AIRDROP_LOITER       // The plane is loitering outside the search zone waiting for 15s buffer to pass
-	LANDING              // The plane is approaching for a landing
+	TAKEOFF               // The plane is taking off but hasn't started on waypoints yet
+	WAYPOINT              // The plane is flying its initial waypoint path
+	SEARCH                // The plane is either going towards the search zone or covering it
+	CV_LOITER             // The plane is loitering outside the search zone waiting for all the results from CV
+	AIRDROP_APPROACH      // The plane is approaching an airdrop point
+	AIRDROP_LOITER        // The plane is loitering outside the search zone waiting for 15s buffer to pass
+	LANDING               // The plane is approaching for a landing
 )
 
 /*
@@ -29,6 +30,8 @@ const (
 */
 func (state State) String() string {
 	switch (state) {
+	case OFF:
+		return "No Comms"
 	case DORMANT:
 		return "Dormant"
 	case ARMED:
@@ -65,8 +68,9 @@ type StateChange struct {
 	s2 not in valid[s1] means that s1 -> s2 is not a valid state change
 */
 valid := make(map[State][]State) // State -> []State
+valid[OFF] = [DORMANT]
 // You have to be ARMED before TAKEOFF
-valid[DORMANT] = [ARMED]
+valid[DORMANT] = [ARMED, OFF]
 // You either end up on TAKEOFF or going back DORMANT 
 valid[ARMED] = [DORMANT, TAKEOFF]
 // After taking off you either have to immediately do WAYPOINT (by the rules) or potentially do LANDING early

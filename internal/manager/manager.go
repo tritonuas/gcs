@@ -17,6 +17,7 @@ func NewManager() *Manager {
 func (m Manager) Start() {
 	for {
 		switch m.State {
+		case OFF:
 		case DORMANT:
 		case ARMED:
 		case TAKEOFF:
@@ -44,4 +45,11 @@ func (m Manager) ChangeState(new State) bool {
 	m.history = append(m.history, change)
 	m.State = new
 	return true
+}
+
+/*
+	Returns time that we have spent in the current state in seconds
+*/
+func (m Manager) GetTimeInCurrentState() int {
+	return time.Now().sub(m.history[-1])
 }
