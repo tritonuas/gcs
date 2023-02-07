@@ -11,8 +11,8 @@ import (
 type State int
 const (
 	// On the Ground
-	OFF      State = iota // We haven't made an initial connection to the plane
-	DORMANT               // The plane is on the ground, but not armed
+	DORMANT  State = iota // We haven't made an initial connection to the plane
+	UNARMED               // The plane is on the ground, but not armed
 	ARMED                 // The plane is on the ground and armed. Ready for takeoff
 
 	// In Flight
@@ -30,10 +30,10 @@ const (
 */
 func (state State) String() string {
 	switch (state) {
-	case OFF:
-		return "No Comms"
 	case DORMANT:
 		return "Dormant"
+	case UNARMED:
+		return "Unarmed"
 	case ARMED:
 		return "Armed"
 	case TAKEOFF:
@@ -68,11 +68,11 @@ type StateChange struct {
 	s2 not in valid[s1] means that s1 -> s2 is not a valid state change
 */
 valid := make(map[State][]State) // State -> []State
-valid[OFF] = [DORMANT]
+valid[DORMANT] = [UNARMED]
 // You have to be ARMED before TAKEOFF
-valid[DORMANT] = [ARMED, OFF]
+valid[UNARMED] = [ARMED, DORMANT]
 // You either end up on TAKEOFF or going back DORMANT 
-valid[ARMED] = [DORMANT, TAKEOFF]
+valid[ARMED] = [UNARMED, TAKEOFF]
 // After taking off you either have to immediately do WAYPOINT (by the rules) or potentially do LANDING early
 valid[TAKEOFF] = [WAYPOINT, LANDING]
  // If this isn't the first waypoint run then you could theoretically have already done SEARCH, so you could go straight to AIRDROP
@@ -86,7 +86,7 @@ valid[CV_LOITER] = [SEARCH, AIRDROP_APPROACH, LANDING]
 valid[AIRDROP_APPROACH] = [AIRDROP_LOITER, LANDING]
 // Once you're done with AIRDROP_LOITER, you go back to AIRDROP_APPROACH. Or, you do an early LANDING
 valid[AIRDROP_LOITER] = [AIRDROP_APPROACH, LANDING]
-// Once you land the plane is still ARMED, from which you can reenter DORMANT
+// Once you land the plane is still ARMED, or you could abort the landing and reenter somewhere
 valid[LANDING] = [ARMED]
 
 /*
