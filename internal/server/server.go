@@ -3,12 +3,15 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
+	"github.com/tritonuas/hub/internal/mavlink/influxdb"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
 
@@ -19,6 +22,7 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
+	InfluxDBClient      *influxdb.InfluxDBClient
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         time.Time
@@ -72,7 +76,22 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
 	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
 
+	router.GET("/plane/telemetry/history", server.getTelemetryHistory())
+	router.GET("/plane/telemetry", server.getTelemetry())
+
+	router.GET("/plane/position/history", server.getPositionHistory())
+	router.GET("/plane/position", server.getPosition())
+
 	return router
+}
+
+// New will initialize a server struct and populate fields with their initial state
+func New(influxCreds influxdb.InfluxCredentials) Server {
+	server := Server{}
+
+	server.InfluxDBClient = influxdb.New(influxCreds)
+
+	return server
 }
 
 /*
@@ -94,7 +113,143 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true});
+		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true})
+	}
+}
+
+// getTelemetryHistory
+func (server *Server) getTelemetryHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		msgID := c.Query("id")
+		msgName := c.Query("name")
+		timeRange := c.Query("range")
+		fieldsSeparatedByCommas := c.Query("fields")
+
+		if timeRange == "" {
+			c.String(http.StatusBadRequest, "No time range provided")
+			return
+		}
+
+		timeRangeInt, err := strconv.Atoi(timeRange)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Non-numerical range provided")
+			return
+		}
+
+		fields := []string{}
+		if fieldsSeparatedByCommas != "" {
+			fields = strings.Split(fieldsSeparatedByCommas, ",")
+		}
+
+		if msgID != "" {
+			msgIDInt, err := strconv.Atoi(msgID)
+			if err != nil {
+				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
+			} else {
+				data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeInt)*time.Minute, fields...)
+				if err != nil {
+					// TODO: have other types of errors (id does not exist for example)
+					c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+					return
+				}
+
+				c.JSON(http.StatusOK, data)
+				return
+			}
+		}
+
+		if msgName != "" {
+			data, err := server.InfluxDBClient.QueryMsgNameAndFields(msgName, time.Duration(timeRangeInt)*time.Minute, fields...)
+			if err != nil {
+				// TODO: have other types of errors (name does not exist for example)
+				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+				return
+			}
+
+			c.JSON(http.StatusOK, data)
+			return
+		}
+
+		c.String(http.StatusBadRequest, "No message name or ID provided")
+	}
+}
+
+func (server *Server) getTelemetry() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		msgID := c.Query("id")
+		msgName := c.Query("name")
+		fieldsSeparatedByCommas := c.Query("fields")
+
+		fields := []string{}
+		if fieldsSeparatedByCommas != "" {
+			fields = strings.Split(fieldsSeparatedByCommas, ",")
+		}
+
+		if msgID != "" {
+			msgIDInt, err := strconv.Atoi(msgID)
+			if err != nil {
+				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
+				return
+			} else {
+				data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
+				if err != nil {
+					// TODO: have other types of errors (id does not exist for example)
+					c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+					return
+				}
+
+				c.JSON(http.StatusOK, data)
+				return
+			}
+		}
+
+		if msgName != "" {
+			data, err := server.InfluxDBClient.QueryMsgNameAndFields(msgName, 0, fields...)
+			if err != nil {
+				// TODO: have other types of errors (name does not exist for example)
+				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+				return
+			}
+
+			c.JSON(http.StatusOK, data)
+			return
+		}
+
+		c.String(http.StatusBadRequest, "No message name or ID provided")
+	}
+}
+
+func (server *Server) getPositionHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		timeRange := c.Query("range")
+
+		timeRangeInt, err := strconv.Atoi(timeRange)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Non-numerical range provided")
+			return
+		}
+
+		data, err := server.InfluxDBClient.QueryMsgID(33, time.Duration(timeRangeInt)*time.Minute)
+		if err != nil {
+			// TODO: have other types of errors (id does not exist for example)
+			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+			return
+		}
+
+		c.JSON(http.StatusOK, data)
+	}
+}
+
+func (server *Server) getPosition() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data, err := server.InfluxDBClient.QueryMsgID(33, 0)
+		if err != nil {
+			// TODO: have other types of errors (id does not exist for example)
+			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+			return
+		}
+
+		c.JSON(http.StatusOK, data)
 	}
 }
 

@@ -103,6 +103,8 @@ func TestInflux(t *testing.T) {
 	req5, _ := http.NewRequest("GET", "/telemetry/history", strings.NewReader(""))
 	router.ServeHTTP(w5, req5)
 	assert.Equal(t, http.StatusOK, w5.Code, "Request history expects HTTP-OK(200).")
+}
+
 /*
 Tests that the mission timer starts as expected.
 */

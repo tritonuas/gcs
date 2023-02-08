@@ -205,8 +205,7 @@ func RunMavlink(
 				// Forwards mavlink messages to other clients
 				nh.onEventFrame(evt)
 
-				node.WriteFrameExcept(rawFrame.Channel, rawFrame.Frame)
-
+				node.WriteFrameExcept(evt.Channel, evt.Frame)
 
 				decodedFrame := evt.Frame
 
