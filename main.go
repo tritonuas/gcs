@@ -86,7 +86,7 @@ func main() {
 		Token:  *ENVS["INFLUXDB_TOKEN"],
 		Bucket: *ENVS["INFLUXDB_BUCKET"],
 		Org:    *ENVS["INFLUXDB_ORG"],
-		Uri:    *ENVS["INFLUXDB_URI"],
+		URI:    *ENVS["INFLUXDB_URI"],
 	}
 
 	server := server.New(influxCreds)

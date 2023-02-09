@@ -22,7 +22,7 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
-	InfluxDBClient      *influxdb.InfluxDBClient
+	InfluxDBClient      *influxdb.Client
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
@@ -194,17 +194,17 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 			if err != nil {
 				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
 				return
-			} else {
-				data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
-				if err != nil {
-					// TODO: have other types of errors (id does not exist for example)
-					c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
-					return
-				}
+			} 
 
-				c.JSON(http.StatusOK, data)
+			data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
+			if err != nil {
+				// TODO: have other types of errors (id does not exist for example)
+				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
 				return
 			}
+
+			c.JSON(http.StatusOK, data)
+			return
 		}
 
 		if msgName != "" {
@@ -269,13 +269,10 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData...)
 			c.String(http.StatusOK, "Accepted ODLC data")
 			return
-		} else {
-			c.String(http.StatusBadRequest, err.Error())
-			return
-		}
+		} 
+		c.String(http.StatusBadRequest, err.Error())
 	}
 }
-
 
 /*
 Returns an integer representing the Unix time of when startMissionTimer() was called.
@@ -284,7 +281,7 @@ This is intended to be passed to Houston, which will then convert it to the time
 func (server *Server) getTimeElapsed() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// if time hasn't been initialized yet, throw error
-		if (server.MissionTime == 0) {
+		if server.MissionTime == 0 {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
 			c.String(http.StatusOK, fmt.Sprint(server.MissionTime))

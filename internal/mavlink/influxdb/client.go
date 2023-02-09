@@ -17,34 +17,37 @@ const connRefreshTimer int = 2
 // Log is the logger instace for the influxdb client
 var Log = logrus.New()
 
-var ErrInluxDBNotConnected = errors.New("not connected to InfluxDB")
-var ErrNoInfluxMsgId = errors.New("no with data with the requested message id exists")
-var ErrNoInfluxMsgName = errors.New("no with data with the requested message name exists")
+var errInluxDBNotConnected = errors.New("not connected to InfluxDB")
+// var ErrNoInfluxMsgId = errors.New("no with data with the requested message id exists")
+// var ErrNoInfluxMsgName = errors.New("no with data with the requested message name exists")
 
 // InfluxCredentials holds various data that is needed to connect to InfluxDB and query/write data
 type InfluxCredentials struct {
 	Token  string
 	Bucket string
 	Org    string
-	Uri    string
+	URI    string
 }
 
-// InfluxDBClient contains functions to connect, query and write to an InfluxDB instance.
+// Client contains functions to connect, query and write to an InfluxDB instance.
 // Essentially a wrapper around the InfluxDB Go Client for convenience and ease of use.
 // Original client can be found here https://pkg.go.dev/github.com/influxdata/influxdb-client-go/v2
-type InfluxDBClient struct {
+type Client struct {
 	creds     InfluxCredentials
 	connected bool
 	writer    api.WriteAPI
 	querier   api.QueryAPI
 }
 
-func New(creds InfluxCredentials) *InfluxDBClient {
-	c := &InfluxDBClient{}
+// New creates a new InfluxDB client and attempts to connect 
+// to an InfluxDB instance. Verifies the connection in the background 
+// and will not block if establishing a connection takes a while. 
+func New(creds InfluxCredentials) *Client {
+	c := &Client{}
 
 	c.creds = creds
 
-	client := influxdb2.NewClient(creds.Uri, creds.Token)
+	client := influxdb2.NewClient(creds.URI, creds.Token)
 	c.writer = client.WriteAPI(creds.Org, creds.Bucket)
 	c.querier = client.QueryAPI(creds.Org)
 
@@ -56,13 +59,13 @@ func New(creds InfluxCredentials) *InfluxDBClient {
 }
 
 // IsConnected returns if the client is connected to InfluxDB
-func (c *InfluxDBClient) IsConnected() bool {
+func (c *Client) IsConnected() bool {
 	return c.connected
 }
 
-func (c *InfluxDBClient) Write(msgName string, msgID uint32, data map[string]interface{}) error {
+func (c *Client) Write(msgName string, msgID uint32, data map[string]interface{}) error {
 	if !c.IsConnected() {
-		return ErrInluxDBNotConnected
+		return errInluxDBNotConnected
 	}
 
 	for k, v := range data {
@@ -93,7 +96,7 @@ func (c *InfluxDBClient) Write(msgName string, msgID uint32, data map[string]int
 // Return:
 //   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *InfluxDBClient) QueryMsgID(msgID uint32, timeRange time.Duration) (map[string]interface{}, error) {
+func (c *Client) QueryMsgID(msgID uint32, timeRange time.Duration) (map[string]interface{}, error) {
 	return c.QueryMsgIDAndFields(msgID, timeRange)
 }
 
@@ -113,7 +116,7 @@ func (c *InfluxDBClient) QueryMsgID(msgID uint32, timeRange time.Duration) (map[
 // Return:
 //   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *InfluxDBClient) QueryMsgName(msgName string, timeRange time.Duration) (map[string]interface{}, error) {
+func (c *Client) QueryMsgName(msgName string, timeRange time.Duration) (map[string]interface{}, error) {
 	return c.QueryMsgNameAndFields(msgName, timeRange)
 }
 
@@ -137,9 +140,9 @@ func (c *InfluxDBClient) QueryMsgName(msgName string, timeRange time.Duration) (
 // Return:
 //   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *InfluxDBClient) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fields ...string) (map[string]interface{}, error) {
+func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fields ...string) (map[string]interface{}, error) {
 	if !c.IsConnected() {
-		return nil, ErrInluxDBNotConnected
+		return nil, errInluxDBNotConnected
 	}
 
 	query := c.makeQuery(timeRange, &msgID, nil, fields...)
@@ -177,9 +180,9 @@ func (c *InfluxDBClient) QueryMsgIDAndFields(msgID uint32, timeRange time.Durati
 // Return:
 //   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *InfluxDBClient) QueryMsgNameAndFields(msgName string, timeRange time.Duration, fields ...string) (map[string]interface{}, error) {
+func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, fields ...string) (map[string]interface{}, error) {
 	if !c.IsConnected() {
-		return nil, ErrInluxDBNotConnected
+		return nil, errInluxDBNotConnected
 	}
 	query := c.makeQuery(timeRange, nil, &msgName, fields...)
 
@@ -196,15 +199,10 @@ func (c *InfluxDBClient) QueryMsgNameAndFields(msgName string, timeRange time.Du
 	return data, nil
 }
 
-// TODO: Will return a list of messages from a certain time in the past until now
-// func (c *InfluxDBClient) QueryMsgsID(msgID uint32, timeRange time.Duration) ([]map[string]interface{}, error) {
-// 	return nil, nil
-// }
-
 // TODO: Will dump entire DB to a JSON or CSV format
-func (c *InfluxDBClient) GetAll() (string, error) {
+func (c *Client) GetAll() (string, error) {
 	if !c.IsConnected() {
-		return "", ErrInluxDBNotConnected
+		return "", errInluxDBNotConnected
 	}
 
 	return "", nil
@@ -212,7 +210,7 @@ func (c *InfluxDBClient) GetAll() (string, error) {
 
 // verifyConnection will try to query that InluxDB has started up and
 // has been setup with the correct credentials
-func (c *InfluxDBClient) verifyConnection() {
+func (c *Client) verifyConnection() {
 	startTime := time.Now()
 	for {
 		// send a dummy query to message ID 33 (plane position) which should exist if we are connected to the plane
@@ -227,7 +225,7 @@ func (c *InfluxDBClient) verifyConnection() {
 		time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 	}
 	c.connected = true
-	Log.Infof("Successfully connected to InfluxDB at %s in %d seconds", c.creds.Uri, time.Since(startTime).Seconds)
+	Log.Infof("Successfully connected to InfluxDB at %s in %f seconds", c.creds.URI, time.Since(startTime).Seconds())
 }
 
 // makeQuery will create a query string to be used to query InfluxDB. The
@@ -249,7 +247,7 @@ func (c *InfluxDBClient) verifyConnection() {
 //
 // Return:
 //   - query string to be used by Influxdb queryAPI
-func (c *InfluxDBClient) makeQuery(timeRange time.Duration, msgID *uint32, msgName *string, fields ...string) string {
+func (c *Client) makeQuery(timeRange time.Duration, msgID *uint32, msgName *string, fields ...string) string {
 	query := fmt.Sprintf(`from(bucket:"%s")`, c.creds.Bucket)
 	if timeRange == 0 {
 		query += "|> range(start: -1d)"
