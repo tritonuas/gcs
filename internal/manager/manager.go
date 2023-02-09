@@ -18,12 +18,12 @@ func (m Manager) HistoryJSON() []map[string]string {
 	json := []map[string]string{}
 	
 	for _, change := range m.History {
-		map := map[string]string {
+		object := map[string]string {
 			"Prev": change.prev.String(),
-			"New": change.prev.String(),
+			"New": change.new.String(),
 			"Time": fmt.Sprintf("%d", change.time.Unix()),
 		}
-		json = append(json, map)
+		json = append(json, object)
 	}
 
 	return json
