@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -13,16 +14,6 @@ import (
 // Log is the logger for the http client
 var Log = logrus.New()
 
-/*
-Notes to myself: Figured out pretty much how I'm going to develop inhertiance fo the
-lower level HTTP requests, I have the functions copied to this struct right now, just
-need to edit Put and Delete to account for the syntax of the error struct in here.
-The way I'm going to develop inheritance is most likely going to be by composition, by having
-this client referenced in each client, then having their methods called,sort of like
-how *http.Client is created in here, though I think we don't even need that in the other
-ones which seems interesting.
-*/
-
 // change name of Client since it might mess with the inheritance for the other clients
 type Client struct {
 	client  *http.Client
@@ -30,9 +21,23 @@ type Client struct {
 	timeout int
 }
 
-// IsConnected checks if the client has been created
-func (c *Client) IsConnected() bool {
-	return c.client != nil
+// IsConnected checks if the client has successfully connected to the specified url via a TRACE request
+func (c *Client) IsConnected() (bool, string) {
+	traceRequest, err := http.NewRequest(http.MethodTrace, c.url+"/", nil)
+	if err != nil {
+		return false, err.Error()
+	}
+
+	res, err := c.client.Do(traceRequest)
+	if err != nil {
+		return false, err.Error()
+	}
+
+	if res.StatusCode != 200 {
+		return false, "ERROR: status code " + strconv.Itoa(res.StatusCode)
+	}
+
+	return true, ""
 }
 
 // NewClient creates an HTTP client to interact with an HTTP server
@@ -56,9 +61,6 @@ func NewClient(url string, timeout int) *Client {
 
 	return client
 }
-
-// TODO - find a way to rename the outputed strings to not be specific to a server but generalized, or have a way for
-// the clients to properly account for them
 
 // Post makes a POST request to the server
 func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {

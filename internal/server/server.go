@@ -25,9 +25,10 @@ type Server struct {
 	InfluxDBClient      *influxdb.InfluxDBClient
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
-	MissionTime         time.Time
+	MissionTime         int64
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
+	ClassifiedTargets   []cvs.ClassifiedODLC
 }
 
 /*
@@ -81,6 +82,9 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 	router.GET("/plane/position/history", server.getPositionHistory())
 	router.GET("/plane/position", server.getPosition())
+
+	router.POST("/cvs/targets", server.postCVSResults())
+	router.GET("/cvs/targets", server.getStoredCVSResults())
 
 	return router
 }
@@ -272,16 +276,18 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 	}
 }
 
+
 /*
-Returns the current time that has passed since the mission started.
+Returns an integer representing the Unix time of when startMissionTimer() was called.
+This is intended to be passed to Houston, which will then convert it to the time since the mission started.
 */
 func (server *Server) getTimeElapsed() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// if time hasn't been initialized yet, throw error
-		if (server.MissionTime == time.Time{}) {
+		if (server.MissionTime == 0) {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
-			c.String(http.StatusOK, fmt.Sprintf("%f", time.Since(server.MissionTime).Seconds()))
+			c.String(http.StatusOK, fmt.Sprint(server.MissionTime))
 		}
 	}
 }
@@ -291,7 +297,7 @@ Starts a timer when the mission begins, in order to keep track of how long the m
 */
 func (server *Server) startMissionTimer() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		server.MissionTime = time.Now()
+		server.MissionTime = time.Now().Unix()
 		c.String(http.StatusOK, "Mission timer successfully started!")
 	}
 }
@@ -416,7 +422,7 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 
 		if err == nil {
 			server.AirDropBounds = airDropBounds
-			c.String(http.StatusOK, "Airdop Bounds has been uploaded", airDropBounds)
+			c.String(http.StatusOK, "Airdrop Bounds has been uploaded", airDropBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -424,6 +430,32 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 }
 
 /*
-CVS sends results (target coordinates, alphanumeric, shape, color) to Hub and forward target coordinates to RTPP.
+CVS sends results (target coordinates, alphanumeric, shape, color) to Hub and forward target coordinates to RTPP
 */
-//TODO:
+func (server *Server) postCVSResults() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cvsResults := cvs.ClassifiedODLC{}
+		err := c.BindJSON(&cvsResults)
+
+		if err == nil {
+			c.String(http.StatusOK, "Successfully received CVS results")
+			server.ClassifiedTargets = append(server.ClassifiedTargets, cvsResults)
+			//TODO: forward target coordinates to path planning when OBC2 client is finished
+		} else {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+	}
+}
+
+/*
+Request target data that was posted earlier via postCVSResults
+*/
+func (server *Server) getStoredCVSResults() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if server.ClassifiedTargets == nil {
+			c.String(http.StatusBadRequest, "ERROR: CVS results have not been posted yet")
+		} else {
+			c.JSON(http.StatusOK, server.ClassifiedTargets)
+		}
+	}
+}

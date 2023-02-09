@@ -331,5 +331,4 @@ func RunMavlink(
 	// //pathReadyForPlane = make([]pp.Waypoint, len(pathFromPP.Waypoints))
 	// pathReadyForPlane = pathFromPP
 	// }
-
 }
