@@ -47,13 +47,16 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func (server *Server) initFrontend(router *gin.Engine) {
-	router.StaticFile("/", "../houston2/index.html")
-	router.Static("/html", "../houston2/html")
-	router.Static("/js", "../houston2/js")
-	router.Static("/css", "../houston2/css")
-	router.Static("/images", "../houston2/images")
-	router.Static("/fonts", "../houston2/fonts")
-	router.Static("/packages", "../houston2/packages")
+	const HOUSTON_PATH = "../houston2"
+	// TODO: move this to Server.New which takes in value of houston path environment variable
+
+	router.StaticFile("/", fmt.Sprintf("%s/index.html", HOUSTON_PATH))
+	router.Static("/html", fmt.Sprintf("%s/html", HOUSTON_PATH))
+	router.Static("/js", fmt.Sprintf("%s/js", HOUSTON_PATH))
+	router.Static("/css", fmt.Sprintf("%s/css", HOUSTON_PATH))
+	router.Static("/images", fmt.Sprintf("%s/images", HOUSTON_PATH))
+	router.Static("/fonts", fmt.Sprintf("%s/fonts", HOUSTON_PATH))
+	router.Static("/packages", fmt.Sprintf("%s/packages", HOUSTON_PATH))
 }
 
 func (server *Server) initBackend(router *gin.Engine) {
