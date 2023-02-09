@@ -61,11 +61,11 @@ func (state State) String() string {
 	Should load POST request's JSON into this struct, then to the enum class
 */
 type StateJSON struct {
-	state string `json:"state"`
+	State string `json:"state"`
 }
 
 func (sj StateJSON) ToEnum() State {
-	return toID[sj.state]
+	return toID[sj.State]
 }
 
 /*
@@ -84,29 +84,16 @@ type StateChange struct {
 */
 var valid = map[State][]State {
 	DORMANT: []State{UNARMED},
+	UNARMED: []State{ARMED, DORMANT},
+	ARMED:   []State{UNARMED, TAKEOFF},
+	TAKEOFF: []State{WAYPOINT, LANDING},
+	WAYPOINT:[]State{SEARCH, CV_LOITER, AIRDROP_APPROACH, LANDING},
+	SEARCH:  []State{CV_LOITER, LANDING},
+	CV_LOITER: []State{SEARCH, AIRDROP_APPROACH, LANDING},
+	AIRDROP_APPROACH: []State{AIRDROP_LOITER, LANDING},
+	AIRDROP_LOITER: []State{AIRDROP_APPROACH, LANDING},
+	LANDING: []State{ARMED, WAYPOINT, SEARCH, CV_LOITER, AIRDROP_APPROACH},
 }
-/*
-valid[DORMANT] = [UNARMED]
-// You have to be ARMED before TAKEOFF
-valid[UNARMED] = [ARMED, DORMANT]
-// You either end up on TAKEOFF or going back DORMANT 
-valid[ARMED] = [UNARMED, TAKEOFF]
-// After taking off you either have to immediately do WAYPOINT (by the rules) or potentially do LANDING early
-valid[TAKEOFF] = [WAYPOINT, LANDING]
- // If this isn't the first waypoint run then you could theoretically have already done SEARCH, so you could go straight to AIRDROP
-valid[WAYPOINT] = [SEARCH, CV_LOITER, AIRDROP_APPROACH, LANDING]
-// After SEARCH, you either have to do CV_LOITER and wait for cv results, or you could potentially need to do LANDING early
-valid[SEARCH] [CV_LOITER, LANDING]
-// If you didn't find everything in SEARCH, you could potentially go back. Otherwise, either start AIRDROP_APPROACH or do LANDING early
-valid[CV_LOITER] = [SEARCH, AIRDROP_APPROACH, LANDING]
-// During an approach you'll either succeed or have to divert your path. Either way you enter AIRDROP_LOITER. The only exception is if it
-// is the last bottle, which makes you enter LANDING
-valid[AIRDROP_APPROACH] = [AIRDROP_LOITER, LANDING]
-// Once you're done with AIRDROP_LOITER, you go back to AIRDROP_APPROACH. Or, you do an early LANDING
-valid[AIRDROP_LOITER] = [AIRDROP_APPROACH, LANDING]
-// Once you land the plane is still ARMED, or you could abort the landing and reenter somewhere
-valid[LANDING] = [ARMED]
-*/
 /*
 	Check if a state transition is valid.
 */

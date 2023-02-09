@@ -173,6 +173,7 @@ func (server *Server) changeState() gin.HandlerFunc {
 		
 		prevState := server.Manager.State
 		state := stateJSON.ToEnum()
+
 		if server.Manager.ChangeState(state) {
 			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
 		} else {
