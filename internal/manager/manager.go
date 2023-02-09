@@ -39,7 +39,7 @@ func (m Manager) Start() {
 	Change State
 	Returns true if state change was successful (valid)
 */
-func (m Manager) ChangeState(new State) bool {
+func (m *Manager) ChangeState(new State) bool {
 	change := NewStateChange(m.State, new)
 	
 	if change == nil {
