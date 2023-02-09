@@ -21,7 +21,7 @@ Stores the server state and data that the server deals with.
 type Server struct {
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
-	MissionTime         time.Time
+	MissionTime         int64
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
@@ -120,15 +120,16 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 }
 
 /*
-Returns the current time that has passed since the mission started.
+Returns an integer representing the Unix time of when startMissionTimer() was called.
+This is intended to be passed to Houston, which will then convert it to the time since the mission started.
 */
 func (server *Server) getTimeElapsed() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// if time hasn't been initialized yet, throw error
-		if (server.MissionTime == time.Time{}) {
+		if (server.MissionTime == 0) {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
-			c.String(http.StatusOK, fmt.Sprintf("%f", time.Since(server.MissionTime).Seconds()))
+			c.String(http.StatusOK, fmt.Sprint(server.MissionTime))
 		}
 	}
 }
@@ -138,7 +139,7 @@ Starts a timer when the mission begins, in order to keep track of how long the m
 */
 func (server *Server) startMissionTimer() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		server.MissionTime = time.Now()
+		server.MissionTime = time.Now().Unix()
 		c.String(http.StatusOK, "Mission timer successfully started!")
 	}
 }

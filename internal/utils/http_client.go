@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -20,9 +21,9 @@ type Client struct {
 	timeout int
 }
 
-// IsConnected checks if the client has successfully connected to the specified url
+// IsConnected checks if the client has successfully connected to the specified url via a TRACE request
 func (c *Client) IsConnected() (bool, string) {
-	traceRequest, err := http.NewRequest(http.MethodTrace, c.url, nil)
+	traceRequest, err := http.NewRequest(http.MethodTrace, c.url+"/", nil)
 	if err != nil {
 		return false, err.Error()
 	}
@@ -33,7 +34,7 @@ func (c *Client) IsConnected() (bool, string) {
 	}
 
 	if res.StatusCode != 200 {
-		return false, err.Error()
+		return false, "ERROR: status code " + strconv.Itoa(res.StatusCode)
 	}
 
 	return true, ""
