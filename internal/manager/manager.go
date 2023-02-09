@@ -1,5 +1,9 @@
 package manager
 
+import (
+	"fmt"
+)
+
 type Manager struct {
 	State   State         // Current state of the mission
 	History []StateChange // History of all state changes in the mission
@@ -8,6 +12,21 @@ type Manager struct {
 
 func NewManager() *Manager {
 	return &Manager{DORMANT, []StateChange{}, false}	
+}
+
+func (m Manager) HistoryJSON() []map[string]string {
+	json := []map[string]string{}
+	
+	for _, change := range m.History {
+		map := map[string]string {
+			"Prev": change.prev.String(),
+			"New": change.prev.String(),
+			"Time": fmt.Sprintf("%d", change.time.Unix()),
+		}
+		json = append(json, map)
+	}
+
+	return json
 }
 
 /*

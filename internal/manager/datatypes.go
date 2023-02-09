@@ -72,9 +72,9 @@ func (sj StateJSON) ToEnum() State {
 	This keeps track of state changes so we can have a history of the mission's progress
 */
 type StateChange struct {
-	prev State     // The previous state
-	new  State     // The new state
-	time time.Time // The time at which the change occurred
+	prev State     `json:"prev"` // The previous state
+	new  State     `json:"new"` // The new state
+	time time.Time `json:"time"` // The time at which the change occurred
 }
 
 /*

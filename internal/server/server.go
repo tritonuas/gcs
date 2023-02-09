@@ -67,6 +67,7 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/hub/state", server.getState())
 	router.POST("/hub/state", server.changeState())
 	router.GET("/hub/state/time", server.getStateStartTime())
+	router.GET("/hub/state/history", server.getStateHistory())
 
 	router.POST("/plane/airdrop", server.uploadDropOrder())
 	router.GET("/plane/airdrop", server.getDropOrder())
@@ -189,6 +190,15 @@ Returns the starting time of the current state in seconds since epoch
 func (server *Server) getStateStartTime() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(http.StatusOK, fmt.Sprintf("%d", server.Manager.GetCurrentStateStartTime()))
+	}
+}
+
+/*
+Returns the list of state changes that have occurred, with timestamps
+*/
+func (server *Server) getStateHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, server.Manager.HistoryJSON())
 	}
 }
 
