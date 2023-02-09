@@ -66,6 +66,7 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 	router.GET("/hub/state", server.getState())
 	router.POST("/hub/state", server.changeState())
+	router.GET("/hub/state/time", server.getStateStartTime())
 
 	router.POST("/plane/airdrop", server.uploadDropOrder())
 	router.GET("/plane/airdrop", server.getDropOrder())
@@ -182,6 +183,14 @@ func (server *Server) changeState() gin.HandlerFunc {
 	}
 }
 
+/*
+Returns the starting time of the current state in seconds since epoch
+*/
+func (server *Server) getStateStartTime() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, fmt.Sprintf("%d", server.Manager.GetCurrentStateStartTime()))
+	}
+}
 
 /*
 User (person manning ground control station) will type in the ODLC info on each water bottle as well as the ordering of each bottle in the plane, and then click a button on Houston to upload it.
