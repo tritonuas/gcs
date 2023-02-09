@@ -16,7 +16,7 @@ type Telemetry struct {
 	Heading float64 `json:"heading,omitempty"`
 }
 
-// ValidateTelemetry ensures that position telemetry values 
+// ValidateTelemetry ensures that position telemetry values
 // make sense depending on what they represent
 func ValidateTelemetry(t Telemetry) bool {
 	containsData := t.Latitude != 0 || t.Longitude != 0 || t.Altitude != 0 || t.Heading != 0

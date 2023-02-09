@@ -194,7 +194,7 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 			if err != nil {
 				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
 				return
-			} 
+			}
 
 			data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
 			if err != nil {
@@ -269,7 +269,7 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData...)
 			c.String(http.StatusOK, "Accepted ODLC data")
 			return
-		} 
+		}
 		c.String(http.StatusBadRequest, err.Error())
 	}
 }

@@ -18,6 +18,7 @@ const connRefreshTimer int = 2
 var Log = logrus.New()
 
 var errInluxDBNotConnected = errors.New("not connected to InfluxDB")
+
 // var ErrNoInfluxMsgId = errors.New("no with data with the requested message id exists")
 // var ErrNoInfluxMsgName = errors.New("no with data with the requested message name exists")
 
@@ -39,9 +40,9 @@ type Client struct {
 	querier   api.QueryAPI
 }
 
-// New creates a new InfluxDB client and attempts to connect 
-// to an InfluxDB instance. Verifies the connection in the background 
-// and will not block if establishing a connection takes a while. 
+// New creates a new InfluxDB client and attempts to connect
+// to an InfluxDB instance. Verifies the connection in the background
+// and will not block if establishing a connection takes a while.
 func New(creds InfluxCredentials) *Client {
 	c := &Client{}
 
