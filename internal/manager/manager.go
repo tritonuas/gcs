@@ -1,5 +1,9 @@
 package manager
 
+import (
+	"time"
+)
+
 type Manager struct {
 	State   State         // Current state of the mission
 	History []StateChange // History of all state changes in the mission
@@ -7,7 +11,7 @@ type Manager struct {
 }
 
 func NewManager() *Manager {
-	return &Manager{DORMANT, [], false}	
+	return &Manager{DORMANT, []StateChange{}, false}	
 }
 
 /*
@@ -36,13 +40,13 @@ func (m Manager) Start() {
 	Returns true if state change was successful (valid)
 */
 func (m Manager) ChangeState(new State) bool {
-	change = NewStateChange(m.State, new)
+	change := NewStateChange(m.State, new)
 	
 	if change == nil {
 		return false
 	}
 
-	m.history = append(m.history, change)
+	m.History = append(m.History, *change)
 	m.State = new
 	return true
 }
@@ -51,10 +55,10 @@ func (m Manager) ChangeState(new State) bool {
 	Returns time that we have spent in the current state in seconds
 	Returns -1 if we have never made a state change (never left DORMANT)
 */
-func (m Manager) GetTimeInCurrentState() int {
-	if len(m.history) == 0 {
+func (m Manager) GetTimeInCurrentState() float64 {
+	if len(m.History) == 0 {
 		return -1
 	}
 
-	return time.Now().sub(m.history[-1])
+	return time.Now().Sub(m.History[len(m.History)-1].time).Seconds()
 }

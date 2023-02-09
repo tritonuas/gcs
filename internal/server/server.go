@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
+	"github.com/tritonuas/hub/internal/manager"
 )
 
 // Log is the logger for the server
@@ -25,6 +26,7 @@ type Server struct {
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
+	Manager             *manager.Manager
 }
 
 /*
@@ -62,6 +64,9 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/hub/time", server.getTimeElapsed())
 	router.POST("/hub/time", server.startMissionTimer())
 
+	router.GET("/hub/state", server.getState())
+	router.POST("/hub/state", server.changeState())
+
 	router.POST("/plane/airdrop", server.uploadDropOrder())
 	router.GET("/plane/airdrop", server.getDropOrder())
 	router.PATCH("/plane/airdrop", server.updateDropOrder())
@@ -84,6 +89,7 @@ Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if
 */
 func (server *Server) Start() {
 	router := server.SetupRouter()
+	server.Manager = manager.NewManager()
 
 	err := router.Run(":5000")
 	if err != nil {
@@ -142,6 +148,39 @@ func (server *Server) startMissionTimer() gin.HandlerFunc {
 		c.String(http.StatusOK, "Mission timer successfully started!")
 	}
 }
+
+/*
+Query Hub for the mission's current state
+*/
+func (server *Server) getState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, server.Manager.State.String())
+	}
+}
+
+/*
+Request a change to the mission's state
+The request will error with code 409 CONFLICT if it is an invalid state change
+*/
+func (server *Server) changeState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		stateJSON := manager.StateJSON{}
+		err := c.BindJSON(&stateJSON)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+		
+		prevState := server.Manager.State
+		state := stateJSON.ToEnum()
+		if server.Manager.ChangeState(state) {
+			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
+		} else {
+			c.String(http.StatusConflict, fmt.Sprintf("Invalid state change: %s to %s.", prevState, state))
+		}
+	}
+}
+
 
 /*
 User (person manning ground control station) will type in the ODLC info on each water bottle as well as the ordering of each bottle in the plane, and then click a button on Houston to upload it.

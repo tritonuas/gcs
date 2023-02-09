@@ -25,32 +25,47 @@ const (
 	LANDING               // The plane is approaching for a landing
 )
 
+var toString = map[State]string {
+	DORMANT:          "DORMANT",
+	UNARMED:          "UNARMED",
+	ARMED:            "ARMED",
+	TAKEOFF:          "TAKEOFF",
+	WAYPOINT:         "WAYPOINT",
+	SEARCH:           "SEARCH",
+	CV_LOITER:        "CV LOITER",
+	AIRDROP_APPROACH: "AIRDROP APPROACH",
+	AIRDROP_LOITER:   "AIRDROP LOITER",
+	LANDING:          "LANDING",
+}
+var toID = map[string]State {
+	"DORMANT":          DORMANT,
+	"UNARMED":          UNARMED,
+	"ARMED":            ARMED,
+	"TAKEOFF":          TAKEOFF,
+	"WAYPOINT":         WAYPOINT,
+	"SEARCH":           SEARCH,
+	"CV LOITER":        CV_LOITER,
+	"AIRDROP APPROACH": AIRDROP_APPROACH,
+	"AIRDROP LOITER":   AIRDROP_LOITER,
+	"LANDING":          LANDING,
+}
+
 /*
 	String conversions so we can send current state around the network
 */
 func (state State) String() string {
-	switch (state) {
-	case DORMANT:
-		return "Dormant"
-	case UNARMED:
-		return "Unarmed"
-	case ARMED:
-		return "Armed"
-	case TAKEOFF:
-		return "Takeoff"
-	case WAYPOINT:
-		return "Waypoint"
-	case SEARCH:
-		return "Search"
-	case CV_LOITER:
-		return "CV Loiter"
-	case AIRDROP_APPROACH:
-		return "Airdrop Approach"
-	case AIRDROP_LOITER:
-		return "Airdrop Loiter"
-	case LANDING:
-		return "Landing"
-	}
+	return toString[state]
+}
+
+/*
+	Should load POST request's JSON into this struct, then to the enum class
+*/
+type StateJSON struct {
+	state string `json:"state"`
+}
+
+func (sj StateJSON) ToEnum() State {
+	return toID[sj.state]
 }
 
 /*
@@ -67,7 +82,10 @@ type StateChange struct {
 	s2     in valid[s1] means that s1 -> s2 is a valid state change
 	s2 not in valid[s1] means that s1 -> s2 is not a valid state change
 */
-valid := make(map[State][]State) // State -> []State
+var valid = map[State][]State {
+	DORMANT: []State{UNARMED},
+}
+/*
 valid[DORMANT] = [UNARMED]
 // You have to be ARMED before TAKEOFF
 valid[UNARMED] = [ARMED, DORMANT]
@@ -88,7 +106,7 @@ valid[AIRDROP_APPROACH] = [AIRDROP_LOITER, LANDING]
 valid[AIRDROP_LOITER] = [AIRDROP_APPROACH, LANDING]
 // Once you land the plane is still ARMED, or you could abort the landing and reenter somewhere
 valid[LANDING] = [ARMED]
-
+*/
 /*
 	Check if a state transition is valid.
 */
