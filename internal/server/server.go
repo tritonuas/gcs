@@ -11,6 +11,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
+	mav "github.com/tritonuas/hub/internal/mavlink"
 	"github.com/tritonuas/hub/internal/mavlink/influxdb"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
@@ -22,7 +23,8 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
-	InfluxDBClient      *influxdb.Client
+	influxDBClient      *influxdb.Client
+	mavlinkClient       *mav.Client
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
@@ -90,10 +92,11 @@ func (server *Server) SetupRouter() *gin.Engine {
 }
 
 // New will initialize a server struct and populate fields with their initial state
-func New(influxCreds influxdb.InfluxCredentials) Server {
+func New(influxCreds influxdb.Credentials, mavlinkClient *mav.Client) Server {
 	server := Server{}
 
-	server.InfluxDBClient = influxdb.New(influxCreds)
+	server.influxDBClient = influxdb.New(influxCreds)
+	server.mavlinkClient = mavlinkClient
 
 	return server
 }
@@ -117,7 +120,7 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true})
+		c.JSON(http.StatusOK, gin.H{"plane_mavlink": server.mavlinkClient.IsConnectedToPlane(), "path_planning": true, "cvs": true, "jetson": true})
 	}
 }
 
@@ -150,7 +153,7 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 			if err != nil {
 				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
 			} else {
-				data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeInt)*time.Minute, fields...)
+				data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeInt)*time.Minute, fields...)
 				if err != nil {
 					// TODO: have other types of errors (id does not exist for example)
 					c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -163,7 +166,7 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 		}
 
 		if msgName != "" {
-			data, err := server.InfluxDBClient.QueryMsgNameAndFields(msgName, time.Duration(timeRangeInt)*time.Minute, fields...)
+			data, err := server.influxDBClient.QueryMsgNameAndFields(msgName, time.Duration(timeRangeInt)*time.Minute, fields...)
 			if err != nil {
 				// TODO: have other types of errors (name does not exist for example)
 				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -196,7 +199,7 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 				return
 			}
 
-			data, err := server.InfluxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
+			data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
 			if err != nil {
 				// TODO: have other types of errors (id does not exist for example)
 				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -208,7 +211,7 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 		}
 
 		if msgName != "" {
-			data, err := server.InfluxDBClient.QueryMsgNameAndFields(msgName, 0, fields...)
+			data, err := server.influxDBClient.QueryMsgNameAndFields(msgName, 0, fields...)
 			if err != nil {
 				// TODO: have other types of errors (name does not exist for example)
 				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -233,7 +236,7 @@ func (server *Server) getPositionHistory() gin.HandlerFunc {
 			return
 		}
 
-		data, err := server.InfluxDBClient.QueryMsgID(33, time.Duration(timeRangeInt)*time.Minute)
+		data, err := server.influxDBClient.QueryMsgID(33, time.Duration(timeRangeInt)*time.Minute)
 		if err != nil {
 			// TODO: have other types of errors (id does not exist for example)
 			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -246,7 +249,7 @@ func (server *Server) getPositionHistory() gin.HandlerFunc {
 
 func (server *Server) getPosition() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		data, err := server.InfluxDBClient.QueryMsgID(33, 0)
+		data, err := server.influxDBClient.QueryMsgID(33, 0)
 		if err != nil {
 			// TODO: have other types of errors (id does not exist for example)
 			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)

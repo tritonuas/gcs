@@ -22,8 +22,8 @@ var errInluxDBNotConnected = errors.New("not connected to InfluxDB")
 // var ErrNoInfluxMsgId = errors.New("no with data with the requested message id exists")
 // var ErrNoInfluxMsgName = errors.New("no with data with the requested message name exists")
 
-// InfluxCredentials holds various data that is needed to connect to InfluxDB and query/write data
-type InfluxCredentials struct {
+// Credentials holds various data that is needed to connect to InfluxDB and query/write data
+type Credentials struct {
 	Token  string
 	Bucket string
 	Org    string
@@ -34,7 +34,7 @@ type InfluxCredentials struct {
 // Essentially a wrapper around the InfluxDB Go Client for convenience and ease of use.
 // Original client can be found here https://pkg.go.dev/github.com/influxdata/influxdb-client-go/v2
 type Client struct {
-	creds     InfluxCredentials
+	creds     Credentials
 	connected bool
 	writer    api.WriteAPI
 	querier   api.QueryAPI
@@ -43,7 +43,7 @@ type Client struct {
 // New creates a new InfluxDB client and attempts to connect
 // to an InfluxDB instance. Verifies the connection in the background
 // and will not block if establishing a connection takes a while.
-func New(creds InfluxCredentials) *Client {
+func New(creds Credentials) *Client {
 	c := &Client{}
 
 	c.creds = creds
@@ -64,18 +64,30 @@ func (c *Client) IsConnected() bool {
 	return c.connected
 }
 
+// Write will write a mavlink message to InfluxDB.
+//
+// A full list of mavlink message names and IDs can be found here
+// http://mavlink.io/en/messages/common.html
+//
+// Parameters:
+//   - msgName: Mavlink message name. ex: "GLOBAL_POSITION_INT"
+//   - msgID: Mavlink message ID number. ex: 33 for message named "GLOBAL_POSITION_INT"
+//   - data: map that holds mavlink message fields and their values. For example, the message
+//     named "GLOBAL_POSITION_INT" has a field called "alt" with a value such as 22860.
 func (c *Client) Write(msgName string, msgID uint32, data map[string]interface{}) error {
 	if !c.IsConnected() {
 		return errInluxDBNotConnected
 	}
+	p := influxdb2.NewPointWithMeasurement(msgName).
+		AddTag("ID", fmt.Sprintf("%v", msgID)).
+		SetTime(time.Now())
 
-	for k, v := range data {
-		p := influxdb2.NewPointWithMeasurement(msgName).
-			AddTag("ID", fmt.Sprintf("%v", msgID)).
-			AddField(k, v).
-			SetTime(time.Now())
-		c.writer.WritePoint(p)
+	// add all fields to the same point
+	for field, value := range data {
+		p.AddField(field, value)
 	}
+
+	c.writer.WritePoint(p)
 	c.writer.Flush()
 
 	return nil
@@ -155,6 +167,8 @@ func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fiel
 
 	data := make(map[string]interface{})
 	for result.Next() {
+		// Log.Error(result.Record().Values())
+		Log.Error(result.Record().ValueByKey("_time"))
 		data[result.Record().Field()] = result.Record().Value()
 	}
 
@@ -222,6 +236,7 @@ func (c *Client) verifyConnection() {
 		if err == nil {
 			break
 		}
+		c.connected = false
 		Log.Errorf("Connection to InfluxDB failed. Trying again in %d seconds.", connRefreshTimer)
 		time.Sleep(time.Duration(connRefreshTimer) * time.Second)
 	}
