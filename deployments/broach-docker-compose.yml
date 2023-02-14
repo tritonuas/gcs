@@ -10,6 +10,8 @@ services:
       - INTEROP_PORT=80
       - RTPP_IP=host.docker.internal
       - RTPP_PORT=5010
+      - ANTENNA_TRACKER_IP=192.168.1.36
+      - ANTENNA_TRACKER_PORT=4000
       - INTEROP_USER=university-of-california-san-diego
       - INTEROP_PASS=4173337078
       - MAV_DEVICE=serial:/dev/ttyUSB0

@@ -2,7 +2,7 @@ package mav
 
 import (
 	"errors"
-	"fmt"
+	"time"
 
 	"github.com/aler9/gomavlib"
 	"github.com/aler9/gomavlib/pkg/dialects/common"
@@ -36,14 +36,17 @@ const componentID byte = 1
 //     to MissionPlanner on another computer)
 //  3. Send messages and commands to the plane
 type Client struct {
-	connectedToPlane   bool
-	planeConnType      string // examples: "serial", "udp", "tcp"
-	planeAddress       string // examples: "/dev/ttyUSB0", "192.168.1.7:14550"
-	planeEndpoint      gomavlib.EndpointConf
-	influxdbClient     *influxdb.Client
-	routerEndpoints    []gomavlib.EndpointConf
-	mavlinkNode        *gomavlib.Node
-	eventFrameHandlers []EventFrameHandler
+	influxdbClient            *influxdb.Client
+	connectedToPlane          bool
+	connectedToAntennaTracker bool
+	planeConnType             string // examples: "serial", "udp", "tcp"
+	planeAddress              string // examples: "/dev/ttyUSB0", "192.168.1.7:14550"
+	planeEndpoint             gomavlib.EndpointConf
+	routerEndpoints           []gomavlib.EndpointConf
+	mavlinkNode               *gomavlib.Node
+	eventFrameHandlers        []EventFrameHandler
+	antennaTrackerIP          string
+	antennaTrackerPort        string
 }
 
 // New creates a new mavlink client that can communicate with the plane and other mavlink devices (MissionPlanner/QGC)
@@ -55,18 +58,13 @@ type Client struct {
 //   - routerDevicesConnInfo: variadic parameter that holds any number of strings with information to connect to Mavlink devices.
 //     The router will be responsible for forwarding Mavlink EventFrames to them. The format of the strings matches that of the
 //     planeConnInfo parameter.
-func New(influxCreds influxdb.Credentials, planeConnInfo string, routerDevicesConnInfo ...string) *Client {
+func New(influxCreds influxdb.Credentials, antennaTrackerIP string, antennaTrackerPort string, planeConnInfo string, routerDevicesConnInfo ...string) *Client {
 	c := &Client{}
 
 	c.SetPlaneEndpoint(planeConnInfo)
 	c.AddRouterEndpoints(routerDevicesConnInfo...)
 
-	node, err := c.createNode()
-	if err != nil {
-		Log.Error(err)
-	}
-
-	c.mavlinkNode = node
+	c.updateNode()
 
 	c.influxdbClient = influxdb.New(influxCreds)
 
@@ -77,11 +75,16 @@ func New(influxCreds influxdb.Credentials, planeConnInfo string, routerDevicesCo
 		(*Client).handleMissionUpload,
 		(*Client).handleMissionDownload,
 		(*Client).monitorMission,
+		(*Client).forwardToAntennaTracker,
 	}
 
-	// verify the plane connection in the background to prevent the current goroutine from
-	// blocking if the plane isn't connected
+	c.antennaTrackerIP = antennaTrackerIP
+	c.antennaTrackerPort = antennaTrackerPort
+
+	// verify the plane and antenna tracker connection in the background to prevent the current goroutine from
+	// blocking if the plane/antenna tracker isn't connected
 	go c.verifyPlaneConnection()
+	go c.verifyAntennaTrackerConnection()
 
 	return c
 }
@@ -91,14 +94,19 @@ func (c *Client) IsConnectedToPlane() bool {
 	return c.connectedToPlane
 }
 
+// IsConnected returns if the client is connected to the antenna tracker
+func (c *Client) IsConnectedToAntennaTracker() bool {
+	return c.connectedToAntennaTracker
+}
+
 // Listen will listen for incoming mavlink events.
 // These events can include frames from the plane or other devices that
 // send Mavlink packets.
 func (c *Client) Listen() {
-	for {
-		if c.mavlinkNode != nil {
-			break
-		}
+	for c.mavlinkNode == nil {
+		Log.Error("Mavlink node has not been created. Trying again in 5 seconds ...")
+		c.updateNode()
+		time.Sleep(5 * time.Second)
 	}
 	for e := range c.mavlinkNode.Events() {
 		switch evt := e.(type) {
@@ -114,10 +122,9 @@ func (c *Client) Listen() {
 	}
 }
 
-// createNode will create a new mavlink node and return it.
+// updateNode will create a new mavlink node and set it in the client.
 // The node can be used to receive/send frames to various endpoints
-func (c *Client) createNode() (*gomavlib.Node, error) {
-
+func (c *Client) updateNode() {
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints:           append(c.routerEndpoints, c.planeEndpoint),
 		Dialect:             common.Dialect,
@@ -127,8 +134,7 @@ func (c *Client) createNode() (*gomavlib.Node, error) {
 		StreamRequestEnable: true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s. Reason: %w", errCreatingNode.Error(), err)
+		Log.Errorf("%s. Reason: %s", errCreatingNode.Error(), err.Error())
 	}
-
-	return node, nil
+	c.mavlinkNode = node
 }

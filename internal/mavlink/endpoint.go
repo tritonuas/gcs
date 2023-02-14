@@ -80,16 +80,12 @@ func (c *Client) AddRouterEndpoints(routerDevicesConnInfo ...string) {
 	for _, deviceConnInfo := range routerDevicesConnInfo {
 		endpoint, err := NewEndpoint(deviceConnInfo)
 		if err != nil {
-			Log.Errorf("Cannot add endpoint %s. Reason: %s", endpoint, err.Error())
+			Log.Errorf(`Cannot add endpoint with connection info: "%s". Reason: %s`, deviceConnInfo, err.Error())
 			return
 		}
 		c.routerEndpoints = append(c.routerEndpoints, endpoint)
 	}
-	node, err := c.createNode()
-	if err != nil {
-		Log.Errorf("Cannot update node after adding endpoints. Reason: %s", err.Error())
-	}
-	c.mavlinkNode = node
+	c.updateNode()
 }
 
 // RemoveRouterEndpoint will remove an endpoint from being used by the router.

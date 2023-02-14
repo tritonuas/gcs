@@ -120,7 +120,12 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"plane_mavlink": server.mavlinkClient.IsConnectedToPlane(), "path_planning": true, "cvs": true, "jetson": true})
+		c.JSON(http.StatusOK, gin.H{
+			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
+			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker(),
+			"path_planning":   true,
+			"cvs":             true,
+			"jetson":          true})
 	}
 }
 

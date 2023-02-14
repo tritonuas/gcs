@@ -14,6 +14,8 @@ services:
       - INTEROP_PASS=testpass
       - RTPP_IP=host.docker.internal
       - RTPP_PORT=5010
+      - ANTENNA_TRACKER_IP=192.168.1.36
+      - ANTENNA_TRACKER_PORT=4000
       - MAV_DEVICE=tcp:localhost:5760
       # - MAV_DEVICE=udp:mavproxy:14555
       # - MAV_OUTPUT1=udp:192.168.1.2:14551

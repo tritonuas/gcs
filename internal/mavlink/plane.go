@@ -59,7 +59,6 @@ func (c *Client) SetPlaneEndpoint(planeConnInfo string) {
 // verifyPlaneConnection will attempt to make a connection with the plane.
 // This function will hang until a connection is established.
 func (c *Client) verifyPlaneConnection() {
-	c.connectedToPlane = false
 	switch c.planeConnType {
 	case "serial":
 		for {
@@ -69,6 +68,7 @@ func (c *Client) verifyPlaneConnection() {
 				Log.Infof("Successfully connected to plane at %s:%s", c.planeConnType, c.planeAddress)
 				return
 			}
+			c.connectedToPlane = false
 			Log.Warnf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...", c.planeAddress, planeConnRefreshTimer)
 			time.Sleep(time.Duration(planeConnRefreshTimer) * time.Second)
 		}
@@ -82,11 +82,13 @@ func (c *Client) verifyPlaneConnection() {
 				Log.Infof("Successfully connected to plane at %s:%s", c.planeConnType, c.planeAddress)
 				return
 			}
+			c.connectedToPlane = false
 			Log.Warnf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...", c.planeConnType, c.planeAddress, planeConnRefreshTimer)
 			time.Sleep(time.Duration(planeConnRefreshTimer) * time.Second)
 		}
 
 	default:
+		c.connectedToPlane = false
 		Log.Errorf(`Invalid Mavlink plane connection type "%s" provided. Change the connection type to "udp", "tcp", or "serial"`, c.planeConnType)
 		// try again in a few seconds in the chance that the plane connection info has been updatd by the SetPlaneEndpoint method
 		time.Sleep(time.Duration(planeConnRefreshTimer) * time.Second)
