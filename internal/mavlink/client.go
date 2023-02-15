@@ -60,13 +60,13 @@ type Client struct {
 // New creates a new mavlink client that can communicate with the plane and other mavlink devices (MissionPlanner/QGC)
 //
 // Parameters:
-//   - influxCreds: Credentials to connect to InfluxDB. Needed for writing plane telemetry.
+//   - influxdbClient: Client to communicate with Influx database that stores plane telemtry
 //   - planeConnInfo: Description of plane connection information. Format for TCP or UDP connections: "connType:address:port".
 //     Format for serial connections: "connType:address". Examples: "udp:localhost:14551", "tcp:192.168.1.7:14550", "serial:/dev/ttyUSB0"
 //   - routerDevicesConnInfo: variadic parameter that holds any number of strings with information to connect to Mavlink devices.
 //     The router will be responsible for forwarding Mavlink EventFrames to them. The format of the strings matches that of the
 //     planeConnInfo parameter.
-func New(influxCreds influxdb.Credentials, antennaTrackerIP string, antennaTrackerPort string, planeConnInfo string, routerDevicesConnInfo ...string) *Client {
+func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTrackerPort string, planeConnInfo string, routerDevicesConnInfo ...string) *Client {
 	c := &Client{}
 
 	c.planeEndpointMutex = &sync.Mutex{}
@@ -76,7 +76,7 @@ func New(influxCreds influxdb.Credentials, antennaTrackerIP string, antennaTrack
 	c.AddRouterEndpoints(routerDevicesConnInfo...)
 	c.updateNode()
 
-	c.influxdbClient = influxdb.New(influxCreds)
+	c.influxdbClient = influxdbClient
 
 	// TODO: setup a method and route to modify the handlers
 	c.eventFrameHandlers = []EventFrameHandler{

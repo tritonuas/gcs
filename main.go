@@ -75,15 +75,6 @@ func setupEverything() {
 func main() {
 	setupEverything()
 
-	/*
-		// create client to rtpp
-		rtppRetryTime, _ := strconv.Atoi(*ENVS["RTPP_RETRY_TIME"])
-		rtppTimeout, _ := strconv.Atoi(*ENVS["RTPP_TIMEOUT"])
-		rtppURL := fmt.Sprintf("%s:%s", *ENVS["RTPP_IP"], *ENVS["RTPP_PORT"])
-		rtppChannel := make(chan *pp.Client)
-		go pp.EstablishRTPPConnection(rtppRetryTime, rtppURL, rtppTimeout, rtppChannel)
-	*/
-
 	influxCreds := influxdb.Credentials{
 		Token:  *ENVS["INFLUXDB_TOKEN"],
 		Bucket: *ENVS["INFLUXDB_BUCKET"],
@@ -91,8 +82,10 @@ func main() {
 		URI:    *ENVS["INFLUXDB_URI"],
 	}
 
+	influxClient := influxdb.New(influxCreds)
+
 	mavlinkClient := mav.New(
-		influxCreds,
+		influxClient,
 		*ENVS["ANTENNA_TRACKER_IP"],
 		*ENVS["ANTENNA_TRACKER_PORT"],
 		*ENVS["MAV_DEVICE"],
@@ -106,6 +99,6 @@ func main() {
 	go mavlinkClient.Listen()
 
 	// Set up GIN HTTP Server
-	server := server.New(influxCreds, mavlinkClient)
+	server := server.New(influxClient, mavlinkClient)
 	server.Start()
 }

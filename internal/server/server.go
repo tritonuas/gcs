@@ -92,10 +92,10 @@ func (server *Server) SetupRouter() *gin.Engine {
 }
 
 // New will initialize a server struct and populate fields with their initial state
-func New(influxCreds influxdb.Credentials, mavlinkClient *mav.Client) Server {
+func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client) Server {
 	server := Server{}
 
-	server.influxDBClient = influxdb.New(influxCreds)
+	server.influxDBClient = influxdbClient
 	server.mavlinkClient = mavlinkClient
 
 	return server

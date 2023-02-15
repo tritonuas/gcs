@@ -167,8 +167,7 @@ func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fiel
 
 	data := make(map[string]interface{})
 	for result.Next() {
-		// Log.Error(result.Record().Values())
-		Log.Error(result.Record().ValueByKey("_time"))
+		// Log.Error(result.Record().ValueByKey("_time"))
 		data[result.Record().Field()] = result.Record().Value()
 	}
 
