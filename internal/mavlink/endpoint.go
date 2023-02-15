@@ -59,6 +59,7 @@ func StringifyEndpoint(endpointConf gomavlib.EndpointConf) (string, error) {
 // GetRouterEndpoints will return a list of endpoints (represented with strings)
 // that the router is forwarding EventFrames to.
 func (c *Client) GetRouterEndpoints() []string {
+	c.routerEndpointsMutex.Lock()
 	endpoints := make([]string, len(c.routerEndpoints))
 	for i, endpointConf := range c.routerEndpoints {
 		endpointString, err := StringifyEndpoint(endpointConf)
@@ -66,6 +67,7 @@ func (c *Client) GetRouterEndpoints() []string {
 			endpoints[i] = endpointString
 		}
 	}
+	c.routerEndpointsMutex.Unlock()
 	return endpoints
 }
 
@@ -83,7 +85,9 @@ func (c *Client) AddRouterEndpoints(routerDevicesConnInfo ...string) {
 			Log.Errorf(`Cannot add endpoint with connection info: "%s". Reason: %s`, deviceConnInfo, err.Error())
 			return
 		}
+		c.routerEndpointsMutex.Lock()
 		c.routerEndpoints = append(c.routerEndpoints, endpoint)
+		c.routerEndpointsMutex.Unlock()
 	}
 	c.updateNode()
 }
@@ -97,6 +101,7 @@ func (c *Client) AddRouterEndpoints(routerDevicesConnInfo ...string) {
 //
 // Returns true if the endpoint was successfully removed, false otherwise.
 func (c *Client) RemoveRouterEndpoint(deviceConnInfo string) bool {
+	c.routerEndpointsMutex.Lock()
 	for i, endpoint := range c.routerEndpoints {
 		endpointString, err := StringifyEndpoint(endpoint)
 		if err != nil {
@@ -106,8 +111,10 @@ func (c *Client) RemoveRouterEndpoint(deviceConnInfo string) bool {
 		// remove the endpoint that matches
 		if deviceConnInfo == endpointString {
 			c.routerEndpoints = append(c.routerEndpoints[:i], c.routerEndpoints[i+1:]...)
+			c.routerEndpointsMutex.Unlock()
 			return true
 		}
 	}
+	c.routerEndpointsMutex.Unlock()
 	return false
 }

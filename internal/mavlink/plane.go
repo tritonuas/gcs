@@ -53,7 +53,9 @@ func (c *Client) SetPlaneEndpoint(planeConnInfo string) {
 		Log.Errorf("could not create endpoint for connecting to plane. Reason: %s", err.Error())
 		return
 	}
+	c.planeEndpointMutex.Lock()
 	c.planeEndpoint = planeEndpoint
+	c.planeEndpointMutex.Unlock()
 }
 
 // verifyPlaneConnection will attempt to make a connection with the plane.

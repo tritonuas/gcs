@@ -2,6 +2,7 @@ package mav
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/aler9/gomavlib"
@@ -36,17 +37,24 @@ const componentID byte = 1
 //     to MissionPlanner on another computer)
 //  3. Send messages and commands to the plane
 type Client struct {
-	influxdbClient            *influxdb.Client
+	influxdbClient *influxdb.Client
+
 	connectedToPlane          bool
 	connectedToAntennaTracker bool
-	planeConnType             string // examples: "serial", "udp", "tcp"
-	planeAddress              string // examples: "/dev/ttyUSB0", "192.168.1.7:14550"
-	planeEndpoint             gomavlib.EndpointConf
-	routerEndpoints           []gomavlib.EndpointConf
-	mavlinkNode               *gomavlib.Node
-	eventFrameHandlers        []EventFrameHandler
-	antennaTrackerIP          string
-	antennaTrackerPort        string
+
+	planeConnType      string // examples: "serial", "udp", "tcp"
+	planeAddress       string // examples: "/dev/ttyUSB0", "192.168.1.7:14550"
+	planeEndpoint      gomavlib.EndpointConf
+	planeEndpointMutex *sync.Mutex
+
+	routerEndpoints      []gomavlib.EndpointConf
+	routerEndpointsMutex *sync.Mutex
+
+	mavlinkNode        *gomavlib.Node
+	eventFrameHandlers []EventFrameHandler
+
+	antennaTrackerIP   string
+	antennaTrackerPort string
 }
 
 // New creates a new mavlink client that can communicate with the plane and other mavlink devices (MissionPlanner/QGC)
@@ -61,9 +69,11 @@ type Client struct {
 func New(influxCreds influxdb.Credentials, antennaTrackerIP string, antennaTrackerPort string, planeConnInfo string, routerDevicesConnInfo ...string) *Client {
 	c := &Client{}
 
+	c.planeEndpointMutex = &sync.Mutex{}
+	c.routerEndpointsMutex = &sync.Mutex{}
+
 	c.SetPlaneEndpoint(planeConnInfo)
 	c.AddRouterEndpoints(routerDevicesConnInfo...)
-
 	c.updateNode()
 
 	c.influxdbClient = influxdb.New(influxCreds)
@@ -125,8 +135,18 @@ func (c *Client) Listen() {
 // updateNode will create a new mavlink node and set it in the client.
 // The node can be used to receive/send frames to various endpoints
 func (c *Client) updateNode() {
+	endpoints := make([]gomavlib.EndpointConf, len(c.routerEndpoints)+1)
+
+	// lock access to planeEndpoint and routerEndpoints to avoid them being
+	// modified while we're copying them to be used in the new node
+	c.routerEndpointsMutex.Lock()
+	c.planeEndpointMutex.Lock()
+	copy(endpoints, append(c.routerEndpoints, c.planeEndpoint))
+	c.planeEndpointMutex.Unlock()
+	c.routerEndpointsMutex.Unlock()
+
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
-		Endpoints:           append(c.routerEndpoints, c.planeEndpoint),
+		Endpoints:           endpoints,
 		Dialect:             common.Dialect,
 		OutVersion:          gomavlib.V2,
 		OutSystemID:         systemID,
