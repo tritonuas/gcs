@@ -8,8 +8,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/tritonuas/hub/internal/influxdb"
 	mav "github.com/tritonuas/hub/internal/mavlink"
-	"github.com/tritonuas/hub/internal/mavlink/influxdb"
 
 	// pp "github.com/tritonuas/hub/internal/path_plan"
 	"github.com/tritonuas/hub/internal/server"

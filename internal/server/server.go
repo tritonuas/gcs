@@ -11,8 +11,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
+	"github.com/tritonuas/hub/internal/influxdb"
 	mav "github.com/tritonuas/hub/internal/mavlink"
-	"github.com/tritonuas/hub/internal/mavlink/influxdb"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
 
