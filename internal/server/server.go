@@ -64,10 +64,10 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/hub/time", server.getTimeElapsed())
 	router.POST("/hub/time", server.startMissionTimer())
 
-	router.GET("/hub/state", server.getState())
-	router.POST("/hub/state", server.changeState())
-	router.GET("/hub/state/time", server.getStateStartTime())
-	router.GET("/hub/state/history", server.getStateHistory())
+	router.GET("/api/hub/state", server.getState())
+	router.POST("/api/hub/state", server.changeState())
+	router.GET("/api/hub/state/time", server.getStateStartTime())
+	router.GET("/api/hub/state/history", server.getStateHistory())
 
 	router.POST("/plane/airdrop", server.uploadDropOrder())
 	router.GET("/plane/airdrop", server.getDropOrder())
