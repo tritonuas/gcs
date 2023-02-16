@@ -22,7 +22,7 @@ Stores the server state and data that the server deals with.
 type Server struct {
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
-	MissionTime         time.Time
+	MissionTime         int64
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
@@ -48,6 +48,47 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
+func (server *Server) initFrontend(router *gin.Engine) {
+	const HoustonPath = "../houston2"
+	// TODO: move this to Server.New which takes in value of houston path environment variable
+
+	router.StaticFile("/", fmt.Sprintf("%s/index.html", HoustonPath))
+	router.Static("/html", fmt.Sprintf("%s/html", HoustonPath))
+	router.Static("/js", fmt.Sprintf("%s/js", HoustonPath))
+	router.Static("/css", fmt.Sprintf("%s/css", HoustonPath))
+	router.Static("/images", fmt.Sprintf("%s/images", HoustonPath))
+	router.Static("/fonts", fmt.Sprintf("%s/fonts", HoustonPath))
+	router.Static("/packages", fmt.Sprintf("%s/packages", HoustonPath))
+}
+
+func (server *Server) initBackend(router *gin.Engine) {
+	router.GET("/api/connections", server.testConnections())
+
+	router.POST("/api/obc/targets", server.postOBCTargets())
+
+	router.GET("/api/hub/time", server.getTimeElapsed())
+	router.POST("/api/hub/time", server.startMissionTimer())
+
+  router.GET("/api/hub/state", server.getState())
+	router.POST("/api/hub/state", server.changeState())
+	router.GET("/api/hub/state/time", server.getStateStartTime())
+	router.GET("/api/hub/state/history", server.getStateHistory())
+
+	router.POST("/api/plane/airdrop", server.uploadDropOrder())
+	router.GET("/api/plane/airdrop", server.getDropOrder())
+	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
+
+	/* Change field to flight */
+	router.GET("/api/mission/bounds/field", server.getFieldBounds())
+	router.POST("/api/mission/bounds/field", server.uploadFieldBounds())
+
+	router.GET("/api/mission/bounds/airdrop", server.getAirdropBounds())
+	router.POST("/api/mission/bounds/airdrop", server.uploadAirDropBounds())
+
+	router.POST("/api/cvs/targets", server.postCVSResults())
+	router.GET("/api/cvs/targets", server.getStoredCVSResults())
+}
+
 /*
 Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
 
@@ -57,31 +98,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
 
-	router.GET("/connections", server.testConnections())
-
-	router.POST("/obc/targets", server.postOBCTargets())
-
-	router.GET("/hub/time", server.getTimeElapsed())
-	router.POST("/hub/time", server.startMissionTimer())
-
-	router.GET("/api/hub/state", server.getState())
-	router.POST("/api/hub/state", server.changeState())
-	router.GET("/api/hub/state/time", server.getStateStartTime())
-	router.GET("/api/hub/state/history", server.getStateHistory())
-
-	router.POST("/plane/airdrop", server.uploadDropOrder())
-	router.GET("/plane/airdrop", server.getDropOrder())
-	router.PATCH("/plane/airdrop", server.updateDropOrder())
-
-	/* Change field to flight */
-	router.GET("/mission/bounds/field", server.getFieldBounds())
-	router.POST("/mission/bounds/field", server.uploadFieldBounds())
-
-	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
-	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
-
-	router.POST("/cvs/targets", server.postCVSResults())
-	router.GET("/cvs/targets", server.getStoredCVSResults())
+	server.initFrontend(router)
+	server.initBackend(router)
 
 	return router
 }
@@ -128,15 +146,16 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 }
 
 /*
-Returns the current time that has passed since the mission started.
+Returns an integer representing the Unix time of when startMissionTimer() was called.
+This is intended to be passed to Houston, which will then convert it to the time since the mission started.
 */
 func (server *Server) getTimeElapsed() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// if time hasn't been initialized yet, throw error
-		if (server.MissionTime == time.Time{}) {
+		if server.MissionTime == 0 {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
-			c.String(http.StatusOK, fmt.Sprintf("%f", time.Since(server.MissionTime).Seconds()))
+			c.String(http.StatusOK, fmt.Sprint(server.MissionTime))
 		}
 	}
 }
@@ -146,7 +165,7 @@ Starts a timer when the mission begins, in order to keep track of how long the m
 */
 func (server *Server) startMissionTimer() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		server.MissionTime = time.Now()
+		server.MissionTime = time.Now().Unix()
 		c.String(http.StatusOK, "Mission timer successfully started!")
 	}
 }
