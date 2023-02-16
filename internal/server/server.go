@@ -144,7 +144,7 @@ This is intended to be passed to Houston, which will then convert it to the time
 func (server *Server) getTimeElapsed() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// if time hasn't been initialized yet, throw error
-		if (server.MissionTime == 0) {
+		if server.MissionTime == 0 {
 			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
 		} else {
 			c.String(http.StatusOK, fmt.Sprint(server.MissionTime))

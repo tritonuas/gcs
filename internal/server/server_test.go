@@ -93,25 +93,25 @@ TODO: maybe add expected http return code to struct
 */
 func TestGetTimeElapsed(t *testing.T) {
 	testCases := []struct {
-		name        string
-		waitTime    float64
+		name     string
+		waitTime float64
 	}{
 		// querying the mission timer before it has been initialized should return an error
 		{
-			name:        "before timer start",
-			waitTime:    0.0,
+			name:     "before timer start",
+			waitTime: 0.0,
 		},
 		{
-			name:        "no wait",
-			waitTime:    0.0,
+			name:     "no wait",
+			waitTime: 0.0,
 		},
 		{
-			name:        "3 seconds",
-			waitTime:    3.0,
+			name:     "3 seconds",
+			waitTime: 3.0,
 		},
 		{
-			name:        "6 seconds",
-			waitTime:    6.0,
+			name:     "6 seconds",
+			waitTime: 6.0,
 		},
 	}
 
