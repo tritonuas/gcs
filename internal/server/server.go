@@ -46,6 +46,42 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
+func (server *Server) initFrontend(router *gin.Engine) {
+	const HoustonPath = "../houston2"
+	// TODO: move this to Server.New which takes in value of houston path environment variable
+
+	router.StaticFile("/", fmt.Sprintf("%s/index.html", HoustonPath))
+	router.Static("/html", fmt.Sprintf("%s/html", HoustonPath))
+	router.Static("/js", fmt.Sprintf("%s/js", HoustonPath))
+	router.Static("/css", fmt.Sprintf("%s/css", HoustonPath))
+	router.Static("/images", fmt.Sprintf("%s/images", HoustonPath))
+	router.Static("/fonts", fmt.Sprintf("%s/fonts", HoustonPath))
+	router.Static("/packages", fmt.Sprintf("%s/packages", HoustonPath))
+}
+
+func (server *Server) initBackend(router *gin.Engine) {
+	router.GET("/api/connections", server.testConnections())
+
+	router.POST("/api/obc/targets", server.postOBCTargets())
+
+	router.GET("/api/hub/time", server.getTimeElapsed())
+	router.POST("/api/hub/time", server.startMissionTimer())
+
+	router.POST("/api/plane/airdrop", server.uploadDropOrder())
+	router.GET("/api/plane/airdrop", server.getDropOrder())
+	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
+
+	/* Change field to flight */
+	router.GET("/api/mission/bounds/field", server.getFieldBounds())
+	router.POST("/api/mission/bounds/field", server.uploadFieldBounds())
+
+	router.GET("/api/mission/bounds/airdrop", server.getAirdropBounds())
+	router.POST("/api/mission/bounds/airdrop", server.uploadAirDropBounds())
+
+	router.POST("/api/cvs/targets", server.postCVSResults())
+	router.GET("/api/cvs/targets", server.getStoredCVSResults())
+}
+
 /*
 Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
 
@@ -55,26 +91,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
 
-	router.GET("/connections", server.testConnections())
-
-	router.POST("/obc/targets", server.postOBCTargets())
-
-	router.GET("/hub/time", server.getTimeElapsed())
-	router.POST("/hub/time", server.startMissionTimer())
-
-	router.POST("/plane/airdrop", server.uploadDropOrder())
-	router.GET("/plane/airdrop", server.getDropOrder())
-	router.PATCH("/plane/airdrop", server.updateDropOrder())
-
-	/* Change field to flight */
-	router.GET("/mission/bounds/field", server.getFieldBounds())
-	router.POST("/mission/bounds/field", server.uploadFieldBounds())
-
-	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
-	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
-
-	router.POST("/cvs/targets", server.postCVSResults())
-	router.GET("/cvs/targets", server.getStoredCVSResults())
+	server.initFrontend(router)
+	server.initBackend(router)
 
 	return router
 }
