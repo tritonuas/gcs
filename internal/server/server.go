@@ -9,8 +9,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
-	"github.com/tritonuas/hub/internal/obc/airdrop"
 	"github.com/tritonuas/hub/internal/manager"
+	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
 
 // Log is the logger for the server
@@ -172,7 +172,7 @@ func (server *Server) changeState() gin.HandlerFunc {
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 		}
-		
+
 		prevState := server.Manager.State
 		state := stateJSON.ToEnum()
 
