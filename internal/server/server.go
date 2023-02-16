@@ -69,7 +69,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 	router.GET("/api/hub/time", server.getTimeElapsed())
 	router.POST("/api/hub/time", server.startMissionTimer())
 
-  router.GET("/api/hub/state", server.getState())
+	router.GET("/api/hub/state", server.getState())
 	router.POST("/api/hub/state", server.changeState())
 	router.GET("/api/hub/state/time", server.getStateStartTime())
 	router.GET("/api/hub/state/history", server.getStateHistory())
