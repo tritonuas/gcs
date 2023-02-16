@@ -35,6 +35,7 @@ var ENVS = map[string]*string{
 	"INFLUXDB_BUCKET": flag.String("influxdb_bucket", "mavlink", "bucket for the influx database"),
 	"INFLUXDB_ORG":    flag.String("influxdb_org", "TritonUAS", "org for the influx database"),
 	"DEBUG_MODE":      flag.String("debug", "False", "Boolean to determine logging mode"),
+	"HOUSTON_PATH":    flag.String("houston_path", "../houston2", "Path to Houston files"),
 }
 
 // setEnvVars will check for any hub related environment variables and
