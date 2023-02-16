@@ -10,6 +10,14 @@ import (
 
 var errUndefinedEndpointType = errors.New("mavlink endpoint has an undefined type")
 
+// EndpointData contains the mavlink endpoints for the plane and router. The
+// mavlink client will listen for messages from the plane and forward messages
+// to all the router endpoints.
+type EndpointData struct {
+	Plane  string   `json:"plane"`
+	Router []string `json:"router"`
+}
+
 // NewEndpoint creates a new Mavlink endpoint and returns it
 //
 // Parameters:

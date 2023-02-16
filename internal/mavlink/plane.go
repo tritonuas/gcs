@@ -1,6 +1,7 @@
 package mav
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -36,6 +37,15 @@ func (c *Client) StartMissionDownload() {
 	// c.mavlinkNode.WriteMessageTo() need plane channel somehow
 	// maybe can store plane channel in EventChannelOpen if the systemID matches the plane's
 
+}
+
+// GetPlaneEndpoint will return a string represnetation of the plane's
+// mavlink endpoint. Example: "tcp:localhost:5760" or "serial:/dev/ttyUSB0"
+func (c *Client) GetPlaneEndpoint() (string, error) {
+	if c.planeEndpoint == nil {
+		return "", fmt.Errorf("no plane endpoint created")
+	}
+	return StringifyEndpoint(c.planeEndpoint)
 }
 
 // SetPlaneEndpoint will update the endpoint for the plane

@@ -85,6 +85,9 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/api/plane/position/history", server.getPositionHistory())
 	router.GET("/api/plane/position", server.getPosition())
 
+	router.GET("/api/mavlink/endpoints", server.getMavlinkEndpoints())
+	router.PUT("/api/mavlink/endpoints", server.putMavlinkEndpoints())
+
 	router.POST("/api/cvs/targets", server.postCVSResults())
 	router.GET("/api/cvs/targets", server.getStoredCVSResults())
 
@@ -292,6 +295,55 @@ func (server *Server) getPosition() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, data)
+	}
+}
+
+// getMavlinkEndpoints responds with the mavlink endpoints that Hub is currently
+// communicating with. This includes the plane itself and devices that are receiving
+// mavlink messages through Hub's mavlink router.
+//
+// Will return an error if the plane endpoint has not been created yet.
+func (server *Server) getMavlinkEndpoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		planeEndpoint, err := server.mavlinkClient.GetPlaneEndpoint()
+		if err != nil {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		routerEndpoints := server.mavlinkClient.GetRouterEndpoints()
+		endpointData := mav.EndpointData{
+			Plane:  planeEndpoint,
+			Router: routerEndpoints,
+		}
+		c.JSON(http.StatusOK, endpointData)
+	}
+}
+
+// putMavlinkEndpoints will update the plane and router mavlink endpoints.
+//
+// The JSON body should match the mav.EndpointData struct.
+//
+// Example body:
+//
+//	{
+//			"plane": "serial:/dev/ttyUSB0",
+//			"router": [
+//						"udp:192.168.1.7:14551",
+//						"tcp:localhost:14550"
+//					  ]
+//	}
+func (server *Server) putMavlinkEndpoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		endpointData := mav.EndpointData{}
+		err := c.BindJSON(&endpointData)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		server.mavlinkClient.SetPlaneEndpoint(endpointData.Plane)
+		server.mavlinkClient.AddRouterEndpoints(endpointData.Router...)
+		c.String(http.StatusOK, "Updated mavlink endpoints")
 	}
 }
 
