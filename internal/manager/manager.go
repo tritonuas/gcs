@@ -18,7 +18,7 @@ type Manager struct {
 NewManager creates a pointer to a new manager with default values (DORMANT, Empty history, not in Manual control)
 */
 func NewManager() *Manager {
-	return &Manager{DORMANT, []StateChange{}, false}
+	return &Manager{Dormant, []StateChange{}, false}
 }
 
 /*
@@ -47,16 +47,16 @@ func (m Manager) Start() {
 	// TODO: add functionality as needed?
 	for {
 		switch m.State {
-		case DORMANT:
-		case UNARMED:
-		case ARMED:
-		case TAKEOFF:
-		case WAYPOINT:
-		case SEARCH:
-		case CV_LOITER:
-		case AIRDROP_APPROACH:
-		case AIRDROP_LOITER:
-		case LANDING:
+		case Dormant:
+		case Unarmed:
+		case Armed:
+		case Takeoff:
+		case Waypoint:
+		case Search:
+		case CVLoiter:
+		case AirdropApproach:
+		case AirdropLoiter:
+		case Landing:
 		}
 	}
 }

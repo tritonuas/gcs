@@ -12,43 +12,43 @@ type State int
 
 const (
 	// On the Ground
-	DORMANT State = iota // We haven't made an initial connection to the plane
-	UNARMED              // The plane is on the ground, but not armed
-	ARMED                // The plane is on the ground and armed. Ready for takeoff
+	Dormant State = iota // We haven't made an initial connection to the plane
+	Unarmed              // The plane is on the ground, but not armed
+	Armed                // The plane is on the ground and armed. Ready for takeoff
 
 	// In Flight
-	TAKEOFF          // The plane is taking off but hasn't started on waypoints yet
-	WAYPOINT         // The plane is flying its initial waypoint path
-	SEARCH           // The plane is either going towards the search zone or covering it
-	CV_LOITER        // The plane is loitering outside the search zone waiting for all the results from CV
-	AIRDROP_APPROACH // The plane is approaching an airdrop point
-	AIRDROP_LOITER   // The plane is loitering outside the search zone waiting for 15s buffer to pass
-	LANDING          // The plane is approaching for a landing
+	Takeoff         // The plane is taking off but hasn't started on waypoints yet
+	Waypoint        // The plane is flying its initial waypoint path
+	Search          // The plane is either going towards the search zone or covering it
+	CVLoiter        // The plane is loitering outside the search zone waiting for all the results from CV
+	AirdropApproach // The plane is approaching an airdrop point
+	AirdropLoiter   // The plane is loitering outside the search zone waiting for 15s buffer to pass
+	Landing         // The plane is approaching for a landing
 )
 
 var toString = map[State]string{
-	DORMANT:          "DORMANT",
-	UNARMED:          "UNARMED",
-	ARMED:            "ARMED",
-	TAKEOFF:          "TAKEOFF",
-	WAYPOINT:         "WAYPOINT",
-	SEARCH:           "SEARCH",
-	CV_LOITER:        "CV LOITER",
-	AIRDROP_APPROACH: "AIRDROP APPROACH",
-	AIRDROP_LOITER:   "AIRDROP LOITER",
-	LANDING:          "LANDING",
+	Dormant:         "DORMANT",
+	Unarmed:         "UNARMED",
+	Armed:           "ARMED",
+	Takeoff:         "TAKEOFF",
+	Waypoint:        "WAYPOINT",
+	Search:          "SEARCH",
+	CVLoiter:        "CV LOITER",
+	AirdropApproach: "AIRDROP APPROACH",
+	AirdropLoiter:   "AIRDROP LOITER",
+	Landing:         "LANDING",
 }
 var toID = map[string]State{
-	"DORMANT":          DORMANT,
-	"UNARMED":          UNARMED,
-	"ARMED":            ARMED,
-	"TAKEOFF":          TAKEOFF,
-	"WAYPOINT":         WAYPOINT,
-	"SEARCH":           SEARCH,
-	"CV LOITER":        CV_LOITER,
-	"AIRDROP APPROACH": AIRDROP_APPROACH,
-	"AIRDROP LOITER":   AIRDROP_LOITER,
-	"LANDING":          LANDING,
+	"DORMANT":          Dormant,
+	"UNARMED":          Unarmed,
+	"ARMED":            Armed,
+	"TAKEOFF":          Takeoff,
+	"WAYPOINT":         Waypoint,
+	"SEARCH":           Search,
+	"CV LOITER":        CVLoiter,
+	"AIRDROP APPROACH": AirdropApproach,
+	"AIRDROP LOITER":   AirdropLoiter,
+	"LANDING":          Landing,
 }
 
 /*
@@ -87,16 +87,16 @@ s2     in valid[s1] means that s1 -> s2 is a valid state change
 s2 not in valid[s1] means that s1 -> s2 is not a valid state change
 */
 var valid = map[State][]State{
-	DORMANT:          {UNARMED},
-	UNARMED:          {ARMED, DORMANT},
-	ARMED:            {UNARMED, TAKEOFF},
-	TAKEOFF:          {WAYPOINT, LANDING},
-	WAYPOINT:         {SEARCH, CV_LOITER, AIRDROP_APPROACH, LANDING},
-	SEARCH:           {CV_LOITER, LANDING},
-	CV_LOITER:        {SEARCH, AIRDROP_APPROACH, LANDING},
-	AIRDROP_APPROACH: {AIRDROP_LOITER, LANDING},
-	AIRDROP_LOITER:   {AIRDROP_APPROACH, LANDING},
-	LANDING:          {ARMED, WAYPOINT, SEARCH, CV_LOITER, AIRDROP_APPROACH},
+	Dormant:         {Unarmed},
+	Unarmed:         {Armed, Dormant},
+	Armed:           {Unarmed, Takeoff},
+	Takeoff:         {Waypoint, Landing},
+	Waypoint:        {Search, CVLoiter, AirdropApproach, Landing},
+	Search:          {CVLoiter, Landing},
+	CVLoiter:        {Search, AirdropApproach, Landing},
+	AirdropApproach: {AirdropLoiter, Landing},
+	AirdropLoiter:   {AirdropApproach, Landing},
+	Landing:         {Armed, Waypoint, Search, CVLoiter, AirdropApproach},
 }
 
 /*
