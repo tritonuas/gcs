@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
+	"github.com/tritonuas/hub/internal/manager"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
 
@@ -25,6 +26,7 @@ type Server struct {
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
+	Manager             *manager.Manager
 }
 
 /*
@@ -67,6 +69,11 @@ func (server *Server) initBackend(router *gin.Engine) {
 	router.GET("/api/hub/time", server.getTimeElapsed())
 	router.POST("/api/hub/time", server.startMissionTimer())
 
+	router.GET("/api/hub/state", server.getState())
+	router.POST("/api/hub/state", server.changeState())
+	router.GET("/api/hub/state/time", server.getStateStartTime())
+	router.GET("/api/hub/state/history", server.getStateHistory())
+
 	router.POST("/api/plane/airdrop", server.uploadDropOrder())
 	router.GET("/api/plane/airdrop", server.getDropOrder())
 	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
@@ -102,6 +109,7 @@ Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if
 */
 func (server *Server) Start() {
 	router := server.SetupRouter()
+	server.Manager = manager.NewManager()
 
 	err := router.Run(":5000")
 	if err != nil {
@@ -159,6 +167,57 @@ func (server *Server) startMissionTimer() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		server.MissionTime = time.Now().Unix()
 		c.String(http.StatusOK, "Mission timer successfully started!")
+	}
+}
+
+/*
+Query Hub for the mission's current state
+*/
+func (server *Server) getState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, server.Manager.State.String())
+	}
+}
+
+/*
+Request a change to the mission's state
+The request will error with code 409 CONFLICT if it is an invalid state change
+*/
+func (server *Server) changeState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		stateJSON := manager.StateJSON{}
+		err := c.BindJSON(&stateJSON)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+
+		prevState := server.Manager.State
+		state := stateJSON.ToEnum()
+
+		if server.Manager.ChangeState(state) {
+			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
+		} else {
+			c.String(http.StatusConflict, fmt.Sprintf("Invalid state change: %s to %s.", prevState, state))
+		}
+	}
+}
+
+/*
+Returns the starting time of the current state in seconds since epoch
+*/
+func (server *Server) getStateStartTime() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, fmt.Sprintf("%d", server.Manager.GetCurrentStateStartTime()))
+	}
+}
+
+/*
+Returns the list of state changes that have occurred, with timestamps
+*/
+func (server *Server) getStateHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, server.Manager.HistoryJSON())
 	}
 }
 
