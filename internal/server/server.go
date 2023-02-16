@@ -79,14 +79,14 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
 	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
 
-	router.GET("/plane/telemetry/history", server.getTelemetryHistory())
-	router.GET("/plane/telemetry", server.getTelemetry())
+	router.GET("/api/plane/telemetry/history", server.getTelemetryHistory())
+	router.GET("/api/plane/telemetry", server.getTelemetry())
 
-	router.GET("/plane/position/history", server.getPositionHistory())
-	router.GET("/plane/position", server.getPosition())
+	router.GET("/api/plane/position/history", server.getPositionHistory())
+	router.GET("/api/plane/position", server.getPosition())
 
-	router.POST("/cvs/targets", server.postCVSResults())
-	router.GET("/cvs/targets", server.getStoredCVSResults())
+	router.POST("/api/cvs/targets", server.postCVSResults())
+	router.GET("/api/cvs/targets", server.getStoredCVSResults())
 
 	return router
 }
@@ -129,7 +129,22 @@ func (server *Server) testConnections() gin.HandlerFunc {
 	}
 }
 
-// getTelemetryHistory
+// getTelemetryHistory gets the telemetry at a given point in time.
+// Use query params to specify the message id or name, time range and message fields.
+//
+// Example URL: localhost:5000/api/plane/telemetry?id=33&range=5&fields=alt,hdg
+//
+// Note that only one of ID or name is required. If both are provided, it will
+// default to lookup the ID and ignore the name.
+//
+// URL Params:
+//   - id will be the mavlink message ID. Example: 33
+//   - name will be the mavlink message name. Example: "GLOBAL_POSITION_INT"
+//     A full list of mavlink message names and IDs can be found here
+//     http://mavlink.io/en/messages/common.html
+//   - range is the number of minutes to look back in the past for a message
+//   - fields are the fields of the mavlink message to return. If none are specified then
+//     all the fields are returned. The fields are separated by commas. Example: "alt,hdg"
 func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		msgID := c.Query("id")
@@ -186,6 +201,21 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 	}
 }
 
+// getTelemetry gets the latest telemetry.
+// Use query params to specify the message id, name and message fields.
+//
+// Example URL: localhost:5000/api/plane/telemetry?id=33&range=5&fields=alt,hdg
+//
+// Note that only one of ID or name is required. If both are provided, it will
+// default to lookup the ID and ignore the name.
+//
+// URL Params:
+//   - id will be the mavlink message ID. Example: 33
+//   - name will be the mavlink message name. Example: "GLOBAL_POSITION_INT"
+//     A full list of mavlink message names and IDs can be found here
+//     http://mavlink.io/en/messages/common.html
+//   - fields are the fields of the mavlink message to return. If none are specified then
+//     all the fields are returned. The fields are separated by commas. Example: "alt,hdg".
 func (server *Server) getTelemetry() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		msgID := c.Query("id")
