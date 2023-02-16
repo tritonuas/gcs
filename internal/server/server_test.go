@@ -95,28 +95,23 @@ func TestGetTimeElapsed(t *testing.T) {
 	testCases := []struct {
 		name        string
 		waitTime    float64
-		errorMargin float64
 	}{
 		// querying the mission timer before it has been initialized should return an error
 		{
 			name:        "before timer start",
 			waitTime:    0.0,
-			errorMargin: 0.0,
 		},
 		{
 			name:        "no wait",
 			waitTime:    0.0,
-			errorMargin: 0.01,
 		},
 		{
 			name:        "3 seconds",
 			waitTime:    3.0,
-			errorMargin: 0.01,
 		},
 		{
 			name:        "6 seconds",
 			waitTime:    6.0,
-			errorMargin: 0.01,
 		},
 	}
 
@@ -146,6 +141,7 @@ func TestGetTimeElapsed(t *testing.T) {
 				req, err = http.NewRequest("POST", "/hub/time", nil)
 				assert.Nil(t, err)
 				router.ServeHTTP(w, req)
+				timer := time.Now()
 				time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
 				w = httptest.NewRecorder()
@@ -156,12 +152,12 @@ func TestGetTimeElapsed(t *testing.T) {
 				assert.Equal(t, http.StatusOK, w.Code)
 
 				// will come out as "4.21423" or "0.00012"
-				durationStr := w.Body.String()
-				fmt.Println(durationStr)
-				durationFloat, strerr := strconv.ParseFloat(durationStr, 64)
+				unixTime, strerr := strconv.ParseInt(w.Body.String(), 10, 64)
+				fmt.Println(unixTime)
 				assert.Nil(t, strerr)
-
-				assert.LessOrEqual(t, durationFloat, tc.waitTime+tc.errorMargin)
+				assert.LessOrEqual(t, unixTime, timer.Unix())
+				t.Logf("Expected: %d\n", timer.Unix())
+				t.Logf("Actual: %d\n", unixTime)
 			}
 		})
 	}
