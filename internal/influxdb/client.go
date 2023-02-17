@@ -107,9 +107,9 @@ func (c *Client) Write(msgName string, msgID uint32, data map[string]interface{}
 //     as the argument.
 //
 // Return:
-//   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
+//   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *Client) QueryMsgID(msgID uint32, timeRange time.Duration) (map[string]interface{}, error) {
+func (c *Client) QueryMsgID(msgID uint32, timeRange time.Duration) ([]map[string]interface{}, error) {
 	return c.QueryMsgIDAndFields(msgID, timeRange)
 }
 
@@ -127,9 +127,9 @@ func (c *Client) QueryMsgID(msgID uint32, timeRange time.Duration) (map[string]i
 //     as the argument.
 //
 // Return:
-//   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
+//   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *Client) QueryMsgName(msgName string, timeRange time.Duration) (map[string]interface{}, error) {
+func (c *Client) QueryMsgName(msgName string, timeRange time.Duration) ([]map[string]interface{}, error) {
 	return c.QueryMsgNameAndFields(msgName, timeRange)
 }
 
@@ -151,9 +151,9 @@ func (c *Client) QueryMsgName(msgName string, timeRange time.Duration) (map[stri
 //   - fields: variadic parameter that will take in any number of field name strings.
 //
 // Return:
-//   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
+//   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fields ...string) (map[string]interface{}, error) {
+func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fields ...string) ([]map[string]interface{}, error) {
 	if !c.IsConnected() {
 		return nil, errInluxDBNotConnected
 	}
@@ -165,12 +165,23 @@ func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fiel
 		return nil, err
 	}
 
-	data := make(map[string]interface{})
+	data := make([]map[string]interface{}, 0)
 	for result.Next() {
-		// Log.Error(result.Record().ValueByKey("_time"))
-		data[result.Record().Field()] = result.Record().Value()
-	}
+		// see if message with timestamp already exists
+		idx := -1
+		for i, msg := range data {
+			if time, ok := msg["_time"]; ok && time == result.Record().Time().String() {
+				idx = i
+			}
+		}
 
+		if idx == -1 {
+			data = append(data, make(map[string]interface{}))
+			idx = len(data) - 1
+		}
+		data[idx][result.Record().Field()] = result.Record().Value()
+		data[idx]["_time"] = result.Record().Time().String()
+	}
 	return data, nil
 }
 
@@ -192,9 +203,9 @@ func (c *Client) QueryMsgIDAndFields(msgID uint32, timeRange time.Duration, fiel
 //   - fields: variadic parameter that will take in any number of field name strings.
 //
 // Return:
-//   - map[string]interface{}: map where keys are field names and values are the values associated with the keys
+//   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, fields ...string) (map[string]interface{}, error) {
+func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, fields ...string) ([]map[string]interface{}, error) {
 	if !c.IsConnected() {
 		return nil, errInluxDBNotConnected
 	}
@@ -205,11 +216,23 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 		return nil, err
 	}
 
-	data := make(map[string]interface{})
+	data := make([]map[string]interface{}, 0)
 	for result.Next() {
-		data[result.Record().Field()] = result.Record().Value()
-	}
+		// see if message with timestamp already exists
+		idx := -1
+		for i, msg := range data {
+			if time, ok := msg["_time"]; ok && time == result.Record().Time().String() {
+				idx = i
+			}
+		}
 
+		if idx == -1 {
+			data = append(data, make(map[string]interface{}))
+			idx = len(data) - 1
+		}
+		data[idx][result.Record().Field()] = result.Record().Value()
+		data[idx]["_time"] = result.Record().Time().String()
+	}
 	return data, nil
 }
 
@@ -278,13 +301,12 @@ func (c *Client) makeQuery(timeRange time.Duration, msgID *uint32, msgName *stri
 	// Note that this result will contain a single mavlink message (with its fields) since the
 	// following code cuts off everything except the first/last result.
 
-	// If a timeRange of 0 is provided then we want to query the latest message. If not then
-	// we want the first message from the time specified.
+	// If a timeRange of 0 is provided then we want to query the latest message.
 	if timeRange == 0 {
 		query += "|> last()"
-	} else {
-		query += "|> first()"
 	}
+
+	query += `|> sort(columns: ["_time"])`
 
 	for i, field := range fields {
 		if i == 0 {

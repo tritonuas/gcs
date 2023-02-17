@@ -21,7 +21,7 @@ services:
       # - MAV_OUTPUT1=udp:192.168.1.2:14551
       # - MAV_OUTPUT2=udp:192.168.1.7:14551
       # - MAV_OUTPUT3=udp:host.docker.internal:14551
-      # - MAV_OUTPUT4=udp:172.17.0.1:14550
+      - MAV_OUTPUT4=udp:172.17.0.1:14550
       - MAV_OUTPUT5=udp:localhost:14551
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS

@@ -132,7 +132,9 @@ func (server *Server) testConnections() gin.HandlerFunc {
 	}
 }
 
-// getTelemetryHistory gets the telemetry at a given point in time.
+// getTelemetryHistory gets the telemetry from a certain point in time until now.
+// Returns a list of messages. First element in the list is the one at the earliest time.
+// Each message JSON has a "_time" key that is the timestamp of that message.
 // Use query params to specify the message id or name, time range and message fields.
 //
 // Example URL: localhost:5000/api/plane/telemetry?id=33&range=5&fields=alt,hdg
@@ -145,7 +147,7 @@ func (server *Server) testConnections() gin.HandlerFunc {
 //   - name will be the mavlink message name. Example: "GLOBAL_POSITION_INT"
 //     A full list of mavlink message names and IDs can be found here
 //     http://mavlink.io/en/messages/common.html
-//   - range is the number of minutes to look back in the past for a message
+//   - range is the number of minutes to look back in the past for a message. Can be a floating point number.
 //   - fields are the fields of the mavlink message to return. If none are specified then
 //     all the fields are returned. The fields are separated by commas. Example: "alt,hdg"
 func (server *Server) getTelemetryHistory() gin.HandlerFunc {
@@ -160,7 +162,7 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 			return
 		}
 
-		timeRangeInt, err := strconv.Atoi(timeRange)
+		timeRangeFloat, err := strconv.ParseFloat(timeRange, 32)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Non-numerical range provided")
 			return
@@ -176,7 +178,7 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 			if err != nil {
 				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
 			} else {
-				data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeInt)*time.Minute, fields...)
+				data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeFloat)*time.Minute, fields...)
 				if err != nil {
 					// TODO: have other types of errors (id does not exist for example)
 					c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -189,7 +191,7 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 		}
 
 		if msgName != "" {
-			data, err := server.influxDBClient.QueryMsgNameAndFields(msgName, time.Duration(timeRangeInt)*time.Minute, fields...)
+			data, err := server.influxDBClient.QueryMsgNameAndFields(msgName, time.Duration(timeRangeFloat)*time.Minute, fields...)
 			if err != nil {
 				// TODO: have other types of errors (name does not exist for example)
 				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -244,7 +246,13 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 				return
 			}
 
-			c.JSON(http.StatusOK, data)
+			if len(data) == 0 {
+				c.String(http.StatusNotFound, "No telemetry found")
+				return
+			}
+
+			// only return the 0th index since data will always return a list with a single element if timeRange is 0
+			c.JSON(http.StatusOK, data[0])
 			return
 		}
 
@@ -256,7 +264,12 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 				return
 			}
 
-			c.JSON(http.StatusOK, data)
+			if len(data) == 0 {
+				c.String(http.StatusNotFound, "No telemetry found")
+				return
+			}
+
+			c.JSON(http.StatusOK, data[0])
 			return
 		}
 
@@ -264,17 +277,25 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 	}
 }
 
+// getPositionHistory gets the plane position from a certain point in the past.
+// Returns a list of position telemetry.
+//
+// Matches format of GLOBAL_POSITION_INT mavlink message.
+// https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT
+//
+// URL Params:
+//   - range is the number of minutes to look back in the past for a message. Can be a floating point number.
 func (server *Server) getPositionHistory() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		timeRange := c.Query("range")
 
-		timeRangeInt, err := strconv.Atoi(timeRange)
+		timeRangeFloat, err := strconv.ParseFloat(timeRange, 32)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Non-numerical range provided")
 			return
 		}
 
-		data, err := server.influxDBClient.QueryMsgID(33, time.Duration(timeRangeInt)*time.Minute)
+		data, err := server.influxDBClient.QueryMsgID(33, time.Duration(timeRangeFloat)*time.Minute)
 		if err != nil {
 			// TODO: have other types of errors (id does not exist for example)
 			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
@@ -285,6 +306,10 @@ func (server *Server) getPositionHistory() gin.HandlerFunc {
 	}
 }
 
+// getPosition gets the latest plane position.
+//
+// Matches format of GLOBAL_POSITION_INT mavlink message.
+// https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT
 func (server *Server) getPosition() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		data, err := server.influxDBClient.QueryMsgID(33, 0)
@@ -294,7 +319,12 @@ func (server *Server) getPosition() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, data)
+		if len(data) == 0 {
+			c.String(http.StatusNotFound, "No telemetry found")
+			return
+		}
+
+		c.JSON(http.StatusOK, data[0])
 	}
 }
 

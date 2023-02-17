@@ -97,7 +97,7 @@ func (c *Client) AddRouterEndpoints(routerDevicesConnInfo ...string) {
 		c.routerEndpoints = append(c.routerEndpoints, endpoint)
 		c.routerEndpointsMutex.Unlock()
 	}
-	c.updateNode()
+	// c.updateNode()
 }
 
 // RemoveRouterEndpoint will remove an endpoint from being used by the router.

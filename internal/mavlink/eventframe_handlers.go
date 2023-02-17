@@ -12,24 +12,24 @@ import (
 // create a function with the matching signature. Currently these handlers
 // are used in the Listen method in mavlink/client.go, where all incoming
 // EventFrames will be fed into them.
-type EventFrameHandler func(*Client, *gomavlib.EventFrame)
+type EventFrameHandler func(*Client, *gomavlib.EventFrame, *gomavlib.Node)
 
 // forwardEventFrame forwards event frames to all other channels except the
 // channel the frame originated from
-func (c *Client) forwardEventFrame(evt *gomavlib.EventFrame) {
-	c.mavlinkNode.WriteFrameExcept(evt.Channel, evt.Frame)
+func (c *Client) forwardEventFrame(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+	node.WriteFrameExcept(evt.Channel, evt.Frame)
 }
 
 // forwardEventFrame forwards messages to all other channels except the
 // channel the message originated from
-func (c *Client) forwardMessage(evt *gomavlib.EventFrame) { //nolint: unused
-	c.mavlinkNode.WriteMessageExcept(evt.Channel, evt.Frame.GetMessage())
+func (c *Client) forwardMessage(evt *gomavlib.EventFrame, node *gomavlib.Node) { //nolint: unused
+	node.WriteMessageExcept(evt.Channel, evt.Frame.GetMessage())
 }
 
 // writeMsgToInfluxDB will take an eventFrame and write the data from the
 // Mavlink message to InfluxDB (if it's one of the messages we want to store)
 // TODO: add signals board messages and anything else that seems useful
-func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame) {
+func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 	if !c.influxdbClient.IsConnected() {
 		return
 	}
@@ -75,6 +75,7 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame) {
 
 	// If we parsed a message then write it. Otherwise it can be ignored
 	if msgName != "" && len(data) != 0 {
+		Log.Infof("writing %s to influx", msgName)
 		err := c.influxdbClient.Write(msgName, msg.GetID(), data)
 		if err != nil {
 			Log.Errorf("Cannot write message %s to InfluxDB. Reason: %s", msgName, err.Error())
