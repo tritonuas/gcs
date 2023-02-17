@@ -49,7 +49,9 @@ type Client struct {
 	routerEndpoints      []gomavlib.EndpointConf
 	routerEndpointsMutex *sync.Mutex
 
-	// mavlinkNode        gomavlib.Node
+	endpointsAltered bool
+
+	mavlinkNode        *gomavlib.Node
 	eventFrameHandlers []EventFrameHandler
 
 	antennaTrackerIP   string
@@ -74,7 +76,7 @@ func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTracke
 	c.SetPlaneEndpoint(planeConnInfo)
 	c.AddRouterEndpoints(routerDevicesConnInfo...)
 	// c.updateNode()
-	// Log.Info(c.mavlinkNode)
+	Log.Info(c.mavlinkNode)
 
 	c.influxdbClient = influxdbClient
 
@@ -115,32 +117,67 @@ func (c *Client) IsConnectedToAntennaTracker() bool {
 func (c *Client) Listen() {
 	// for c.mavlinkNode == nil {
 	// 	Log.Error("Mavlink node has not been created. Trying again in 5 seconds ...")
-	// 	c.updateNode()
 	// 	time.Sleep(5 * time.Second)
+	// 	c.updateNode()
 	// }
-	node, err := gomavlib.NewNode(gomavlib.NodeConf{
-		Endpoints:           append(c.routerEndpoints, c.planeEndpoint),
-		Dialect:             common.Dialect,
-		OutVersion:          gomavlib.V2,
-		OutSystemID:         systemID,
-		OutComponentID:      componentID,
-		StreamRequestEnable: true,
-	})
-	if err != nil {
-		Log.Errorf("%s. Reason: %s", errCreatingNode.Error(), err.Error())
-	}
-	for e := range node.Events() {
-		switch evt := e.(type) {
-		case *gomavlib.EventChannelOpen:
-			Log.Infof("Mavlink channel opened at %s", evt.Channel.Endpoint().Conf())
-		case *gomavlib.EventChannelClose:
-			Log.Infof("Mavlink channel closed at %s", evt.Channel.Endpoint().Conf())
-		case *gomavlib.EventFrame:
-			for _, handler := range c.eventFrameHandlers {
-				handler(c, evt, node)
+
+	loop := func(n *gomavlib.Node, killChan chan bool) {
+		for e := range n.Events() {
+			select {
+			case shouldKill := <-killChan:
+				if shouldKill {
+					return
+				}
+			default:
+			}
+			switch evt := e.(type) {
+			case *gomavlib.EventChannelOpen:
+				Log.Infof("Mavlink channel opened at %s", evt.Channel.Endpoint().Conf())
+			case *gomavlib.EventChannelClose:
+				Log.Infof("SUSSY %p", c.mavlinkNode)
+				Log.Infof("Mavlink channel closed at %s", evt.Channel.Endpoint().Conf())
+			case *gomavlib.EventFrame:
+				for _, handler := range c.eventFrameHandlers {
+					handler(c, evt, n)
+				}
 			}
 		}
 	}
+
+	for {
+		killChannel := make(chan bool, 1)
+		node, err := gomavlib.NewNode(gomavlib.NodeConf{
+			Endpoints:           append(c.routerEndpoints, c.planeEndpoint),
+			Dialect:             common.Dialect,
+			OutVersion:          gomavlib.V2,
+			OutSystemID:         systemID,
+			OutComponentID:      componentID,
+			StreamRequestEnable: true,
+		})
+
+		if err != nil {
+			Log.Errorf("%s. Reason: %s", errCreatingNode.Error(), err.Error())
+		}
+
+		go loop(node, killChannel)
+
+		for !c.endpointsAltered {
+		}
+		killChannel <- true
+	}
+}
+
+func (c *Client) updateEndpoints(planeEndpoint string, routerEndpoints []string) {
+	// TODO return error
+	c.planeEndpoint, _ = NewEndpoint(planeEndpoint)
+
+	c.routerEndpoints = make([]gomavlib.EndpointConf, 0)
+	for _, endptStr := range routerEndpoints {
+		endpt, _ := NewEndpoint(endptStr)
+		c.routerEndpoints = append(c.routerEndpoints, endpt)
+	}
+
+	c.endpointsAltered = true
 }
 
 // updateNode will create a new mavlink node and set it in the client.
@@ -172,5 +209,6 @@ func (c *Client) Listen() {
 // 	if err != nil {
 // 		Log.Errorf("%s. Reason: %s", errCreatingNode.Error(), err.Error())
 // 	}
-// 	c.mavlinkNode = *node
+// 	c.mavlinkNode = node
+// 	Log.Infof("SUSSY1 %p", c.mavlinkNode)
 // }
