@@ -3,6 +3,7 @@ package mav
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/aler9/gomavlib"
 	"github.com/aler9/gomavlib/pkg/dialects/common"
@@ -162,6 +163,7 @@ func (c *Client) Listen() {
 		go loop(node, killChannel)
 
 		for !c.endpointsAltered {
+			time.Sleep(time.Second / 2)
 		}
 		killChannel <- true
 	}
