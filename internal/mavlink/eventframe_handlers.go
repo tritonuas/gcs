@@ -1,6 +1,8 @@
 package mav
 
 import (
+	"fmt"
+
 	"github.com/aler9/gomavlib"
 	"github.com/aler9/gomavlib/pkg/dialects/common"
 )
@@ -17,6 +19,7 @@ type EventFrameHandler func(*Client, *gomavlib.EventFrame, *gomavlib.Node)
 // forwardEventFrame forwards event frames to all other channels except the
 // channel the frame originated from
 func (c *Client) forwardEventFrame(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+	Log.Info("ABOUT TO FORWARD")
 	node.WriteFrameExcept(evt.Channel, evt.Frame)
 }
 
@@ -30,6 +33,7 @@ func (c *Client) forwardMessage(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 // Mavlink message to InfluxDB (if it's one of the messages we want to store)
 // TODO: add signals board messages and anything else that seems useful
 func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+	Log.Info("writing to INFLUX")
 	if !c.influxdbClient.IsConnected() {
 		return
 	}
@@ -71,11 +75,46 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Nod
 		data["throttle"] = msg.Throttle
 		data["alt"] = msg.Alt
 		data["climb"] = msg.Climb
+
+	case *common.MessageBatteryStatus:
+		msgName = "BATTERY_STATUS"
+		Log.Info("BATTERY_STATUS", msg)
+
+		data["id"] = uint64(msg.Id)
+		data["temperature"] = int64(msg.Temperature)
+		// data["voltages"] = msg.Voltages
+		for i, voltage := range msg.Voltages {
+			data[fmt.Sprintf("voltage%d", i)] = uint64(voltage)
+		}
+		data["current_battery"] = int64(msg.CurrentBattery)
+		data["current_consumed"] = int64(msg.CurrentConsumed)
+		data["energy_consumed"] = int64(msg.EnergyConsumed)
+		data["battery_remaining"] = int64(msg.BatteryRemaining)
+		data["time_remaining"] = int64(msg.TimeRemaining)
+		data["charge_state"] = int64(msg.ChargeState)
+		data["mode"] = int64(msg.Mode)
+		data["fault_bitmask"] = int64(msg.FaultBitmask)
+
+		Log.Info("BATTERY_STATUS", data)
+
+	// case *common.MessageHygrometerSensor:
+	// 	fields := []string{"id", "temperature", "humidity"}
+	// 	vals := []float64{float64(msg.Id), float64(msg.Temperature), float64(msg.Humidity)}
+	// 	writeToInflux(msg.GetID(), fmt.Sprintf("HYGROMETER_SENSOR%v", msg.Id), fields, vals, writeAPI)
+	// case *common.MessageEscStatus:
+	// 	fields := []string{"index", "rpm", "voltage", "current"}
+	// 	vals := []float64{float64(msg.Index), float64(msg.Rpm[msg.Index]), float64(msg.Humidity[ms])}
+	// 	writeToInflux(msg.GetID(), "HYGROMETER_SENSOR", fields, vals, writeAPI)
+	case *common.MessageNamedValueFloat:
+		msgName = "NAMED_VALUE_FLOAT"
+
+		data["time_boot_ms"] = msg.TimeBootMs
+		data["name"] = msg.Name
+		data["value"] = msg.Value
 	}
 
 	// If we parsed a message then write it. Otherwise it can be ignored
 	if msgName != "" && len(data) != 0 {
-		Log.Infof("writing %s to influx", msgName)
 		err := c.influxdbClient.Write(msgName, msg.GetID(), data)
 		if err != nil {
 			Log.Errorf("Cannot write message %s to InfluxDB. Reason: %s", msgName, err.Error())
@@ -97,7 +136,7 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Nod
 // TODO: Check client for an update to a channel to know
 // when to upload mission and what the waypoints are.
 // Client has to have previously sent a MISSION_COUNT message to the plane
-func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame) {
+func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 	switch evt.Frame.GetMessage().(type) {
 	case *common.MessageMissionAck:
 		// TODO: save if mission upload suceeded/failed
@@ -120,7 +159,7 @@ func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame) {
 // See https://mavlink.io/en/services/mission.html#download_mission for details
 // on the entire mission downloading process.
 // TODO: Client has to have previously sent a MISSION_REQUEST_LIST message to the plane
-func (c *Client) handleMissionDownload(evt *gomavlib.EventFrame) {
+func (c *Client) handleMissionDownload(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 	switch evt.Frame.GetMessage().(type) {
 	case *common.MessageMissionCount:
 		// TODO: send MISSION_REQUEST_INT
@@ -133,7 +172,7 @@ func (c *Client) handleMissionDownload(evt *gomavlib.EventFrame) {
 
 // monitorMission will handle messages relating to the progress of the current mission
 // and which mission is currently on the plane.
-func (c *Client) monitorMission(evt *gomavlib.EventFrame) {
+func (c *Client) monitorMission(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 	switch evt.Frame.GetMessage().(type) {
 	case *common.MessageMissionItemReached:
 		// TODO: save to currMissionProgress

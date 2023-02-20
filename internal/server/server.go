@@ -371,8 +371,7 @@ func (server *Server) putMavlinkEndpoints() gin.HandlerFunc {
 			return
 		}
 
-		server.mavlinkClient.SetPlaneEndpoint(endpointData.Plane)
-		server.mavlinkClient.AddRouterEndpoints(endpointData.Router...)
+		server.mavlinkClient.UpdateEndpoints(endpointData.Plane, endpointData.Router)
 		c.String(http.StatusOK, "Updated mavlink endpoints")
 	}
 }

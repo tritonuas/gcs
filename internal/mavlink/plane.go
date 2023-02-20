@@ -1,7 +1,6 @@
 package mav
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -42,66 +41,49 @@ func (c *Client) StartMissionDownload() {
 // GetPlaneEndpoint will return a string represnetation of the plane's
 // mavlink endpoint. Example: "tcp:localhost:5760" or "serial:/dev/ttyUSB0"
 func (c *Client) GetPlaneEndpoint() (string, error) {
-	if c.planeEndpoint == nil {
-		return "", fmt.Errorf("no plane endpoint created")
-	}
-	return StringifyEndpoint(c.planeEndpoint)
-}
-
-// SetPlaneEndpoint will update the endpoint for the plane
-//
-// Parameters:
-//   - planeConnInfo: Format for TCP or UDP connections: "connType:address:port".
-//     Format for serial connections: "connType:address". Examples: "udp:localhost:14551", "tcp:192.168.1.7:14550", "serial:/dev/ttyUSB0"
-func (c *Client) SetPlaneEndpoint(planeConnInfo string) {
-	planeConnInfoSplit := strings.Split(planeConnInfo, ":")
-	c.planeConnType = planeConnInfoSplit[0]
-	c.planeAddress = strings.Join(planeConnInfoSplit[1:], ":")
-
-	planeEndpoint, err := NewEndpoint(strings.Join([]string{c.planeConnType, c.planeAddress}, ":"))
-	if err != nil {
-		Log.Errorf("could not create endpoint for connecting to plane. Reason: %s", err.Error())
-		return
-	}
-	c.planeEndpointMutex.Lock()
-	c.planeEndpoint = planeEndpoint
-	c.planeEndpointMutex.Unlock()
+	// TODO remove error type
+	return c.endpointConnInfo.Plane, nil
 }
 
 // verifyPlaneConnection will attempt to make a connection with the plane.
 // This function will hang until a connection is established.
 func (c *Client) verifyPlaneConnection() {
-	switch c.planeConnType {
+	planeConnSplit := strings.Split(c.endpointConnInfo.Plane, ":")
+
+	planeConnType := planeConnSplit[0]
+	planeAddress := strings.Join(planeConnSplit[1:], ":")
+
+	switch planeConnType {
 	case "serial":
 		for {
-			_, err := serial.Open(&serial.Config{Address: c.planeAddress})
+			_, err := serial.Open(&serial.Config{Address: planeAddress})
 			if err == nil {
 				c.connectedToPlane = true
-				Log.Infof("Successfully connected to plane at %s:%s", c.planeConnType, c.planeAddress)
+				Log.Infof("Successfully connected to plane at %s:%s", planeConnType, planeAddress)
 				return
 			}
 			c.connectedToPlane = false
-			Log.Warnf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...", c.planeAddress, planeConnRefreshTimer)
+			Log.Warnf("Connection to plane failed at serial port %s. Trying to establish connection again in %d seconds...", planeAddress, planeConnRefreshTimer)
 			time.Sleep(time.Duration(planeConnRefreshTimer) * time.Second)
 		}
 	case "tcp":
 		fallthrough
 	case "udp":
 		for {
-			_, err := net.Dial(c.planeConnType, c.planeAddress)
+			_, err := net.Dial(planeConnType, planeAddress)
 			if err == nil {
 				c.connectedToPlane = true
-				Log.Infof("Successfully connected to plane at %s:%s", c.planeConnType, c.planeAddress)
+				Log.Infof("Successfully connected to plane at %s:%s", planeConnType, planeAddress)
 				return
 			}
 			c.connectedToPlane = false
-			Log.Warnf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...", c.planeConnType, c.planeAddress, planeConnRefreshTimer)
+			Log.Warnf("Connection to plane failed at %s:%s. Trying to establish connection again in %d seconds...", planeConnType, planeAddress, planeConnRefreshTimer)
 			time.Sleep(time.Duration(planeConnRefreshTimer) * time.Second)
 		}
 
 	default:
 		c.connectedToPlane = false
-		Log.Errorf(`Invalid Mavlink plane connection type "%s" provided. Change the connection type to "udp", "tcp", or "serial"`, c.planeConnType)
+		Log.Errorf(`Invalid Mavlink plane connection type "%s" provided. Change the connection type to "udp", "tcp", or "serial"`, planeConnType)
 		// try again in a few seconds in the chance that the plane connection info has been updatd by the SetPlaneEndpoint method
 		time.Sleep(time.Duration(planeConnRefreshTimer) * time.Second)
 		c.verifyPlaneConnection()

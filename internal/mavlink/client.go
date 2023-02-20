@@ -2,7 +2,6 @@ package mav
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/aler9/gomavlib"
@@ -42,21 +41,19 @@ type Client struct {
 	connectedToPlane          bool
 	connectedToAntennaTracker bool
 
-	planeConnType      string // examples: "serial", "udp", "tcp"
-	planeAddress       string // examples: "/dev/ttyUSB0", "192.168.1.7:14550"
-	planeEndpoint      gomavlib.EndpointConf
-	planeEndpointMutex *sync.Mutex
+	endpointConnInfo EndpointData
 
-	routerEndpoints      []gomavlib.EndpointConf
-	routerEndpointsMutex *sync.Mutex
-
-	endpointsAltered bool
-
-	mavlinkNode        *gomavlib.Node
+	// mavlinkNode        *gomavlib.Node
 	eventFrameHandlers []EventFrameHandler
 
 	antennaTrackerIP   string
 	antennaTrackerPort string
+
+	endpointChangeChannel chan bool // Note: whether it is true/false does not make a difference. Any val signifies change.
+}
+
+func (c *Client) Kill() {
+	c.endpointChangeChannel <- false
 }
 
 // New creates a new mavlink client that can communicate with the plane and other mavlink devices (MissionPlanner/QGC)
@@ -71,13 +68,13 @@ type Client struct {
 func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTrackerPort string, planeConnInfo string, routerDevicesConnInfo ...string) *Client {
 	c := &Client{}
 
-	c.planeEndpointMutex = &sync.Mutex{}
-	c.routerEndpointsMutex = &sync.Mutex{}
-
-	c.SetPlaneEndpoint(planeConnInfo)
-	c.AddRouterEndpoints(routerDevicesConnInfo...)
-	// c.updateNode()
-	Log.Info(c.mavlinkNode)
+	actualRouterDevices := []string{}
+	for _, routerDeviceConnInfo := range routerDevicesConnInfo {
+		if routerDeviceConnInfo != "" {
+			actualRouterDevices = append(actualRouterDevices, routerDeviceConnInfo)
+		}
+	}
+	c.endpointConnInfo = EndpointData{Plane: planeConnInfo, Router: actualRouterDevices}
 
 	c.influxdbClient = influxdbClient
 
@@ -85,14 +82,16 @@ func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTracke
 	c.eventFrameHandlers = []EventFrameHandler{
 		(*Client).forwardEventFrame,
 		(*Client).writeMsgToInfluxDB,
-		// (*Client).handleMissionUpload,
-		// (*Client).handleMissionDownload,
-		// (*Client).monitorMission,
-		// (*Client).forwardToAntennaTracker,
+		(*Client).handleMissionUpload,
+		(*Client).handleMissionDownload,
+		(*Client).monitorMission,
+		(*Client).forwardToAntennaTracker,
 	}
 
 	c.antennaTrackerIP = antennaTrackerIP
 	c.antennaTrackerPort = antennaTrackerPort
+
+	c.endpointChangeChannel = make(chan bool, 1)
 
 	// verify the plane and antenna tracker connection in the background to prevent the current goroutine from
 	// blocking if the plane/antenna tracker isn't connected
@@ -116,26 +115,19 @@ func (c *Client) IsConnectedToAntennaTracker() bool {
 // These events can include frames from the plane or other devices that
 // send Mavlink packets.
 func (c *Client) Listen() {
-	// for c.mavlinkNode == nil {
-	// 	Log.Error("Mavlink node has not been created. Trying again in 5 seconds ...")
-	// 	time.Sleep(5 * time.Second)
-	// 	c.updateNode()
-	// }
-
-	loop := func(n *gomavlib.Node, killChan chan bool) {
+	loop := func(n *gomavlib.Node, killChan chan bool) bool {
+		Log.Info("Starting up new mavlink Listen loop")
 		for e := range n.Events() {
 			select {
-			case shouldKill := <-killChan:
-				if shouldKill {
-					return
-				}
+			case b := <-c.endpointChangeChannel:
+				return b
 			default:
+				// Do nothing if the channel is empty
 			}
 			switch evt := e.(type) {
 			case *gomavlib.EventChannelOpen:
 				Log.Infof("Mavlink channel opened at %s", evt.Channel.Endpoint().Conf())
 			case *gomavlib.EventChannelClose:
-				Log.Infof("SUSSY %p", c.mavlinkNode)
 				Log.Infof("Mavlink channel closed at %s", evt.Channel.Endpoint().Conf())
 			case *gomavlib.EventFrame:
 				for _, handler := range c.eventFrameHandlers {
@@ -143,12 +135,23 @@ func (c *Client) Listen() {
 				}
 			}
 		}
+		return false
 	}
 
 	for {
-		killChannel := make(chan bool, 1)
+		planeEndpoint, _ := NewEndpoint(c.endpointConnInfo.Plane)
+
+		routerEndpoints := make([]gomavlib.EndpointConf, 0)
+		for _, endptStr := range c.endpointConnInfo.Router {
+			endpt, err := NewEndpoint(endptStr)
+			if err != nil {
+				continue
+			}
+			routerEndpoints = append(routerEndpoints, endpt)
+		}
+
 		node, err := gomavlib.NewNode(gomavlib.NodeConf{
-			Endpoints:           append(c.routerEndpoints, c.planeEndpoint),
+			Endpoints:           append(routerEndpoints, planeEndpoint),
 			Dialect:             common.Dialect,
 			OutVersion:          gomavlib.V2,
 			OutSystemID:         systemID,
@@ -158,59 +161,19 @@ func (c *Client) Listen() {
 
 		if err != nil {
 			Log.Errorf("%s. Reason: %s", errCreatingNode.Error(), err.Error())
+			Log.Infof("Waiting %d seconds before retrying Mav connection", planeConnRefreshTimer)
+			time.Sleep(time.Second * time.Duration(planeConnRefreshTimer))
+			continue
 		}
 
-		go loop(node, killChannel)
-
-		for !c.endpointsAltered {
-			time.Sleep(time.Second / 2)
+		if !loop(node, c.endpointChangeChannel) {
+			return
 		}
-		killChannel <- true
 	}
 }
 
-func (c *Client) updateEndpoints(planeEndpoint string, routerEndpoints []string) {
-	// TODO return error
-	c.planeEndpoint, _ = NewEndpoint(planeEndpoint)
-
-	c.routerEndpoints = make([]gomavlib.EndpointConf, 0)
-	for _, endptStr := range routerEndpoints {
-		endpt, _ := NewEndpoint(endptStr)
-		c.routerEndpoints = append(c.routerEndpoints, endpt)
-	}
-
-	c.endpointsAltered = true
+func (c *Client) UpdateEndpoints(planeEndpoint string, routerEndpoints []string) {
+	c.endpointConnInfo.Plane = planeEndpoint
+	c.endpointConnInfo.Router = routerEndpoints
+	c.endpointChangeChannel <- true
 }
-
-// updateNode will create a new mavlink node and set it in the client.
-// The node can be used to receive/send frames to various endpoints
-// func (c *Client) updateNode() {
-// 	endpoints := make([]gomavlib.EndpointConf, len(c.routerEndpoints)+1)
-
-// 	// lock access to planeEndpoint and routerEndpoints to avoid them being
-// 	// modified while we're copying them to be used in the new node
-// 	c.routerEndpointsMutex.Lock()
-// 	c.planeEndpointMutex.Lock()
-// 	copy(endpoints, append(c.routerEndpoints, c.planeEndpoint))
-// 	c.planeEndpointMutex.Unlock()
-// 	c.routerEndpointsMutex.Unlock()
-
-// 	Log.Info("ENDPOINTS")
-// 	for _, e := range endpoints {
-// 		Log.Info(e)
-// 	}
-
-// 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
-// 		Endpoints:           append(c.routerEndpoints, c.planeEndpoint),
-// 		Dialect:             common.Dialect,
-// 		OutVersion:          gomavlib.V2,
-// 		OutSystemID:         systemID,
-// 		OutComponentID:      componentID,
-// 		StreamRequestEnable: true,
-// 	})
-// 	if err != nil {
-// 		Log.Errorf("%s. Reason: %s", errCreatingNode.Error(), err.Error())
-// 	}
-// 	c.mavlinkNode = node
-// 	Log.Infof("SUSSY1 %p", c.mavlinkNode)
-// }
