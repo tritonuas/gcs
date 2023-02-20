@@ -154,7 +154,7 @@ func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame, node *gomavlib.No
 // handleBatteryUpdate stores the most recent recorded voltage for each battery in the
 // client's battery map
 func (c *Client) handleBatteryUpdate(evt *gomavlib.EventFrame, node *gomavlib.Node) {
-	switch msg := evt.Frame.GetMessage().(type) {
+	switch msg := evt.Frame.GetMessage().(type) { //nolint: gocritic
 	case *common.MessageBatteryStatus:
 		if msg.BatteryRemaining != 0 { // hacky fix to wierd battery voltage behavior we're seeing
 			c.LatestBatteryInfo[msg.Id] = int(msg.Voltages[0])
