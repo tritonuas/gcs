@@ -76,8 +76,6 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Nod
 
 	case *common.MessageBatteryStatus:
 		msgName = "BATTERY_STATUS"
-		Log.Info("BATTERY_STATUS", msg)
-
 		data["id"] = uint64(msg.Id)
 		data["temperature"] = int64(msg.Temperature)
 		// data["voltages"] = msg.Voltages
@@ -93,7 +91,15 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Nod
 		data["mode"] = int64(msg.Mode)
 		data["fault_bitmask"] = int64(msg.FaultBitmask)
 
-		Log.Info("BATTERY_STATUS", data)
+	case *common.MessageHeartbeat:
+		msgName = "HEARTBEAT"
+
+		data["type"] = msg.Type
+		data["autopilot"] = msg.Autopilot
+		data["base_mode"] = msg.BaseMode
+		data["custom_mode"] = msg.CustomMode
+		data["system_status"] = msg.SystemStatus
+		data["mavlink_version"] = msg.MavlinkVersion
 
 	// case *common.MessageHygrometerSensor:
 	// 	fields := []string{"id", "temperature", "humidity"}
