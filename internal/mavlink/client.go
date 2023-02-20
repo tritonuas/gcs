@@ -52,6 +52,7 @@ type Client struct {
 	endpointChangeChannel chan bool // Note: whether it is true/false does not make a difference. Any val signifies change.
 }
 
+// Kill kills Listen
 func (c *Client) Kill() {
 	c.endpointChangeChannel <- false
 }
@@ -139,7 +140,8 @@ func (c *Client) Listen() {
 	}
 
 	for {
-		planeEndpoint, _ := NewEndpoint(c.endpointConnInfo.Plane)
+		// TODO: handle errors properly in this loop
+		planeEndpoint, _ := NewEndpoint(c.endpointConnInfo.Plane) //nolint: errcheck
 
 		routerEndpoints := make([]gomavlib.EndpointConf, 0)
 		for _, endptStr := range c.endpointConnInfo.Router {
@@ -172,6 +174,7 @@ func (c *Client) Listen() {
 	}
 }
 
+// UpdateEndpoints updates mavilnk endpoints
 func (c *Client) UpdateEndpoints(planeEndpoint string, routerEndpoints []string) {
 	c.endpointConnInfo.Plane = planeEndpoint
 	c.endpointConnInfo.Router = routerEndpoints
