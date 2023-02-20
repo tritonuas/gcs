@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
 	"github.com/tritonuas/hub/internal/influxdb"
+	"github.com/tritonuas/hub/internal/manager"
 	mav "github.com/tritonuas/hub/internal/mavlink"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
@@ -31,6 +32,7 @@ type Server struct {
 	FlightBounds        []Coordinate
 	AirDropBounds       []Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
+	Manager             *manager.Manager
 }
 
 /*
@@ -52,32 +54,45 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-/*
-Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
+func (server *Server) initFrontend(router *gin.Engine) {
+	const HoustonPath = "../houston2"
+	// TODO: move this to Server.New which takes in value of houston path environment variable
 
-General route format is "/place/thing".
-*/
-func (server *Server) SetupRouter() *gin.Engine {
-	router := gin.Default()
-	router.Use(CORSMiddleware())
+	router.StaticFile("/", fmt.Sprintf("%s/index.html", HoustonPath))
+	router.Static("/html", fmt.Sprintf("%s/html", HoustonPath))
+	router.Static("/js", fmt.Sprintf("%s/js", HoustonPath))
+	router.Static("/css", fmt.Sprintf("%s/css", HoustonPath))
+	router.Static("/images", fmt.Sprintf("%s/images", HoustonPath))
+	router.Static("/fonts", fmt.Sprintf("%s/fonts", HoustonPath))
+	router.Static("/packages", fmt.Sprintf("%s/packages", HoustonPath))
+}
 
-	router.GET("/connections", server.testConnections())
+func (server *Server) initBackend(router *gin.Engine) {
+	router.GET("/api/connections", server.testConnections())
 
-	router.POST("/obc/targets", server.postOBCTargets())
+	router.POST("/api/obc/targets", server.postOBCTargets())
 
-	router.GET("/hub/time", server.getTimeElapsed())
-	router.POST("/hub/time", server.startMissionTimer())
+	router.GET("/api/hub/time", server.getTimeElapsed())
+	router.POST("/api/hub/time", server.startMissionTimer())
 
-	router.POST("/plane/airdrop", server.uploadDropOrder())
-	router.GET("/plane/airdrop", server.getDropOrder())
-	router.PATCH("/plane/airdrop", server.updateDropOrder())
+	router.GET("/api/hub/state", server.getState())
+	router.POST("/api/hub/state", server.changeState())
+	router.GET("/api/hub/state/time", server.getStateStartTime())
+	router.GET("/api/hub/state/history", server.getStateHistory())
+
+	router.POST("/api/plane/airdrop", server.uploadDropOrder())
+	router.GET("/api/plane/airdrop", server.getDropOrder())
+	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
 
 	/* Change field to flight */
-	router.GET("/mission/bounds/field", server.getFieldBounds())
-	router.POST("/mission/bounds/field", server.uploadFieldBounds())
+	router.GET("/api/mission/bounds/field", server.getFieldBounds())
+	router.POST("/api/mission/bounds/field", server.uploadFieldBounds())
 
-	router.GET("/mission/bounds/airdrop", server.getAirdropBounds())
-	router.POST("/mission/bounds/airdrop", server.uploadAirDropBounds())
+	router.GET("/api/mission/bounds/airdrop", server.getAirdropBounds())
+	router.POST("/api/mission/bounds/airdrop", server.uploadAirDropBounds())
+
+	router.POST("/api/cvs/targets", server.postCVSResults())
+	router.GET("/api/cvs/targets", server.getStoredCVSResults())
 
 	router.GET("/api/plane/telemetry/history", server.getTelemetryHistory())
 	router.GET("/api/plane/telemetry", server.getTelemetry())
@@ -87,9 +102,19 @@ func (server *Server) SetupRouter() *gin.Engine {
 
 	router.GET("/api/mavlink/endpoints", server.getMavlinkEndpoints())
 	router.PUT("/api/mavlink/endpoints", server.putMavlinkEndpoints())
+}
 
-	router.POST("/api/cvs/targets", server.postCVSResults())
-	router.GET("/api/cvs/targets", server.getStoredCVSResults())
+/*
+Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
+
+General route format is "/place/thing".
+*/
+func (server *Server) SetupRouter() *gin.Engine {
+	router := gin.Default()
+	router.Use(CORSMiddleware())
+
+	server.initFrontend(router)
+	server.initBackend(router)
 
 	return router
 }
@@ -109,6 +134,7 @@ Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if
 */
 func (server *Server) Start() {
 	router := server.SetupRouter()
+	server.Manager = manager.NewManager()
 
 	err := router.Run(":5000")
 	if err != nil {
@@ -415,6 +441,57 @@ func (server *Server) startMissionTimer() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		server.MissionTime = time.Now().Unix()
 		c.String(http.StatusOK, "Mission timer successfully started!")
+	}
+}
+
+/*
+Query Hub for the mission's current state
+*/
+func (server *Server) getState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, server.Manager.State.String())
+	}
+}
+
+/*
+Request a change to the mission's state
+The request will error with code 409 CONFLICT if it is an invalid state change
+*/
+func (server *Server) changeState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		stateJSON := manager.StateJSON{}
+		err := c.BindJSON(&stateJSON)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+
+		prevState := server.Manager.State
+		state := stateJSON.ToEnum()
+
+		if server.Manager.ChangeState(state) {
+			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
+		} else {
+			c.String(http.StatusConflict, fmt.Sprintf("Invalid state change: %s to %s.", prevState, state))
+		}
+	}
+}
+
+/*
+Returns the starting time of the current state in seconds since epoch
+*/
+func (server *Server) getStateStartTime() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, fmt.Sprintf("%d", server.Manager.GetCurrentStateStartTime()))
+	}
+}
+
+/*
+Returns the list of state changes that have occurred, with timestamps
+*/
+func (server *Server) getStateHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, server.Manager.HistoryJSON())
 	}
 }
 

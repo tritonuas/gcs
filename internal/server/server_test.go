@@ -58,7 +58,7 @@ func TestPostOBCTargets(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/obc/targets", tc.inputJSON)
+			req, err := http.NewRequest("POST", "/api/obc/targets", tc.inputJSON)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
@@ -79,7 +79,7 @@ func TestStartMissionTime(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, err := http.NewRequest("POST", "/hub/time", nil)
+	req, err := http.NewRequest("POST", "/api/hub/time", nil)
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -93,30 +93,25 @@ TODO: maybe add expected http return code to struct
 */
 func TestGetTimeElapsed(t *testing.T) {
 	testCases := []struct {
-		name        string
-		waitTime    float64
-		errorMargin float64
+		name     string
+		waitTime float64
 	}{
 		// querying the mission timer before it has been initialized should return an error
 		{
-			name:        "before timer start",
-			waitTime:    0.0,
-			errorMargin: 0.0,
+			name:     "before timer start",
+			waitTime: 0.0,
 		},
 		{
-			name:        "no wait",
-			waitTime:    0.0,
-			errorMargin: 0.01,
+			name:     "no wait",
+			waitTime: 0.0,
 		},
 		{
-			name:        "3 seconds",
-			waitTime:    3.0,
-			errorMargin: 0.01,
+			name:     "3 seconds",
+			waitTime: 3.0,
 		},
 		{
-			name:        "6 seconds",
-			waitTime:    6.0,
-			errorMargin: 0.01,
+			name:     "6 seconds",
+			waitTime: 6.0,
 		},
 	}
 
@@ -137,31 +132,32 @@ func TestGetTimeElapsed(t *testing.T) {
 			var err error
 
 			if tc.name == "before timer start" {
-				req, err = http.NewRequest("GET", "/hub/time", nil)
+				req, err = http.NewRequest("GET", "/api/hub/time", nil)
 				assert.Nil(t, err)
 
 				router.ServeHTTP(w, req)
 				assert.Equal(t, http.StatusBadRequest, w.Code)
 			} else {
-				req, err = http.NewRequest("POST", "/hub/time", nil)
+				req, err = http.NewRequest("POST", "/api/hub/time", nil)
 				assert.Nil(t, err)
 				router.ServeHTTP(w, req)
+				timer := time.Now()
 				time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
 				w = httptest.NewRecorder()
-				req, err = http.NewRequest("GET", "/hub/time", nil)
+				req, err = http.NewRequest("GET", "/api/hub/time", nil)
 				assert.Nil(t, err)
 				router.ServeHTTP(w, req)
 
 				assert.Equal(t, http.StatusOK, w.Code)
 
 				// will come out as "4.21423" or "0.00012"
-				durationStr := w.Body.String()
-				fmt.Println(durationStr)
-				durationFloat, strerr := strconv.ParseFloat(durationStr, 64)
+				unixTime, strerr := strconv.ParseInt(w.Body.String(), 10, 64)
+				fmt.Println(unixTime)
 				assert.Nil(t, strerr)
-
-				assert.LessOrEqual(t, durationFloat, tc.waitTime+tc.errorMargin)
+				assert.LessOrEqual(t, unixTime, timer.Unix())
+				t.Logf("Expected: %d\n", timer.Unix())
+				t.Logf("Actual: %d\n", unixTime)
 			}
 		})
 	}
@@ -228,7 +224,7 @@ func TestUploadDropOrder5ValidTargets(t *testing.T) {
 								}
 							]`)
 
-	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/api/plane/airdrop", bytes.NewReader(jsonData))
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -350,7 +346,7 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 								}
 							]`)
 
-	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/api/plane/airdrop", bytes.NewReader(jsonData))
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -361,7 +357,7 @@ func TestUploadDropOrderMultipleTimes(t *testing.T) {
 
 	w = httptest.NewRecorder()
 
-	req, err = http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData2))
+	req, err = http.NewRequest("POST", "/api/plane/airdrop", bytes.NewReader(jsonData2))
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -429,7 +425,7 @@ func TestGetDropOrderValidCheck(t *testing.T) {
 	jsonData = bytes.ReplaceAll(jsonData, []byte("\t"), []byte(""))
 	jsonData = bytes.ReplaceAll(jsonData, []byte(" "), []byte(""))
 
-	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/api/plane/airdrop", bytes.NewReader(jsonData))
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -438,7 +434,7 @@ func TestGetDropOrderValidCheck(t *testing.T) {
 
 	w = httptest.NewRecorder()
 
-	req, err = http.NewRequest("GET", "/plane/airdrop", nil)
+	req, err = http.NewRequest("GET", "/api/plane/airdrop", nil)
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -457,7 +453,7 @@ func TestGetDropOrderBeforeBottlesUploaded(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, err := http.NewRequest("GET", "/plane/airdrop", nil)
+	req, err := http.NewRequest("GET", "/api/plane/airdrop", nil)
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -526,7 +522,7 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 								}
 							]`)
 
-	req, err := http.NewRequest("POST", "/plane/airdrop", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/api/plane/airdrop", bytes.NewReader(jsonData))
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -545,7 +541,7 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 
 	w = httptest.NewRecorder()
 
-	req, err = http.NewRequest("PATCH", "/plane/airdrop", bytes.NewReader(singleBottleJSONData))
+	req, err = http.NewRequest("PATCH", "/api/plane/airdrop", bytes.NewReader(singleBottleJSONData))
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -607,7 +603,7 @@ func TestUploadFieldBounds(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/mission/bounds/field", tc.inputJSON)
+			req, err := http.NewRequest("POST", "/api/mission/bounds/field", tc.inputJSON)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
@@ -671,7 +667,7 @@ func TestUploadAirdropBounds(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/mission/bounds/airdrop", tc.inputJSON)
+			req, err := http.NewRequest("POST", "/api/mission/bounds/airdrop", tc.inputJSON)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
@@ -718,7 +714,7 @@ func TestGetFieldBounds(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", "/mission/bounds/field", nil)
+			req, err := http.NewRequest("GET", "/api/mission/bounds/field", nil)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
@@ -765,7 +761,7 @@ func TestGetAirDropBounds(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", "/mission/bounds/airdrop", nil)
+			req, err := http.NewRequest("GET", "/api/mission/bounds/airdrop", nil)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)

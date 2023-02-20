@@ -38,6 +38,8 @@ var ENVS = map[string]*string{
 	"DEBUG_MODE":           flag.String("debug", "False", "Boolean to determine logging mode"),
 	"ANTENNA_TRACKER_IP":   flag.String("antenna_tracker_ip", "192.168.1.9", "ip address of antenna tracker arduino"),
 	"ANTENNA_TRACKER_PORT": flag.String("antenna_tracker_port", "4000", "port of antenna tracker arduino"),
+  "HOUSTON_PATH":    flag.String("houston_path", "../houston2", "Path to Houston files"),
+
 }
 
 // setEnvVars will check for any hub related environment variables and
