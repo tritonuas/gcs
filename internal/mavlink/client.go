@@ -49,6 +49,8 @@ type Client struct {
 	antennaTrackerIP   string
 	antennaTrackerPort string
 
+	LatestBatteryInfo map[uint8]int
+
 	endpointChangeChannel chan bool // Note: whether it is true/false does not make a difference. Any val signifies change.
 }
 
@@ -79,6 +81,8 @@ func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTracke
 
 	c.influxdbClient = influxdbClient
 
+	c.LatestBatteryInfo = make(map[uint8]int)
+
 	// TODO: setup a method and route to modify the handlers
 	c.eventFrameHandlers = []EventFrameHandler{
 		(*Client).forwardEventFrame,
@@ -87,6 +91,7 @@ func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTracke
 		(*Client).handleMissionDownload,
 		(*Client).monitorMission,
 		(*Client).forwardToAntennaTracker,
+		(*Client).handleBatteryUpdate,
 	}
 
 	c.antennaTrackerIP = antennaTrackerIP

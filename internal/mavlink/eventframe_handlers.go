@@ -19,7 +19,6 @@ type EventFrameHandler func(*Client, *gomavlib.EventFrame, *gomavlib.Node)
 // forwardEventFrame forwards event frames to all other channels except the
 // channel the frame originated from
 func (c *Client) forwardEventFrame(evt *gomavlib.EventFrame, node *gomavlib.Node) {
-	Log.Info("ABOUT TO FORWARD")
 	node.WriteFrameExcept(evt.Channel, evt.Frame)
 }
 
@@ -33,7 +32,6 @@ func (c *Client) forwardMessage(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 // Mavlink message to InfluxDB (if it's one of the messages we want to store)
 // TODO: add signals board messages and anything else that seems useful
 func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Node) {
-	Log.Info("writing to INFLUX")
 	if !c.influxdbClient.IsConnected() {
 		return
 	}
@@ -144,6 +142,17 @@ func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame, node *gomavlib.No
 		// TODO: send MISSION_ITEM_INT back to plane channel
 	case *common.MessageMissionRequest:
 		// TODO: send MISSION_ITEM back to plane channel (deprecated)
+	}
+}
+
+// handleBatteryUpdate stores the most recent recorded voltage for each battery in the
+// client's battery map
+func (c *Client) handleBatteryUpdate(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+	switch msg := evt.Frame.GetMessage().(type) {
+	case *common.MessageBatteryStatus:
+		if msg.BatteryRemaining != 0 { // hacky fix to wierd battery voltage behavior we're seeing
+			c.LatestBatteryInfo[msg.Id] = int(msg.Voltages[0])
+		}
 	}
 }
 

@@ -100,6 +100,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 	router.GET("/api/plane/position/history", server.getPositionHistory())
 	router.GET("/api/plane/position", server.getPosition())
 
+	router.GET("/api/plane/voltage", server.getBatteryVoltages())
+
 	router.GET("/api/mavlink/endpoints", server.getMavlinkEndpoints())
 	router.PUT("/api/mavlink/endpoints", server.putMavlinkEndpoints())
 }
@@ -351,6 +353,13 @@ func (server *Server) getPosition() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, data[0])
+	}
+}
+
+// getBatteryVoltages retrieves the latest voltage information from the mavlink client
+func (server *Server) getBatteryVoltages() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, server.mavlinkClient.LatestBatteryInfo)
 	}
 }
 
