@@ -3,13 +3,17 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/hub/internal/cvs"
+	"github.com/tritonuas/hub/internal/influxdb"
 	"github.com/tritonuas/hub/internal/manager"
+	mav "github.com/tritonuas/hub/internal/mavlink"
 	"github.com/tritonuas/hub/internal/obc/airdrop"
 )
 
@@ -20,6 +24,8 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
+	influxDBClient      *influxdb.Client
+	mavlinkClient       *mav.Client
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
@@ -87,6 +93,17 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 	router.POST("/api/cvs/targets", server.postCVSResults())
 	router.GET("/api/cvs/targets", server.getStoredCVSResults())
+
+	router.GET("/api/plane/telemetry/history", server.getTelemetryHistory())
+	router.GET("/api/plane/telemetry", server.getTelemetry())
+
+	router.GET("/api/plane/position/history", server.getPositionHistory())
+	router.GET("/api/plane/position", server.getPosition())
+
+	router.GET("/api/plane/voltage", server.getBatteryVoltages())
+
+	router.GET("/api/mavlink/endpoints", server.getMavlinkEndpoints())
+	router.PUT("/api/mavlink/endpoints", server.putMavlinkEndpoints())
 }
 
 /*
@@ -102,6 +119,16 @@ func (server *Server) SetupRouter() *gin.Engine {
 	server.initBackend(router)
 
 	return router
+}
+
+// New will initialize a server struct and populate fields with their initial state
+func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client) Server {
+	server := Server{}
+
+	server.influxDBClient = influxdbClient
+	server.mavlinkClient = mavlinkClient
+
+	return server
 }
 
 /*
@@ -124,7 +151,263 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"path_planning": true, "cvs": true, "jetson": true})
+		c.JSON(http.StatusOK, gin.H{
+			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
+			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker(),
+			"path_planning":   true,
+			"cvs":             true,
+			"jetson":          true})
+	}
+}
+
+// getTelemetryHistory gets the telemetry from a certain point in time until now.
+// Returns a list of messages. First element in the list is the one at the earliest time.
+// Each message JSON has a "_time" key that is the timestamp of that message.
+// Use query params to specify the message id or name, time range and message fields.
+//
+// Example URL: localhost:5000/api/plane/telemetry?id=33&range=5&fields=alt,hdg
+//
+// Note that only one of ID or name is required. If both are provided, it will
+// default to lookup the ID and ignore the name.
+//
+// URL Params:
+//   - id will be the mavlink message ID. Example: 33
+//   - name will be the mavlink message name. Example: "GLOBAL_POSITION_INT"
+//     A full list of mavlink message names and IDs can be found here
+//     http://mavlink.io/en/messages/common.html
+//   - range is the number of minutes to look back in the past for a message. Can be a floating point number.
+//   - fields are the fields of the mavlink message to return. If none are specified then
+//     all the fields are returned. The fields are separated by commas. Example: "alt,hdg"
+func (server *Server) getTelemetryHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		msgID := c.Query("id")
+		msgName := c.Query("name")
+		timeRange := c.Query("range")
+		fieldsSeparatedByCommas := c.Query("fields")
+
+		if timeRange == "" {
+			c.String(http.StatusBadRequest, "No time range provided")
+			return
+		}
+
+		timeRangeFloat, err := strconv.ParseFloat(timeRange, 32)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Non-numerical range provided")
+			return
+		}
+
+		fields := []string{}
+		if fieldsSeparatedByCommas != "" {
+			fields = strings.Split(fieldsSeparatedByCommas, ",")
+		}
+
+		if msgID != "" {
+			msgIDInt, err := strconv.Atoi(msgID)
+			if err != nil {
+				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
+			} else {
+				data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeFloat)*time.Minute, fields...)
+				if err != nil {
+					// TODO: have other types of errors (id does not exist for example)
+					c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+					return
+				}
+
+				c.JSON(http.StatusOK, data)
+				return
+			}
+		}
+
+		if msgName != "" {
+			data, err := server.influxDBClient.QueryMsgNameAndFields(msgName, time.Duration(timeRangeFloat)*time.Minute, fields...)
+			if err != nil {
+				// TODO: have other types of errors (name does not exist for example)
+				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+				return
+			}
+
+			c.JSON(http.StatusOK, data)
+			return
+		}
+
+		c.String(http.StatusBadRequest, "No message name or ID provided")
+	}
+}
+
+// getTelemetry gets the latest telemetry.
+// Use query params to specify the message id, name and message fields.
+//
+// Example URL: localhost:5000/api/plane/telemetry?id=33&range=5&fields=alt,hdg
+//
+// Note that only one of ID or name is required. If both are provided, it will
+// default to lookup the ID and ignore the name.
+//
+// URL Params:
+//   - id will be the mavlink message ID. Example: 33
+//   - name will be the mavlink message name. Example: "GLOBAL_POSITION_INT"
+//     A full list of mavlink message names and IDs can be found here
+//     http://mavlink.io/en/messages/common.html
+//   - fields are the fields of the mavlink message to return. If none are specified then
+//     all the fields are returned. The fields are separated by commas. Example: "alt,hdg".
+func (server *Server) getTelemetry() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		msgID := c.Query("id")
+		msgName := c.Query("name")
+		fieldsSeparatedByCommas := c.Query("fields")
+
+		fields := []string{}
+		if fieldsSeparatedByCommas != "" {
+			fields = strings.Split(fieldsSeparatedByCommas, ",")
+		}
+
+		if msgID != "" {
+			msgIDInt, err := strconv.Atoi(msgID)
+			if err != nil {
+				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
+				return
+			}
+
+			data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), 0, fields...)
+			if err != nil {
+				// TODO: have other types of errors (id does not exist for example)
+				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+				return
+			}
+
+			if len(data) == 0 {
+				c.String(http.StatusNotFound, "No telemetry found")
+				return
+			}
+
+			// only return the 0th index since data will always return a list with a single element if timeRange is 0
+			c.JSON(http.StatusOK, data[0])
+			return
+		}
+
+		if msgName != "" {
+			data, err := server.influxDBClient.QueryMsgNameAndFields(msgName, 0, fields...)
+			if err != nil {
+				// TODO: have other types of errors (name does not exist for example)
+				c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+				return
+			}
+
+			if len(data) == 0 {
+				c.String(http.StatusNotFound, "No telemetry found")
+				return
+			}
+
+			c.JSON(http.StatusOK, data[0])
+			return
+		}
+
+		c.String(http.StatusBadRequest, "No message name or ID provided")
+	}
+}
+
+// getPositionHistory gets the plane position from a certain point in the past.
+// Returns a list of position telemetry.
+//
+// Matches format of GLOBAL_POSITION_INT mavlink message.
+// https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT
+//
+// URL Params:
+//   - range is the number of minutes to look back in the past for a message. Can be a floating point number.
+func (server *Server) getPositionHistory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		timeRange := c.Query("range")
+
+		timeRangeFloat, err := strconv.ParseFloat(timeRange, 32)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Non-numerical range provided")
+			return
+		}
+
+		data, err := server.influxDBClient.QueryMsgID(33, time.Duration(timeRangeFloat)*time.Minute)
+		if err != nil {
+			// TODO: have other types of errors (id does not exist for example)
+			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+			return
+		}
+
+		c.JSON(http.StatusOK, data)
+	}
+}
+
+// getPosition gets the latest plane position.
+//
+// Matches format of GLOBAL_POSITION_INT mavlink message.
+// https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT
+func (server *Server) getPosition() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data, err := server.influxDBClient.QueryMsgID(33, 0)
+		if err != nil {
+			// TODO: have other types of errors (id does not exist for example)
+			c.String(http.StatusInternalServerError, "Error processing database query. Reason: %s", err)
+			return
+		}
+
+		if len(data) == 0 {
+			c.String(http.StatusNotFound, "No telemetry found")
+			return
+		}
+
+		c.JSON(http.StatusOK, data[0])
+	}
+}
+
+// getBatteryVoltages retrieves the latest voltage information from the mavlink client
+func (server *Server) getBatteryVoltages() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, server.mavlinkClient.LatestBatteryInfo)
+	}
+}
+
+// getMavlinkEndpoints responds with the mavlink endpoints that Hub is currently
+// communicating with. This includes the plane itself and devices that are receiving
+// mavlink messages through Hub's mavlink router.
+//
+// Will return an error if the plane endpoint has not been created yet.
+func (server *Server) getMavlinkEndpoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		planeEndpoint, err := server.mavlinkClient.GetPlaneEndpoint()
+		if err != nil {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		routerEndpoints := server.mavlinkClient.GetRouterEndpoints()
+		endpointData := mav.EndpointData{
+			Plane:  planeEndpoint,
+			Router: routerEndpoints,
+		}
+		c.JSON(http.StatusOK, endpointData)
+	}
+}
+
+// putMavlinkEndpoints will update the plane and router mavlink endpoints.
+//
+// The JSON body should match the mav.EndpointData struct.
+//
+// Example body:
+//
+//	{
+//			"plane": "serial:/dev/ttyUSB0",
+//			"router": [
+//						"udp:192.168.1.7:14551",
+//						"tcp:localhost:14550"
+//					  ]
+//	}
+func (server *Server) putMavlinkEndpoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		endpointData := mav.EndpointData{}
+		err := c.BindJSON(&endpointData)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		server.mavlinkClient.UpdateEndpoints(endpointData.Plane, endpointData.Router)
+		c.String(http.StatusOK, "Updated mavlink endpoints")
 	}
 }
 
@@ -139,9 +422,9 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 		if err == nil {
 			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData...)
 			c.String(http.StatusOK, "Accepted ODLC data")
-		} else {
-			c.String(http.StatusBadRequest, err.Error())
+			return
 		}
+		c.String(http.StatusBadRequest, err.Error())
 	}
 }
 

@@ -8,12 +8,13 @@ all: build run
 # --------------------------------------------------------------------
 .PHONY: install-linter
 install-linter:
+	# TODO: might as well just move this all to an install-linter script
 	$(info Installing golangci-lint for $(OS))
 	@if [ $(OS) = "Darwin" ] ; then\
 		brew install golangci-lint;\
 		brew upgrade golangci-lint;\
 	elif [ $(OS) = "Linux" ] ; then\
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1 ;\
+		./scripts/install-linter-linux.sh ;\
 	fi;\
 
 install-fmter:

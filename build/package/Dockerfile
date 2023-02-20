@@ -5,6 +5,7 @@ WORKDIR /build
 
 COPY . .
 
+
 # Build hub
 RUN go build
 
