@@ -54,6 +54,14 @@ make build-docker
 
 Note that running docker commands may require sudo. 
 
+### Assets
+
+Most of the assets that Houston serves (from the static directory) are already included in the repo. However, some of the files are more larger and more... interesting, which bloat the repo size. To pull these, run the following command (with internet connection).
+
+```
+make install-assets
+```
+
 ## Run
 
 ``` sh
