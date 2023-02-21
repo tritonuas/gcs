@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Triton GCS</title>
+
+	<link href="../css/global.css" rel="stylesheet" media="screen"/>
+	<link href="../css/mission-input.css" rel="stylesheet" media="screen"/>
+
+    <script type="module" src="../js/navbar.js"></script>
+    <script type="module" src="../js/tuas-map.js"></script>
+    <script type="module" src="../js/mission-input.js"></script>
+    <script type="module" src="../js/extendo-form.js"></script>
+</head>
+
+<body>
+    <nav-bar></nav-bar>
+
+	<template id="color-template">
+		<select>
+			<option value="white">White</option>
+			<option value="black">Black</option>
+			<option value="gray">Gray</option>
+			<option value="red">Red</option>
+			<option value="blue">Blue</option>
+			<option value="green">Green</option>
+			<option value="yellow">Yellow</option>
+			<option value="purple">Purple</option>
+			<option value="brown">Brown</option>
+			<option value="orange">Orange</option>
+		</select>
+	</template>
+
+	<template id="shape-template">
+		<select>
+			<option value="circle">circle</option>
+			<option value="semicircle">semicircle</option>
+			<option value="quartercircle">quartercircle</option>
+			<option value="triangle">triangle</option>
+			<option value="square">square</option>
+			<option value="rectangle">rectangle</option>
+			<option value="trapezoid">trapezoid</option>
+			<option value="pentagon">pentagon</option>
+			<option value="hexagon">hexagon</option>
+			<option value="heptagon">heptagon</option>
+			<option value="octagon">octagon</option>
+			<option value="star">star</option>
+			<option value="cross">cross</option>
+		</select>
+	</template>
+
+	<main>
+		<section id="left-section">
+			<tuas-map id="input-map" width="50rem" height="30rem" data-zoom="16" data-max-zoom="18" ></tuas-map>
+			<form id="map-input-form">
+				<fieldset>
+					<legend>Map Input</legend>
+					<div class="flex-right">
+						<div>
+							<label for="waypoints-input" id="waypoints-label">Waypoints</label>
+							<input type="radio" name="map-mode" id="waypoints-input" value="waypoints" checked>
+						</div>
+						<div>
+							<label for="boundaries-input" id="boundaries-label">Boundaries</label>
+							<input type="radio" name="map-mode" id="boundaries-input" value="boundaries">
+						</div>
+						<div>
+							<label for="search-input" id="search-label">Search</label>
+							<input type="radio" name="map-mode" id="search-input" value="search">
+						</div>
+					</div>
+					<div class="flex-right">
+						<input id="map-clear-btn" type="button" value="Clear Selected">
+						<input id="map-pull-btn" type="button" value="Pull Map Values">
+						<input id="map-move-btn" type="button" value="Set Location">
+					</div>
+				</fieldset>
+			</form>
+			<form id="bottle-form" method="POST" action="/">
+				<fieldset id="bottle-form-fieldset">
+					<legend>Bottle Ordering</legend>
+
+					<fieldset id="bottleA-fieldset">
+						<legend>Bottle A</legend>
+						<input class="alphanumeric" data-letter="A" name="bottleA-alphanumeric" type="text" maxlength="1">
+					</fieldset>
+					<!-- the javascript will automatically insert the shape and color dropdowns correspondingly after each bottle input-->
+					<fieldset id="bottleB-fieldset">
+						<legend>Bottle B</legend>
+						<input class="alphanumeric" data-letter="B" name="bottleB-alphanumeric" type="text" maxlength="1">
+					</fieldset>
+					<fieldset id="bottleC-fieldset">
+						<legend>Bottle C</legend>
+						<input class="alphanumeric" data-letter="C" name="bottleC-alphanumeric" type="text" maxlength="1">
+					</fieldset>
+					<fieldset id="bottleD-fieldset">
+						<legend>Bottle D</legend>
+						<input class="alphanumeric" data-letter="D" name="bottleD-alphanumeric" type="text" maxlength="1">
+					</fieldset>
+					<fieldset id="bottleE-fieldset">
+						<legend>Bottle E</legend>
+						<input class="alphanumeric" data-letter="E" name="bottleE-alphanumeric" type="text" maxlength="1">
+					</fieldset>
+
+					<fieldset>
+						<label for="mannequin">Mannequin?</label>
+						<select name="mannequin" id="mannequin-select">
+							<option value="" selected>None</option>
+							<option value="A">A</option>
+							<option value="B">B</option>
+							<option value="C">C</option>
+							<option value="D">D</option>
+							<option value="E">E</option>
+						</select>
+						<input type="submit" id="bottle-submit-btn">
+					</fieldset>
+
+				</fieldset>
+			</form>
+		</section>
+		<section id="right-section">
+			<extendo-form id="extendo-waypoints" data-label="Waypoints"  data-val1="latitude" data-val2="longitude" data-val3="altitude"></extendo-form>
+			<extendo-form style="display: none" id="extendo-boundaries" data-label="Flight Boundaries" data-val1="latitude" data-val2="longitude"></extendo-form>
+			<extendo-form style="display: none" id="extendo-search" data-label="Search Zone" data-val1="latitude" data-val2="longitude"></extendo-form>
+		</section>
+	</main>
+
+</body>
+</html>

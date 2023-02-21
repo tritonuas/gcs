@@ -1,0 +1,58 @@
+
+nav {
+    padding: 10px 0px;
+    background-color: darkblue;
+    top: 0;
+    position: sticky;
+    border: black solid 1px;
+    z-index: 99999;
+    box-shadow: 0 0.1em 0.5em 0.1em white;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    z-index: 99999;
+}
+
+li {
+    display: inline-block;
+    z-index: 99999;
+}
+
+a {
+    padding: 10px;
+    background-color: darkblue;
+    text-decoration: none;
+    color: white;
+    transition: background-color .3s;
+    z-index: 99999;
+}
+
+a:hover {
+    background-color: blue;
+    z-index: 99999;
+}
+
+.logo {
+    background-image: url("../images/duck.png");
+    width: 64px;
+    height: 38px;
+    float: right;
+    margin-right: 13px;
+}
+
+@keyframes hover {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.follow {
+    position: absolute;
+    animation: hover 3s ease-in-out infinite;
+}

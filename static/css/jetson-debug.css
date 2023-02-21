@@ -1,0 +1,14 @@
+image-gallery {
+    text-align: center;
+    padding: 1em;
+    margin: 1em;
+    display: block;
+    float:right;
+    background-color: white;
+    border: 3px solid black;
+    border-radius: 10px;
+}
+
+form {
+    float: left;
+}

@@ -1,0 +1,107 @@
+#match-section {
+    width: fit-content;
+    max-width: fit-content;
+    height: fit-content;
+    text-align: center;
+    background-image: linear-gradient(0deg, white 0%, rgb(160, 199, 254) 74%);
+    border-left: 1px solid white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#match-list {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: fit-content;
+    height: fit-content;
+}
+
+.match-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    max-width: fit-content;
+    width: fit-content;
+}
+
+main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+#right-column {
+    text-align: center;
+    background: darkblue;
+
+    display: flex;
+    flex-direction: column;
+    max-width: 40%;
+    min-width: 40%;
+    position: sticky;
+    top: 1.5em;
+    margin: 0;
+    padding: 0;
+
+    padding-bottom: 1.5em;
+    border-right: 1px solid white;
+    border-left: 1px solid white;
+}
+
+#reassign-form {
+    width: fit-content;
+    max-width: 40%;
+    padding: 0;
+    margin: 0;
+    align-self: center;
+}
+
+#manual-operator-output {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.bottle-reassignment-fieldset {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    max-width: fit-content;
+    border: none;
+}
+
+.bottle-reassignment-fieldset input[type="text"] {
+    width: 2em;
+    max-width: 2em;
+}
+
+swipe-gallery {
+    margin: 0;
+    padding: 0;
+}
+
+swipe-gallery input[type="button"] {
+    border-width: .1em;
+    border-color: white;
+    height: 2em;
+}
+
+.swipe-gallery-left {
+    position: relative;
+    left: 10%;
+    z-index: 1000;
+}
+
+.swipe-gallery-right{
+    position: relative;
+    right: 10%;
+    z-index: 1000;
+}

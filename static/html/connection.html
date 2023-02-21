@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Triton GCS</title>
+
+	<link href="../css/global.css" rel="stylesheet" media="screen"/>
+	<link href="../css/connection.css" rel="stylesheet" media="screen"/>
+
+    <script type="module" src="../js/navbar.js"></script>
+    <script type="module" src="../js/grow-box.js"></script>
+    <script type="module" src="../js/connection.js"></script>
+    <script type="module" src="../js/extendo-form.js"></script>
+</head>
+
+<body>
+    <nav-bar></nav-bar>
+
+	<main>
+		<section id="connection-section">
+			<output id="conn-status">
+				<p>Attempting to establish connection...</p>
+			</output>	
+
+			<grow-box>
+				<grow-btn data-on="Debug: On" data-off="Debug: Off"></grow-btn>
+				<form action="/" method="POST" id="hub-info-form">
+					<fieldset>
+						<legend>Hub Connection</legend>
+
+						<label for="hub-ip">IP</label>
+						<input type="text" name="hub-ip" id="hub-ip">
+
+						<label for="hub-port">Port</label>
+						<input type="text" name="hub-port" id="hub-port">
+
+						<button>Save</button>
+					</fieldset>
+				</form>
+			</grow-box>
+
+			<div style="display: flex; flex-direction: row; flex-wrap: wrap;">
+				<form id="mavlink-plane-form">
+					<fieldset>
+						<legend>Plane Endpoint</legend>
+						<input id="plane-ip-input" name="plane-ip" class="tupleinput" type="text" placeholder="Plane Ip">
+					</fieldset>
+				</form>
+				<extendo-form id="mavlink-eform" data-label="Mavlink Endpoints" data-val1="ip"></extendo-form>
+			</div>
+		</section>
+
+	</main>
+</body>
+</html>

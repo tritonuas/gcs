@@ -1,0 +1,31 @@
+div {
+    display: inline-block;
+    text-align:left;
+    margin: 1rem;
+    background-color: darkblue;
+    color: white;
+    border-radius: 16px;
+
+    transition: background-color .5s;
+    width: 400px;
+    height: 650px;
+}
+
+div:hover {
+    background-color: blue;
+}
+
+img {
+    padding: 1rem;
+    border-radius: 15%;
+
+    /* Make sure the image is still the right size when no image found */
+    display: block;
+    overflow: hidden;
+}
+
+ul {
+    border-top: 2px solid white;
+    padding-top: 1rem;
+    list-style-type: none;
+}
