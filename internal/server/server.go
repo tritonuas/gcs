@@ -10,11 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
-	"github.com/tritonuas/hub/internal/cvs"
-	"github.com/tritonuas/hub/internal/influxdb"
-	"github.com/tritonuas/hub/internal/manager"
-	mav "github.com/tritonuas/hub/internal/mavlink"
-	"github.com/tritonuas/hub/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/cvs"
+	"github.com/tritonuas/gcs/internal/influxdb"
+	"github.com/tritonuas/gcs/internal/manager"
+	mav "github.com/tritonuas/gcs/internal/mavlink"
+	"github.com/tritonuas/gcs/internal/obc/airdrop"
 )
 
 // Log is the logger for the server

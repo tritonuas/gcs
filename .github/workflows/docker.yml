@@ -53,7 +53,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: tritonuas/hub
+          repository: tritonuas/gcs
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

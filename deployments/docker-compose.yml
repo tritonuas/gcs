@@ -29,7 +29,7 @@ services:
       - INFLUXDB_URI=http://localhost:8086
       - HUB_PATH=/go/src/github.com/tritonuas/hub
     volumes:
-      - missions:/go/src/github.com/tritonuas/hub/missions
+      - missions:/go/src/github.com/tritonuas/gcs/missions
     extra_hosts:
       - host.docker.internal:host-gateway
       

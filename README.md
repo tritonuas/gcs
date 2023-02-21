@@ -1,8 +1,8 @@
 # gcs
 
-[![Linting](https://github.com/tritonuas/hub/workflows/Linting/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ALinting)
-[![Tests](https://github.com/tritonuas/hub/workflows/Tests/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ATests)
-[![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
+[![Linting](https://github.com/tritonuas/gcs/workflows/Linting/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ALinting)
+[![Tests](https://github.com/tritonuas/gcs/workflows/Tests/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ATests)
+[![Docker](https://github.com/tritonuas/gcs/workflows/Docker/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ADocker)
 
 **gcs** is TUAS's Ground Control Station. It serves as a webapp and is comprised of many smaller modules which all have their own functions. If you want to learn more about each part individually, you can click on the links below to go to its specific README. 
 

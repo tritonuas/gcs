@@ -1,4 +1,4 @@
-hub
+gcs
 *.env
 **/*.pb.go
 .vscode
