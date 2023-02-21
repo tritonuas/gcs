@@ -12,7 +12,7 @@ export function saveHubInfo(ip, port) {
 }
 
 export function getHubIp() {
-    let ip = localStorage.getItem('hub-ip');
+    let ip = sessionStorage.getItem('hub-ip');
     if (ip == null) {
         ip = "localhost"; 
     }
@@ -20,7 +20,7 @@ export function getHubIp() {
 }
 
 export function getHubPort() {
-    let port = localStorage.getItem('hub-port');
+    let port = sessionStorage.getItem('hub-port');
     if (port == null) {
         port = "5000";
     }

@@ -1,4 +1,4 @@
-import { alertDialog } from "./util.js";
+import { alertDialog, getRandomInt } from "./util.js";
 
 import * as L from "../packages/leaflet-src.esm.js";
 
@@ -263,7 +263,7 @@ class TuasMap extends HTMLElement {
             alertDialog('Error: Plane Location Lost', true).addEventListener('close', () => {
                 this.familyguy.style.display = 'flex';
                 this.familyguy.style.flexDirection = 'row';
-                this.familyguy.querySelectorAll('video').forEach((vid) => {vid.play()});
+                this.familyguy.querySelectorAll('video').forEach((vid) => {vid.currentTime = getRandomInt(0, vid.duration); vid.play()});
                 let map = this.shadow.querySelector("div.map");
                 map.style.display = 'none';
             });

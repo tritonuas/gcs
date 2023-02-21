@@ -38,7 +38,7 @@ build-docker:
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run run-docker run-compose stop-compose run-broach-compose
+.PHONY: run run-docker run-compose stop-compose run-broach-compose develop
 run: build
 	./hub 
 
@@ -56,6 +56,9 @@ run-broach-compose:
 	
 stop-broach-compose:
 	docker-compose -f deployments/broach-docker-compose.yml down
+
+develop:
+	make stop-compose && make build-docker && make run-compose
 
 # Testing
 # --------------------------------------------------------------------
