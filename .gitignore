@@ -3,3 +3,7 @@ hub
 **/*.pb.go
 .vscode
 influx_token.key
+*.mp4
+*.webm
+*.wav
+*.mp3

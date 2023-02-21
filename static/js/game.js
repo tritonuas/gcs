@@ -4,18 +4,12 @@ connectToLocationWorker();
 
 let titleMusic = new Audio('../music/title.webm');
 titleMusic.loop = true;
-let valiantMusic = new Audio('../music/valiant.webm');
-valiantMusic.loop = true;
 let normalMusic = new Audio('../music/normal.webm');
 normalMusic.loop = true;
 let intenseMusic = new Audio('../music/intense.webm');
 intenseMusic.loop = true;
-let finalMusic = new Audio('../music/final.webm');
-finalMusic.loop = true;
-let scaryMusic = new Audio('../music/scary.webm');
-scaryMusic.loop = true;
 
-let musics = [valiantMusic, normalMusic, intenseMusic, finalMusic, scaryMusic];
+let musics = [normalMusic, intenseMusic];
 
 let explosionSound = new Audio('../music/blow.wav');
 let dropSound = new Audio('../music/drop.wav');

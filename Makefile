@@ -20,6 +20,9 @@ install-linter:
 install-fmter:
 	go install golang.org/x/tools/cmd/goimports@latest
 
+install-assets:
+	./scripts/pull-large-assets.sh
+
 # Build
 # --------------------------------------------------------------------
 .PHONY: pre-build build install-dependencies configure-git build-go build-docker
