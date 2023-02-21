@@ -66,11 +66,11 @@ class TuasMap extends HTMLElement {
         this.familyguy = document.createElement('div');
         this.familyguy.innerHTML = `
             <video width="125%" height="${this.height}" loop>
-                <source src="../images/familyguy.mp4" type="video/mp4">
+                <source src="../videos/familyguy.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <video width="70%" height="${this.height}" loop>
-                <source src="../images/subway.mp4" type="video/mp4">
+                <source src="../videos/subway.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
         `;
