@@ -18,8 +18,6 @@ function setConnectionStatus(json) {
         json = {
             "hub": false
         };
-    } else {
-        json["hub"] = true;
     }
 
     output.innerHTML = "";
