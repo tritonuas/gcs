@@ -43,7 +43,7 @@ build-docker:
 # --------------------------------------------------------------------
 .PHONY: run run-docker run-compose stop-compose run-broach-compose develop
 run: build
-	./hub 
+	./gcs
 
 run-docker:
 	docker run -e --network=host --name hub tritonuas/hub
