@@ -1,8 +1,8 @@
 # TODO: setup env variables https://docs.docker.com/compose/environment-variables/
 version: "3"
 services:
-  hub:
-    image: tritonuas/hub
+  gcs:
+    image: tritonuas/gcs
     ports:
       - 5000:5000
     environment:
@@ -24,9 +24,9 @@ services:
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
       - INFLUXDB_URI=http://influxdb:8086
-      - HUB_PATH=/go/src/github.com/tritonuas/hub
+      - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
-      - missions:/go/src/github.com/tritonuas/hub/missions
+      - missions:/go/src/github.com/tritonuas/gcs/missions
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     extra_hosts:

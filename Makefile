@@ -37,7 +37,7 @@ build-go:
 	go build
 
 build-docker:
-	docker build -t tritonuas/hub -f build/package/Dockerfile .
+	docker build -t tritonuas/gcs -f build/package/Dockerfile .
 
 # Run
 # --------------------------------------------------------------------
@@ -46,7 +46,7 @@ run: build
 	./gcs
 
 run-docker:
-	docker run -e --network=host --name hub tritonuas/hub
+	docker run -e --network=host --name gcs tritonuas/gcs
 
 run-compose:
 	docker-compose -f deployments/docker-compose.yml up -d

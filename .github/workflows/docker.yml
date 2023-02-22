@@ -8,7 +8,7 @@ on:
 
 jobs:
   # Build and Push hub
-  hub:
+  gcs:
     name: dockerhub build
     runs-on: ubuntu-latest
 
