@@ -7,7 +7,7 @@ import (
 	"github.com/aler9/gomavlib"
 	"github.com/aler9/gomavlib/pkg/dialects/common"
 	"github.com/sirupsen/logrus"
-	"github.com/tritonuas/hub/internal/influxdb"
+	"github.com/tritonuas/gcs/internal/influxdb"
 )
 
 // log is the logger for the mav package

@@ -1,11 +1,18 @@
-# Hub
+# gcs
 
-[![Linting](https://github.com/tritonuas/hub/workflows/Linting/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ALinting)
-[![Tests](https://github.com/tritonuas/hub/workflows/Tests/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ATests)
-[![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
+[![Linting](https://github.com/tritonuas/gcs/workflows/Linting/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ALinting)
+[![Tests](https://github.com/tritonuas/gcs/workflows/Tests/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ATests)
+[![Docker](https://github.com/tritonuas/gcs/workflows/Docker/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ADocker)
 
-Hub is a back-end web-server that facilitates communication between other
-modules in the TUAS system, including Computer Vision, Path Planning, and Houston (the frontend).
+**gcs** is TUAS's Ground Control Station. It serves as a webapp and is comprised of many smaller modules which all have their own functions. If you want to learn more about each part individually, you can click on the links below to go to its specific README. 
+
+Entries in bold indicate that it is a module which we implement.
+
+- **[Hub](/internal/README.md): A back-end (written in Go) that facilitates the communication between all the different components of the entire TUAS ecosystem. This includes the [OBC](), [CVS](https://github.com/tritonuas/computer-vision-server), [Antenna Tracker](https://github.com/tritonuas/antenna-tracker). It also serves as the central node between all of The Skeld's internal parts, which are listed below.**
+- **[Houston](/static/README.md): A front-end (written in vanilla HTML/CSS/JavaScript). This provides the user interface to interact with Hub.**
+- InfluxDB: A database to which Hub saves plane telemetry data.
+- Grafana: A third-party front-end interface we use to display dashboards for data stored in InfluxDB. While Houston does include a dashboard for the most important information, Grafana is much more flexible to view any arbitrary telemetry data.
+- SITL: A simulation for the plane so we can test the system with fake telemetry data.
 
 ## Dependencies
 
@@ -38,26 +45,34 @@ make install-fmter
 ## Build
 
 ``` sh
-# Build local hub executable
+# Build local gcs executable
 make build
 
-# Build Docker image
+# Build Docker image for gcs 
 make build-docker
 ```
 
 Note that running docker commands may require sudo. 
 
+### Assets
+
+Most of the assets that Houston serves (from the static directory) are already included in the repo. However, some of the files are more larger and more... interesting, which bloat the repo size. To pull these, run the following command (with internet connection).
+
+```
+make install-assets
+```
+
 ## Run
 
 ``` sh
-# Run hub with testuser locally
+# Run gcs with testuser locally
 make run
 
-# Run docker image of hub
+# Run docker image of gcs 
 make run-docker
 ```
 
-Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot)
+Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
 ``` sh
 make run-compose
 ```
@@ -68,17 +83,11 @@ make run-compose
 make stop-compose
 ```
 
-## Ports and Stuff
-
-When running [houston2](https://github.com/tritonuas/houston2), you will need to enter the IP of Hub. This can be found by running the following
-command when you are running Hub as a docker container.
-
-```sh
-# find IP of hub
-docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
+### Shortcuts
+``` sh
+# stop compose, then rebuild hub, then restart compose
+make develop
 ```
-
-If you are running Hub locally on your machine, then the IP is just `localhost` or `127.0.0.1`
 
 ## Test
 

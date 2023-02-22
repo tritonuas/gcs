@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tritonuas/hub/internal/obc/airdrop"
-	"github.com/tritonuas/hub/internal/server"
+	"github.com/tritonuas/gcs/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/server"
 )
 
 func TestPostOBCTargets(t *testing.T) {

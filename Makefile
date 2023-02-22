@@ -20,6 +20,9 @@ install-linter:
 install-fmter:
 	go install golang.org/x/tools/cmd/goimports@latest
 
+install-assets:
+	./scripts/pull-large-assets.sh
+
 # Build
 # --------------------------------------------------------------------
 .PHONY: pre-build build install-dependencies configure-git build-go build-docker
@@ -34,16 +37,16 @@ build-go:
 	go build
 
 build-docker:
-	docker build -t tritonuas/hub -f build/package/Dockerfile .
+	docker build -t tritonuas/gcs -f build/package/Dockerfile .
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run run-docker run-compose stop-compose run-broach-compose
+.PHONY: run run-docker run-compose stop-compose run-broach-compose develop
 run: build
-	./hub 
+	./gcs
 
 run-docker:
-	docker run -e --network=host --name hub tritonuas/hub
+	docker run -e --network=host --name gcs tritonuas/gcs
 
 run-compose:
 	docker-compose -f deployments/docker-compose.yml up -d
@@ -56,6 +59,9 @@ run-broach-compose:
 	
 stop-broach-compose:
 	docker-compose -f deployments/broach-docker-compose.yml down
+
+develop:
+	make stop-compose && make build-docker && make run-compose
 
 # Testing
 # --------------------------------------------------------------------

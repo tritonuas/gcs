@@ -8,7 +8,7 @@ on:
 
 jobs:
   # Build and Push hub
-  hub:
+  gcs:
     name: dockerhub build
     runs-on: ubuntu-latest
 
@@ -43,8 +43,8 @@ jobs:
           file: build/package/Dockerfile
           push: true
           tags: |
-            tritonuas/hub:latest
-            ghcr.io/tritonuas/hub:latest
+            tritonuas/gcs:latest
+            ghcr.io/tritonuas/gcs:latest
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.CR_PAT }}
 
@@ -53,7 +53,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: tritonuas/hub
+          repository: tritonuas/gcs
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

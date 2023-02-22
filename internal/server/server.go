@@ -10,11 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
-	"github.com/tritonuas/hub/internal/cvs"
-	"github.com/tritonuas/hub/internal/influxdb"
-	"github.com/tritonuas/hub/internal/manager"
-	mav "github.com/tritonuas/hub/internal/mavlink"
-	"github.com/tritonuas/hub/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/cvs"
+	"github.com/tritonuas/gcs/internal/influxdb"
+	"github.com/tritonuas/gcs/internal/manager"
+	mav "github.com/tritonuas/gcs/internal/mavlink"
+	"github.com/tritonuas/gcs/internal/obc/airdrop"
 )
 
 // Log is the logger for the server
@@ -55,16 +55,18 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func (server *Server) initFrontend(router *gin.Engine) {
-	const HoustonPath = "../houston2"
-	// TODO: move this to Server.New which takes in value of houston path environment variable
+	/*
+		The intuitive thing to do here would be to call router.Static("/", "/static") in order
+		to reroute all non api requests to the static folder. However, this doesn't work with
+		how Gin has its router implementation set up because it isn't able to tell the difference
+		between the catch all wildcard "/" and when a request is actually for "/api".
 
-	router.StaticFile("/", fmt.Sprintf("%s/index.html", HoustonPath))
-	router.Static("/html", fmt.Sprintf("%s/html", HoustonPath))
-	router.Static("/js", fmt.Sprintf("%s/js", HoustonPath))
-	router.Static("/css", fmt.Sprintf("%s/css", HoustonPath))
-	router.Static("/images", fmt.Sprintf("%s/images", HoustonPath))
-	router.Static("/fonts", fmt.Sprintf("%s/fonts", HoustonPath))
-	router.Static("/packages", fmt.Sprintf("%s/packages", HoustonPath))
+		Therefore, we are using this quick and dirty hack to achieve the same effect. Essentially,
+		this tells Gin that whenever it can't find a route to match the requested route, try to check
+		if it exists inside the static folder. If it exists there, then we serve it. If not, then it is
+		still a 404.
+	*/
+	router.NoRoute(gin.WrapH(http.FileServer(gin.Dir("static", false))))
 }
 
 func (server *Server) initBackend(router *gin.Engine) {
@@ -115,8 +117,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
 
-	server.initFrontend(router)
 	server.initBackend(router)
+	server.initFrontend(router)
 
 	return router
 }
@@ -152,11 +154,10 @@ TODO: Actually test the connections instead of just returning True.
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
-			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker(),
-			"path_planning":   true,
 			"cvs":             true,
-			"jetson":          true})
+			"plane_obc":       true,
+			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
+			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker()})
 	}
 }
 

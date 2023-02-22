@@ -1,4 +1,4 @@
-module github.com/tritonuas/hub
+module github.com/tritonuas/gcs
 
 go 1.19
 

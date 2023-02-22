@@ -6,7 +6,7 @@ WORKDIR /build
 COPY . .
 
 
-# Build hub
+# Build gcs
 RUN go build
 
-CMD ["./hub"]
+CMD ["./gcs"]
