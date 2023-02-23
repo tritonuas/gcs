@@ -17,7 +17,7 @@ var Log = logrus.New()
 // change name of Client since it might mess with the inheritance for the other clients
 type Client struct {
 	client  *http.Client
-	urlBase     string
+	urlBase string
 	timeout int
 }
 
@@ -45,7 +45,7 @@ func (c *Client) IsConnected() (bool, string) {
 func NewClient(urlBase string, timeout int) *Client {
 	client := &Client{
 
-		url:     "http://" + urlBase,
+		urlBase: "http://" + urlBase,
 		timeout: timeout,
 	}
 

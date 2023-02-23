@@ -1,7 +1,7 @@
 package obc
 
 import (
-	"github.com/tritonuas/hub/internal/utils"
+	"github.com/tritonuas/gcs/internal/utils"
 )
 
 type Client struct {
@@ -13,7 +13,7 @@ type Client struct {
 func NewClient(urlBase string, timeout int) *Client {
 	client := &Client{
 
-		url:     "http://" + urlBase,
+		urlBase: "http://" + urlBase,
 		timeout: timeout,
 	}
 
