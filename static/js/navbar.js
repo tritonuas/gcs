@@ -1,4 +1,4 @@
-import {important} from "./util.js"
+import {getRandomInt, important} from "./util.js"
 
 function getNavSection(page, text, isDefault=false) {
     // Create the right a tag
@@ -29,14 +29,14 @@ class Navbar extends HTMLElement {
         important();
 
         // Set up the Shadow dom
-        const shadow = this.attachShadow({mode: 'open'});
+        this.shadow = this.attachShadow({mode: 'open'});
 
         const nav = document.createElement('nav');
         const ul = document.createElement('ul');
         const link = document.createElement('link');
         link.setAttribute('rel', 'stylesheet');
         link.setAttribute('href', '../css/navbar.css');
-        shadow.appendChild(link);
+        this.shadow.appendChild(link);
         nav.appendChild(ul);
 
         /*
@@ -67,7 +67,37 @@ class Navbar extends HTMLElement {
         ul.appendChild(getNavSection('mission-report.html',  'Report'));
         ul.appendChild(getNavSection('jetson-debug.html',  'Jetson'));
 
-        shadow.appendChild(nav);
+        this.shadow.appendChild(nav);
+    }
+
+    connectedCallback() {
+        setInterval(() => {
+            if (Math.random() < 0.001 && document.hasFocus()) {
+                const SWARM_COUNT = 10;
+                let numPlanes = 0;
+
+                let swarmInterval = setInterval(() => {
+                    let plane = document.createElement('img');
+                    plane.src='../images/plane.gif';
+                    plane.width="16px";
+                    plane.height="16px";
+                    plane.style = `
+                        z-index: 1000; top: ${getRandomInt(0, screen.availHeight)}px;
+                        animation-name: fly; animation-duration: ${getRandomInt(5,20)}s; animation-timing-function: linear;
+                        position: absolute; display: block; width: 32px; height: 32px;`
+                        ;
+                    let body = document.getElementsByTagName('body')[0];
+                    body.appendChild(plane);
+                    plane.addEventListener('animationend', () => {
+                        body.removeChild(plane);
+                    })
+                    numPlanes++;
+                    if (numPlanes > SWARM_COUNT) {
+                        clearInterval(swarmInterval);
+                    }
+                }, 100);
+            }
+        }, 1000);
     }
 }
 

@@ -41,7 +41,7 @@ function initMap() {
     map.initPoly("search", "magenta", false);
     map.initPoly("planned-path", "cyan", true);
     map.initPoly("taken-path", "yellow", true);
-
+    
     fetch(formatHubURL('/api/mission/bounds/field'))
         .then(r => checkRequest(r))
         .then(r => r.json())

@@ -68,10 +68,7 @@ body[data-lol="true"] {
 }
 
 h1 {
-    font-size: 4rem;
-    border-bottom: black solid 3px;
     text-align: center;
-    background-color: lightskyblue;
 }
 
 dialog {
@@ -262,4 +259,14 @@ extendo-form form {
     font-size: 1em !important;
     margin: .8rem !important;
     padding: .2rem .4rem !important;
+}
+
+@keyframes fly {
+    from {
+        right: 0;
+    }
+
+    to {
+        right: 100%;
+    }
 }

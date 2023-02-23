@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
@@ -56,18 +57,11 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func (server *Server) initFrontend(router *gin.Engine) {
-	/*
-		The intuitive thing to do here would be to call router.Static("/", "/static") in order
-		to reroute all non api requests to the static folder. However, this doesn't work with
-		how Gin has its router implementation set up because it isn't able to tell the difference
-		between the catch all wildcard "/" and when a request is actually for "/api".
+	router.Use(static.Serve("/", static.LocalFile("static", false)))
 
-		Therefore, we are using this quick and dirty hack to achieve the same effect. Essentially,
-		this tells Gin that whenever it can't find a route to match the requested route, try to check
-		if it exists inside the static folder. If it exists there, then we serve it. If not, then it is
-		still a 404.
-	*/
-	router.NoRoute(gin.WrapH(http.FileServer(gin.Dir("static", false))))
+	router.NoRoute(func(c *gin.Context) {
+		c.Redirect(http.StatusTemporaryRedirect, "/404.html")
+	})
 }
 
 func (server *Server) initBackend(router *gin.Engine) {
@@ -118,8 +112,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
 
-	server.initBackend(router)
 	server.initFrontend(router)
+	server.initBackend(router)
 
 	return router
 }
