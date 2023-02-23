@@ -33,16 +33,18 @@ type Path struct {
 	PlaneAcknowledged bool
 }
 
-// Generic point struct w/ latitude and longitude
-type Point struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+/*
+Make generic coordinate struct
+*/
+type Coordinate struct {
+	Latitude  float64 `json:"latitude,omitempty"`
+	Longitude float64 `json:"longitude,omitempty"`
 }
 
 // This will be passed to the OBC with the points representing the flight and search boundaries
 type Mission struct {
-	FlightBoundaries []Point `json:"flight_boundaries"`
-	SearchBoundaries []Point `json:"search_boundaries"`
+	FlightBoundaries []Coordinate `json:"flight_boundaries"`
+	SearchBoundaries []Coordinate `json:"search_boundaries"`
 }
 
 // This will be passed to the OBC (path planning specifically) with the coordinates of obstacles

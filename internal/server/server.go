@@ -15,6 +15,7 @@ import (
 	"github.com/tritonuas/gcs/internal/manager"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/obc/pp"
 )
 
 // Log is the logger for the server
@@ -29,8 +30,8 @@ type Server struct {
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
-	FlightBounds        []Coordinate
-	AirDropBounds       []Coordinate
+	FlightBounds        []pp.Coordinate
+	AirDropBounds       []pp.Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
 	Manager             *manager.Manager
 }
@@ -593,7 +594,7 @@ Reads in longitude and latitude coordinates for field bounds and uploads to the 
 */
 func (server *Server) uploadFieldBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fieldBounds := []Coordinate{}
+		fieldBounds := []pp.Coordinate{}
 		err := c.BindJSON(&fieldBounds)
 
 		if err == nil {
@@ -620,7 +621,7 @@ Reads in longitude and latitude coordinates for airdrop bounds and uploads to th
 */
 func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		airDropBounds := []Coordinate{}
+		airDropBounds := []pp.Coordinate{}
 		err := c.BindJSON(&airDropBounds)
 
 		if err == nil {
