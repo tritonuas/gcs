@@ -7,7 +7,7 @@ WORKDIR /build
 # ENV CGO_ENABLED=0
 
 # copy over go.mod and go.sum
-COPY go.* .
+COPY go.* ./
 
 # `docker builder prune`: will force to have up to date packages
 # contents of /go/pkg/mod get saved by docker so it doesn't repull every time
