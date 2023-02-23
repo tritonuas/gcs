@@ -33,6 +33,26 @@ type Path struct {
 	PlaneAcknowledged bool
 }
 
+// Generic point struct w/ latitude and longitude
+type Point struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+// This will be passed to the OBC with the points representing the flight and search boundaries
+type Mission struct {
+	FlightBoundaries []Point `json:"flight_boundaries"`
+	SearchBoundaries []Point `json:"search_boundaries"`
+}
+
+// This will be passed to the OBC (path planning specifically) with the coordinates of obstacles
+type Obstacle struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Radius    float64 `json:"radius"`
+	Height    float64 `json:"height"`
+}
+
 // CreatePath will create a Path struct given some waypoints in
 // JSON format.
 func CreatePath(waypointsIn []byte) Path {

@@ -4,12 +4,14 @@ import (
 	"github.com/tritonuas/gcs/internal/utils"
 )
 
+// Generic client struct for interfacing with the OBC
 type Client struct {
 	httpClient *utils.Client
 	urlBase    string
 	timeout    int
 }
 
+// Creates a new client struct and initializes all its values
 func NewClient(urlBase string, timeout int) *Client {
 	client := &Client{
 
