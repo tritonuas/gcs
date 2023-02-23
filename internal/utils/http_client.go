@@ -66,7 +66,7 @@ func NewClient(urlBase string, timeout int) *Client {
 func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
-	resp, err := c.client.Post(c.url+uri, "application/json", msg)
+	resp, err := c.client.Post(c.urlBase+uri, "application/json", msg)
 
 	// If err is not nil, then the server is not online and we need to back out
 	// so that nothing crashes
@@ -103,7 +103,7 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 func (c *Client) Get(uri string) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
-	resp, err := c.client.Get(c.url + uri)
+	resp, err := c.client.Get(c.urlBase + uri)
 
 	if err != nil {
 		Log.Warn(err)
@@ -134,7 +134,7 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
 	// set the HTTP method, url, and request body
-	req, err := http.NewRequest(http.MethodPut, c.url+uri, msg)
+	req, err := http.NewRequest(http.MethodPut, c.urlBase+uri, msg)
 	if err != nil {
 		Log.Debug(err)
 		httpErr.SetError("PUT", []byte(fmt.Sprintf("Could not create request. Reason: %s", err)), http.StatusInternalServerError)
@@ -180,7 +180,7 @@ func (c *Client) Delete(uri string) ([]byte, HTTPError) {
 	httpErr := NewHTTPError()
 
 	// set the HTTP method, url, and request body
-	req, err := http.NewRequest(http.MethodDelete, c.url+uri, nil)
+	req, err := http.NewRequest(http.MethodDelete, c.urlBase+uri, nil)
 	if err != nil {
 		Log.Debug(err)
 		httpErr.SetError("DELETE", []byte(fmt.Sprintf("Could not create request. Reason: %s", err)), http.StatusInternalServerError)
