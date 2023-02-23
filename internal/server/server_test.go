@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/obc/pp"
 	"github.com/tritonuas/gcs/internal/server"
 )
 
@@ -555,7 +556,7 @@ func TestUploadFieldBounds(t *testing.T) {
 		name       string
 		inputJSON  io.Reader
 		wantCode   int
-		wantBounds []server.Coordinate
+		wantBounds []pp.Coordinate
 	}{
 		{
 			name:       "nil json",
@@ -580,13 +581,13 @@ func TestUploadFieldBounds(t *testing.T) {
 			name:       "2 valid coordinates",
 			inputJSON:  strings.NewReader("[{\"latitude\": 30, \"longitude\": 32}, {\"latitude\": 31, \"longitude\": 20}]"),
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+			wantBounds: []pp.Coordinate{{30, 32}, {31, 20}},
 		},
 		{
 			name:       "empty coords",
 			inputJSON:  strings.NewReader("[]"),
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{},
+			wantBounds: []pp.Coordinate{},
 		},
 	}
 
@@ -619,7 +620,7 @@ func TestUploadAirdropBounds(t *testing.T) {
 		name       string
 		inputJSON  io.Reader
 		wantCode   int
-		wantBounds []server.Coordinate
+		wantBounds []pp.Coordinate
 	}{
 		{
 			name:       "nil json",
@@ -644,13 +645,13 @@ func TestUploadAirdropBounds(t *testing.T) {
 			name:       "2 valid coordinates",
 			inputJSON:  strings.NewReader("[{\"latitude\": 30, \"longitude\": 32}, {\"latitude\": 31, \"longitude\": 20}]"),
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+			wantBounds: []pp.Coordinate{{30, 32}, {31, 20}},
 		},
 		{
 			name:       "empty coords",
 			inputJSON:  strings.NewReader("[]"),
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{},
+			wantBounds: []pp.Coordinate{},
 		},
 	}
 
@@ -682,7 +683,7 @@ func TestGetFieldBounds(t *testing.T) {
 	testCases := []struct {
 		name       string
 		wantCode   int
-		wantBounds []server.Coordinate
+		wantBounds []pp.Coordinate
 	}{
 		{
 			name:       "nil json",
@@ -692,12 +693,12 @@ func TestGetFieldBounds(t *testing.T) {
 		{
 			name:       "2 valid coordinates",
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+			wantBounds: []pp.Coordinate{{30, 32}, {31, 20}},
 		},
 		{
 			name:       "empty coords",
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{},
+			wantBounds: []pp.Coordinate{},
 		},
 	}
 
@@ -729,7 +730,7 @@ func TestGetAirDropBounds(t *testing.T) {
 	testCases := []struct {
 		name       string
 		wantCode   int
-		wantBounds []server.Coordinate
+		wantBounds []pp.Coordinate
 	}{
 		{
 			name:       "nil json",
@@ -739,12 +740,12 @@ func TestGetAirDropBounds(t *testing.T) {
 		{
 			name:       "2 valid coordinates",
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{{30, 32}, {31, 20}},
+			wantBounds: []pp.Coordinate{{30, 32}, {31, 20}},
 		},
 		{
 			name:       "empty coords",
 			wantCode:   http.StatusOK,
-			wantBounds: []server.Coordinate{},
+			wantBounds: []pp.Coordinate{},
 		},
 	}
 
