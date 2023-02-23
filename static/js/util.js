@@ -284,3 +284,10 @@ export function important() {
 export function formatHubURL(endpoint) {
     return `http://${getHubIp()}:${getHubPort()}${endpoint}`;
 }
+
+export function checkRequest(r){
+    if (!r.ok) {
+        throw "Request not okay";
+    }
+    return r;
+}

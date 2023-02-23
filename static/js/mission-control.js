@@ -1,4 +1,4 @@
-import { roundDecimal, connectToLocationWorker, getCurrPos, getPosHistory, confirmDialog, alertDialog, clearPosHistory, getHubIp, getHubPort, closeWaitDialogs, waitDialog, formatHubURL} from "./util.js";
+import { roundDecimal, connectToLocationWorker, getCurrPos, formatHubURL, checkRequest} from "./util.js";
 
 let locationWorker = connectToLocationWorker();
 
@@ -41,6 +41,21 @@ function initMap() {
     map.initPoly("search", "magenta", false);
     map.initPoly("planned-path", "cyan", true);
     map.initPoly("taken-path", "yellow", true);
+
+    fetch(formatHubURL('/api/mission/bounds/field'))
+        .then(r => checkRequest(r))
+        .then(r => r.json())
+        .then(json => {
+            let latlngs = [];
+            for (const pt of Object.keys(json)) {
+                latlngs.push([pt.latitude, pt.longitude]);
+            }
+            console.log(latlngs)
+        })
+        .catch(err => {
+            console.error(err);
+        });
+
     map.initMarker("plane", getCurrLatlng(), "../images/plane.gif", [32, 32]);
     // TODO: list of markers for waypoints
 
@@ -79,12 +94,6 @@ function setUpGauges() {
         128: "Armed", 64: "Manual", 32: "HIL", 16: "Stabilize", 8: "Guided", 4: "Auto", 2: "Test", 1: "Custom"
     };
 
-    let checkRequest = (r) => {
-        if (!r.ok) {
-            throw "Request not okay";
-        }
-        return r;
-    };
 
     setInterval(() => {
         fetch(formatHubURL('/api/plane/telemetry?id=74&field=groundspeed,airspeed'))
