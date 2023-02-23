@@ -37,7 +37,7 @@ build-go:
 	go build
 
 build-docker:
-	docker build -t tritonuas/gcs -f build/package/Dockerfile .
+	DOCKER_BUILDKIT=1 docker build -t tritonuas/gcs -f build/package/Dockerfile .
 
 # Run
 # --------------------------------------------------------------------
