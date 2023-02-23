@@ -17,13 +17,13 @@ var Log = logrus.New()
 // change name of Client since it might mess with the inheritance for the other clients
 type Client struct {
 	client  *http.Client
-	url     string
+	urlBase     string
 	timeout int
 }
 
 // IsConnected checks if the client has successfully connected to the specified url via a TRACE request
 func (c *Client) IsConnected() (bool, string) {
-	traceRequest, err := http.NewRequest(http.MethodTrace, c.url+"/", nil)
+	traceRequest, err := http.NewRequest(http.MethodTrace, c.urlBase+"/", nil)
 	if err != nil {
 		return false, err.Error()
 	}
@@ -42,10 +42,10 @@ func (c *Client) IsConnected() (bool, string) {
 
 // NewClient creates an HTTP client to interact with an HTTP server
 // at a specified URL.
-func NewClient(url string, timeout int) *Client {
+func NewClient(urlBase string, timeout int) *Client {
 	client := &Client{
 
-		url:     "http://" + url,
+		url:     "http://" + urlBase,
 		timeout: timeout,
 	}
 
