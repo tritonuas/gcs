@@ -151,6 +151,8 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client) Server {
 	server.influxDBClient = influxdbClient
 	server.mavlinkClient = mavlinkClient
 
+	server.Mission = &pp.Mission{FlightBoundaries: nil, SearchBoundaries: nil}
+
 	return server
 }
 
@@ -614,7 +616,7 @@ Reads in longitude and latitude coordinates for flight bounds and uploads to the
 */
 func (server *Server) uploadFlightBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		flightBounds := []pp.Coordinate{}
+		var flightBounds []pp.Coordinate
 		err := c.BindJSON(&flightBounds)
 
 		if err == nil {
