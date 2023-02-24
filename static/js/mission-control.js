@@ -45,12 +45,12 @@ function initMap() {
     fetch(formatHubURL('/api/mission/bounds/field'))
         .then(r => checkRequest(r))
         .then(r => r.json())
-        .then(json => {
+        .then(list => {
             let latlngs = [];
-            for (const pt of Object.keys(json)) {
+            for (const pt of list) {
                 latlngs.push([pt.latitude, pt.longitude]);
             }
-            console.log(latlngs)
+            map.addPointsToPoly("boundaries", latlngs);
         })
         .catch(err => {
             console.error(err);

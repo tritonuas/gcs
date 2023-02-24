@@ -245,10 +245,8 @@ class TuasMap extends HTMLElement {
         this.dataset.lon = latlng[1];
 
         if (this.dataset.lat == 0 && this.dataset.lon == 0) {
-            console.log('set no conn')
             this.setNoConn();
         } else {
-            console.log('set conn')
             this.setConn();
         }
         if (this.map != null) {
