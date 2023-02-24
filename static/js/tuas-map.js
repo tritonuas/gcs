@@ -103,13 +103,15 @@ class TuasMap extends HTMLElement {
     }
 
     #initPolyIds() {
-        this.idToPoly = {};
+        this.idToPoly = new Map();
+        this.idToMetadata = new Map();
+        this.bin = new Map(); // container for all disconnected polies that can no longer be touched.
     }
 
     #addAllPolysToMap() {
-        for (const poly of Object.values(this.idToPoly)) {
+        this.idToPoly.forEach((poly) => {
             poly.addTo(this.map);
-        }
+        });
     }
 
     /* 
@@ -127,17 +129,14 @@ class TuasMap extends HTMLElement {
     // isLine = true means use Polyline behavior
     // isLine = false means use Polygon behavior
     initPoly(id, col, isLine) {
-        if (id in this.idToPoly) {
-            throw new Error(`ID ${id} aready taken`);
-        }
-
         let poly = null;
         if (isLine) {
             poly = L.polyline([], {color: col});
         } else {
             poly = L.polygon([], {color: col});
         }
-        this.idToPoly[id] = poly;
+        this.idToPoly.set(id, poly);
+        this.idToMetadata.set(id, {"color": col, "isline": isLine});
         
         if (this.map != null) {
             poly.addTo(this.map);
@@ -153,16 +152,38 @@ class TuasMap extends HTMLElement {
     // 
     // id corresponds to the id of a poly that was instantiated by a call to initPoly(id, color)
     // Points in form [[lat0, lon0], [lat1, lon1], ...]
+    // Continuous is a parameter relevant for polylines, but technically can work for polygons as well.
+    // Continuous=true means that the line will continue
+    // Continuous=false means that this point will not be connected to the previous line.
+    //   In turn, this 
     addPointsToPoly(id, points) {
-        if (!(id in this.idToPoly)) {
+
+        if (!this.idToPoly.has(id)) {
             throw new Error(`Poly with id ${id} has not been initialized`);
         }
 
-        let poly = this.idToPoly[id];
-        
+        let poly = this.idToPoly.get(id);
+
         for (const latlng of points) {
             poly.addLatLng(latlng);
         }
+
+        if (id == "flight" || id == "search") {
+            console.log(this.idToPoly.get(id));
+        }
+    }
+
+    // Disconnect a poly from the id list and add it to the bin
+    // under its id
+    disconnectPoly(id) {
+        let poly = this.idToPoly.get(id);
+        if (this.bin.has(id)) {
+            this.bin.get(id).push(poly);
+        } else {
+            this.bin.set(id, [poly]);
+        }
+        let metadata = this.idToMetadata.get(id);
+        this.initPoly(id, metadata.color, metadata.isline); // reset idToPoly
     }
 
     // Remove all latng information from the poly, but still have inside the map
@@ -171,12 +192,12 @@ class TuasMap extends HTMLElement {
             throw new Error(`Poly with id ${id} has not been initialized`);
         }
 
-        this.idToPoly[id].setLatLngs([]);
+        this.idToPoly.get(id).setLatLngs([]);
     }
 
     // Remove the specified poly entirely
     removePoly(id) {
-        if (!(id in this.idToPoly)) {
+        if (!this.idToPoly.has(id)) {
             throw new Error(`Poly with id ${id} has not been initialized`);
         }
 
@@ -184,7 +205,7 @@ class TuasMap extends HTMLElement {
             let poly = this.idToPoly[id];
             poly.removeFrom(this.map);
         }
-        delete this.idToPoly[id];
+        this.idToPoly.delete(id);
     }
 
     // Add a marker to the map with a specified id
@@ -195,7 +216,7 @@ class TuasMap extends HTMLElement {
     // url should be a relative filepath to the image
     // size should be in format [x, y]
     initMarker(id, latlng, url, size) {
-        if (id in this.idToPoly) {
+        if (this.idToPoly.has(id)) {
             throw new Error(`ID ${id} already taken`);
         }
 
@@ -205,7 +226,7 @@ class TuasMap extends HTMLElement {
             iconAnchor: [size[0] / 2, size[1] / 2],
         });
         let marker = L.marker(latlng, {icon: theIcon});
-        this.idToPoly[id] = marker;
+        this.idToPoly.set(id, marker);
         
         if (this.map != null) {
             marker.addTo(this.map);
@@ -216,25 +237,25 @@ class TuasMap extends HTMLElement {
     //
     // latlng in format [lat, lon]
     moveMarker(id, latlng) {
-        if (!(id in this.idToPoly)) {
+        if (!this.idToPoly.has(id)) {
             throw new Error(`No marker with ID ${id}`);
         }
 
-        let marker = this.idToPoly[id];
+        let marker = this.idToPoly.get(id);
         marker.setLatLng(latlng);
     }
 
     // Remove a marker by the specified id
     clearMarker(id) {
-        if (!(id in this.idToPoly)) {
+        if (!this.idToPoly.has(id)) {
             throw new Error(`No marker with ID ${id}`);
         }
 
         if (this.map != null) {
-            let marker = this.idToPoly[id]
+            let marker = this.idToPoly.get(id);
             marker.removeFrom(this.map);
         }
-        delete this.idToPoly[id];
+        this.idToPoly.delete(id);
     }
 
     // Center the map on position latlng with specified zoom
@@ -297,11 +318,11 @@ class TuasMap extends HTMLElement {
 
     // Get the list of latlng associated with the given id
     getPolyLatLngs(id) {
-        if (!(id in this.idToPoly)) {
+        if (!this.idToPoly.has(id)) {
             throw new Error(`No poly with ID ${id}`);
         }
 
-        return this.idToPoly[id].getLatLngs();
+        return this.idToPoly.get(id).getLatLngs();
     }
 
     // Change border to gold
@@ -330,6 +351,11 @@ class TuasMap extends HTMLElement {
                 this.changeZoom(this.oldZoom, false);
             }
         }
+    }
+
+    // return true/false if the map is initialized
+    isInitialized() {
+        return this.map != null;
     }
 
     /*

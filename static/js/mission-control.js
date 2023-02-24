@@ -42,20 +42,23 @@ function initMap() {
     map.initPoly("planned-path", "cyan", true);
     map.initPoly("taken-path", "yellow", true);
     
-    let drawBound = (id) => {
-        fetch(formatHubURL(`/api/mission/bounds/${id}`))
-            .then(r => checkRequest(r))
-            .then(r => r.json())
-            .then(list => {
-                let latlngs = [];
-                for (const pt of list) {
-                    latlngs.push([pt.latitude, pt.longitude]);
-                }
-                map.addPointsToPoly(id, latlngs);
-            })
-            .catch(err => {});
+    function drawBounds() {
+        for (let i = 0; i < arguments.length; i++) {
+            let id = arguments[i];
+            fetch(formatHubURL(`/api/mission/bounds/${arguments[i]}`))
+                .then(r => checkRequest(r))
+                .then(r => r.json())
+                .then(list => {
+                    let latlngs = [];
+                    for (const pt of list) {
+                        latlngs.push([pt.latitude, pt.longitude]);
+                    }
+                    map.addPointsToPoly(id, latlngs);
+                })
+        }
     };
-    drawBound("flight"); drawBound("search");
+    drawBounds("flight", "search");
+
 
     map.initMarker("plane", getCurrLatlng(), "../images/plane.gif", [32, 32]);
     // TODO: list of markers for waypoints
@@ -73,6 +76,12 @@ function setUpMapControlForm() {
     let tracePathCheckbox = document.getElementById('trace-path-checkbox');
     tracePathCheckbox.addEventListener('click', (e) => {
         tracePath = e.currentTarget.checked;
+        if (!tracePath) {
+            let map = document.getElementById('map');
+            if (map.isInitialized()) {
+                map.disconnectPoly("taken-path");
+            }
+        }
     });
 
     let centerPlaneCheckbox = document.getElementById('center-plane-checkbox');
