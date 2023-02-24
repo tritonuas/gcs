@@ -31,8 +31,8 @@ type Server struct {
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
-	FlightBounds        []pp.Coordinate
-	AirDropBounds       []pp.Coordinate
+	Mission             *pp.Mission
+	InitialPath         []pp.Waypoint
 	ClassifiedTargets   []cvs.ClassifiedODLC
 	Manager             *manager.Manager
 }
@@ -77,16 +77,11 @@ func (server *Server) initBackend(router *gin.Engine) {
 	router.GET("/api/hub/state/time", server.getStateStartTime())
 	router.GET("/api/hub/state/history", server.getStateHistory())
 
-	router.POST("/api/plane/airdrop", server.uploadDropOrder())
-	router.GET("/api/plane/airdrop", server.getDropOrder())
-	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
+	router.GET("/api/mission/bounds/flight", server.getFlightBounds())
+	router.POST("/api/mission/bounds/flight", server.uploadFlightBounds())
 
-	/* Change field to flight */
-	router.GET("/api/mission/bounds/field", server.getFieldBounds())
-	router.POST("/api/mission/bounds/field", server.uploadFieldBounds())
-
-	router.GET("/api/mission/bounds/airdrop", server.getAirdropBounds())
-	router.POST("/api/mission/bounds/airdrop", server.uploadAirDropBounds())
+	router.GET("/api/mission/bounds/search", server.getSearchBounds())
+	router.POST("/api/mission/bounds/search", server.uploadSearchBounds())
 
 	router.POST("/api/cvs/targets", server.postCVSResults())
 	router.GET("/api/cvs/targets", server.getStoredCVSResults())
@@ -98,6 +93,15 @@ func (server *Server) initBackend(router *gin.Engine) {
 	router.GET("/api/plane/position", server.getPosition())
 
 	router.GET("/api/plane/voltage", server.getBatteryVoltages())
+
+	router.POST("/api/plane/airdrop", server.uploadDropOrder())
+	router.GET("/api/plane/airdrop", server.getDropOrder())
+	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
+
+	router.GET("/api/plane/path/initial", server.getInitialPath())     // Houston to Hub
+	router.POST("/api/plane/path/initial", server.uploadInitialPath()) // OBC to Hub
+
+	router.POST("/api/plane/generatepath", server.generateInitialPath()) // Houston to Hub
 
 	router.GET("/api/mavlink/endpoints", server.getMavlinkEndpoints())
 	router.PUT("/api/mavlink/endpoints", server.putMavlinkEndpoints())
@@ -573,39 +577,39 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 	}
 }
 
-func (server *Server) getFieldBounds() gin.HandlerFunc {
+func (server *Server) getFlightBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if server.FlightBounds == nil {
+		if server.Mission.FlightBoundaries == nil {
 			c.String(http.StatusBadRequest, "ERROR: Flight bounds not yet initialized")
 		} else {
-			c.JSON(http.StatusOK, server.FlightBounds)
+			c.JSON(http.StatusOK, server.Mission.FlightBoundaries)
 		}
 	}
 }
 
 /*
-Reads in longitude and latitude coordinates for field bounds and uploads to the server
+Reads in longitude and latitude coordinates for flight bounds and uploads to the server
 */
-func (server *Server) uploadFieldBounds() gin.HandlerFunc {
+func (server *Server) uploadFlightBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fieldBounds := []pp.Coordinate{}
-		err := c.BindJSON(&fieldBounds)
+		flightBounds := []pp.Coordinate{}
+		err := c.BindJSON(&flightBounds)
 
 		if err == nil {
-			server.FlightBounds = fieldBounds
-			c.String(http.StatusOK, "Field Bounds has been uploaded", fieldBounds)
+			server.Mission.FlightBoundaries = flightBounds
+			c.String(http.StatusOK, "Flight Bounds has been uploaded", flightBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
 	}
 }
 
-func (server *Server) getAirdropBounds() gin.HandlerFunc {
+func (server *Server) getSearchBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if server.AirDropBounds == nil {
-			c.String(http.StatusBadRequest, "ERROR: Airdrop bound not yet initialized")
+		if server.Mission.SearchBoundaries == nil {
+			c.String(http.StatusBadRequest, "ERROR: Search bounds not yet initialized")
 		} else {
-			c.JSON(http.StatusOK, server.AirDropBounds)
+			c.JSON(http.StatusOK, server.Mission.SearchBoundaries)
 		}
 	}
 }
@@ -613,14 +617,14 @@ func (server *Server) getAirdropBounds() gin.HandlerFunc {
 /*
 Reads in longitude and latitude coordinates for airdrop bounds and uploads to the server
 */
-func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
+func (server *Server) uploadSearchBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		airDropBounds := []pp.Coordinate{}
-		err := c.BindJSON(&airDropBounds)
+		searchBounds := []pp.Coordinate{}
+		err := c.BindJSON(&searchBounds)
 
 		if err == nil {
-			server.AirDropBounds = airDropBounds
-			c.String(http.StatusOK, "Airdrop Bounds has been uploaded", airDropBounds)
+			server.Mission.SearchBoundaries = searchBounds
+			c.String(http.StatusOK, "Search Bounds have been uploaded", searchBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -655,5 +659,49 @@ func (server *Server) getStoredCVSResults() gin.HandlerFunc {
 		} else {
 			c.JSON(http.StatusOK, server.ClassifiedTargets)
 		}
+	}
+}
+
+/*
+Retrieve the Initial path struct stored on the server
+Sent from Houston to Hub for displaying
+*/
+func (server *Server) getInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if server.InitialPath == nil {
+			c.String(http.StatusBadRequest, "ERROR: Initial path has not been posted yet.")
+		} else {
+			c.JSON(http.StatusOK, server.InitialPath)
+		}
+	}
+}
+
+/*
+Upload the initial path the plane will fly.
+Sent from OBC to Hub for storing.
+*/
+func (server *Server) uploadInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var initialPath []pp.Waypoint
+
+		err := c.BindJSON(&initialPath)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		} else {
+			server.InitialPath = initialPath
+			c.String(http.StatusOK, "Initial path successfully uploaded")
+		}
+	}
+}
+
+/*
+Tell OBC to start generating initial path.
+Sent from Houston to Hub, Hub then goes to OBC
+*/
+func (server *Server) generateInitialPath() gin.HandlerFunc {
+	// TODO: make request to path planning to start generating the initial path
+	return func(c *gin.Context) {
+		c.String(http.StatusInternalServerError, "ERROR: route not implemented yet")
 	}
 }

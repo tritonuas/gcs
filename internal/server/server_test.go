@@ -551,7 +551,7 @@ func TestUpdateDropOrderValidCheck(t *testing.T) {
 
 	assert.Equal(t, expectedBottles, server.Bottles.Bottles)
 }
-func TestUploadFieldBounds(t *testing.T) {
+func TestUploadFlightBounds(t *testing.T) {
 	testCases := []struct {
 		name       string
 		inputJSON  io.Reader
@@ -604,18 +604,18 @@ func TestUploadFieldBounds(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/api/mission/bounds/field", tc.inputJSON)
+			req, err := http.NewRequest("POST", "/api/mission/bounds/flight", tc.inputJSON)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.wantCode, w.Code)
-			assert.Equal(t, tc.wantBounds, server.FlightBounds)
+			assert.Equal(t, tc.wantBounds, server.Mission.FlightBoundaries)
 		})
 	}
 }
 
-func TestUploadAirdropBounds(t *testing.T) {
+func TestUploadSearchBounds(t *testing.T) {
 	testCases := []struct {
 		name       string
 		inputJSON  io.Reader
@@ -668,18 +668,18 @@ func TestUploadAirdropBounds(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/api/mission/bounds/airdrop", tc.inputJSON)
+			req, err := http.NewRequest("POST", "/api/mission/bounds/search", tc.inputJSON)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.wantCode, w.Code)
-			assert.Equal(t, tc.wantBounds, server.AirDropBounds)
+			assert.Equal(t, tc.wantBounds, server.Mission.SearchBoundaries)
 		})
 	}
 }
 
-func TestGetFieldBounds(t *testing.T) {
+func TestGetFlightBounds(t *testing.T) {
 	testCases := []struct {
 		name       string
 		wantCode   int
@@ -711,7 +711,7 @@ func TestGetFieldBounds(t *testing.T) {
 			t.Parallel()
 
 			server := server.Server{}
-			server.FlightBounds = tc.wantBounds
+			server.Mission.FlightBoundaries = tc.wantBounds
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
@@ -721,12 +721,12 @@ func TestGetFieldBounds(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.wantCode, w.Code)
-			assert.Equal(t, tc.wantBounds, server.FlightBounds)
+			assert.Equal(t, tc.wantBounds, server.Mission.FlightBoundaries)
 		})
 	}
 }
 
-func TestGetAirDropBounds(t *testing.T) {
+func TestGetSearchBounds(t *testing.T) {
 	testCases := []struct {
 		name       string
 		wantCode   int
@@ -758,7 +758,7 @@ func TestGetAirDropBounds(t *testing.T) {
 			t.Parallel()
 
 			server := server.Server{}
-			server.AirDropBounds = tc.wantBounds
+			server.Mission.SearchBoundaries = tc.wantBounds
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
@@ -768,7 +768,7 @@ func TestGetAirDropBounds(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tc.wantCode, w.Code)
-			assert.Equal(t, tc.wantBounds, server.AirDropBounds)
+			assert.Equal(t, tc.wantBounds, server.Mission.SearchBoundaries)
 		})
 	}
 }

@@ -37,24 +37,25 @@ function updatePlaneMarker() {
 function initMap() {
     let map = document.getElementById("map");
 
-    map.initPoly("boundaries", "red", false);
+    map.initPoly("flight", "red", false);
     map.initPoly("search", "magenta", false);
     map.initPoly("planned-path", "cyan", true);
     map.initPoly("taken-path", "yellow", true);
     
-    fetch(formatHubURL('/api/mission/bounds/field'))
-        .then(r => checkRequest(r))
-        .then(r => r.json())
-        .then(list => {
-            let latlngs = [];
-            for (const pt of list) {
-                latlngs.push([pt.latitude, pt.longitude]);
-            }
-            map.addPointsToPoly("boundaries", latlngs);
-        })
-        .catch(err => {
-            console.error(err);
-        });
+    let drawBound = (id) => {
+        fetch(formatHubURL(`/api/mission/bounds/${id}`))
+            .then(r => checkRequest(r))
+            .then(r => r.json())
+            .then(list => {
+                let latlngs = [];
+                for (const pt of list) {
+                    latlngs.push([pt.latitude, pt.longitude]);
+                }
+                map.addPointsToPoly(id, latlngs);
+            })
+            .catch(err => {});
+    };
+    drawBound("flight"); drawBound("search");
 
     map.initMarker("plane", getCurrLatlng(), "../images/plane.gif", [32, 32]);
     // TODO: list of markers for waypoints
@@ -131,6 +132,9 @@ function setUpGauges() {
             .catch(err => {
                 flightModeGauge.setNull();
             });
+    }, 1000);
+
+    setInterval(() => {
         fetch(formatHubURL('/api/plane/telemetry?id=251&field=value'))
             .then(r => checkRequest(r))
             .then(r => r.json())
@@ -151,7 +155,7 @@ function setUpGauges() {
                 pixhawkGauge.setNull();
                 motorGauge.setNull();
             });
-    }, 1000);
+    }, 2000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
