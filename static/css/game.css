@@ -106,39 +106,39 @@ input[type="button"]:hover {
     width: 10000px;
 }
 
-#game-plane {
+.plane {
     position:absolute;
     transform-origin: center;
     transition: 0.5s transform;
 }
 
-#game-plane[data-dir="left"] {
+.plane[data-dir="left"] {
     transform: rotateY(var(--left-deg));
 }
 
-#game-plane[data-dir="right"] {
+.plane[data-dir="right"] {
     transform: rotateY(var(--right-deg));
 }
 
-#game-plane[data-tilt="up"] {
+.plane[data-tilt="up"] {
     transform: rotateZ(var(--up-deg));
 }
 
-#game-plane[data-tilt="down"] {
+.plane[data-tilt="down"] {
     transform: rotateZ(var(--down-deg));
 }
 
-#game-plane[data-dir="left"][data-tilt="up"] {
+.plane[data-dir="left"][data-tilt="up"] {
     transform: rotateY(var(--left-deg)) rotateZ(var(--up-deg));
 }
-#game-plane[data-dir="left"][data-tilt="down"] {
+.plane[data-dir="left"][data-tilt="down"] {
     transform: rotateY(var(--left-deg)) rotateZ(var(--down-deg));
 }
 
-#game-plane[data-dir="right"][data-tilt="up"] {
+.plane[data-dir="right"][data-tilt="up"] {
     transform: rotateY(var(--right-deg)) rotateZ(var(--up-deg));
 }
-#game-plane[data-dir="right"][data-tilt="down"] {
+.plane[data-dir="right"][data-tilt="down"] {
     transform: rotateY(var(--right-deg)) rotateZ(var(--down-deg));
 }
 
