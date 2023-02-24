@@ -71,42 +71,64 @@ func (server *Server) initFrontend(router *gin.Engine) {
 }
 
 func (server *Server) initBackend(router *gin.Engine) {
-	router.GET("/api/connections", server.testConnections())
+	api := router.Group("/api")
+	{
+		api.GET("/connections", server.testConnections())
 
-	router.POST("/api/obc/targets", server.postOBCTargets())
+		obc := api.Group("/obc")
+		{
+			obc.POST("/targets", server.postOBCTargets())
+		}
 
-	router.GET("/api/hub/time", server.getTimeElapsed())
-	router.POST("/api/hub/time", server.startMissionTimer())
+		hub := api.Group("/hub")
+		{
+			hub.GET("/time", server.getTimeElapsed())
+			hub.POST("/time", server.startMissionTimer())
 
-	router.GET("/api/hub/state", server.getState())
-	router.POST("/api/hub/state", server.changeState())
-	router.GET("/api/hub/state/time", server.getStateStartTime())
-	router.GET("/api/hub/state/history", server.getStateHistory())
+			hub.GET("/state", server.getState())
+			hub.POST("/state", server.changeState())
+			hub.GET("/state/time", server.getStateStartTime())
+			hub.GET("/state/history", server.getStateHistory())
+		}
 
-	router.POST("/api/plane/airdrop", server.uploadDropOrder())
-	router.GET("/api/plane/airdrop", server.getDropOrder())
-	router.PATCH("/api/plane/airdrop", server.updateDropOrder())
+		plane := api.Group("/plane")
+		{
+			plane.POST("/airdrop", server.uploadDropOrder())
+			plane.GET("/airdrop", server.getDropOrder())
+			plane.PATCH("/airdrop", server.updateDropOrder())
 
-	/* Change field to flight */
-	router.GET("/api/mission/bounds/field", server.getFieldBounds())
-	router.POST("/api/mission/bounds/field", server.uploadFieldBounds())
+			plane.GET("/telemetry/history", server.getTelemetryHistory())
+			plane.GET("/telemetry", server.getTelemetry())
 
-	router.GET("/api/mission/bounds/airdrop", server.getAirdropBounds())
-	router.POST("/api/mission/bounds/airdrop", server.uploadAirDropBounds())
+			plane.GET("/position/history", server.getPositionHistory())
+			plane.GET("/position", server.getPosition())
 
-	router.POST("/api/cvs/targets", server.postCVSResults())
-	router.GET("/api/cvs/targets", server.getStoredCVSResults())
+			plane.GET("/voltage", server.getBatteryVoltages())
+		}
 
-	router.GET("/api/plane/telemetry/history", server.getTelemetryHistory())
-	router.GET("/api/plane/telemetry", server.getTelemetry())
+		mission := api.Group("/mission")
+		{
+			/*change field to flight */
+			mission.GET("/bounds/field", server.getFieldBounds())
+			mission.POST("/bounds/field", server.uploadFieldBounds())
 
-	router.GET("/api/plane/position/history", server.getPositionHistory())
-	router.GET("/api/plane/position", server.getPosition())
+			mission.GET("/bounds/airdrop", server.getAirdropBounds())
+			mission.POST("/bounds/airdrop", server.uploadAirDropBounds())
+		}
 
-	router.GET("/api/plane/voltage", server.getBatteryVoltages())
+		cvs := api.Group("/cvs")
+		{
+			cvs.POST("/targets", server.postCVSResults())
+			cvs.GET("/targets", server.getStoredCVSResults())
+		}
 
-	router.GET("/api/mavlink/endpoints", server.getMavlinkEndpoints())
-	router.PUT("/api/mavlink/endpoints", server.putMavlinkEndpoints())
+		mavlink := api.Group("/mavlink")
+		{
+			mavlink.GET("/endpoints", server.getMavlinkEndpoints())
+			mavlink.PUT("/endpoints", server.putMavlinkEndpoints())
+
+		}
+	}
 }
 
 /*
