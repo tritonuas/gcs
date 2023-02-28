@@ -11,6 +11,7 @@ import (
 	"github.com/tritonuas/gcs/internal/influxdb"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 
+	"github.com/tritonuas/gcs/internal/obc"
 	"github.com/tritonuas/gcs/internal/server"
 )
 
@@ -97,6 +98,14 @@ func main() {
 	)
 
 	go mavlinkClient.Listen()
+
+	client := obc.NewClient("127.0.0.1:5010", 5)
+	connection, err := client.IsConnected()
+	if connection {
+		fmt.Printf("successfully connected!\n")
+	} else {
+		fmt.Printf("error: couldn't connect; %s\n", err)
+	}
 
 	// Set up GIN HTTP Server
 	server := server.New(influxClient, mavlinkClient)

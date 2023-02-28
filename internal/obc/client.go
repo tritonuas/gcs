@@ -1,6 +1,10 @@
 package obc
 
 import (
+	"bytes"
+	"encoding/gob"
+
+	"github.com/tritonuas/gcs/internal/obc/pp"
 	"github.com/tritonuas/gcs/internal/utils"
 )
 
@@ -23,4 +27,26 @@ func NewClient(urlBase string, timeout int) *Client {
 	client.httpClient = utils.NewClient(urlBase, timeout)
 
 	return client
+}
+
+/*
+Sends Mission data (boundaries) to the OBC via POST request.
+*/
+func (client *Client) PostMission(mission *pp.Mission) error {
+	var err error
+	var b bytes.Buffer
+	enc := gob.NewEncoder(&b)
+	err = enc.Encode(mission)
+
+	if err != nil {
+		return err
+	}
+
+	client.httpClient.Post("/mission", bytes.NewReader(b.Bytes())) // idk if this is right
+
+	return err
+}
+
+func (client *Client) IsConnected() (bool, string) {
+	return client.httpClient.IsConnected()
 }
