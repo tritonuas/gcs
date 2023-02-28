@@ -47,6 +47,7 @@ func (client *Client) PostMission(mission *pp.Mission) error {
 	return err
 }
 
+//wrap httpClient function
 func (client *Client) IsConnected() (bool, string) {
 	return client.httpClient.IsConnected()
 }
