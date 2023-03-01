@@ -113,6 +113,22 @@ export function confirmDialog(s) {
     return confirmDialog;
 }
 
+export function pasteDialog(msg, s) {
+    let pasteDialog = document.createElement('dialog');
+    pasteDialog.innerHTML = `<p>${msg}<img src="../images/writing.gif" height=64 width=64> </img></p> 
+                               <form method="dialog">
+                               <textarea> ${s} </textarea>
+                               <button type="submit" id="accept-button" value="true">Ok</button>
+                               </form>`;
+
+    document.body.appendChild(pasteDialog);
+    pasteDialog.showModal();
+    pasteDialog.addEventListener('close', () => {
+        document.body.removeChild(pasteDialog);
+    });
+    return pasteDialog;
+}
+
 export function getRandomInt(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);

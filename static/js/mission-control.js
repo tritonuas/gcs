@@ -6,6 +6,14 @@ let locationWorker = connectToLocationWorker();
 let centerOnPlane = true;
 let tracePath = true;
 
+// Ids for polys on the map
+// match ids with request endpoints in Hub
+const FLIGHT_BOUNDS = "mission/bounds/flight";
+const SEARCH_BOUNDS = "mission/bounds/search"
+const INITIAL_PATH = "plane/path/initial";
+// In future this possibly will correspond with a route, but for now the caching is done client-side
+const TAKEN_PATH = "taken-path";
+
 function getCurrLatlng() {
     let currPos = getCurrPos();
     if (currPos != null) {
@@ -15,7 +23,7 @@ function getCurrLatlng() {
     }
 }
 
-function updatePlaneMarker() {
+function updateMap() {
     let map = document.getElementById("map");
     let currPos = getCurrPos();
     if (currPos != null) {
@@ -25,8 +33,8 @@ function updatePlaneMarker() {
             map.centerMap(latlng);
         }
         if (tracePath) {
-            // TODO: detect change in previous flight point
-            map.addPointToPoly("taken-path", latlng);
+            console.log("taken path:", latlng);
+            map.addPointToPoly(TAKEN_PATH, latlng);
         }
     } else {
         map.setNoConn();
@@ -37,15 +45,16 @@ function updatePlaneMarker() {
 function initMap() {
     let map = document.getElementById("map");
 
-    map.initPoly("flight", "red", false);
-    map.initPoly("search", "magenta", false);
-    map.initPoly("planned-path", "cyan", true);
-    map.initPoly("taken-path", "yellow", true);
+
+    map.initPoly(FLIGHT_BOUNDS, "red", false);
+    map.initPoly(SEARCH_BOUNDS, "magenta", false);
+    map.initPoly(INITIAL_PATH, "cyan", true); 
+    map.initPoly(TAKEN_PATH, "yellow", true);
     
-    function drawBounds() {
+    function draw() {
         for (let i = 0; i < arguments.length; i++) {
             let id = arguments[i];
-            fetch(formatHubURL(`/api/mission/bounds/${arguments[i]}`))
+            fetch(formatHubURL(`/api/${arguments[i]}`))
                 .then(r => checkRequest(r))
                 .then(r => r.json())
                 .then(list => {
@@ -57,13 +66,13 @@ function initMap() {
                 })
         }
     };
-    drawBounds("flight", "search");
+    draw(FLIGHT_BOUNDS, SEARCH_BOUNDS, INITIAL_PATH);
 
 
     map.initMarker("plane", getCurrLatlng(), "../images/plane.gif", [32, 32]);
     // TODO: list of markers for waypoints
 
-    setInterval(updatePlaneMarker, 1000);
+    setInterval(updateMap, 1000);
 }
 
 // Set up everything relating to controlling the map
@@ -87,6 +96,12 @@ function setUpMapControlForm() {
     let centerPlaneCheckbox = document.getElementById('center-plane-checkbox');
     centerPlaneCheckbox.addEventListener('click', (e) => {
         centerOnPlane = e.currentTarget.checked;
+    });
+
+    let saveMapButton = document.getElementById('save-map-button');
+    saveMapButton.addEventListener('click', () => {
+        let map = document.getElementById("map");
+        map.serialize();
     });
 }
 

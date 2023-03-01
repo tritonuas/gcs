@@ -1,4 +1,4 @@
-import { alertDialog, getRandomInt } from "./util.js";
+import { alertDialog, getRandomInt, pasteDialog } from "./util.js";
 
 import * as L from "../packages/leaflet-src.esm.js";
 
@@ -136,7 +136,7 @@ class TuasMap extends HTMLElement {
             poly = L.polygon([], {color: col});
         }
         this.idToPoly.set(id, poly);
-        this.idToMetadata.set(id, {"color": col, "isline": isLine});
+        this.idToMetadata.set(id, {"poly": true, "color": col, "isline": isLine});
         
         if (this.map != null) {
             poly.addTo(this.map);
@@ -227,6 +227,7 @@ class TuasMap extends HTMLElement {
         });
         let marker = L.marker(latlng, {icon: theIcon});
         this.idToPoly.set(id, marker);
+        this.idToMetadata.set(id, {"poly": false});
         
         if (this.map != null) {
             marker.addTo(this.map);
@@ -356,6 +357,60 @@ class TuasMap extends HTMLElement {
     // return true/false if the map is initialized
     isInitialized() {
         return this.map != null;
+    }
+
+    // Convert drawn data to json map so we can save the map data for later
+    serialize() {
+        let json = {};
+        json["latitude"] = this.dataset.lat;
+        json["longitude"] = this.dataset.lon;
+        json["zoom"] = this.dataset.zoom;
+        json["max-zoom"] = this.dataset.maxZoom;
+        this.idToPoly.forEach((poly, id) => {
+            let obj = {};
+            let metadata = this.idToMetadata.get(id);
+            if (metadata.poly) {
+                obj["poly"] = true;
+                obj["color"] = this.idToMetadata.get(id).color;
+                let line = this.idToMetadata.get(id).isline;
+                obj["isline"] = this.idToMetadata.get(id).isline;
+                obj["latlngs"] = poly.getLatLngs();
+                if (!line) {
+                    obj["latlngs"] = obj["latlngs"][0];
+                    // because getLatLngs returns differently if it is a polygon or a polyline
+                }
+                if (this.bin.has(id)) {
+                    obj["bin"] = this.bin.get(id);
+                }
+            } else {
+                obj["poly"] = false;
+                obj["latlng"] = poly.getLatLng();
+                obj["icon"] = poly.getIcon()["options"];
+                // TODO: store marker data
+            }
+            json[id] = obj;
+        });
+        pasteDialog("Copy Map JSON Below:", JSON.stringify(json));
+        return json;
+    }
+
+    load(json) {
+        let lat = json["latitude"], lon = json["longitude"];
+        this.centerMap([lat, lon]);
+        this.changeZoom(json["zoom"], false);
+        for (const key of Object.keys(json)) {
+            switch (key) {
+                case "latitude":
+                case "longitude":
+                case "zoom":
+                case "max-zoom":
+                    // handled above
+                    break;
+                default:
+
+            }
+        }
+
     }
 
     /*
