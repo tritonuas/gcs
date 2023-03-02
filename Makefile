@@ -65,10 +65,15 @@ develop:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: test
+.PHONY: test test-all clear-cache
 
 test:
 	go test -race ./...
+
+test-all: clear-cache test
+
+clear-cache:
+	go clean -testcache
 
 # Style/formatting
 # --------------------------------------------------------------------

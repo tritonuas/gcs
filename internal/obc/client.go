@@ -2,7 +2,7 @@ package obc
 
 import (
 	"bytes"
-	"encoding/gob"
+	"encoding/json"
 
 	"github.com/tritonuas/gcs/internal/obc/pp"
 	"github.com/tritonuas/gcs/internal/utils"
@@ -31,23 +31,22 @@ func NewClient(urlBase string, timeout int) *Client {
 
 /*
 Sends Mission data (boundaries) to the OBC via POST request.
+
+Returns potential errors and returned status code
 */
-func (client *Client) PostMission(mission *pp.Mission) error {
-	var err error
-	var b bytes.Buffer
-	enc := gob.NewEncoder(&b)
-	err = enc.Encode(mission)
+func (client *Client) PostMission(mission *pp.Mission) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(mission)
 
 	if err != nil {
-		return err
+		return nil, -1 // not sure what to return for the status code since the request hasn't happened yet
 	}
 
-	client.httpClient.Post("/mission", bytes.NewReader(b.Bytes())) // idk if this is right
-
-	return err
+	body, httpErr := client.httpClient.Post("/mission", &buf)
+	return body, httpErr.Status
 }
 
-//wrap httpClient function
+// wrap httpClient function
 func (client *Client) IsConnected() (bool, string) {
 	return client.httpClient.IsConnected()
 }

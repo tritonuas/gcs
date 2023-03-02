@@ -45,6 +45,7 @@ type Coordinate struct {
 type Mission struct {
 	FlightBoundaries []Coordinate `json:"flight_boundaries"`
 	SearchBoundaries []Coordinate `json:"search_boundaries"`
+	Obstacles        []Obstacle   `json:"obstacles"`
 }
 
 // This will be passed to the OBC (path planning specifically) with the coordinates of obstacles
