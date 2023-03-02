@@ -40,10 +40,19 @@ var exampleSearchBounds = []pp.Coordinate{
 // These values are made up; we don't actually have a static obstacle avoidance task in the 2023 competition, but we might need to add it back in future years
 var exampleObstacles = []pp.Obstacle{
 	{38.31442311312976, -76.54522971451763, 1, 2},
-	{38.31421041772561, -76.54400246436776, 3, 4},
-	{38.3144070396263, -76.54394394383165, 5, 6},
-	{38.31461622313521, -76.54516993186949, 7, 8},
-	{38.31442311312976, -76.54522971451763, 9, 10},
+	{38.31421041772561, -76.54400246436776, 0, 4.7583857},
+	{38.3144070396263, -76.54394394383165, -5, -6},
+	{38.31461622313521, -76.54516993186949, -7.637, 8.8583},
+	{38.31442311312976, -76.54522971451763, 9.54637, -10.6543},
+}
+
+// I made these values up; they aren't realistic
+var exampleWaypoints = []pp.Waypoint{
+	{38.31442311312976, -76.54522971451763, 200.583946, 0.573, 15},
+	{38.31421041772561, -76.54400246436776, 300.9285, -45, 10},
+	{38.3144070396263, -76.54394394383165, 400.56738, -90, 200.12571},
+	{38.31461622313521, -76.54516993186949, -250, 999.999999, 25.82952},
+	{38.31442311312976, -76.54522971451763, 9, -10, -0},
 }
 
 // Tests that a mission can be successfully sent to the OBC (does not ensure that data is successfully handled; only that it is sent)
@@ -52,7 +61,7 @@ func TestPostMission(t *testing.T) {
 		mission  pp.Mission
 		expected int // this will be the return code after posting the mission
 	}{
-		{mission: pp.Mission{}, expected: http.StatusInternalServerError}, // TODO: change this to http.StatusBadRequest when the obc updates to correctly handle bad requests
+		{mission: pp.Mission{}, expected: http.StatusBadRequest},
 		{mission: pp.Mission{FlightBoundaries: exampleFlightBounds, SearchBoundaries: exampleSearchBounds, Obstacles: exampleObstacles}, expected: http.StatusOK},
 	}
 
@@ -60,7 +69,28 @@ func TestPostMission(t *testing.T) {
 		client := NewClient("127.0.0.1:5010", 5)
 		_, actual := client.PostMission(&tc.mission)
 		if !reflect.DeepEqual(tc.expected, actual) {
-			t.Fatalf("expected: %d, got: %d", tc.expected, actual)
+			t.Fatalf("expected: %d, actual: %d", tc.expected, actual)
 		}
 	}
 }
+
+// Tests that airdrop waypoints can be successfully sent to the OBC (does not ensure that data is successfully handled; only that it is sent)
+func TestPostAirdropWaypoints(t *testing.T) {
+	tests := []struct {
+		waypoints []pp.Waypoint
+		expected  int
+	}{
+		{waypoints: []pp.Waypoint{}, expected: http.StatusBadRequest},
+		{waypoints: exampleWaypoints, expected: http.StatusOK},
+	}
+
+	for _, tc := range tests {
+		client := NewClient("127.0.0.1:5010", 5)
+		_, actual := client.PostAirdropWaypoints(&tc.waypoints)
+		if !reflect.DeepEqual(tc.expected, actual) {
+			t.Fatalf("expected: %d, actual: %d", tc.expected, actual)
+		}
+	}
+}
+
+// TODO: test IsConnected() and all the other stuff on the clickup task

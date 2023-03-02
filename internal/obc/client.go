@@ -50,3 +50,16 @@ func (client *Client) PostMission(mission *pp.Mission) ([]byte, int) {
 func (client *Client) IsConnected() (bool, string) {
 	return client.httpClient.IsConnected()
 }
+
+// Sends Airdrop waypoints to the OBC via POST request.
+func (client *Client) PostAirdropWaypoints(waypoints *[]pp.Waypoint) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(waypoints)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/waypoints/airdrop", &buf)
+	return body, httpErr.Status
+}
