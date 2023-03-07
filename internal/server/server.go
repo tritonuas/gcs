@@ -14,6 +14,7 @@ import (
 	"github.com/tritonuas/gcs/internal/influxdb"
 	"github.com/tritonuas/gcs/internal/manager"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
+	"github.com/tritonuas/gcs/internal/obc"
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
 	"github.com/tritonuas/gcs/internal/obc/pp"
 )
@@ -27,6 +28,7 @@ Stores the server state and data that the server deals with.
 type Server struct {
 	influxDBClient      *influxdb.Client
 	mavlinkClient       *mav.Client
+	obcClient           *obc.Client
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
@@ -89,6 +91,9 @@ func (server *Server) initBackend(router *gin.Engine) {
 			hub.POST("/state", server.changeState())
 			hub.GET("/state/time", server.getStateStartTime())
 			hub.GET("/state/history", server.getStateHistory())
+
+			hub.GET("/camera/status", server.getCameraStatus())
+			hub.GET("/camera/mock/status", server.getMockCameraStatus())
 		}
 
 		plane := api.Group("/plane")
@@ -147,11 +152,12 @@ func (server *Server) SetupRouter() *gin.Engine {
 }
 
 // New will initialize a server struct and populate fields with their initial state
-func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client) Server {
+func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *obc.Client) Server {
 	server := Server{}
 
 	server.influxDBClient = influxdbClient
 	server.mavlinkClient = mavlinkClient
+	server.obcClient = obcClient
 
 	return server
 }
@@ -683,5 +689,37 @@ func (server *Server) getStoredCVSResults() gin.HandlerFunc {
 		} else {
 			c.JSON(http.StatusOK, server.ClassifiedTargets)
 		}
+	}
+}
+
+/*
+Returns a JSON containing true if camera is currently taking images; false otherwise.
+
+This is intended for Houston to use.
+*/
+func (server *Server) getCameraStatus() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status := struct {
+			status bool
+		}{
+			status: server.obcClient.CameraStatus,
+		}
+		c.JSON(http.StatusOK, status)
+	}
+}
+
+/*
+Returns a JSON containing true if the mock camera is currently "taking images"; false otherwise.
+
+This is intended for Houston to use.
+*/
+func (server *Server) getMockCameraStatus() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status := struct {
+			status bool
+		}{
+			status: server.obcClient.MockCameraStatus,
+		}
+		c.JSON(http.StatusOK, status)
 	}
 }

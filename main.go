@@ -97,17 +97,11 @@ func main() {
 		*ENVS["MAV_OUTPUT5"],
 	)
 
+	obcClient := obc.NewClient("127.0.0.1:5010", 5)
+
 	go mavlinkClient.Listen()
 
-	client := obc.NewClient("127.0.0.1:5010", 5)
-	connection, err := client.IsConnected()
-	if connection {
-		fmt.Printf("successfully connected!\n")
-	} else {
-		fmt.Printf("error: couldn't connect; %s\n", err)
-	}
-
 	// Set up GIN HTTP Server
-	server := server.New(influxClient, mavlinkClient)
+	server := server.New(influxClient, mavlinkClient, obcClient)
 	server.Start()
 }
