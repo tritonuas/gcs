@@ -75,25 +75,25 @@ func (server *Server) initFrontend(router *gin.Engine) {
 func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
+		/*
+			TODO:
+
+			---------------------------
+
+			1. in the mission manager, detect a change in state to airdrop and forward the classified targets to obc
+		*/
+
 		api.GET("/connections", server.testConnections())
 
-		obc := api.Group("/obc")
+		targets := api.Group("/targets")
 		{
-			obc.POST("/targets", server.postOBCTargets())
-		}
+			targets.POST("/unclassified", server.postOBCTargets())
+			targets.POST("/classified", server.postCVSResults())
 
-		hub := api.Group("/hub")
-		{
-			hub.GET("/time", server.getTimeElapsed())
-			hub.POST("/time", server.startMissionTimer())
+			targets.GET("/unclassified", server.getOBCTargets())
+			targets.GET("/classified", server.getStoredCVSResults())
 
-			hub.GET("/state", server.getState())
-			hub.POST("/state", server.changeState())
-			hub.GET("/state/time", server.getStateStartTime())
-			hub.GET("/state/history", server.getStateHistory())
-
-			hub.GET("/camera/status", server.getCameraStatus())
-			hub.GET("/camera/mock/status", server.getMockCameraStatus())
+			targets.PUT("/classified", server.updateCVSResults())
 		}
 
 		plane := api.Group("/plane")
@@ -119,19 +119,23 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 			mission.GET("/bounds/airdrop", server.getAirdropBounds())
 			mission.POST("/bounds/airdrop", server.uploadAirDropBounds())
-		}
 
-		cvs := api.Group("/cvs")
-		{
-			cvs.POST("/targets", server.postCVSResults())
-			cvs.GET("/targets", server.getStoredCVSResults())
+			mission.POST("/time", server.startMissionTimer())
+			mission.GET("/time", server.getTimeElapsed())
+
+			mission.GET("/state", server.getState())
+			mission.POST("/state", server.changeState())
+			mission.GET("/state/time", server.getStateStartTime())
+			mission.GET("/state/history", server.getStateHistory())
+
+			mission.GET("/camera/status", server.getCameraStatus())
+			mission.GET("/camera/mock/status", server.getMockCameraStatus())
 		}
 
 		mavlink := api.Group("/mavlink")
 		{
 			mavlink.GET("/endpoints", server.getMavlinkEndpoints())
 			mavlink.PUT("/endpoints", server.putMavlinkEndpoints())
-
 		}
 	}
 }
@@ -459,6 +463,20 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 }
 
 /*
+Returns the unclassified targets that are currently stored in Hub,
+or an error if they have not been posted yet.
+*/
+func (server *Server) getOBCTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if server.UnclassifiedTargets == nil {
+			c.String(http.StatusBadRequest, "ERROR: Unclassified Targets have not been posted yet")
+		} else {
+			c.JSON(http.StatusOK, server.UnclassifiedTargets)
+		}
+	}
+}
+
+/*
 Returns an integer representing the Unix time of when startMissionTimer() was called.
 This is intended to be passed to Houston, which will then convert it to the time since the mission started.
 */
@@ -493,8 +511,12 @@ func (server *Server) getState() gin.HandlerFunc {
 }
 
 /*
-Request a change to the mission's state
-The request will error with code 409 CONFLICT if it is an invalid state change
+Request a change to the mission's state.
+
+If the state is changing to "AIRDROP APPROACH" (signaling the start of the airdrop sequence),
+it will post the classified ODLCs to the OBC using the client function.
+
+The request will error with code 409 CONFLICT if it is an invalid state change.
 */
 func (server *Server) changeState() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -509,6 +531,9 @@ func (server *Server) changeState() gin.HandlerFunc {
 		state := stateJSON.ToEnum()
 
 		if server.Manager.ChangeState(state) {
+			// if state.String() == "AIRDROP APPROACH" {
+			//TODO: FINISH THIS WHEN THE OBC SERVER HAS A ROUTE FOR UPLOADING CLASSIFIED ODLCS
+			// }
 			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
 		} else {
 			c.String(http.StatusConflict, fmt.Sprintf("Invalid state change: %s to %s.", prevState, state))
@@ -607,6 +632,10 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 	}
 }
 
+/*
+Returns the slice of Coordinates representing the mission boundaries stored in server,
+or an error if it has not been initialized.
+*/
 func (server *Server) getFieldBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if server.FlightBounds == nil {
@@ -634,6 +663,10 @@ func (server *Server) uploadFieldBounds() gin.HandlerFunc {
 	}
 }
 
+/*
+Returns the slice of coordinates representing the airdrop zone boundaries that is stored in the server,
+or an error if it has not yet been initialized.
+*/
 func (server *Server) getAirdropBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if server.AirDropBounds == nil {
@@ -721,5 +754,24 @@ func (server *Server) getMockCameraStatus() gin.HandlerFunc {
 			status: server.obcClient.MockCameraStatus,
 		}
 		c.JSON(http.StatusOK, status)
+	}
+}
+
+/*
+In case the images were not classified correctly, Houston may need to update the values manually.
+
+This function currently just overwrites the values in server.ClassfiedTargets; we might want to change this to update specific values later.
+*/
+func (server *Server) updateCVSResults() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		updatedResults := []cvs.ClassifiedODLC{}
+		err := c.BindJSON(&updatedResults)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		} else {
+			server.ClassifiedTargets = updatedResults
+			c.String(http.StatusOK, "Successfully updated CVS results!")
+		}
 	}
 }
