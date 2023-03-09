@@ -15,9 +15,9 @@ FORMAT FOR A WAYPOINT SENT FROM PATHPLANNING:
 type Waypoint struct {
 	Latitude     float64 `json:"latitude"`
 	Longitude    float64 `json:"longitude"`
-	Altitude     float64 `json:"altitude"`
-	Heading      float64 `json:"heading"`
-	AcceptRadius float64 `json:"accept-radius"`
+	Altitude     float64 `json:"altitude"`      // 200-400 feet?
+	Heading      float64 `json:"heading"`       // degrees
+	AcceptRadius float64 `json:"accept-radius"` // 0-20 meters
 }
 
 /*
@@ -32,6 +32,7 @@ type Coordinate struct {
 type Mission struct {
 	FlightBoundaries []Coordinate `json:"flight_boundaries"`
 	SearchBoundaries []Coordinate `json:"search_boundaries"`
+	Obstacles        []Obstacle   `json:"obstacles"`
 }
 
 // This will be passed to the OBC (path planning specifically) with the coordinates of obstacles
