@@ -80,6 +80,10 @@ func (server *Server) initBackend(router *gin.Engine) {
 		obc := api.Group("/obc")
 		{
 			obc.POST("/targets", server.postOBCTargets())
+
+			obc.GET("/path/initial/new", server.generateNewInitialPath())
+			obc.GET("/path/initial", server.getCurrentInitialPath())
+			obc.POST("/path/initial", server.postInitialPath())
 		}
 
 		hub := api.Group("/hub")
@@ -119,6 +123,10 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 			mission.GET("/bounds/airdrop", server.getAirdropBounds())
 			mission.POST("/bounds/airdrop", server.uploadAirDropBounds())
+
+			mission.POST("/waypoints", server.handleInitialWaypoints())
+
+			mission.POST("/start", server.startMission())
 		}
 
 		cvs := api.Group("/cvs")
@@ -158,6 +166,9 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *
 	server.influxDBClient = influxdbClient
 	server.mavlinkClient = mavlinkClient
 	server.obcClient = obcClient
+
+	server.AirDropBounds = nil
+	server.FlightBounds = nil
 
 	return server
 }
@@ -627,11 +638,22 @@ func (server *Server) uploadFieldBounds() gin.HandlerFunc {
 
 		if err == nil {
 			server.FlightBounds = fieldBounds
+			server.uploadMissionIfReady()
 			c.String(http.StatusOK, "Field Bounds has been uploaded", fieldBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
 	}
+}
+
+func (server *Server) uploadMissionIfReady() {
+	/*
+		if server.FlightBounds != nil && server.AirDropBounds != nil {
+
+		}
+
+		RETURN MORE INFORMATION IF IT ACTUALLY UPLOADS THE MISSION
+	*/
 }
 
 func (server *Server) getAirdropBounds() gin.HandlerFunc {
@@ -654,6 +676,7 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 
 		if err == nil {
 			server.AirDropBounds = airDropBounds
+			server.uploadMissionIfReady()
 			c.String(http.StatusOK, "Airdrop Bounds has been uploaded", airDropBounds)
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
@@ -721,5 +744,61 @@ func (server *Server) getMockCameraStatus() gin.HandlerFunc {
 			status: server.obcClient.MockCameraStatus,
 		}
 		c.JSON(http.StatusOK, status)
+	}
+}
+
+/*
+Sends request to OBC to generate a new initial Path
+*/
+func (server *Server) generateNewInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path, status := server.obcClient.GenerateNewInitialPath()
+		c.JSON(status, path)
+	}
+}
+
+/*
+Sends request to OBC for currently uploaded initial path
+*/
+func (server *Server) getCurrentInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path, status := server.obcClient.GetCurrentInitialPath()
+		c.JSON(status, path)
+	}
+}
+
+/*
+Sends Post request to OBC to upload initial path
+*/
+func (server *Server) postInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := []pp.Waypoint{}
+		c.BindJSON(&path)
+
+		resp, status := server.obcClient.PostInitialPath(path)
+		c.String(status, string(resp))
+	}
+}
+
+/*
+Sends Post request to OBC with the competition waypoints we have to hit (in the initial path)
+*/
+func (server *Server) handleInitialWaypoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		wpts := []pp.Waypoint{}
+		c.BindJSON(&wpts)
+
+		resp, status := server.obcClient.PostInitialWaypoint(&wpts)
+		c.String(status, string(resp))
+	}
+}
+
+/*
+Sends Post request to the OBC to signify that we want to start the autonomous mission
+*/
+func (server *Server) startMission() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.StartMission()
+		c.String(status, string(resp))
 	}
 }

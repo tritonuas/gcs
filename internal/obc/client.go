@@ -34,6 +34,47 @@ func NewClient(urlBase string, timeout int) *Client {
 }
 
 /*
+Requests a newly generated Initial Path from the OBC via GET request
+
+Returns the initial path in JSON form
+*/
+func (client *Client) GenerateNewInitialPath() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/path/initial/new")
+	return body, httpErr.Status
+}
+
+/*
+Posts the initial path to the OBC so that it can be uploaded to the plane
+*/
+func (client *Client) PostInitialPath(path []pp.Waypoint) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(path)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/path/initial", &buf)
+	return body, httpErr.Status
+}
+
+/*
+Requests the currently uploaded initial path on the OBC
+*/
+func (client *Client) GetCurrentInitialPath() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/path/initial")
+	return body, httpErr.Status
+}
+
+/*
+Sends a message to the OBC to start the mission
+*/
+func (client *Client) StartMission() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/mission/start", &bytes.Buffer{}) // empty bc no data
+	return body, httpErr.Status
+}
+
+/*
 Sends Mission data (boundaries) to the OBC via POST request.
 
 Returns potential errors and returned status code

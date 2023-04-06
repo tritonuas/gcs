@@ -1,4 +1,4 @@
-import { connectToLocationWorker, getCompetitionLatLon} from "./util.js";
+import { connectToLocationWorker, formatHubURL, getCompetitionLatLon, alertDialog} from "./util.js";
 
 connectToLocationWorker();
 
@@ -185,6 +185,51 @@ function setupMapInput() {
     setupMapClearBtn();
     setupMapPullBtn();
     setupMapMoveBtn();
+
+    let parseFormData = (data, keys) => {
+        let result = [];
+        let resultSize = Object.keys(data).length / keys.length;
+
+        for (let i = 0; i < resultSize; i++) {
+            let curr = {};
+            for (const key of keys) {
+                curr[key] = parseFloat(data[`${i}-${key}`]);
+            }
+            result.push(curr);
+        }
+        return result;
+    }
+
+    waypointsEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude", "altitude"]);
+        let err = false;
+        fetch(formatHubURL("/api/mission/waypoints"), {
+            method: "POST", 
+            body: JSON.stringify(data), 
+            headers:{'content-type': 'application/json'}
+        })
+            .then(r => {
+                if (!r.ok) {
+                    err = true;
+                }
+                return r;
+            })
+            .then(r => r.text())
+            .then(text => {
+                alertDialog(text, err);
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            });
+    });
+    boundariesEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude"]);
+        console.log(data);
+    });
+    searchEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude"]);
+        console.log(data);
+    });
 }
 
 
