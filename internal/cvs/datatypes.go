@@ -11,6 +11,7 @@ type ClassifiedODLC struct {
 	CharColor          int     `json:"char_color"`
 	CroppedImageBase64 string  `json:"cropped_image_base64"`
 	CroppedFilename    string  `json:"cropped_filename"`
+	DropIndex          int     `json:"drop_index"`
 }
 
 // UnclassifiedODLC represents the target right after it has been cropped.
