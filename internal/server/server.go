@@ -667,22 +667,30 @@ func (server *Server) uploadFieldBounds() gin.HandlerFunc {
 
 		if err == nil {
 			server.FlightBounds = fieldBounds
-			server.uploadMissionIfReady()
-			c.String(http.StatusOK, "Field Bounds has been uploaded", fieldBounds)
+			body, status := server.uploadMissionIfReady()
+			if status == -1 {
+				c.String(http.StatusOK, "Field Bounds Uploaded. Still need Airdrop Bounds.")
+			} else {
+				c.String(status, fmt.Sprintf("Field Bounds uploaded: Attempt to upload mission: %s", body))
+			}
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
 	}
 }
 
-func (server *Server) uploadMissionIfReady() {
-	/*
-		if server.FlightBounds != nil && server.AirDropBounds != nil {
-
+func (server *Server) uploadMissionIfReady() (string, int) {
+	if server.FlightBounds != nil && server.AirDropBounds != nil {
+		mission := pp.Mission{
+			FlightBoundaries: server.FlightBounds,
+			SearchBoundaries: server.AirDropBounds,
 		}
 
-		RETURN MORE INFORMATION IF IT ACTUALLY UPLOADS THE MISSION
-	*/
+		body, status := server.obcClient.PostMission(&mission)
+		return string(body), status
+	} else {
+		return "Mission not fully uploaded yet.", -1
+	}
 }
 
 /*
@@ -709,8 +717,12 @@ func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
 
 		if err == nil {
 			server.AirDropBounds = airDropBounds
-			server.uploadMissionIfReady()
-			c.String(http.StatusOK, "Airdrop Bounds has been uploaded", airDropBounds)
+			body, status := server.uploadMissionIfReady()
+			if status == -1 {
+				c.String(http.StatusOK, "Airdrop Bounds Uploaded. Still need to upload Flight Boundaries.")
+			} else {
+				c.String(status, fmt.Sprintf("Airdrop Bounds uploaded: Attempt to upload mission: %s", body))
+			}
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}

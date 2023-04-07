@@ -199,11 +199,10 @@ function setupMapInput() {
         }
         return result;
     }
-
-    waypointsEForm.setOnSubmit((data) => {
-        data = parseFormData(data, ["latitude", "longitude", "altitude"]);
+    
+    let myfetch = (uri, data) => {
         let err = false;
-        fetch(formatHubURL("/api/mission/waypoints"), {
+        fetch(formatHubURL(`/api/mission/${uri}`), {
             method: "POST", 
             body: JSON.stringify(data), 
             headers:{'content-type': 'application/json'}
@@ -221,14 +220,19 @@ function setupMapInput() {
             .catch(err => {
                 alertDialog(err, true);
             });
+    }
+
+    waypointsEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude", "altitude"]);
+        myfetch("waypoints", data);
     });
     boundariesEForm.setOnSubmit((data) => {
         data = parseFormData(data, ["latitude", "longitude"]);
-        console.log(data);
+        myfetch("bounds/field", data);
     });
     searchEForm.setOnSubmit((data) => {
         data = parseFormData(data, ["latitude", "longitude"]);
-        console.log(data);
+        myfetch("bounds/airdrop", data);
     });
 }
 
