@@ -83,6 +83,13 @@ label {
     min-width: 60%;
 }
 
+#map-input-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
 #right-section {
     display: flex;
     flex-direction: column;

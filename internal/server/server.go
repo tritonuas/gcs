@@ -125,6 +125,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 			mission.POST("/path/initial", server.postInitialPath())
 
 			mission.POST("/waypoints", server.handleInitialWaypoints())
+			mission.GET("/waypoints", server.getInitialWaypoints())
 
 			mission.POST("/start", server.startMission())
 
@@ -798,7 +799,7 @@ Sends request to OBC to generate a new initial Path
 func (server *Server) generateNewInitialPath() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path, status := server.obcClient.GenerateNewInitialPath()
-		c.JSON(status, path)
+		c.Data(status, "application/json", path)
 	}
 }
 
@@ -808,7 +809,7 @@ Sends request to OBC for currently uploaded initial path
 func (server *Server) getCurrentInitialPath() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path, status := server.obcClient.GetCurrentInitialPath()
-		c.JSON(status, path)
+		c.Data(status, "application/json", path)
 	}
 }
 
@@ -835,6 +836,16 @@ func (server *Server) handleInitialWaypoints() gin.HandlerFunc {
 
 		resp, status := server.obcClient.PostInitialWaypoint(&wpts)
 		c.String(status, string(resp))
+	}
+}
+
+/*
+Gets the initial waypoints that have already been uploaded to the OBC
+*/
+func (server *Server) getInitialWaypoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.GetInitialWaypoints()
+		c.Data(status, "application/json", resp)
 	}
 }
 

@@ -127,6 +127,14 @@ func (client *Client) PostInitialWaypoint(waypoints *[]pp.Waypoint) ([]byte, int
 }
 
 /*
+Gets the initial competition waypoints uploaded to the obc
+*/
+func (client *Client) GetInitialWaypoints() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/waypoints/initial")
+	return body, httpErr.Status
+}
+
+/*
 Sends POST request to tell imaging camera (the one on the bottom of the plane; not dynamic avoidance) to start taking pictures periodically.
 
 Also updates the CameraStatus field.
