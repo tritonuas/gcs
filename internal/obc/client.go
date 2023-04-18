@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 
+	"github.com/tritonuas/gcs/internal/obc/airdrop"
 	"github.com/tritonuas/gcs/internal/obc/pp"
 	"github.com/tritonuas/gcs/internal/utils"
 )
@@ -186,4 +187,27 @@ Note that this returns an "image" as a byte array (probably base64 encoded?)
 func (client *Client) SendCameraCapture() ([]byte, int) {
 	image, httpErr := client.httpClient.Get("/camera/capture")
 	return image, httpErr.Status
+}
+
+/*
+Sends POST request to OBC to do manual bottle SWAP
+*/
+func (client *Client) ManualBottleSwap(bottle airdrop.BottleSwap) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(bottle)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/swap", &buf)
+	return body, httpErr.Status
+}
+
+/*
+Sends POST request to OBC to do manual bottle DROP
+*/
+func (client *Client) ManualBottleDrop() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/drop", nil)
+	return body, httpErr.Status
 }

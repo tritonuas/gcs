@@ -145,9 +145,56 @@ function setUpGauges() {
     }, 1000);
 }
 
+function setUpManualBottleDrop() {
+    let swapInput = document.getElementById('swap-bottle-txt');
+    const VALID_INPUT = ['A', 'B', 'C', 'D', 'E']
+    swapInput.addEventListener('change', (e) => {
+        e.target.value = e.target.value.toUpperCase();
+        if (!(VALID_INPUT.includes(e.target.value))) {
+            alertDialog("Input must be in " + VALID_INPUT, true);
+            e.target.value = "";
+        }
+    });
+
+    document.getElementById("swap-bottle-btn")
+        .addEventListener('click', () => {
+            if (swapInput.value != "") {
+                fetch(formatHubURL("/api/mission/airdrop/manual/swap"), {
+                    method: "POST",
+                    body: JSON.stringify({bottle: swapInput.value}),
+                    headers: {'content-type': 'application/json'}
+                })
+                    .then(r => r.text())
+                    .then(text => {
+                        alertDialog(text);
+                    })
+                    .catch(err => {
+                        alertDialog(err, true);
+                    });
+            } else {
+                alertDialog("Nothing selected in input", true);
+            }
+        });
+
+    document.getElementById("drop-bottle-btn")
+        .addEventListener('click', () => {
+            fetch(formatHubURL("/api/mission/airdrop/manual/drop"), {
+                method: "POST"
+            })
+                .then(r => r.text())
+                .then(text => {
+                    alertDialog(text);
+                })
+                .catch(err => {
+                    alertDialog(err, true);
+                });
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     setUpMapControlForm();
     setUpGauges();
+    setUpManualBottleDrop();
 });
 
 window.addEventListener('load', () => {

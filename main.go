@@ -97,7 +97,7 @@ func main() {
 		*ENVS["MAV_OUTPUT5"],
 	)
 
-	obcClient := obc.NewClient("127.0.0.1:5010", 5)
+	obcClient := obc.NewClient("192.168.1.50:5010", 60)
 
 	go mavlinkClient.Listen()
 

@@ -139,6 +139,9 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 			mission.GET("/camera/status", server.getCameraStatus())
 			mission.GET("/camera/mock/status", server.getMockCameraStatus())
+
+			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
+			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
 		}
 
 		mavlink := api.Group("/mavlink")
@@ -875,5 +878,24 @@ func (server *Server) updateCVSResults() gin.HandlerFunc {
 			server.ClassifiedTargets = updatedResults
 			c.String(http.StatusOK, "Successfully updated CVS results!")
 		}
+	}
+}
+
+func (server *Server) manualBottleDrop() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.ManualBottleDrop()
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) manualBottleSwap() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bottleSwap := airdrop.BottleSwap{}
+		err := c.BindJSON(&bottleSwap)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad JSON formatting: %s", err.Error())
+		}
+		resp, status := server.obcClient.ManualBottleSwap(bottleSwap)
+		c.String(status, string(resp))
 	}
 }

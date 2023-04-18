@@ -104,6 +104,8 @@ func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTracke
 	go c.verifyPlaneConnection()
 	go c.verifyAntennaTrackerConnection()
 
+	Log.Error(actualRouterDevices)
+
 	return c
 }
 

@@ -17,12 +17,8 @@ services:
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
       - MAV_DEVICE=tcp:localhost:5760
-      # - MAV_DEVICE=udp:mavproxy:14555
-      # - MAV_OUTPUT1=udp:192.168.1.2:14551
-      # - MAV_OUTPUT2=udp:192.168.1.7:14551
-      # - MAV_OUTPUT3=udp:host.docker.internal:14551
-      - MAV_OUTPUT4=udp:172.17.0.1:14550
-      - MAV_OUTPUT5=udp:localhost:14551
+      - MAV_OUTPUT4=udp:localhost:14550
+      - MAV_OUTPUT5=tcp:localhost:14551
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
@@ -94,6 +90,32 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 9999:8080
+  # mavproxy:
+  #   image: tritonuas/mavproxy
+  #   # depends_on:
+  #   #   - sitl
+  #   network_mode: "host"
+  #   # ports:
+  #   #   - "5761:5762"
+  #   #   - "14551:14551"
+  #   environment:
+  #     - "MASTER=--master=tcp:localhost:5760"
+  #     # Forwards messages to MissionPlanner/QGC
+  #     - "OUT1=--out=udp:localhost:14550"
+  #     - "OUT2=--out=udp:localhost:14551"
+  #     # Forwards messages to hub
+  #     # - "OUT2=--out=udpin:mavproxy:14551"
+  #     # - "OUT2=--out=udp:mavproxy:14555"
+  #     # - "OUT3=--out=udp:192.168.1.2:14551"
+  #     # - "OUT4=--out=udp:192.168.1.7:14551"
+  #     # - "OUT3=--out=udp:mavproxy:14556"
+  #     # - "OUT4=--out=tcpin:mavproxy:5761"
+  #     # - "OUT5=--out=udp:mavproxy:5762"
+  #     # - OUT6=
+  #     # - OUT7=
+  #   restart: always
+  #   # logging:
+  #   #   driver: none
 
 volumes:
   grafana_data:
