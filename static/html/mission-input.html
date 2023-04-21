@@ -54,30 +54,39 @@
 	<main>
 		<section id="left-section">
 			<tuas-map id="input-map" width="50rem" height="30rem" data-zoom="16" data-max-zoom="18" ></tuas-map>
-			<form id="map-input-form">
-				<fieldset>
-					<legend>Map Input</legend>
-					<div class="flex-right">
-						<div>
-							<label for="waypoints-input" id="waypoints-label">Waypoints</label>
-							<input type="radio" name="map-mode" id="waypoints-input" value="waypoints" checked>
+			<div id="map-input-container">
+				<form id="map-input-form">
+					<fieldset>
+						<legend>Map Input</legend>
+						<div class="flex-right">
+							<div>
+								<label for="waypoints-input" id="waypoints-label">Waypoints</label>
+								<input type="radio" name="map-mode" id="waypoints-input" value="waypoints" checked>
+							</div>
+							<div>
+								<label for="boundaries-input" id="boundaries-label">Boundaries</label>
+								<input type="radio" name="map-mode" id="boundaries-input" value="boundaries">
+							</div>
+							<div>
+								<label for="search-input" id="search-label">Search</label>
+								<input type="radio" name="map-mode" id="search-input" value="search">
+							</div>
 						</div>
-						<div>
-							<label for="boundaries-input" id="boundaries-label">Boundaries</label>
-							<input type="radio" name="map-mode" id="boundaries-input" value="boundaries">
+						<div class="flex-right">
+							<input id="map-clear-btn" type="button" value="Clear Selected">
+							<input id="map-pull-btn" type="button" value="Pull Map Values">
+							<input id="map-move-btn" type="button" value="Set Location">
 						</div>
-						<div>
-							<label for="search-input" id="search-label">Search</label>
-							<input type="radio" name="map-mode" id="search-input" value="search">
-						</div>
-					</div>
-					<div class="flex-right">
-						<input id="map-clear-btn" type="button" value="Clear Selected">
-						<input id="map-pull-btn" type="button" value="Pull Map Values">
-						<input id="map-move-btn" type="button" value="Set Location">
-					</div>
-				</fieldset>
-			</form>
+					</fieldset>
+				</form>
+				<form id="initial-path-form">
+					<fieldset>
+						<legend>Initial Path Setup</legend>
+						<input id="generate-initial-path-btn" type="button" value="New Initial Path">
+						<input id="post-initial-path-btn" type="button" value="Post Initial Path">
+					</fieldset>
+				</form>
+			</div>
 			<form id="bottle-form" method="POST" action="/">
 				<fieldset id="bottle-form-fieldset">
 					<legend>Bottle Ordering</legend>

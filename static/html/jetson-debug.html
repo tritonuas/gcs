@@ -22,8 +22,8 @@
             <fieldset>
                 <legend>Jetson Info</legend>
 
-                <label for="url-input" id="url-input-label">Enter Jetson IP:PORT</label>
-                <input type="text" id="url-input" name="url-input" value="192.168.1.50:5090">
+                <label for="url-input" id="url-input-label">IP:PORT</label>
+                <input type="text" id="url-input" name="url-input" value="192.168.1.50:5010">
 
                 <button>Take Picture</button>
             </fieldset>
@@ -31,6 +31,21 @@
 
         <image-gallery id="gallery" width="640" height="480">
         </image-gallery>
+
+        <form action="/" method="POST" id="camera-form">
+            <fieldset>
+                <legend>Camera Parameters</legend>
+                <fieldset id="analog-fieldset"> 
+                    <legend>Analog Controls</legend>
+                </fieldset>
+                <fieldset id="activation-fieldset">
+                    <legend>Activation Controls</legend>
+                </fieldset>
+
+                <input type="button" value="Pull" id="pull-params-btn">
+                <input type="submit" value="Submit">
+            </fieldset>
+        </form>
 	</main>
 </body>
 </html>

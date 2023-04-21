@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 
+	"github.com/tritonuas/gcs/internal/obc/airdrop"
 	"github.com/tritonuas/gcs/internal/obc/pp"
 	"github.com/tritonuas/gcs/internal/utils"
 )
@@ -31,6 +32,47 @@ func NewClient(urlBase string, timeout int) *Client {
 	client.httpClient = utils.NewClient(urlBase, timeout)
 
 	return client
+}
+
+/*
+Requests a newly generated Initial Path from the OBC via GET request
+
+Returns the initial path in JSON form
+*/
+func (client *Client) GenerateNewInitialPath() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/path/initial/new")
+	return body, httpErr.Status
+}
+
+/*
+Posts the initial path to the OBC so that it can be uploaded to the plane
+*/
+func (client *Client) PostInitialPath(path []pp.Waypoint) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(path)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/path/initial", &buf)
+	return body, httpErr.Status
+}
+
+/*
+Requests the currently uploaded initial path on the OBC
+*/
+func (client *Client) GetCurrentInitialPath() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/path/initial")
+	return body, httpErr.Status
+}
+
+/*
+Sends a message to the OBC to start the mission
+*/
+func (client *Client) StartMission() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/mission/start", &bytes.Buffer{}) // empty bc no data
+	return body, httpErr.Status
 }
 
 /*
@@ -86,6 +128,14 @@ func (client *Client) PostInitialWaypoint(waypoints *[]pp.Waypoint) ([]byte, int
 }
 
 /*
+Gets the initial competition waypoints uploaded to the obc
+*/
+func (client *Client) GetInitialWaypoints() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/waypoints/initial")
+	return body, httpErr.Status
+}
+
+/*
 Sends POST request to tell imaging camera (the one on the bottom of the plane; not dynamic avoidance) to start taking pictures periodically.
 
 Also updates the CameraStatus field.
@@ -137,4 +187,27 @@ Note that this returns an "image" as a byte array (probably base64 encoded?)
 func (client *Client) SendCameraCapture() ([]byte, int) {
 	image, httpErr := client.httpClient.Get("/camera/capture")
 	return image, httpErr.Status
+}
+
+/*
+Sends POST request to OBC to do manual bottle SWAP
+*/
+func (client *Client) ManualBottleSwap(bottle airdrop.BottleSwap) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(bottle)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/swap", &buf)
+	return body, httpErr.Status
+}
+
+/*
+Sends POST request to OBC to do manual bottle DROP
+*/
+func (client *Client) ManualBottleDrop() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/drop", nil)
+	return body, httpErr.Status
 }

@@ -69,25 +69,25 @@ func (server *Server) initFrontend(router *gin.Engine) {
 func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
+		/*
+			TODO:
+
+			---------------------------
+
+			1. in the mission manager, detect a change in state to airdrop and forward the classified targets to obc
+		*/
+
 		api.GET("/connections", server.testConnections())
 
-		obc := api.Group("/obc")
+		targets := api.Group("/targets")
 		{
-			obc.POST("/targets", server.postOBCTargets())
-		}
+			targets.POST("/unclassified", server.postOBCTargets())
+			targets.POST("/classified", server.postCVSResults())
 
-		hub := api.Group("/hub")
-		{
-			hub.GET("/time", server.getTimeElapsed())
-			hub.POST("/time", server.startMissionTimer())
+			targets.GET("/unclassified", server.getOBCTargets())
+			targets.GET("/classified", server.getStoredCVSResults())
 
-			hub.GET("/state", server.getState())
-			hub.POST("/state", server.changeState())
-			hub.GET("/state/time", server.getStateStartTime())
-			hub.GET("/state/history", server.getStateHistory())
-
-			hub.GET("/camera/status", server.getCameraStatus())
-			hub.GET("/camera/mock/status", server.getMockCameraStatus())
+			targets.PUT("/classified", server.updateCVSResults())
 		}
 
 		plane := api.Group("/plane")
@@ -115,21 +115,40 @@ func (server *Server) initBackend(router *gin.Engine) {
 			mission.GET("/bounds/flight", server.getFlightBounds())
 			mission.POST("/bounds/flight", server.uploadFlightBounds())
 
+			mission.GET("/bounds/airdrop", server.getAirdropBounds())
+			mission.POST("/bounds/airdrop", server.uploadAirDropBounds())
 			mission.GET("/bounds/search", server.getSearchBounds())
 			mission.POST("/bounds/search", server.uploadSearchBounds())
 		}
 
-		cvs := api.Group("/cvs")
-		{
-			cvs.POST("/targets", server.postCVSResults())
-			cvs.GET("/targets", server.getStoredCVSResults())
+			mission.GET("/path/initial/new", server.generateNewInitialPath())
+			mission.GET("/path/initial", server.getCurrentInitialPath())
+			mission.POST("/path/initial", server.postInitialPath())
+
+			mission.POST("/waypoints", server.handleInitialWaypoints())
+			mission.GET("/waypoints", server.getInitialWaypoints())
+
+			mission.POST("/start", server.startMission())
+
+			mission.POST("/time", server.startMissionTimer())
+			mission.GET("/time", server.getTimeElapsed())
+
+			mission.GET("/state", server.getState())
+			mission.POST("/state", server.changeState())
+			mission.GET("/state/time", server.getStateStartTime())
+			mission.GET("/state/history", server.getStateHistory())
+
+			mission.GET("/camera/status", server.getCameraStatus())
+			mission.GET("/camera/mock/status", server.getMockCameraStatus())
+
+			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
+			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
 		}
 
 		mavlink := api.Group("/mavlink")
 		{
 			mavlink.GET("/endpoints", server.getMavlinkEndpoints())
 			mavlink.PUT("/endpoints", server.putMavlinkEndpoints())
-
 		}
 	}
 }
@@ -157,7 +176,8 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *
 	server.mavlinkClient = mavlinkClient
 	server.obcClient = obcClient
 
-	server.Mission = &pp.Mission{FlightBoundaries: nil, SearchBoundaries: nil}
+	server.AirDropBounds = nil
+	server.FlightBounds = nil
 
 	return server
 }
@@ -459,6 +479,20 @@ func (server *Server) postOBCTargets() gin.HandlerFunc {
 }
 
 /*
+Returns the unclassified targets that are currently stored in Hub,
+or an error if they have not been posted yet.
+*/
+func (server *Server) getOBCTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if server.UnclassifiedTargets == nil {
+			c.String(http.StatusBadRequest, "ERROR: Unclassified Targets have not been posted yet")
+		} else {
+			c.JSON(http.StatusOK, server.UnclassifiedTargets)
+		}
+	}
+}
+
+/*
 Returns an integer representing the Unix time of when startMissionTimer() was called.
 This is intended to be passed to Houston, which will then convert it to the time since the mission started.
 */
@@ -493,8 +527,12 @@ func (server *Server) getState() gin.HandlerFunc {
 }
 
 /*
-Request a change to the mission's state
-The request will error with code 409 CONFLICT if it is an invalid state change
+Request a change to the mission's state.
+
+If the state is changing to "AIRDROP APPROACH" (signaling the start of the airdrop sequence),
+it will post the classified ODLCs to the OBC using the client function.
+
+The request will error with code 409 CONFLICT if it is an invalid state change.
 */
 func (server *Server) changeState() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -509,6 +547,9 @@ func (server *Server) changeState() gin.HandlerFunc {
 		state := stateJSON.ToEnum()
 
 		if server.Manager.ChangeState(state) {
+			// if state.String() == "AIRDROP APPROACH" {
+			//TODO: FINISH THIS WHEN THE OBC SERVER HAS A ROUTE FOR UPLOADING CLASSIFIED ODLCS
+			// }
 			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
 		} else {
 			c.String(http.StatusConflict, fmt.Sprintf("Invalid state change: %s to %s.", prevState, state))
@@ -607,7 +648,11 @@ func (server *Server) updateDropOrder() gin.HandlerFunc {
 	}
 }
 
-func (server *Server) getFlightBounds() gin.HandlerFunc {
+/*
+Returns the slice of Coordinates representing the mission boundaries stored in server,
+or an error if it has not been initialized.
+*/
+func (server *Server) getFieldBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if server.Mission.FlightBoundaries == nil {
 			c.String(http.StatusBadRequest, "ERROR: Flight bounds not yet initialized")
@@ -626,15 +671,38 @@ func (server *Server) uploadFlightBounds() gin.HandlerFunc {
 		err := c.BindJSON(&flightBounds)
 
 		if err == nil {
-			server.Mission.FlightBoundaries = flightBounds
-			c.String(http.StatusOK, "Flight Bounds has been uploaded", flightBounds)
+			server.FlightBounds = fieldBounds
+			body, status := server.uploadMissionIfReady()
+			if status == -1 {
+				c.String(http.StatusOK, "Field Bounds Uploaded. Still need Airdrop Bounds.")
+			} else {
+				c.String(status, fmt.Sprintf("Field Bounds uploaded: Attempt to upload mission: %s", body))
+			}
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
 	}
 }
 
-func (server *Server) getSearchBounds() gin.HandlerFunc {
+func (server *Server) uploadMissionIfReady() (string, int) {
+	if server.FlightBounds != nil && server.AirDropBounds != nil {
+		mission := pp.Mission{
+			FlightBoundaries: server.FlightBounds,
+			SearchBoundaries: server.AirDropBounds,
+		}
+
+		body, status := server.obcClient.PostMission(&mission)
+		return string(body), status
+	} else {
+		return "Mission not fully uploaded yet.", -1
+	}
+}
+
+/*
+Returns the slice of coordinates representing the airdrop zone boundaries that is stored in the server,
+or an error if it has not yet been initialized.
+*/
+func (server *Server) getAirdropBounds() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if server.Mission.SearchBoundaries == nil {
 			c.String(http.StatusBadRequest, "ERROR: Search bounds not yet initialized")
@@ -653,8 +721,13 @@ func (server *Server) uploadSearchBounds() gin.HandlerFunc {
 		err := c.BindJSON(&searchBounds)
 
 		if err == nil {
-			server.Mission.SearchBoundaries = searchBounds
-			c.String(http.StatusOK, "Search Bounds have been uploaded", searchBounds)
+			server.AirDropBounds = airDropBounds
+			body, status := server.uploadMissionIfReady()
+			if status == -1 {
+				c.String(http.StatusOK, "Airdrop Bounds Uploaded. Still need to upload Flight Boundaries.")
+			} else {
+				c.String(status, fmt.Sprintf("Airdrop Bounds uploaded: Attempt to upload mission: %s", body))
+			}
 		} else {
 			c.String(http.StatusBadRequest, err.Error())
 		}
@@ -765,5 +838,109 @@ func (server *Server) getMockCameraStatus() gin.HandlerFunc {
 			status: server.obcClient.MockCameraStatus,
 		}
 		c.JSON(http.StatusOK, status)
+	}
+}
+
+/*
+Sends request to OBC to generate a new initial Path
+*/
+func (server *Server) generateNewInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path, status := server.obcClient.GenerateNewInitialPath()
+		c.Data(status, "application/json", path)
+	}
+}
+
+/*
+Sends request to OBC for currently uploaded initial path
+*/
+func (server *Server) getCurrentInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path, status := server.obcClient.GetCurrentInitialPath()
+		c.Data(status, "application/json", path)
+	}
+}
+
+/*
+Sends Post request to OBC to upload initial path
+*/
+func (server *Server) postInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := []pp.Waypoint{}
+		c.BindJSON(&path)
+
+		resp, status := server.obcClient.PostInitialPath(path)
+		c.String(status, string(resp))
+	}
+}
+
+/*
+Sends Post request to OBC with the competition waypoints we have to hit (in the initial path)
+*/
+func (server *Server) handleInitialWaypoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		wpts := []pp.Waypoint{}
+		c.BindJSON(&wpts)
+
+		resp, status := server.obcClient.PostInitialWaypoint(&wpts)
+		c.String(status, string(resp))
+	}
+}
+
+/*
+Gets the initial waypoints that have already been uploaded to the OBC
+*/
+func (server *Server) getInitialWaypoints() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.GetInitialWaypoints()
+		c.Data(status, "application/json", resp)
+	}
+}
+
+/*
+Sends Post request to the OBC to signify that we want to start the autonomous mission
+*/
+func (server *Server) startMission() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.StartMission()
+		c.String(status, string(resp))
+	}
+}
+
+/*
+In case the images were not classified correctly, Houston may need to update the values manually.
+
+This function currently just overwrites the values in server.ClassfiedTargets; we might want to change this to update specific values later.
+*/
+func (server *Server) updateCVSResults() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		updatedResults := []cvs.ClassifiedODLC{}
+		err := c.BindJSON(&updatedResults)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		} else {
+			server.ClassifiedTargets = updatedResults
+			c.String(http.StatusOK, "Successfully updated CVS results!")
+		}
+	}
+}
+
+func (server *Server) manualBottleDrop() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.ManualBottleDrop()
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) manualBottleSwap() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bottleSwap := airdrop.BottleSwap{}
+		err := c.BindJSON(&bottleSwap)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad JSON formatting: %s", err.Error())
+		}
+		resp, status := server.obcClient.ManualBottleSwap(bottleSwap)
+		c.String(status, string(resp))
 	}
 }

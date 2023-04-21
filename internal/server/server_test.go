@@ -59,7 +59,7 @@ func TestPostOBCTargets(t *testing.T) {
 			router := server.SetupRouter()
 
 			w := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/api/obc/targets", tc.inputJSON)
+			req, err := http.NewRequest("POST", "/api/targets/unclassified", tc.inputJSON)
 			assert.Nil(t, err)
 
 			router.ServeHTTP(w, req)
@@ -80,7 +80,7 @@ func TestStartMissionTime(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, err := http.NewRequest("POST", "/api/hub/time", nil)
+	req, err := http.NewRequest("POST", "/api/mission/time", nil)
 	assert.Nil(t, err)
 
 	router.ServeHTTP(w, req)
@@ -133,20 +133,20 @@ func TestGetTimeElapsed(t *testing.T) {
 			var err error
 
 			if tc.name == "before timer start" {
-				req, err = http.NewRequest("GET", "/api/hub/time", nil)
+				req, err = http.NewRequest("GET", "/api/mission/time", nil)
 				assert.Nil(t, err)
 
 				router.ServeHTTP(w, req)
 				assert.Equal(t, http.StatusBadRequest, w.Code)
 			} else {
-				req, err = http.NewRequest("POST", "/api/hub/time", nil)
+				req, err = http.NewRequest("POST", "/api/mission/time", nil)
 				assert.Nil(t, err)
 				router.ServeHTTP(w, req)
 				timer := time.Now()
 				time.Sleep(time.Duration(tc.waitTime) * time.Second)
 
 				w = httptest.NewRecorder()
-				req, err = http.NewRequest("GET", "/api/hub/time", nil)
+				req, err = http.NewRequest("GET", "/api/mission/time", nil)
 				assert.Nil(t, err)
 				router.ServeHTTP(w, req)
 

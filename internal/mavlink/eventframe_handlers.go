@@ -19,6 +19,13 @@ type EventFrameHandler func(*Client, *gomavlib.EventFrame, *gomavlib.Node)
 // forwardEventFrame forwards event frames to all other channels except the
 // channel the frame originated from
 func (c *Client) forwardEventFrame(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+	// msg := evt.Frame.GetMessage()
+
+	// if msg.GetID() == 47 {
+	// 	Log.Info(msg.GetID())
+	// 	time.Sleep(1 * time.Second)
+	// }
+
 	node.WriteFrameExcept(evt.Channel, evt.Frame)
 }
 

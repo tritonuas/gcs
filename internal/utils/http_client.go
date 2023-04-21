@@ -88,15 +88,9 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 	}
 
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		Log.Debug(err)
-		httpErr.SetError("POST", []byte("Could not read response body"), http.StatusInternalServerError)
-		return nil, *httpErr
-	}
 	Log.Debugf("Making Request : POST - %s - %d", uri, resp.StatusCode)
 
-	return body, *httpErr
+	return errMsg, *httpErr
 }
 
 // Get makes a GET request to the server
@@ -164,15 +158,8 @@ func (c *Client) Put(uri string, msg io.Reader) ([]byte, HTTPError) {
 		httpErr.SetError("PUT", errMsg, resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		Log.Debug(err)
-		httpErr.SetError("PUT", []byte("Could not read response body"), http.StatusInternalServerError)
-		return nil, *httpErr
-	}
-
 	Log.Debugf("Making Request to: PUT - %s - %d", uri, resp.StatusCode)
-	return body, *httpErr
+	return errMsg, *httpErr
 }
 
 // Delete makes a DELETE request to the server

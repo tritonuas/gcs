@@ -26,3 +26,10 @@ This way, there is no danger of overwriting anything other than the bottle drop 
 type Bottles struct {
 	Bottles []Bottle `json:"bottles"`
 }
+
+/*
+Simple message to tell the OBC which bottle to drop in a manual bottle drop override
+*/
+type BottleSwap struct {
+	Bottle string `json:"bottle"`
+}

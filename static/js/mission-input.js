@@ -1,4 +1,4 @@
-import { connectToLocationWorker, getCompetitionLatLon} from "./util.js";
+import { connectToLocationWorker, formatHubURL, getCompetitionLatLon, alertDialog, waitDialog, closeWaitDialogs} from "./util.js";
 
 connectToLocationWorker();
 
@@ -146,15 +146,119 @@ function setupMapMoveBtn() {
     });
 }
 
+function setupGeneratePathBtn(tmap) {
+    let btn = document.getElementById('generate-initial-path-btn');
+    btn.addEventListener('click', () => {
+        fetch(formatHubURL("/api/mission/path/initial/new"))
+            .then(r => {
+                if (!r.ok) {
+                    r.text().then(txt => {throw txt;});
+                } else {
+                    return r.json();
+                }
+            })
+            .then(json => {
+                tmap.clearPoly("initial-path");
+                for (const wpt of json) {
+                    tmap.addPointToPoly("initial-path", [wpt.latitude, wpt.longitude])
+                }
+                closeWaitDialogs();
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            });
+        waitDialog("Generating Path...");
+    });
+}
+
+function setupPostInitialPathBtn(tmap) {
+    let btn = document.getElementById('post-initial-path-btn');
+    btn.addEventListener("click", () => {
+        let data = tmap.getPolyLatLngs("initial-path");
+        let jsondata = [];
+        for (const wpt of data) {
+            jsondata.push({"latitude": wpt.lat, "longitude": wpt.lng});
+        }
+        fetch(formatHubURL("/api/mission/path/initial"), {
+            method: "POST", 
+            body: JSON.stringify(jsondata), 
+            headers:{'content-type': 'application/json'}
+        })
+            .then(r => {
+                if (!r.ok) {
+                    r.text().then(err => {throw err;})
+                } else {
+                    return r.text();
+                }
+            })
+            .then(text => {
+                alertDialog(text);
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            })
+    });
+}
+
+function pullMissionData(tmap) {
+    // Pull OBC mission and comp waypoints
+    fetch(formatHubURL("/api/mission/waypoints"))
+        .then(r => r.json())
+        .then(json => {
+            json.forEach(wpt => {
+                tmap.addPointToPoly("waypoints", [wpt.latitude, wpt.longitude]);
+            });
+        });
+
+    fetch(formatHubURL("/api/mission/bounds/field"))
+        .then(r => r.json())
+        .then(json => {
+            json.forEach(wpt => {
+                tmap.addPointToPoly("boundaries", [wpt.latitude, wpt.longitude]);
+            })
+        })
+
+    fetch(formatHubURL("/api/mission/bounds/airdrop"))
+        .then(r => r.json())
+        .then(json => {
+            json.forEach(wpt => {
+                tmap.addPointToPoly("search", [wpt.latitude, wpt.longitude]);
+            })
+        })
+
+    fetch(formatHubURL("/api/mission/bounds/airdrop"))
+        .then(r => r.json())
+        .then(json => {
+            json.forEach(wpt => {
+                tmap.addPointToPoly("search", [wpt.latitude, wpt.longitude]);
+            })
+        })
+
+    fetch(formatHubURL("/api/mission/path/initial"))
+        .then(r => r.json())
+        .then(json => {
+            tmap.clearPoly("initial-path");
+            for (const wpt of json) {
+                tmap.addPointToPoly("initial-path", [wpt.latitude, wpt.longitude])
+            }
+        })
+}
+
 function setupMapInput() {
     let tmap = document.getElementById("input-map");
     // These IDS in the polymap should align with the values of the radio buttons in the html
     tmap.initPoly("boundaries", "red", false);
     tmap.initPoly("waypoints", "blue", true);
     tmap.initPoly("search", "magenta", false);
+    tmap.initPoly("initial-path", "yellow", true);
     tmap.addOnClick((e) => {
         tmap.addPointToPoly(getMapMode(), e.latlng);
     });
+
+    setupGeneratePathBtn(tmap);
+    setupPostInitialPathBtn(tmap);
+    pullMissionData(tmap);
+
     window.addEventListener('load', () => {
         tmap.centerMap(getCompetitionLatLon());
     });
@@ -185,6 +289,55 @@ function setupMapInput() {
     setupMapClearBtn();
     setupMapPullBtn();
     setupMapMoveBtn();
+
+    let parseFormData = (data, keys) => {
+        let result = [];
+        let resultSize = Object.keys(data).length / keys.length;
+
+        for (let i = 0; i < resultSize; i++) {
+            let curr = {};
+            for (const key of keys) {
+                curr[key] = parseFloat(data[`${i}-${key}`]);
+            }
+            result.push(curr);
+        }
+        return result;
+    }
+    
+    let myfetch = (uri, data) => {
+        let err = false;
+        fetch(formatHubURL(`/api/mission/${uri}`), {
+            method: "POST", 
+            body: JSON.stringify(data), 
+            headers:{'content-type': 'application/json'}
+        })
+            .then(r => {
+                if (!r.ok) {
+                    err = true;
+                }
+                return r;
+            })
+            .then(r => r.text())
+            .then(text => {
+                alertDialog(text, err);
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            });
+    }
+
+    waypointsEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude", "altitude"]);
+        myfetch("waypoints", data);
+    });
+    boundariesEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude"]);
+        myfetch("bounds/field", data);
+    });
+    searchEForm.setOnSubmit((data) => {
+        data = parseFormData(data, ["latitude", "longitude"]);
+        myfetch("bounds/airdrop", data);
+    });
 }
 
 

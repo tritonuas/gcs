@@ -19,12 +19,8 @@ var log = logrus.New()
 
 // Defines globally used variables for ports and IPs and other things.
 var ENVS = map[string]*string{
-	"HUB_ADDR":             flag.String("hub_addr", "5000", "http service hub_address"),
 	"HUB_PATH":             flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
-	"RTPP_IP":              flag.String("rtpp_ip", "127.0.0.1", "ip of rtpp computer"),
-	"RTPP_PORT":            flag.String("rtpp_port", "5010", "port of rtpp computer"),
-	"RTPP_TIMEOUT":         flag.String("rtpp_timeout", "360", "time limit in seconds on http requests to interop server"),
-	"RTPP_RETRY_TIME":      flag.String("rtpp_retry_time", "5", "how many seconds to wait after unsuccessful rtpp connection"),
+    "OBC_ADDR":             flag.String("obc_addr", "127.0.0.1:5010", "ip of obc"),
 	"MAV_DEVICE":           flag.String("mav_device", "serial:/dev/serial", "serial port or tcp address of plane to receive messages from"),
 	"MAV_OUTPUT1":          flag.String("mav_output1", "", "first output of mavlink messages"),
 	"MAV_OUTPUT2":          flag.String("mav_output2", "", "second output of mavlink messages"),
@@ -97,7 +93,7 @@ func main() {
 		*ENVS["MAV_OUTPUT5"],
 	)
 
-	obcClient := obc.NewClient("127.0.0.1:5010", 5)
+	obcClient := obc.NewClient(*ENVS["OBC_ADDR"], 60)
 
 	go mavlinkClient.Listen()
 
