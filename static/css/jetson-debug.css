@@ -12,3 +12,30 @@ image-gallery {
 form {
     float: left;
 }
+
+form > fieldset {
+    display: flex;
+    flex-direction: column;
+}
+
+form > fieldset fieldset {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    text-align: left;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+form > fieldset fieldset input {
+    width: 100%;
+}
+
+form > fieldset fieldset label:hover {
+    transform: translateY(-2px);
+    color: skyblue;
+    transition: all 0.1s ease-in;
+}
+
+legend ~ fieldset > legend {
+    font-size: 1.2rem;
+}
