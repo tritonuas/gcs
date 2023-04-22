@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Triton GCS</title>
+
+	<link href="../css/global.css" rel="stylesheet" media="screen"/>
+	<link href="../css/jetson-debug.css" rel="stylesheet" media="screen"/>
+
+    <script type="module" src="../js/navbar.js"></script>
+    <script type="module" src="../js/jetson-debug.js"></script>
+    <script type="module" src="../js/image-gallery.js"></script>
+</head>
+
+<body>
+    <nav-bar></nav-bar>
+
+	<main>
+        <form action="/" method="POST" id="jetson-form">
+            <fieldset>
+                <legend>Jetson Info</legend>
+
+                <label for="url-input" id="url-input-label">IP:PORT</label>
+                <input type="text" id="url-input" name="url-input" value="192.168.1.50:5010">
+
+                <button>Take Picture</button>
+            </fieldset>
+        </form>
+
+        <image-gallery id="gallery" width="640" height="480">
+        </image-gallery>
+
+        <form action="/" method="POST" id="camera-form">
+            <fieldset>
+                <legend>Camera Parameters</legend>
+                <fieldset id="analog-fieldset"> 
+                    <legend>Analog Controls</legend>
+                </fieldset>
+                <fieldset id="activation-fieldset">
+                    <legend>Activation Controls</legend>
+                </fieldset>
+
+                <input type="button" value="Pull" id="pull-params-btn">
+                <input type="submit" value="Submit">
+            </fieldset>
+        </form>
+	</main>
+</body>
+</html>

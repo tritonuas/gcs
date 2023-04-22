@@ -1,0 +1,103 @@
+main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+main > * {
+    align-items: center;
+    justify-content: center;
+}
+
+
+
+#bottle-form {
+    float: left;
+}
+
+#bottle-form > fieldset {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    width: fit-content;
+}
+
+#bottle-form > fieldset > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 10em;
+    margin: 0.5em;
+}
+
+#bottle-form input, #bottle-form select {
+    margin: 0.2em;
+}
+
+fieldset[disabled] input, fieldset[disabled] select {
+    color: black;
+    background-color: black;
+}
+
+
+.flex-right {
+    display: flex;
+    flex-direction: row;
+    flex-wrap:wrap;
+}
+
+label {
+    transition: 1s all;
+}
+
+#waypoints-label {
+    color: blue;
+}
+
+#boundaries-label {
+    color: red;
+}
+
+#search-label {
+    color: magenta;
+}
+
+#map-input-form {
+    max-width: 50rem;
+}
+
+#input-map {
+    margin-top: .5em;
+}
+
+#left-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    background-image: linear-gradient(0deg, white 0%, rgb(160, 199, 254) 74%);
+    border-right: 1px solid white;
+    max-width: 60%;
+    min-width: 60%;
+}
+
+#map-input-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+#right-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+extendo-form fieldset {
+    position:absolute;
+    left: 62%;
+}

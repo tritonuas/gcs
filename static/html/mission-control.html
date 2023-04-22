@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Triton GCS</title>
+
+	<link href="../css/global.css" rel="stylesheet" media="screen"/>
+	<link href="../css/mission-control.css" rel="stylesheet" media="screen"/>
+
+	<!--Leaflet Library-->
+	<link rel="stylesheet" href="../packages/leaflet.css"/>
+	<script type="module" src="../packages/leaflet-src.esm.js"></script>
+
+    <script type="module" src="../js/navbar.js"></script>
+    <script type="module" src="../js/value-gauge.js"></script>
+    <script type="module" src="../js/mission-control.js"></script>
+    <script type="module" src="../js/grow-box.js"></script>
+    <script type="module" src="../js/tuas-map.js"></script>
+</head>
+
+<body>
+    <nav-bar></nav-bar>
+
+	<main>
+		<div id="grid">
+			<aside class="gauge-container">
+				<val-gauge id="gspeed-gauge" unit="knots" label="Ground Speed" ></val-gauge>
+				<val-gauge id="aspeed-gauge" unit="knots" label="Air Speed" ></val-gauge>
+				<val-gauge id="alt-gauge" unit="ft" label="Altitude MSL" ></val-gauge>
+				<val-gauge id="state-gauge" unit="" label="Mission State" ></val-gauge>
+			</aside>
+			<tuas-map id="map" height="700px" data-zoom="16" data-max-zoom="20" ></tuas-map>
+			<aside class="gauge-container">
+				<val-gauge id="motor-v-gauge" unit="V" label="Motor Battery" ></val-gauge>
+				<val-gauge id="pixhawk-v-gauge" unit="V" label="Pixhawk Battery" ></val-gauge>
+				<val-gauge id="esc-temp-gauge" unit="°F" label="ESC Temperature" ></val-gauge>
+				<val-gauge id="flightmode-gauge" unit="" label="Flight Mode" ></val-gauge>
+			</aside>
+		</div>
+
+		<form id="map-control-form" >
+			<div class="checkbox-container">
+				<label for="trace-path-checkbox" class="checkbox-label" id="trace-path-label">Trace Path</label>
+				<input type="checkbox" id="trace-path-checkbox" name="trace-path-checkbox" checked>
+			</div>
+
+			<div class="checkbox-container">
+				<label for="center-plane-checkbox" class="checkbox-label" id="center-plane-label">Center on Plane</label>
+				<input type="checkbox" id="center-plane-checkbox" name="center-plane-checkbox" checked>
+			</div>
+
+			<div class="checkbox-container">
+				<input type="button" id="save-map-button" value="Save Map">
+			</div>
+
+			<div class="checkbox-container">
+				<input type="text" id="swap-bottle-txt" name="swap-bottle-txt">
+				<input type="button" id="swap-bottle-btn" name="swap-bottle-btn" value="Swap Bottle" checked>
+			</div>
+
+			<div class="checkbox-container">
+				<input type="button" id="drop-bottle-btn" name="drop-bottle-btn" value="Drop Bottle" checked>
+			</div>
+		</form>
+	</main>
+</body>
+</html>

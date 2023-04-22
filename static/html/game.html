@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Triton GCS</title>
+
+	<link href="../css/global.css" rel="stylesheet" media="screen"/>
+    <link href="../css/game.css" rel="stylesheet" media="screen"/>
+
+    <script type="module" src="../js/game.js"></script>
+</head>
+
+<body>
+    <section id="title-section" data-active="false">
+        <h1 id="title-text">TUAS Simulator 2023</h1>
+        <ol>
+            <input id="start-btn" type="button" value="Start">
+            <input id="return-btn" type="button" value="Return">
+        </ol>
+        <img id="title-plane" src="../images/plane.gif" width="128" height="128">
+    </section>
+    <section id="game-section" data-level="1" data-active="false" >
+        <img class="plane" id="game-plane" data-dir="left" src="../images/plane.gif" width="48" height="48" style="left: 0px; top: 0px;">
+    </section>
+</body>
+</html>

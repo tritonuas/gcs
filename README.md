@@ -1,95 +1,113 @@
-# Hub
+# gcs
 
-[![Linting](https://github.com/tritonuas/hub/workflows/Linting/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ALinting)
-[![Tests](https://github.com/tritonuas/hub/workflows/Tests/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ATests)
-[![Docker](https://github.com/tritonuas/hub/workflows/Docker/badge.svg)](https://github.com/tritonuas/hub/actions?query=workflow%3ADocker)
+[![Linting](https://github.com/tritonuas/gcs/workflows/Linting/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ALinting)
+[![Tests](https://github.com/tritonuas/gcs/workflows/Tests/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ATests)
+[![Docker](https://github.com/tritonuas/gcs/workflows/Docker/badge.svg)](https://github.com/tritonuas/gcs/actions?query=workflow%3ADocker)
 
-Hub is a back-end web-server that facilitates communication between other
-modules in the TUAS system, including
-[Houston](https://github.com/tritonuas/houston),
-[OBC](https://github.com/tritonuas/planeobc),
-and more. It also communicates with the
-[Interop Judging Server](https://github.com/auvsi-suas/interop)
-to grab the mission plans and submit waypoints. As of now, it does NOT deal with
-computer vision stuff; for that, see
-[matts-new-glasses](https://github.com/tritonuas/matts-new-glasses).
+**gcs** is TUAS's Ground Control Station. It serves as a webapp and is comprised of many smaller modules which all have their own functions. If you want to learn more about each part individually, you can click on the links below to go to its specific README. 
 
-Hub is currently hosted on
-[Dockerhub](https://hub.docker.com/repository/docker/tritonuas/hub).
+Entries in bold indicate that it is a module which we implement.
+
+- **[Hub](/internal/README.md): A back-end (written in Go) that facilitates the communication between all the different components of the entire TUAS ecosystem. This includes the [OBC](), [CVS](https://github.com/tritonuas/computer-vision-server), [Antenna Tracker](https://github.com/tritonuas/antenna-tracker). It also serves as the central node between all of The Skeld's internal parts, which are listed below.**
+- **[Houston](/static/README.md): A front-end (written in vanilla HTML/CSS/JavaScript). This provides the user interface to interact with Hub.**
+- InfluxDB: A database to which Hub saves plane telemetry data.
+- Grafana: A third-party front-end interface we use to display dashboards for data stored in InfluxDB. While Houston does include a dashboard for the most important information, Grafana is much more flexible to view any arbitrary telemetry data.
+- SITL: A simulation for the plane so we can test the system with fake telemetry data.
 
 ## Dependencies
 
-- go 1.14
-- protobuf-compiler
+- go 1.19
 - [docker](https://docs.docker.com/engine/install/)
 - [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
-
-Both of these should be handled with this script
-
-```sh
-# download git submodules
-make submodulesupdate
-# install go and protobuf-compiler
-make install-dependencies
-```
+- [golangci-lint](https://github.com/golangci/golangci-lint)
+- [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
 
 ## First Time Setup
-In order to compile the protobuf files needed to run Hub, execute the following command
+
+To install Docker, follow the instructions in the above links. 
+
+To install Go, the easiest way is to use [g](https://github.com/stefanmaric/g). The repo's 
+README contains installation instructions. Make sure to install and set up go 1.19. 
+
+To install the linter, run the following make command. If you encounter a permission denied error, 
+then rerun the command with sudo permissions.
+
+```sh
+make install-linter
 ```
-make compile-protos
+
+To install the formatter, run the following make command.
+
+```sh
+make install-fmter
 ```
-If this command doesn't work, then run
-```
-git submodule update --init
-```
-before trying the previous make command again
 
 ## Build
 
 ``` sh
-# Build local hub executable
+# Build local gcs executable
 make build
 
-# Build Docker image
+# Build Docker image for gcs 
 make build-docker
 ```
 
 Note that running docker commands may require sudo. 
 
+### Assets
+
+Most of the assets that Houston serves (from the static directory) are already included in the repo. However, some of the files are more larger and more... interesting, which bloat the repo size. To pull these, run the following command (with internet connection).
+
+```
+make install-assets
+```
+
 ## Run
 
 ``` sh
-# Run hub with testuser locally
+# Run gcs with testuser locally
 make run
 
-# Run docker image of hub
+# Run docker image of gcs 
 make run-docker
 ```
 
-Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot) Will include [Interop](https://github.com/auvsi-suas/interop) in the future)
+Run full hub workflow with multiple components (Includes [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
 ``` sh
 make run-compose
 ```
 
-## Stop
+### Stop Compose
 ``` sh
 # Stop docker-compose workflow
 make stop-compose
 ```
 
-## Ports and Stuff
-
-Check [houston](https://github.com/tritonuas/houston) for usage instructions
-
-In houston, the `Backend Addr` always needs to match that of hub
-
-```sh
-# find IP of hub
-docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container_name_or_id
+### Shortcuts
+``` sh
+# stop compose, then rebuild hub, then restart compose
+make develop
 ```
 
 ## Test
 
 ```sh
 make test
+```
+
+## Lint
+
+```sh
+make lint
+```
+
+If you want to disable the linter for a specific line then add `//nolint: lint_type`.
+```go
+data, _ := fetchData() //nolint: errcheck
+```
+
+## Format
+
+```sh
+make fmt
 ```

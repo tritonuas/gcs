@@ -2,6 +2,8 @@ package utils
 
 import "strings"
 
+// HTTPError stores what kind of HTTP method had an error,
+// a message, and the status code from the response
 type HTTPError struct {
 	Get     bool   // Signifies error from a get request
 	Post    bool   // Signifies error from a post request

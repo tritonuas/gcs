@@ -3,20 +3,29 @@ FROM golang:1.19
 # Move to working directory /build
 WORKDIR /build
 
-# Install some necessary dependencies
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    libzmq3-dev \
-	protobuf-compiler \
- && rm -rf /var/lib/apt/lists/*
+# disable some optimizations that don't work everywhere
+# ENV CGO_ENABLED=0
 
-# Install protoc compilation for golang
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+# copy over go.mod and go.sum
+COPY go.* ./
 
-COPY . .
-# Compile protobufs for golang
-RUN make compile-protos
+# `docker builder prune`: will force to have up to date packages
+# contents of /go/pkg/mod get saved by docker so it doesn't repull every time
+# in any case the deps are in a separate layer so this will not run normally
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+# RUN go mod download
 
-# Build hub
-RUN go build
+# Build gcs
+# COPY . .
+# RUN go build
+RUN --mount=target=. \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -o /output/gcs .
 
-CMD ["./hub"]
+COPY ./static/ /build/static
+
+# go build mounts code read-only without copying to container,
+# so you have to put binary in another folder
+CMD ["/output/gcs"]

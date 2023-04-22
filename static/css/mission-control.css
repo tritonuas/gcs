@@ -1,0 +1,82 @@
+body {
+    background-color: #045de9;
+    -background-image: linear-gradient(0deg, #045de9 0%, lightskyblue 74%);
+}
+
+h1 {
+    border-width: 0px !important; /*override global style */
+}
+
+/* if we want to make the layout of here more complicated in the future consider using css-grid 
+   with the map and the forms as child elements */
+
+
+html, body {
+    min-height: 100%;
+    background-color: darkslateblue;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    background-color: darkslateblue;
+}
+
+#map {
+    height: 800px;
+    width: 70%
+}
+
+#grid {
+    display: flex;
+    flex-direction: row;
+}
+
+.gauge-container {
+    width: 15%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    height: 300px;
+}
+
+#map-control-form {
+    color: white;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    width: auto;
+    padding: 0;
+    padding-top: 1em;
+    margin: 0;
+    min-width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+}
+
+#map-control-form input, #map-control-form label {
+    max-width: fit-content;
+    margin: auto;
+}
+
+label {
+    border-bottom: 2px solid white;
+    border-radius: 10px;
+    padding-bottom: 0.5em;
+}
+
+input[type="checkbox"] {
+    max-width: none !important;
+    margin-top: 0.5em !important;
+    width: 1em;
+    height: 1em;
+}
+
+.checkbox-container {
+    text-align: center;
+    margin: auto;
+    max-width: fit-content;
+}
