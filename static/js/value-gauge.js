@@ -40,7 +40,6 @@ class ValueGauge extends HTMLElement {
             let img = output.querySelector('img');
             if (img != null) {
                 time=500;
-                console.log("test")
                 img.src = "../images/thumbsup.png";
             }
         }

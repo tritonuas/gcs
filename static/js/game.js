@@ -9,7 +9,7 @@ normalMusic.loop = true;
 let intenseMusic = new Audio('../music/intense.webm');
 intenseMusic.loop = true;
 
-let musics = [normalMusic, intenseMusic];
+let musics = [intenseMusic];
 
 let explosionSound = new Audio('../music/blow.wav');
 let dropSound = new Audio('../music/drop.wav');
@@ -17,6 +17,30 @@ let dropSound = new Audio('../music/drop.wav');
 let currSection = null;
 let currMusic = null;
 let currLevel = -1;
+
+function collision(a, b) {
+    const rect1 = a.getBoundingClientRect();
+    const rect2 = b.getBoundingClientRect();
+    const isInHoriztonalBounds =
+        rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x;
+    const isInVerticalBounds =
+        rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
+    const isOverlapping = isInHoriztonalBounds && isInVerticalBounds;
+    return isOverlapping;
+}
+
+function getDirFrom(a, b) {
+    const rect1 = a.getBoundingClientRect();
+    const rect2 = b.getBoundingClientRect();
+    const isLeft = rect1.x < rect2.x;
+    const isBelow = rect1.y > rect2.y;
+    return {"left": isLeft, "below": isBelow};
+}
+
+function offset(player) {
+    const playerrect = player.getBoundingClientRect();
+    return {"x": playerrect.x + Math.random() * 1000, "y": playerrect.y + Math.random() * 1000};
+}
 
 function createExplosion(top, left) {
     let explosion = document.createElement('img');
@@ -28,6 +52,9 @@ function createExplosion(top, left) {
     explosion.width = 200;
     explosion.height = 200;
     currSection.appendChild(explosion);
+    if (collision(explosion, gamePlane.tag)) {
+        currSection.removeChild(gamePlane.tag);
+    }
     setTimeout(() => {
         currSection.removeChild(explosion);
     }, 850);
@@ -38,9 +65,10 @@ class GamePlane {
     #vy = 0;
     #ax = 0
     #ay = 0
-    constructor(tag) {
+    constructor(tag, player) {
         this.tag = tag;
         this.canBomb = true;
+        this.player = player;
     }
 
     // The looping function that moves the plane in current velocity
@@ -108,17 +136,30 @@ class GamePlane {
             bomb.width = 16;
             bomb.height = 32;
             currSection.appendChild(bomb);
-            let numTicks = 0;
             let vi = Math.max(this.#vy, 0);
             let startTime = Date.now(); // ms unix time
             var bombInterval = setInterval(() => {
                 let y = parseFloat(bomb.style.top) + 25 + (.1 * vi);
                 bomb.style.top = `${y}px`;
-                console.log(numTicks);
+                let breakerson = false;
+                enemies.forEach((e) => {
+                    if (collision(bomb, e.tag)) {
+                        currSection.removeChild(e.tag);
+                        currSection.removeChild(bomb);
+                        createExplosion(parseFloat(bomb.style.top), parseFloat(bomb.style.left));
+                        clearInterval(bombInterval);
+                        this.canBomb = true;
+                        enemies.delete(e);
+                        breakerson = true;
+                        return;
+                    }
+                });
+                if (breakerson) {
+                    return;
+                }
                 if (Date.now() - startTime > 2000) {
                     currSection.removeChild(bomb);
                     createExplosion(parseFloat(bomb.style.top), parseFloat(bomb.style.left));
-                    console.log(bombInterval)
                     clearInterval(bombInterval);
                     this.canBomb = true;
                 }
@@ -136,11 +177,13 @@ class GamePlane {
     #place(x, y) {
         this.tag.style.left = `${x}px`;
         this.tag.style.top = `${y}px`;
-        this.tag.scrollIntoView({
-            behavior: 'auto',
-            block: 'center',
-            inline: 'center'
-        });
+        if (this.player) {
+            this.tag.scrollIntoView({
+                behavior: 'auto',
+                block: 'center',
+                inline: 'center'
+            });
+        }
 
         //window.scroll({top: this.top() - (window.innerHeight / 2), left: this.left()- (window.innerHeight / 2)});
     }
@@ -163,6 +206,7 @@ class GamePlane {
 }
 
 let gamePlane = null;
+let enemies = new Set();
 
 function initTitle() {
     // init button listen handlers
@@ -177,7 +221,11 @@ function initTitle() {
 }
 
 function initGame() {
-    gamePlane = new GamePlane(document.getElementById('game-plane'));
+    gamePlane = new GamePlane(document.getElementById('game-plane'),true);
+
+    let enemyPlane = new GamePlane(document.getElementById('enemy'),false);
+    enemies.add(enemyPlane);
+
     // set up event listeners 
     let gameSection = document.getElementById('game-section');
     window.addEventListener('keydown', (e) => {
@@ -225,9 +273,38 @@ function initGame() {
         }
     });
 
+    let i = 0;
     setInterval(() => {
         if (gameSection.dataset.active=="true") {
             gamePlane.move();
+            enemies.forEach((enemyPlane) => {
+                if (i % 100 == 0) {
+                    let dir = getDirFrom(gamePlane.tag, enemyPlane.tag);
+                    if (dir.left) {
+                        enemyPlane.setXAccel(-1);
+                    } else {
+                        enemyPlane.setXAccel(1);
+                    }
+                    if (dir.below) {
+                        enemyPlane.setYAccel(1);
+                    } else {
+                        enemyPlane.setYAccel(-1);
+                    }
+                }
+                enemyPlane.move();
+            });
+            if (enemies.size < 1) {
+                let off = offset(gamePlane.tag);
+                console.log(off);
+                gameSection.insertAdjacentHTML("beforeend", `
+                    <img class="plane" id="enemy${i}" 
+                    data-dir="left" src="../images/noooo.gif" 
+                    width="128" height="128" style="left: ${off.x}px; top: $${off.y}px;">
+                `);
+                let enemyTag = document.getElementById(`enemy${i}`);
+                let enemyPlane = new GamePlane(enemyTag, false);
+                enemies.add(enemyPlane);
+            }
         }
     }, 10);
 }
@@ -265,18 +342,14 @@ document.addEventListener('DOMContentLoaded', () => {
 /*
 logo.addEventListener("click", () => {
     logo.classList.add("follow");
-
     new Audio('../images/duck-flies.webm').play();
     document.addEventListener('mousemove', (e) => {
         if (!keepMoving) {
             return;
         }
-
         logo.style.left = e.pageX + 'px';
         logo.style.top = e.pageY + 'px';
-
         let height = document.getElementsByTagName('html')[0].offsetHeight;
-
         if (e.pageY > height-32) {
             keepMoving = false;
             logo.style = "z-index: 999999999999999999999999; width: 200px; height: 200px; background-image: url(../images/explosion.gif)";

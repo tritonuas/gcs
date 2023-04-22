@@ -263,3 +263,22 @@ extendo-form form {
     margin: .8rem !important;
     padding: .2rem .4rem !important;
 }
+
+@keyframes fly {
+    from {
+        right: 0;
+    }
+
+    to {
+        right: 100%;
+    }
+}
+
+dialog textarea {
+    width: 100vh;
+    height: 50vh;
+    background-color: darkslateblue;
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
