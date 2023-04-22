@@ -284,3 +284,26 @@ export function important() {
 export function formatHubURL(endpoint) {
     return `http://${getHubIp()}:${getHubPort()}${endpoint}`;
 }
+
+export function pasteDialog(msg, s) {
+    let pasteDialog = document.createElement('dialog');
+    pasteDialog.innerHTML = `<p>${msg}</p> 
+                               <form method="dialog">
+                               <textarea> ${s} </textarea>
+                               <button type="submit" id="accept-button" value="true">Ok</button>
+                               </form>`;
+
+    document.body.appendChild(pasteDialog);
+    pasteDialog.showModal();
+    pasteDialog.addEventListener('close', () => {
+        document.body.removeChild(pasteDialog);
+    });
+    return pasteDialog;
+}
+
+export function checkRequest(r){
+    if (!r.ok) {
+        throw "Request not okay";
+    }
+    return r;
+}

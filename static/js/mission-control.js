@@ -1,10 +1,19 @@
-import { roundDecimal, connectToLocationWorker, getCurrPos, getPosHistory, confirmDialog, alertDialog, clearPosHistory, getHubIp, getHubPort, closeWaitDialogs, waitDialog, formatHubURL} from "./util.js";
+import { roundDecimal, connectToLocationWorker, getCurrPos, formatHubURL, checkRequest} from "./util.js";
 
 let locationWorker = connectToLocationWorker();
 
 // Global booleans
 let centerOnPlane = true;
 let tracePath = true;
+
+// Ids for polys on the map
+// match ids with request endpoints in Hub
+const FLIGHT_BOUNDS = "mission/bounds/field";
+const SEARCH_BOUNDS = "mission/bounds/airdrop";
+const INITIAL_WAYPOINTS = "mission/waypoints";
+const INITIAL_PATH = "mission/path/initial";
+// In future this possibly will correspond with a route, but for now the caching is done client-side
+const TAKEN_PATH = "taken-path";
 
 function getCurrLatlng() {
     let currPos = getCurrPos();
@@ -15,7 +24,7 @@ function getCurrLatlng() {
     }
 }
 
-function updatePlaneMarker() {
+function updateMap() {
     let map = document.getElementById("map");
     let currPos = getCurrPos();
     if (currPos != null) {
@@ -25,8 +34,8 @@ function updatePlaneMarker() {
             map.centerMap(latlng);
         }
         if (tracePath) {
-            // TODO: detect change in previous flight point
-            map.addPointToPoly("taken-path", latlng);
+            console.log("taken path:", latlng);
+            map.addPointToPoly(TAKEN_PATH, latlng);
         }
     } else {
         map.setNoConn();
@@ -37,14 +46,35 @@ function updatePlaneMarker() {
 function initMap() {
     let map = document.getElementById("map");
 
-    map.initPoly("boundaries", "red", false);
-    map.initPoly("search", "magenta", false);
-    map.initPoly("planned-path", "cyan", true);
-    map.initPoly("taken-path", "yellow", true);
+
+    map.initPoly(FLIGHT_BOUNDS, "red", false);
+    map.initPoly(SEARCH_BOUNDS, "magenta", false);
+    map.initPoly(INITIAL_WAYPOINTS, "blue", true);
+    map.initPoly(INITIAL_PATH, "yellow", true); 
+    map.initPoly(TAKEN_PATH, "cyan", true);
+    
+    function draw() {
+        for (let i = 0; i < arguments.length; i++) {
+            let id = arguments[i];
+            fetch(formatHubURL(`/api/${arguments[i]}`))
+                .then(r => checkRequest(r))
+                .then(r => r.json())
+                .then(list => {
+                    let latlngs = [];
+                    for (const pt of list) {
+                        latlngs.push([pt.latitude, pt.longitude]);
+                    }
+                    map.addPointsToPoly(id, latlngs);
+                })
+        }
+    };
+    draw(FLIGHT_BOUNDS, SEARCH_BOUNDS, INITIAL_WAYPOINTS, INITIAL_PATH);
+
+
     map.initMarker("plane", getCurrLatlng(), "../images/plane.gif", [32, 32]);
     // TODO: list of markers for waypoints
 
-    setInterval(updatePlaneMarker, 1000);
+    setInterval(updateMap, 1000);
 }
 
 // Set up everything relating to controlling the map
@@ -57,11 +87,23 @@ function setUpMapControlForm() {
     let tracePathCheckbox = document.getElementById('trace-path-checkbox');
     tracePathCheckbox.addEventListener('click', (e) => {
         tracePath = e.currentTarget.checked;
+        if (!tracePath) {
+            let map = document.getElementById('map');
+            if (map.isInitialized()) {
+                map.disconnectPoly("taken-path");
+            }
+        }
     });
 
     let centerPlaneCheckbox = document.getElementById('center-plane-checkbox');
     centerPlaneCheckbox.addEventListener('click', (e) => {
         centerOnPlane = e.currentTarget.checked;
+    });
+
+    let saveMapButton = document.getElementById('save-map-button');
+    saveMapButton.addEventListener('click', () => {
+        let map = document.getElementById("map");
+        map.serialize();
     });
 }
 
@@ -79,12 +121,6 @@ function setUpGauges() {
         128: "Armed", 64: "Manual", 32: "HIL", 16: "Stabilize", 8: "Guided", 4: "Auto", 2: "Test", 1: "Custom"
     };
 
-    let checkRequest = (r) => {
-        if (!r.ok) {
-            throw "Request not okay";
-        }
-        return r;
-    };
 
     setInterval(() => {
         fetch(formatHubURL('/api/plane/telemetry?id=74&field=groundspeed,airspeed'))
@@ -122,6 +158,9 @@ function setUpGauges() {
             .catch(err => {
                 flightModeGauge.setNull();
             });
+    }, 1000);
+
+    setInterval(() => {
         fetch(formatHubURL('/api/plane/telemetry?id=251&field=value'))
             .then(r => checkRequest(r))
             .then(r => r.json())
@@ -142,7 +181,7 @@ function setUpGauges() {
                 pixhawkGauge.setNull();
                 motorGauge.setNull();
             });
-    }, 1000);
+    }, 2000);
 }
 
 function setUpManualBottleDrop() {
