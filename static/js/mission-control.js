@@ -104,7 +104,7 @@ function setUpGauges() {
         } else {
             altGauge.setValue(roundDecimal(currPos["altitude"] * 3.281), 1); // m -> ft
         }
-        fetch(formatHubURL('/api/hub/state'))
+        fetch(formatHubURL('/api/mission/state'))
             .then(r => checkRequest(r))
             .then(r => r.text())
             .then(text => {
