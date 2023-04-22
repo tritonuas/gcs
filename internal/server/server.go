@@ -685,9 +685,9 @@ func (server *Server) uploadMissionIfReady() (string, int) {
 
 		body, status := server.obcClient.PostMission(&mission)
 		return string(body), status
-	} else {
-		return "Mission not fully uploaded yet.", -1
 	}
+
+	return "Mission not fully uploaded yet.", -1
 }
 
 /*
@@ -815,7 +815,10 @@ Sends Post request to OBC to upload initial path
 func (server *Server) postInitialPath() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := []pp.Waypoint{}
-		c.BindJSON(&path)
+		err := c.BindJSON(&path)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Error with json binding %s", err.Error())
+		}
 
 		resp, status := server.obcClient.PostInitialPath(path)
 		c.String(status, string(resp))
@@ -828,7 +831,10 @@ Sends Post request to OBC with the competition waypoints we have to hit (in the 
 func (server *Server) handleInitialWaypoints() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		wpts := []pp.Waypoint{}
-		c.BindJSON(&wpts)
+		err := c.BindJSON(&wpts)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Error with json binding %s", err.Error())
+		}
 
 		resp, status := server.obcClient.PostInitialWaypoint(&wpts)
 		c.String(status, string(resp))

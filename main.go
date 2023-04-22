@@ -20,7 +20,7 @@ var log = logrus.New()
 // Defines globally used variables for ports and IPs and other things.
 var ENVS = map[string]*string{
 	"HUB_PATH":             flag.String("hub_path", "/home/mat/gopath/src/github.com/tritonuas/hub", "Path to hub folder"),
-    "OBC_ADDR":             flag.String("obc_addr", "127.0.0.1:5010", "ip of obc"),
+	"OBC_ADDR":             flag.String("obc_addr", "127.0.0.1:5010", "ip of obc"),
 	"MAV_DEVICE":           flag.String("mav_device", "serial:/dev/serial", "serial port or tcp address of plane to receive messages from"),
 	"MAV_OUTPUT1":          flag.String("mav_output1", "", "first output of mavlink messages"),
 	"MAV_OUTPUT2":          flag.String("mav_output2", "", "second output of mavlink messages"),
