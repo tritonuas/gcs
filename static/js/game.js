@@ -225,6 +225,7 @@ function initGame() {
 
     let enemyPlane = new GamePlane(document.getElementById('enemy'),false);
     enemies.add(enemyPlane);
+    console.log(enemies);
 
     // set up event listeners 
     let gameSection = document.getElementById('game-section');
