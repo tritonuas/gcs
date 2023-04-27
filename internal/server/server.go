@@ -102,6 +102,9 @@ func (server *Server) initBackend(router *gin.Engine) {
 			plane.GET("/position", server.getPosition())
 
 			plane.GET("/voltage", server.getBatteryVoltages())
+
+			plane.GET("/mavlink/status", server.getJetsonMavStatus())
+			plane.POST("/mavlink/connect", server.connectJetsonMav())
 		}
 
 		mission := api.Group("/mission")
@@ -895,6 +898,25 @@ func (server *Server) manualBottleSwap() gin.HandlerFunc {
 			c.String(http.StatusBadRequest, "Bad JSON formatting: %s", err.Error())
 		}
 		resp, status := server.obcClient.ManualBottleSwap(bottleSwap)
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) getJetsonMavStatus() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.GetMavlinkStatus()
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) connectJetsonMav() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		mavConn := pp.MavlinkConnection{}
+		err := c.BindJSON(&mavConn)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
+		}
+		resp, status := server.obcClient.ConnectMavlink(mavConn)
 		c.String(status, string(resp))
 	}
 }

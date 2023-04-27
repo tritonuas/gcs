@@ -93,7 +93,7 @@ func main() {
 		*ENVS["MAV_OUTPUT5"],
 	)
 
-	obcClient := obc.NewClient(*ENVS["OBC_ADDR"], 60)
+	obcClient := obc.NewClient(*ENVS["OBC_ADDR"], 10)
 
 	go mavlinkClient.Listen()
 

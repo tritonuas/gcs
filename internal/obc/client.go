@@ -211,3 +211,26 @@ func (client *Client) ManualBottleDrop() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/drop", nil)
 	return body, httpErr.Status
 }
+
+/*
+Sends Get request to OBC testing mav status
+*/
+func (client *Client) GetMavlinkStatus() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/mavlink/status")
+	return body, httpErr.Status
+}
+
+/*
+Sends Post request to OBC to attempt mavlink connection
+*/
+func (client *Client) ConnectMavlink(mavConn pp.MavlinkConnection) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(mavConn)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/mavlink/connect", &buf)
+	return body, httpErr.Status
+}

@@ -1,4 +1,4 @@
-#conn-status {
+#conn-status, #jetson-conn-status {
     border: .2rem solid black;
     border-radius: 8px;
     display: block;
@@ -78,4 +78,23 @@ main {
     padding-bottom: 1em;
     border-left: 1px solid white;
     border-right: 1px solid white;
+}
+
+#jetson-conn-status[data-pulse="true"] {
+    background-color: yellow;
+    transition: background-color 0.25s ease-in;
+}
+
+#statuses-section {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+#debug-forms-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
 }

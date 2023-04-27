@@ -1,24 +1,27 @@
-import {saveHubInfo, alertDialog, getHubIp, getHubPort, formatHubURL, roundDecimal, connectToLocationWorker, confirmDialog } from "./util.js"
+import {saveHubInfo, alertDialog, getHubIp, getHubPort, formatHubURL, roundDecimal, connectToLocationWorker, confirmDialog, formDataToJSON, checkRequest } from "./util.js"
 
 connectToLocationWorker();
 
-function setConnectionStatus(json) {
-    let output = document.getElementById('conn-status');
+function setConnectionStatus(json, output_id, expect_bool=true) {
+    let output = document.getElementById(output_id);
     output.innerHTML = '';
 
     let formatConnItem = (type, connected) => {
-        if (connected) {
-            return `<li style="color:green; font-size: 2em;"> ${type} <img src="../images/yes.gif" width=64 height=64> </img> <li>`
+        if (expect_bool) {
+            if (connected) {
+                return `<li style="color:green; font-size: 2em;"> ${type} <img src="../images/yes.gif" width=64 height=64> </img> <li>`
+            } else {
+                return `<li style="color:red; font-size: 2em;"> ${type} <img src="../images/noooo.gif" width=64 height=64> </img> <li>`
+            }
         } else {
-            return `<li style="color:red; font-size: 2em;"> ${type} <img src="../images/noooo.gif" width=64 height=64> </img> <li>`
+            output.dataset['pulse'] = 'true';
+            setTimeout(() => {
+                output.dataset['pulse'] = 'false';
+            }, 500)
+            // expect_bool = false, so directly output the message instead of putting silly zoomer pictures
+            return `<li style="color:black; font-size: 2em; solid black"> <p style="border-bottom: 2px solid black">${type} </p> <p> ${connected} </p> <li>`
         }
     };
-
-    if (json == null) {
-        json = {
-            "hub": false
-        };
-    }
 
     output.innerHTML = "";
     let ul = document.createElement("ul");
@@ -87,6 +90,37 @@ function setupMavlinkEndpointSubmits() {
     });
 }
 
+function setupJetsonMavForm() {
+    let form = document.getElementById('jetson-mav-form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        confirmDialog("I Solemly swear that the plane is not currently linked over mavlink. If it is, THEN THIS WILL BRICK THE PLANE!!!")
+            .addEventListener("close", (e_dialog) => {
+                e_dialog.preventDefault();
+                console.log("OUT THE FETCH POST")
+                console.log(e_dialog.target.returnValue);
+                if (e_dialog.target.returnValue == "true") {
+                    console.log("IN THE FETCH POST")
+                    let json = formDataToJSON(new FormData(e.target));
+                    fetch(formatHubURL("/api/plane/mavlink/connect"), {
+                        method: "POST",
+                        body: JSON.stringify(json),
+                        headers: {'content-type': 'application/json'}
+                    })
+                        .then(response => response.text())
+                        .then(text => {
+                            alertDialog(text);
+                        })
+                        .catch(err => {
+                            alertDialog(err, true)
+                        });
+                }
+            });
+
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // Handling Form Submission
@@ -115,13 +149,27 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`http://${getHubIp()}:${getHubPort()}/api/connections`)
             .then(response => response.json())
             .then(json => {
-                setConnectionStatus(json);            
+                setConnectionStatus(json, 'conn-status');
             })
             .catch(error => {
-                setConnectionStatus(null);
+                setConnectionStatus({hub: false}, 'conn-status');
             })
     }, 1000);
 
+    setInterval(() => {
+        fetch(formatHubURL("/api/plane/mavlink/status"))
+            .then(r => checkRequest(r))
+            .then(r => r.text())
+            .then(text => {
+                setConnectionStatus({jetson_mav: text}, 'jetson-conn-status', false);
+            })
+            .catch(err => {
+                console.error(err);
+                setConnectionStatus({jetson_mav: false}, 'jetson-conn-status');
+            })
+    }, 5000);
+
     pullMavlinkInfo();
     setupMavlinkEndpointSubmits();
+    setupJetsonMavForm();
 });

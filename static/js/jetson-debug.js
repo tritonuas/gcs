@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let jetsonIp = document.getElementById('url-input').value;
 
-        fetch(`http://${jetsonIp}/lucid/capture`)
+        fetch(`http://${jetsonIp}/camera/capture`)
             .then(response => response.blob())
             .then(imageBlob => {
                 const imageObjectURL = URL.createObjectURL(imageBlob);

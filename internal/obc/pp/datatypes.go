@@ -6,6 +6,10 @@ import (
 	Log "github.com/sirupsen/logrus"
 )
 
+type MavlinkConnection struct {
+	Ip string `json:"ip"`
+}
+
 /*
 FORMAT FOR A WAYPOINT SENT FROM PATHPLANNING:
 {
@@ -74,6 +78,3 @@ func CreatePath(waypointsIn []byte) Path {
 func (p Path) GetPath() []Waypoint {
 	return p.Waypoints
 }
-
-// 1. learn about json tags, how to use with json.Marshal, json.Unmarshal
-// 2. see server.go run method

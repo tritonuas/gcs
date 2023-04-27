@@ -307,3 +307,9 @@ export function checkRequest(r){
     }
     return r;
 }
+
+export function formDataToJSON(formData) {
+    let formDataObj = {};
+    formData.forEach((value, key) => (formDataObj[key] = value));
+    return formDataObj;
+}
