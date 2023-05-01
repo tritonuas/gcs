@@ -244,6 +244,20 @@ function pullMissionData(tmap) {
         })
 }
 
+export function parseFormData(data, keys) {
+    let result = [];
+    let resultSize = Object.keys(data).length / keys.length;
+
+    for (let i = 0; i < resultSize; i++) {
+        let curr = {};
+        for (const key of keys) {
+            curr[key] = parseFloat(data[`${i}-${key}`]);
+        }
+        result.push(curr);
+    }
+    return result;
+}
+
 function setupMapInput() {
     let tmap = document.getElementById("input-map");
     // These IDS in the polymap should align with the values of the radio buttons in the html
@@ -290,19 +304,6 @@ function setupMapInput() {
     setupMapPullBtn();
     setupMapMoveBtn();
 
-    let parseFormData = (data, keys) => {
-        let result = [];
-        let resultSize = Object.keys(data).length / keys.length;
-
-        for (let i = 0; i < resultSize; i++) {
-            let curr = {};
-            for (const key of keys) {
-                curr[key] = parseFloat(data[`${i}-${key}`]);
-            }
-            result.push(curr);
-        }
-        return result;
-    }
     
     let myfetch = (uri, data) => {
         let err = false;
@@ -325,6 +326,10 @@ function setupMapInput() {
                 alertDialog(err, true);
             });
     }
+
+    waypointsEForm.setKeys(["latitude", "longitude", "altitude"]);
+    boundariesEForm.setKeys(["latitude", "longitude"]);
+    searchEForm.setKeys(["latitude", "longitude"]);
 
     waypointsEForm.setOnSubmit((data) => {
         data = parseFormData(data, ["latitude", "longitude", "altitude"]);

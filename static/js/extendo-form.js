@@ -1,4 +1,5 @@
 import { capitalizeFirstLetter } from "./util.js";
+import { parseFormData } from "./mission-input.js";
 
 class ExtendoForm extends HTMLElement {
     constructor() {
@@ -125,6 +126,8 @@ class ExtendoForm extends HTMLElement {
                 <input id="${this.id}-remove-btn" type="button" value="Remove">
                 <input id="${this.id}-clear-btn" type="button" value="Clear">
                 <input id="${this.id}-counter" class="counter" type="text" value="0">
+                <input id="${this.id}-clone" type="button" type="text" value="Clone">
+                <input id="${this.id}-clone-counter" class="counter" type="text" value="1">
             </ul>
 
             <ol id="${this.id}-tuple-list">
@@ -136,9 +139,16 @@ class ExtendoForm extends HTMLElement {
             </ul>
         `;
 
+
         this.appendChild(this.fieldset);
 
         this.tuplesList = document.getElementById(`${this.id}-tuple-list`);
+
+        let cloneBtn = document.getElementById(`${this.id}-clone`);
+        cloneBtn.addEventListener('click', () => {
+            let times = document.getElementById(`${this.id}-clone-counter`).value;
+            this.clone(times);
+        });
 
 
         let counter = document.getElementById(`${this.id}-counter`);
@@ -244,14 +254,34 @@ class ExtendoForm extends HTMLElement {
         }
     }
 
+    setKeys(keys) {
+        this.keys = keys;
+    }
+
+    clone(times) {
+        let formData = new FormData(this.form);
+        let formDataObj = {};
+        formData.forEach((value, key) => (formDataObj[key] = value));
+
+        let data = parseFormData(formDataObj, this.keys);
+        let origData = [...data];
+        for (let i = 1; i < times; i++) {
+            data = data.concat(origData);
+        }
+        console.log(data)
+        this.insertGenericData(this.keys, data, false);
+    }
+
     // TODO: get rid of insertLatLngData and use this instead
     // TODO: make this class work with arbitary number of values (oh dear sorry if you have to do this in the future)
     // e.g.
     //
     // keys = ["latitude", "longitude", "altitude"]
     // values = [{"latitude": x, "longitude": y, "altitude":z}, {...}]
-    insertGenericData(keys, values) {
-        this.clear();
+    insertGenericData(keys, values, clear=true) {
+        if (clear) {
+            this.clear();
+        }
 
         let first = true;
         for (let i = 0; i < values.length; i++) {
@@ -259,7 +289,7 @@ class ExtendoForm extends HTMLElement {
             for (let j = 0; j < keys.length; j++) {
                 data[j] = values[i][keys[j]];
             }
-            if (first) {
+            if (first && clear) {
                 first = false;
                 let inputs = [];
                 for (const key of keys) {
