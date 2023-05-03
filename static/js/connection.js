@@ -98,10 +98,7 @@ function setupJetsonMavForm() {
         confirmDialog("I Solemly swear that the plane is not currently linked over mavlink. If it is, THEN THIS WILL BRICK THE PLANE!!!")
             .addEventListener("close", (e_dialog) => {
                 e_dialog.preventDefault();
-                console.log("OUT THE FETCH POST")
-                console.log(e_dialog.target.returnValue);
                 if (e_dialog.target.returnValue == "true") {
-                    console.log("IN THE FETCH POST")
                     let json = formDataToJSON(new FormData(e.target));
                     fetch(formatHubURL("/api/plane/mavlink/connect"), {
                         method: "POST",

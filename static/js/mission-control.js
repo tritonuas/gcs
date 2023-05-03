@@ -35,7 +35,6 @@ function updateMap() {
             map.centerMap(latlng);
         }
         if (tracePath) {
-            console.log("taken path:", latlng);
             map.addPointToPoly(TAKEN_PATH, latlng);
         }
     } else {
@@ -329,7 +328,6 @@ window.addEventListener('load', () => {
 
     setInterval(() => {
         let marker = document.getElementById("map").shadowRoot.querySelector(".leaflet-marker-icon");
-        console.log(marker);
         let rect = marker.getBoundingClientRect();
         test.style.top = rect.top + 'px';
         test.style.left = rect.left + 'px';

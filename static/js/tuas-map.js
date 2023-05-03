@@ -167,7 +167,7 @@ class TuasMap extends HTMLElement {
         }
 
         if (id == "flight" || id == "search") {
-            console.log(this.idToPoly.get(id));
+            // console.log(this.idToPoly.get(id));
         }
     }
 

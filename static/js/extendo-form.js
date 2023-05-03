@@ -268,7 +268,6 @@ class ExtendoForm extends HTMLElement {
         for (let i = 1; i < times; i++) {
             data = data.concat(origData);
         }
-        console.log(data)
         this.insertGenericData(this.keys, data, false);
     }
 
