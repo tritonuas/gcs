@@ -30,7 +30,8 @@
 				<val-gauge id="aspeed-gauge" unit="knots" label="Air Speed" ></val-gauge>
 				<val-gauge id="alt-gauge" unit="ft" label="Altitude MSL" ></val-gauge>
 				<val-gauge id="alt-agl-gauge" unit="ft" label="Altitude AGL" ></val-gauge>
-				<val-gauge id="heading-gauge" unit="deg" label="Heading" ></val-gauge>
+				<!-- <val-gauge id="heading-gauge" unit="deg" label="Heading" ></val-gauge> -->
+				<canvas id="heading-canvas"></canvas>
 			</aside>
 			<tuas-map id="map" height="700px" data-zoom="16" data-max-zoom="20" ></tuas-map>
 			<aside class="gauge-container">
@@ -54,8 +55,14 @@
 			</div>
 
 			<div class="checkbox-container">
+				<label for="warning-toggle">TTS Warnings</label>
+				<input type="checkbox" id="warning-toggle" name="warning-toggle">
+			</div>
+
+			<div class="checkbox-container">
 				<input type="button" id="save-map-button" value="Save Map">
 			</div>
+
 
 			<!-- <div class="checkbox-container">
 				<input type="text" id="swap-bottle-txt" name="swap-bottle-txt">

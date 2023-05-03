@@ -223,7 +223,9 @@ class TuasMap extends HTMLElement {
             iconSize: size,
             iconAnchor: [size[0] / 2, size[1] / 2],
         });
-        let marker = L.marker(latlng, {icon: theIcon});
+        let marker = L.marker(latlng, {
+            icon: theIcon,
+        });
         this.idToPoly.set(id, marker);
         this.idToMetadata.set(id, {"poly": false});
         

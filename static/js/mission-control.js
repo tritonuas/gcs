@@ -1,10 +1,11 @@
-import { roundDecimal, connectToLocationWorker, getCurrPos, formatHubURL, checkRequest} from "./util.js";
+import { roundDecimal, connectToLocationWorker, getCurrPos, formatHubURL, checkRequest, speak} from "./util.js";
 
 let locationWorker = connectToLocationWorker();
 
 // Global booleans
 let centerOnPlane = true;
 let tracePath = true;
+
 
 // Ids for polys on the map
 // match ids with request endpoints in Hub
@@ -71,7 +72,8 @@ function initMap() {
     draw(FLIGHT_BOUNDS, SEARCH_BOUNDS, INITIAL_WAYPOINTS, INITIAL_PATH);
 
 
-    map.initMarker("plane", getCurrLatlng(), "../images/toothless.gif", [36, 36]);
+    // map.initMarker("plane", getCurrLatlng(), "../images/toothless.gif", [36, 36]);
+    map.initMarker("plane", getCurrLatlng(), "../images/empty.png", [36, 36]);
     // TODO: list of markers for waypoints
 
     setInterval(updateMap, 1000);
@@ -108,6 +110,63 @@ function setUpMapControlForm() {
 }
 
 function setUpGauges() {
+    let warningToggle = document.getElementById("warning-toggle");
+
+    // chat gpt did this gauge lol
+    const canvas = document.getElementById('heading-canvas');
+    const context = canvas.getContext('2d');
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) * 0.8;
+
+    function drawGauge(heading) {
+        // Clear the canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw the background
+        context.beginPath();
+        context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        context.fillStyle = '#f2f2f2';
+        context.fill();
+
+        if (heading != null) {
+            // Draw the compass needle
+            context.save();
+            context.translate(centerX, centerY);
+            context.rotate((heading) * Math.PI / 180);
+            context.beginPath();
+            context.moveTo(0, -radius * 0.8);
+            context.lineTo(0, radius * 0.1);
+            context.lineWidth = 10;
+            context.strokeStyle = '#4286f4';
+            context.stroke();
+            context.restore();
+
+            // Update heading on the actual plane icon in the page
+            document.getElementById('real-plane-icon')
+                .style.transform = `rotate(${heading + 45}deg`;
+        }
+
+        // Draw the cardinal direction labels
+        context.font = '16px Fira-Sans';
+        context.fillStyle = '#000';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('N', centerX, centerY - radius * 0.8);
+        context.fillText('E', centerX + radius * 0.8, centerY);
+        context.fillText('S', centerX, centerY + radius * 0.8);
+        context.fillText('W', centerX - radius * 0.8, centerY);
+
+        // Draw the heading value label
+        context.font = '12px Fira-Sans';
+        context.fillStyle = '#000';
+        context.textAlign = 'center';
+        context.fillText(`Heading: ${heading}°`, centerX, centerY + radius * 0.4);
+    }
+    drawGauge(null);
+
+
     let aspeedGauge = document.getElementById('aspeed-gauge');
     let gspeedGauge = document.getElementById('gspeed-gauge');
     let altGauge = document.getElementById('alt-gauge');
@@ -131,12 +190,13 @@ function setUpGauges() {
             .then(json => {
                 aspeedGauge.setValue(roundDecimal(json["airspeed"] * 1.944, 1)); // m/s -> knots
                 gspeedGauge.setValue(roundDecimal(json["groundspeed"] * 1.944, 1)); // m/s -> knots
-                headingGauge.setValue(parseInt(json["heading"])) // 0 deg = north
+                drawGauge(parseInt(json["heading"]))
+                // headingGauge.setValue(parseInt(json["heading"])) // 0 deg = north
             })
             .catch(err => {
                 aspeedGauge.setNull();
                 gspeedGauge.setNull();
-                headingGauge.setNull();
+                drawGauge(null);
             });
         let currPos = getCurrPos();
         if (currPos == null) {
@@ -144,7 +204,11 @@ function setUpGauges() {
             altAglGauge.setNull()
         } else {
             altGauge.setValue(roundDecimal(currPos["altitude"] * 3.281), 1); // m -> ft
-            altAglGauge.setValue(roundDecimal(currPos["relative_alt"] / 304.8), 1); // mm -> ft
+            let relAlt = roundDecimal(currPos["relative_alt"] / 304.8); // mm -> ft
+            altAglGauge.setValue(relAlt);
+            if (relAlt < 75 && warningToggle.checked) {
+                speak("Low Altitude!");
+            }
         }
         fetch(formatHubURL('/api/mission/state'))
             .then(r => checkRequest(r))
@@ -180,8 +244,18 @@ function setUpGauges() {
             .then(r => checkRequest(r))
             .then(r => r.json())
             .then(json => {
-                pixhawkGauge.setValue(roundDecimal(json["0"]/1000,1));
-                motorGauge.setValue(roundDecimal(json["1"]/1000,1));
+                let pixhawkV = roundDecimal(json["0"]/1000,1);
+                let motorV = roundDecimal(json["1"]/1000,1);
+
+                if (pixhawkV < 14.8 && warningToggle.checked) {
+                    speak("Pixhawk battery low!");
+                }
+                if (motorV < 28.8 && warningToggle.checked) {
+                    speak("Motor battery low!");
+                }
+
+                pixhawkGauge.setValue(pixhawkV);
+                motorGauge.setValue(motorV);
             })
             .catch(err => {
                 pixhawkGauge.setNull();
@@ -244,4 +318,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('load', () => {
     initMap();
+
+    let test = document.createElement('img');
+    test.id = "real-plane-icon";
+    test.width = 36;
+    test.height = 36;
+    test.src = "../images/toothless.gif";
+    test.style = 'position: absolute; z-index: 1000000000;';
+    document.getElementsByTagName("body")[0].appendChild(test);
+
+    setInterval(() => {
+        let marker = document.getElementById("map").shadowRoot.querySelector(".leaflet-marker-icon");
+        console.log(marker);
+        let rect = marker.getBoundingClientRect();
+        test.style.top = rect.top + 'px';
+        test.style.left = rect.left + 'px';
+    }, 150)
 });
