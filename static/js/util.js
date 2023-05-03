@@ -12,7 +12,7 @@ export function saveHubInfo(ip, port) {
 }
 
 export function getHubIp() {
-    let ip = sessionStorage.getItem('hub-ip');
+    let ip = localStorage.getItem('hub-ip');
     if (ip == null) {
         ip = "localhost"; 
     }
@@ -20,7 +20,7 @@ export function getHubIp() {
 }
 
 export function getHubPort() {
-    let port = sessionStorage.getItem('hub-port');
+    let port = localStorage.getItem('hub-port');
     if (port == null) {
         port = "5000";
     }
@@ -277,7 +277,7 @@ function handleLocationMessage(type, data) {
 export function important() {
     if (Math.random() < 0.01) {
         let body = document.getElementsByTagName('body')[0];
-        body.dataset.lol = "true";
+        speak("Suspicious");
     }
 }
 
@@ -312,4 +312,10 @@ export function formDataToJSON(formData) {
     let formDataObj = {};
     formData.forEach((value, key) => (formDataObj[key] = value));
     return formDataObj;
+}
+
+export function speak(message) {
+    let msg = new SpeechSynthesisUtterance();
+    msg.text = message;
+    window.speechSynthesis.speak(msg);
 }

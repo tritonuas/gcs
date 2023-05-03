@@ -177,7 +177,9 @@ function setupPostInitialPathBtn(tmap) {
         let data = tmap.getPolyLatLngs("initial-path");
         let jsondata = [];
         for (const wpt of data) {
-            jsondata.push({"latitude": wpt.lat, "longitude": wpt.lng});
+            // TEMP FIX NEED TO FIX FOR REAL IN THE FUTURE!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // TODO
+            jsondata.push({"latitude": wpt.lat, "longitude": wpt.lng, "altitude": 200});
         }
         fetch(formatHubURL("/api/mission/path/initial"), {
             method: "POST", 

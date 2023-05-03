@@ -71,7 +71,7 @@ function initMap() {
     draw(FLIGHT_BOUNDS, SEARCH_BOUNDS, INITIAL_WAYPOINTS, INITIAL_PATH);
 
 
-    map.initMarker("plane", getCurrLatlng(), "../images/plane.gif", [32, 32]);
+    map.initMarker("plane", getCurrLatlng(), "../images/toothless.gif", [36, 36]);
     // TODO: list of markers for waypoints
 
     setInterval(updateMap, 1000);
@@ -111,6 +111,8 @@ function setUpGauges() {
     let aspeedGauge = document.getElementById('aspeed-gauge');
     let gspeedGauge = document.getElementById('gspeed-gauge');
     let altGauge = document.getElementById('alt-gauge');
+    let headingGauge = document.getElementById('heading-gauge');
+    let altAglGauge = document.getElementById('alt-agl-gauge');
     let stateGauge = document.getElementById('state-gauge');
     let flightModeGauge = document.getElementById('flightmode-gauge');
     let escGauge = document.getElementById('esc-temp-gauge');
@@ -123,22 +125,26 @@ function setUpGauges() {
 
 
     setInterval(() => {
-        fetch(formatHubURL('/api/plane/telemetry?id=74&field=groundspeed,airspeed'))
+        fetch(formatHubURL('/api/plane/telemetry?id=74&field=groundspeed,airspeed, heading'))
             .then(r => checkRequest(r))
             .then(r => r.json())
             .then(json => {
                 aspeedGauge.setValue(roundDecimal(json["airspeed"] * 1.944, 1)); // m/s -> knots
                 gspeedGauge.setValue(roundDecimal(json["groundspeed"] * 1.944, 1)); // m/s -> knots
+                headingGauge.setValue(parseInt(json["heading"])) // 0 deg = north
             })
             .catch(err => {
                 aspeedGauge.setNull();
                 gspeedGauge.setNull();
+                headingGauge.setNull();
             });
         let currPos = getCurrPos();
         if (currPos == null) {
             altGauge.setNull();
+            altAglGauge.setNull()
         } else {
             altGauge.setValue(roundDecimal(currPos["altitude"] * 3.281), 1); // m -> ft
+            altAglGauge.setValue(roundDecimal(currPos["relative_alt"] / 304.8), 1); // mm -> ft
         }
         fetch(formatHubURL('/api/mission/state'))
             .then(r => checkRequest(r))
@@ -233,7 +239,7 @@ function setUpManualBottleDrop() {
 document.addEventListener('DOMContentLoaded', () => {
     setUpMapControlForm();
     setUpGauges();
-    setUpManualBottleDrop();
+    //setUpManualBottleDrop();
 });
 
 window.addEventListener('load', () => {

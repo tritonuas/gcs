@@ -29,7 +29,8 @@
 				<val-gauge id="gspeed-gauge" unit="knots" label="Ground Speed" ></val-gauge>
 				<val-gauge id="aspeed-gauge" unit="knots" label="Air Speed" ></val-gauge>
 				<val-gauge id="alt-gauge" unit="ft" label="Altitude MSL" ></val-gauge>
-				<val-gauge id="state-gauge" unit="" label="Mission State" ></val-gauge>
+				<val-gauge id="alt-agl-gauge" unit="ft" label="Altitude AGL" ></val-gauge>
+				<val-gauge id="heading-gauge" unit="deg" label="Heading" ></val-gauge>
 			</aside>
 			<tuas-map id="map" height="700px" data-zoom="16" data-max-zoom="20" ></tuas-map>
 			<aside class="gauge-container">
@@ -37,6 +38,7 @@
 				<val-gauge id="pixhawk-v-gauge" unit="V" label="Pixhawk Battery" ></val-gauge>
 				<val-gauge id="esc-temp-gauge" unit="°F" label="ESC Temperature" ></val-gauge>
 				<val-gauge id="flightmode-gauge" unit="" label="Flight Mode" ></val-gauge>
+				<val-gauge id="state-gauge" unit="" label="Mission State" ></val-gauge>
 			</aside>
 		</div>
 
@@ -55,14 +57,14 @@
 				<input type="button" id="save-map-button" value="Save Map">
 			</div>
 
-			<div class="checkbox-container">
+			<!-- <div class="checkbox-container">
 				<input type="text" id="swap-bottle-txt" name="swap-bottle-txt">
 				<input type="button" id="swap-bottle-btn" name="swap-bottle-btn" value="Swap Bottle" checked>
 			</div>
 
 			<div class="checkbox-container">
 				<input type="button" id="drop-bottle-btn" name="drop-bottle-btn" value="Drop Bottle" checked>
-			</div>
+			</div> -->
 		</form>
 	</main>
 </body>
