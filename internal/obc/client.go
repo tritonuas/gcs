@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/obc/camera"
 	"github.com/tritonuas/gcs/internal/obc/pp"
 	"github.com/tritonuas/gcs/internal/utils"
 )
@@ -232,5 +233,22 @@ func (client *Client) ConnectMavlink(mavConn pp.MavlinkConnection) ([]byte, int)
 	}
 
 	body, httpErr := client.httpClient.Post("/mavlink/connect", &buf)
+	return body, httpErr.Status
+}
+
+func (client *Client) GetCameraConfig() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/camera/config")
+	return body, httpErr.Status
+}
+
+func (client *Client) PostCameraConfig(config camera.Config) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(config)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/camera/config", &buf)
 	return body, httpErr.Status
 }

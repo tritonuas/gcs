@@ -17,6 +17,7 @@ import (
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 	"github.com/tritonuas/gcs/internal/obc"
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/obc/camera"
 	"github.com/tritonuas/gcs/internal/obc/pp"
 )
 
@@ -135,6 +136,9 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 			mission.GET("/camera/status", server.getCameraStatus())
 			mission.GET("/camera/mock/status", server.getMockCameraStatus())
+
+			mission.GET("/camera/config", server.getCameraConfig())
+			mission.POST("/camera/config", server.postCameraConfig())
 
 			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
 			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
@@ -917,6 +921,25 @@ func (server *Server) connectJetsonMav() gin.HandlerFunc {
 			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
 		}
 		resp, status := server.obcClient.ConnectMavlink(mavConn)
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) getCameraConfig() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.GetCameraConfig()
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) postCameraConfig() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cameraConfig := camera.Config{}
+		err := c.BindJSON(&cameraConfig)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
+		}
+		resp, status := server.obcClient.PostCameraConfig(cameraConfig)
 		c.String(status, string(resp))
 	}
 }

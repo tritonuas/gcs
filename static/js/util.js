@@ -303,7 +303,7 @@ export function pasteDialog(msg, s) {
 
 export function checkRequest(r){
     if (!r.ok) {
-        throw "Request not okay";
+        throw `Request not okay ${r.statusText}`;
     }
     return r;
 }

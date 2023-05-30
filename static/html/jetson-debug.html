@@ -35,16 +35,18 @@
 
         <form action="/" method="POST" id="camera-form">
             <fieldset>
-                <legend>Camera Parameters</legend>
-                <fieldset id="analog-fieldset"> 
-                    <legend>Analog Controls</legend>
-                </fieldset>
-                <fieldset id="activation-fieldset">
-                    <legend>Activation Controls</legend>
-                </fieldset>
+                <legend>Camera Config</legend>
+                <label for="gain"></label>
+                <input type="number" name="Gain" id="gain-input">
 
-                <input type="button" value="Pull" id="pull-params-btn">
-                <input type="submit" value="Submit">
+                <label for="gainAuto"></label>
+                <input type="checkbox" name="GainAuto" id="gain-auto-input">
+
+                <label for="exposure"></label>
+                <input type="number" name="Exposure" id="exposure-input">
+
+                <label for="exposureAuto"></label>
+                <input type="checkbox" name="ExposureAuto" id="exposure-auto-input">
             </fieldset>
         </form>
 	</main>
