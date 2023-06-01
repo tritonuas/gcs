@@ -138,9 +138,9 @@ Sends POST request to tell imaging camera (the one on the bottom of the plane; n
 
 Also updates the CameraStatus field.
 */
-func (client *Client) StartCamera() int {
-	_, httpErr := client.httpClient.Post("/camera/start", nil)
-	return httpErr.Status
+func (client *Client) StartCamera() (string, int) {
+	resp, httpErr := client.httpClient.Post("/camera/start", nil)
+	return string(resp), httpErr.Status
 }
 
 /*
@@ -148,9 +148,9 @@ Sends POST request to tell imaging camera (the one on the bottom of the plane; n
 
 Also updates the CameraStatus field.
 */
-func (client *Client) StopCamera() int {
-	_, httpErr := client.httpClient.Post("/camera/stop", nil)
-	return httpErr.Status
+func (client *Client) StopCamera() (string, int) {
+	resp, httpErr := client.httpClient.Post("/camera/stop", nil)
+	return string(resp), httpErr.Status
 }
 
 /*
@@ -178,7 +178,7 @@ Sends GET request to OBC to ask for the camera to take a picture and send the im
 
 Note that this returns an "image" as a byte array (probably base64 encoded?)
 */
-func (client *Client) SendCameraCapture() ([]byte, int) {
+func (client *Client) GetCameraCapture() ([]byte, int) {
 	image, httpErr := client.httpClient.Get("/camera/capture")
 	return image, httpErr.Status
 }
@@ -254,6 +254,7 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 	var cameraStatus camera.Status
 	err := json.Unmarshal(body, &cameraStatus)
 	if err != nil {
+		println(err.Error())
 		return camera.Status{}, http.StatusBadRequest
 	}
 	return cameraStatus, httpErr.Status

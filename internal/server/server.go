@@ -134,10 +134,15 @@ func (server *Server) initBackend(router *gin.Engine) {
 			mission.GET("/state/time", server.getStateStartTime())
 			mission.GET("/state/history", server.getStateHistory())
 
+			mission.GET("/camera/capture", server.getCameraCapture())
+
 			mission.GET("/camera/status", server.getCameraStatus())
 
 			mission.GET("/camera/config", server.getCameraConfig())
 			mission.POST("/camera/config", server.postCameraConfig())
+
+			mission.POST("/camera/start", server.startCameraStream())
+			mission.POST("/camera/stop", server.stopCameraStream())
 
 			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
 			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
@@ -920,5 +925,26 @@ func (server *Server) postCameraConfig() gin.HandlerFunc {
 		}
 		resp, status := server.obcClient.PostCameraConfig(cameraConfig)
 		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) startCameraStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.StartCamera()
+		c.String(status, resp)
+	}
+}
+
+func (server *Server) stopCameraStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.StopCamera()
+		c.String(status, resp)
+	}
+}
+
+func (server *Server) getCameraCapture() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		imgData, status := server.obcClient.GetCameraCapture()
+		c.Data(status, "image/jpeg", imgData)
 	}
 }

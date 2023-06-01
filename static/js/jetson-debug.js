@@ -67,9 +67,9 @@ function setupCameraConfigForm() {
 
 function setCameraStatus(json) {
     let status = document.getElementById('camera-status-desc');
-    status.innerText = json["Connected"];
+    status.innerText = String(json["connected"]);
     let streaming = document.getElementById('camera-streaming-desc');
-    streaming.innerText = json["Streaming"];
+    streaming.innerText = String(json["streaming"]);
 }
 
 function pullCameraStatus() {
@@ -84,7 +84,7 @@ function pullCameraStatus() {
         })
         .catch(err => {
             console.error(err);
-            setCameraStatus({"Connected": "ERROR", "Streaming": "ERROR"});
+            setCameraStatus({"connected": "ERROR", "streaming": "ERROR"});
         })
 }
 
@@ -100,7 +100,11 @@ function setUpGallery() {
     });
 }
 
-function setUpCameraControlForm {
+function setupCameraControlForm() {
+    let form = document.getElementById("camera-control-form");
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+    });
 
     let takePicBtn = document.getElementById('take-pic-btn');
     takePicBtn.addEventListener('click', () => {
@@ -122,8 +126,40 @@ function setUpCameraControlForm {
     });
 
     let startStreamBtn = document.getElementById('start-stream-btn');
+    startStreamBtn.addEventListener('click', () => {
+        fetch(formatHubURL("/api/mission/camera/start"), {
+            method: "POST"
+        })
+            .then(r => {
+                checkRequest(r);
+                return r;
+            })
+            .then(response => response.text())
+            .then(text => {
+                alertDialog(text);
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            });
+    });
 
     let stopStreamBtn = document.getElementById('stop-stream-btn');
+    stopStreamBtn.addEventListener('click', () => {
+        fetch(formatHubURL("/api/mission/camera/stop"), {
+            method: "POST"
+        })
+            .then(r => {
+                checkRequest(r);
+                return r;
+            })
+            .then(response => response.text())
+            .then(text => {
+                alertDialog(text);
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

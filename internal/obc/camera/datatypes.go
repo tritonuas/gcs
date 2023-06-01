@@ -8,6 +8,6 @@ type Config struct {
 }
 
 type Status struct {
-	Connected bool   `json:"Connected"`
-	Streaming string `json:"Streaming"`
+	Connected bool `json:"connected"`
+	Streaming bool `json:"streaming"`
 }
