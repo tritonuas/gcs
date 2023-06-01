@@ -20,53 +20,49 @@
 
 	<main>
         <div id="gallery-container">
-            <div id="camera-status-container">
-                <p>
-                    <span style="font-weight: bold; color: darkblue;">Connected:</span>
-                    <span id="camera-status-desc">null</span>
-                </p>
-                <p>
-                    <span style="font-weight: bold; color: darkblue;">Streaming:</span>
-                    <span id="camera-streaming-desc">null</span>
-                </p>
+            <div id="left-bar">
+                <div id="camera-status-container">
+                    <p>
+                        <span style="font-weight: bold; color: darkblue;">Connected:</span>
+                        <span id="camera-status-desc">null</span>
+                    </p>
+                    <p>
+                        <span style="font-weight: bold; color: darkblue;">Streaming:</span>
+                        <span id="camera-streaming-desc">null</span>
+                    </p>
+                </div>
+                <form action="/" method="POST" id="camera-control-form">
+                    <fieldset>
+                        <legend>Camera Controls</legend>
+
+                        <button id="take-pic-btn">Take Picture</button>
+                        <button id="start-stream-btn">Start Streaming Pictures</button>
+                        <button id="stop-stream-btn">Stop Streaming Pictures</button>
+                    </fieldset>
+                </form>
+                <form action="/" method="POST" id="camera-form">
+                    <fieldset>
+                        <legend>Camera Config</legend>
+                        <label for="Gain">Gain</label>
+                        <input type="number" name="Gain" id="gain-input">
+
+                        <label for="GainAuto">GainAuto</label>
+                        <input type="text" name="GainAuto" id="gain-auto-input">
+
+                        <label for="Exposure">ExposureTime</label>
+                        <input type="number" name="ExposureTime" id="exposure-time-input">
+
+                        <label for="ExposureAuto">ExposureAuto</label>
+                        <input type="text" name="ExposureAuto" id="exposure-auto-input">
+
+                        <input type="submit" value="Submit">
+                    </fieldset>
+                </form>
             </div>
 
             <image-gallery id="gallery" width="1280" height="720">
             </image-gallery>
         </div>
-
-        <div id="form-container">
-            <form action="/" method="POST" id="camera-control-form">
-                <fieldset>
-                    <legend>Camera Controls</legend>
-
-                    <button id="take-pic-btn">Take Picture</button>
-                    <button id="start-stream-btn">Start Streaming Pictures</button>
-                    <button id="stop-stream-btn">Stop Streaming Pictures</button>
-                </fieldset>
-            </form>
-            
-
-            <form action="/" method="POST" id="camera-form">
-                <fieldset>
-                    <legend>Camera Config</legend>
-                    <label for="Gain">Gain</label>
-                    <input type="number" name="Gain" id="gain-input">
-
-                    <label for="GainAuto">GainAuto</label>
-                    <input type="text" name="GainAuto" id="gain-auto-input">
-
-                    <label for="Exposure">ExposureTime</label>
-                    <input type="number" name="ExposureTime" id="exposure-time-input">
-
-                    <label for="ExposureAuto">ExposureAuto</label>
-                    <input type="text" name="ExposureAuto" id="exposure-auto-input">
-
-                    <input type="submit" value="Submit">
-                </fieldset>
-            </form>
-        </div>
-
 	</main>
 </body>
 </html>

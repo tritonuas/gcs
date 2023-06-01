@@ -3,6 +3,7 @@ main {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    background-color: darkslateblue;
 }
 
 image-gallery {
@@ -27,7 +28,7 @@ div#form-container {
 }
 
 form {
-    width: 40dvw;
+    width: fit-content;
 }
 
 form#camera-form fieldset {
@@ -37,7 +38,8 @@ form#camera-form fieldset {
 
 div#camera-status-container {
     background-color: white;
-    border: 1px solid black;
+    border: .2rem solid black;
+    border-radius: 8px;
     margin-top: 1em;
     padding: .75em;
 }

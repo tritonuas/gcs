@@ -44,7 +44,8 @@ html, body {
 body {
     font-size: 1.5rem;
     font-family: 'Fira-Sans', sans-serif;
-    background-image: url("../images/cloud-bg2.jpg");
+    background-color: darkslateblue;
+    -background-image: url("../images/cloud-bg2.jpg");
     -animation: cloudScroll 200s linear infinite;
 }
 
