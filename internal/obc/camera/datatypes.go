@@ -3,11 +3,16 @@ package camera
 type Config struct {
 	Gain         float64 `json:"Gain"`
 	GainAuto     string  `json:"GainAuto"`
-	Exposure     float64 `json:"Exposure"`
+	ExposureTime float64 `json:"ExposureTime"`
 	ExposureAuto string  `json:"ExposureAuto"`
 }
 
 type Status struct {
 	Connected bool `json:"connected"`
 	Streaming bool `json:"streaming"`
+}
+
+type RawImage struct {
+	Data      []byte
+	Timestamp int64
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -31,6 +32,7 @@ type Server struct {
 	influxDBClient      *influxdb.Client
 	mavlinkClient       *mav.Client
 	obcClient           *obc.Client
+	newestRawImage      camera.RawImage
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
@@ -143,6 +145,9 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 			mission.POST("/camera/start", server.startCameraStream())
 			mission.POST("/camera/stop", server.stopCameraStream())
+
+			mission.POST("/image/raw", server.postRawImage())
+			mission.GET("/image/raw", server.getRawImage())
 
 			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
 			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
@@ -946,5 +951,38 @@ func (server *Server) getCameraCapture() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		imgData, status := server.obcClient.GetCameraCapture()
 		c.Data(status, "image/jpeg", imgData)
+	}
+}
+
+func (server *Server) postRawImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		img, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad image data %s", err.Error())
+		}
+		currentTime := time.Now().Unix()
+		server.newestRawImage = camera.RawImage{Data: img, Timestamp: currentTime}
+	}
+}
+
+/*
+getRawImage handles get requests asking for the most recent raw image received from the camera. This request is
+intended to originate from Houston. If the timestamp query parameter is provided, the server will only return the
+most recent image if its timestamp is more recent than the given timestamp (in seconds since epoch).
+
+If it sends down the image, it will also send down the timestamp of the image in the "Timestamp" header
+*/
+func (server *Server) getRawImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		givenTimestamp, err := strconv.ParseInt(c.DefaultQuery("timestamp", "0"), 10, 64)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad timestamp %s", err.Error())
+		}
+		if givenTimestamp < server.newestRawImage.Timestamp {
+			c.Writer.Header().Set("Timestamp", fmt.Sprintf("%d", server.newestRawImage.Timestamp))
+			c.Data(http.StatusOK, "image/jpeg", server.newestRawImage.Data)
+		} else {
+			c.String(http.StatusNotFound, "No new image")
+		}
 	}
 }

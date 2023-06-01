@@ -50,7 +50,7 @@ class ImageGallery extends HTMLElement {
 
         this.rightButton = document.createElement('button');
         this.rightButton.innerText = ">";
-        this.rightButton.addEventListener('click', () => {this.swipe("left")});
+        this.rightButton.addEventListener('click', () => {this.swipe("right")});
 
         document.addEventListener('keydown', (e) => {
             if (e.key === "ArrowLeft") {

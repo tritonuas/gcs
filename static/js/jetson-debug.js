@@ -41,9 +41,9 @@ function setupCameraConfigForm() {
         let exposureAutoInput = document.getElementById('exposure-auto-input');
 
         let config = {
-            "Gain": gainInput.value,
+            "Gain": parseFloat(gainInput.value),
             "GainAuto": gainAutoInput.value,
-            "ExposureTime": exposureTimeInput.value,
+            "ExposureTime": parseFloat(exposureTimeInput.value),
             "ExposureAuto": exposureAutoInput.value
         };
 
@@ -51,10 +51,6 @@ function setupCameraConfigForm() {
             method: "POST",
             body: JSON.stringify(config)
         })
-            .then(r => {
-                checkRequest(r);
-                return r;
-            })
             .then(response => response.text())
             .then(text => {
                 alertDialog(text);
@@ -88,23 +84,13 @@ function pullCameraStatus() {
         })
 }
 
-function setUpGallery() {
-    let gallery = document.getElementById('gallery');
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === "ArrowLeft") {
-            gallery.swipe("left");
-        } else if (e.key === "ArrowRight") {
-            gallery.swipe("right");
-        }
-    });
-}
-
 function setupCameraControlForm() {
     let form = document.getElementById("camera-control-form");
     form.addEventListener('submit', (e) => {
         e.preventDefault();
     });
+
+    let gallery = document.getElementById('gallery');
 
     let takePicBtn = document.getElementById('take-pic-btn');
     takePicBtn.addEventListener('click', () => {
@@ -162,10 +148,33 @@ function setupCameraControlForm() {
     });
 }
 
+let mostRecentTimestamp = 0;
+
+function pullMostRecentRawImage() {
+    let gallery = document.getElementById('gallery');
+    fetch(formatHubURL(`/api/mission/image/raw?timestamp=${mostRecentTimestamp}`))
+        .then(r => {
+            checkRequest(r);
+            let timestamp = r.headers.get('Timestamp');
+            if (timestamp != null) {
+                mostRecentTimestamp = timestamp;
+            }
+            return r;
+        })
+        .then(response => response.blob())
+        .then(imageBlob => {
+            const imageObjectURL = URL.createObjectURL(imageBlob);
+            gallery.addImage(imageObjectURL);
+        })
+        .catch(err => {
+            console.error(err);
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    setUpGallery();
     setupCameraControlForm();
     pullCameraConfig();
     setupCameraConfigForm();
     setInterval(pullCameraStatus, 1000);
+    setInterval(pullMostRecentRawImage, 1000);
 });
