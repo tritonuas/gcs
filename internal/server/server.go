@@ -135,7 +135,6 @@ func (server *Server) initBackend(router *gin.Engine) {
 			mission.GET("/state/history", server.getStateHistory())
 
 			mission.GET("/camera/status", server.getCameraStatus())
-			mission.GET("/camera/mock/status", server.getMockCameraStatus())
 
 			mission.GET("/camera/config", server.getCameraConfig())
 			mission.POST("/camera/config", server.postCameraConfig())
@@ -765,34 +764,14 @@ func (server *Server) getStoredCVSResults() gin.HandlerFunc {
 }
 
 /*
-Returns a JSON containing true if camera is currently taking images; false otherwise.
+Returns camera status object as defined in obc/camera/datatypes.go
 
 This is intended for Houston to use.
 */
 func (server *Server) getCameraStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		status := struct {
-			status bool
-		}{
-			status: server.obcClient.CameraStatus,
-		}
-		c.JSON(http.StatusOK, status)
-	}
-}
-
-/*
-Returns a JSON containing true if the mock camera is currently "taking images"; false otherwise.
-
-This is intended for Houston to use.
-*/
-func (server *Server) getMockCameraStatus() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		status := struct {
-			status bool
-		}{
-			status: server.obcClient.MockCameraStatus,
-		}
-		c.JSON(http.StatusOK, status)
+		cameraStatus, httpStatus := server.obcClient.GetCameraStatus()
+		c.JSON(httpStatus, cameraStatus)
 	}
 }
 

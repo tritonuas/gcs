@@ -65,7 +65,30 @@ function setupCameraConfigForm() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function setCameraStatus(json) {
+    let status = document.getElementById('camera-status-desc');
+    status.innerText = json["Connected"];
+    let streaming = document.getElementById('camera-streaming-desc');
+    streaming.innerText = json["Streaming"];
+}
+
+function pullCameraStatus() {
+    fetch(formatHubURL("/api/mission/camera/status"))
+        .then(r => {
+            checkRequest(r);
+            return r;
+        })
+        .then(response => response.json())
+        .then(status => {
+            setCameraStatus(status);
+        })
+        .catch(err => {
+            console.error(err);
+            setCameraStatus({"Connected": "ERROR", "Streaming": "ERROR"});
+        })
+}
+
+function setUpGallery() {
     let gallery = document.getElementById('gallery');
 
     document.addEventListener('keydown', (e) => {
@@ -75,25 +98,38 @@ document.addEventListener('DOMContentLoaded', () => {
             gallery.swipe("right");
         }
     });
+}
 
-    let form = document.getElementById('jetson-form');
+function setUpCameraControlForm {
 
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        let jetsonIp = document.getElementById('url-input').value;
-
-        fetch(`http://${jetsonIp}/camera/capture`)
+    let takePicBtn = document.getElementById('take-pic-btn');
+    takePicBtn.addEventListener('click', () => {
+        fetch(formatHubURL("/api/mission/camera/capture"))
+            .then(r => {
+                checkRequest(r);
+                return r;
+            })
             .then(response => response.blob())
             .then(imageBlob => {
                 const imageObjectURL = URL.createObjectURL(imageBlob);
                 gallery.addImage(imageObjectURL);
                 closeWaitDialogs();
+            })
+            .catch(err => {
+                alertDialog(err, true);
             });
-
         waitDialog("Waiting for image...");
     });
 
+    let startStreamBtn = document.getElementById('start-stream-btn');
+
+    let stopStreamBtn = document.getElementById('stop-stream-btn');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setUpGallery();
+    setupCameraControlForm();
     pullCameraConfig();
     setupCameraConfigForm();
+    setInterval(pullCameraStatus, 1000);
 });

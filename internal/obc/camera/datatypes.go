@@ -6,3 +6,8 @@ type Config struct {
 	Exposure     float64 `json:"Exposure"`
 	ExposureAuto string  `json:"ExposureAuto"`
 }
+
+type Status struct {
+	Connected bool   `json:"Connected"`
+	Streaming string `json:"Streaming"`
+}

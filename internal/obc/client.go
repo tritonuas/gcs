@@ -3,6 +3,7 @@ package obc
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
 	"github.com/tritonuas/gcs/internal/obc/camera"
@@ -12,21 +13,17 @@ import (
 
 // Generic client struct for interfacing with the OBC
 type Client struct {
-	httpClient       *utils.Client
-	urlBase          string
-	timeout          int
-	CameraStatus     bool
-	MockCameraStatus bool
+	httpClient *utils.Client
+	urlBase    string
+	timeout    int
 }
 
 // Creates a new client struct and initializes all its values
 func NewClient(urlBase string, timeout int) *Client {
 	client := &Client{
 
-		urlBase:          "http://" + urlBase,
-		timeout:          timeout,
-		CameraStatus:     false,
-		MockCameraStatus: false,
+		urlBase: "http://" + urlBase,
+		timeout: timeout,
 	}
 
 	// setup http_client
@@ -143,7 +140,6 @@ Also updates the CameraStatus field.
 */
 func (client *Client) StartCamera() int {
 	_, httpErr := client.httpClient.Post("/camera/start", nil)
-	client.CameraStatus = true
 	return httpErr.Status
 }
 
@@ -154,7 +150,6 @@ Also updates the CameraStatus field.
 */
 func (client *Client) StopCamera() int {
 	_, httpErr := client.httpClient.Post("/camera/stop", nil)
-	client.CameraStatus = false
 	return httpErr.Status
 }
 
@@ -165,7 +160,6 @@ Also updates the MockCameraStatus field
 */
 func (client *Client) StartMockCamera() int {
 	_, httpErr := client.httpClient.Post("/camera/mock/start", nil)
-	client.MockCameraStatus = true
 	return httpErr.Status
 }
 
@@ -176,7 +170,6 @@ Also updates the MockCameraStatus field
 */
 func (client *Client) StopMockCamera() int {
 	_, httpErr := client.httpClient.Post("/camera/mock/stop", nil)
-	client.MockCameraStatus = false
 	return httpErr.Status
 }
 
@@ -251,4 +244,17 @@ func (client *Client) PostCameraConfig(config camera.Config) ([]byte, int) {
 
 	body, httpErr := client.httpClient.Post("/camera/config", &buf)
 	return body, httpErr.Status
+}
+
+func (client *Client) GetCameraStatus() (camera.Status, int) {
+	body, httpErr := client.httpClient.Get("/camera/status")
+	if httpErr.Get {
+		return camera.Status{}, httpErr.Status
+	}
+	var cameraStatus camera.Status
+	err := json.Unmarshal(body, &cameraStatus)
+	if err != nil {
+		return camera.Status{}, http.StatusBadRequest
+	}
+	return cameraStatus, httpErr.Status
 }

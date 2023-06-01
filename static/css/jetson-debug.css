@@ -30,10 +30,24 @@ form {
     width: 40dvw;
 }
 
-form#jetson-form {
-}
-
 form#camera-form fieldset {
     padding-bottom: 1em;
     margin-bottom: 1em;
+}
+
+div#camera-status-container {
+    background-color: white;
+    border: 1px solid black;
+    margin-top: 1em;
+    padding: .75em;
+}
+
+div#gallery-container {
+    display: flex;
+    flex-direction: row;
+}
+
+div#camera-status-container {
+    height: fit-content;
+    align-self: center;
 }

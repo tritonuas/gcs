@@ -19,20 +19,33 @@
     <nav-bar></nav-bar>
 
 	<main>
-        <image-gallery id="gallery" width="1280" height="720">
-        </image-gallery>
+        <div id="gallery-container">
+            <div id="camera-status-container">
+                <p>
+                    <span style="font-weight: bold; color: darkblue;">Connected:</span>
+                    <span id="camera-status-desc">null</span>
+                </p>
+                <p>
+                    <span style="font-weight: bold; color: darkblue;">Streaming:</span>
+                    <span id="camera-streaming-desc">null</span>
+                </p>
+            </div>
+
+            <image-gallery id="gallery" width="1280" height="720">
+            </image-gallery>
+        </div>
 
         <div id="form-container">
-            <form action="/" method="POST" id="jetson-form">
+            <form action="/" method="POST" id="camera-control-form">
                 <fieldset>
-                    <legend>Jetson Info</legend>
+                    <legend>Camera Controls</legend>
 
-                    <label for="url-input" id="url-input-label">IP:PORT</label>
-                    <input type="text" id="url-input" name="url-input" value="192.168.1.50:5010">
-
-                    <button>Take Picture</button>
+                    <button id="take-pic-btn">Take Picture</button>
+                    <button id="start-stream-btn">Start Streaming Pictures</button>
+                    <button id="stop-stream-btn">Stop Streaming Pictures</button>
                 </fieldset>
             </form>
+            
 
             <form action="/" method="POST" id="camera-form">
                 <fieldset>
