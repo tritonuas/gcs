@@ -3,7 +3,7 @@ import { alertDialog, checkRequest, closeWaitDialogs, connectToLocationWorker, f
 connectToLocationWorker();
 
 function pullCameraConfig() {
-    fetch(formatHubURL("/camera/config"))
+    fetch(formatHubURL("/api/mission/camera/config"))
         .then(r => {
             checkRequest(r);
             return r;
@@ -23,8 +23,8 @@ function setCameraConfig(config) {
     gainInput.value = config["Gain"]
     let gainAutoInput = document.getElementById('gain-auto-input');
     gainAutoInput.value = config["GainAuto"]
-    let exposureInput = document.getElementById('exposure-input');
-    exposureInput.value = config["Exposure"]
+    let exposureInput = document.getElementById('exposure-time-input');
+    exposureInput.value = config["ExposureTime"]
     let exposureAutoInput = document.getElementById('exposure-auto-input');
     exposureAutoInput.value = config["ExposureAuto"]
 }
@@ -37,17 +37,17 @@ function setupCameraConfigForm() {
 
         let gainInput = document.getElementById('gain-input');
         let gainAutoInput = document.getElementById('gain-auto-input');
-        let exposureInput = document.getElementById('exposure-input');
+        let exposureTimeInput = document.getElementById('exposure-time-input');
         let exposureAutoInput = document.getElementById('exposure-auto-input');
 
         let config = {
             "Gain": gainInput.value,
             "GainAuto": gainAutoInput.value,
-            "Exposure": exposureInput.value,
+            "ExposureTime": exposureTimeInput.value,
             "ExposureAuto": exposureAutoInput.value
         };
 
-        fetch(formatHubURL("/camera/config"), {
+        fetch(formatHubURL("/api/mission/camera/config"), {
             method: "POST",
             body: JSON.stringify(config)
         })
