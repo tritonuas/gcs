@@ -42,7 +42,7 @@ class ImageGallery extends HTMLElement {
         output.appendChild(this.container);
 
         this.label = document.createElement('p');
-        this.label.innerText = '0/0';
+        this.label.innerText = '0';
 
         this.leftButton = document.createElement('button');
         this.leftButton.innerText = "<";
@@ -51,6 +51,24 @@ class ImageGallery extends HTMLElement {
         this.rightButton = document.createElement('button');
         this.rightButton.innerText = ">";
         this.rightButton.addEventListener('click', () => {this.swipe("left")});
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "ArrowLeft") {
+                this.leftButton.dataset["active"] = "true";
+                this.swipe("left");
+            } else if (e.key === "ArrowRight") {
+                this.rightButton.dataset["active"] = "true";
+                this.swipe("right");
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === "ArrowLeft") {
+                this.leftButton.dataset["active"] = "false";
+            } else if (e.key === "ArrowRight") {
+                this.rightButton.dataset["active"] = "false";
+            }
+        })
 
         this.container.appendChild(this.leftButton);
         this.container.appendChild(this.label);

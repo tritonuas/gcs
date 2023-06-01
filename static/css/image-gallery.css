@@ -42,7 +42,7 @@ button {
 }
 
 
-button:hover {
+button:hover, button[data-active="true"] {
     box-shadow: 0 0.5em 0.5em -0.4em darkblue;
     transform: translateY(-0.25em);
 
