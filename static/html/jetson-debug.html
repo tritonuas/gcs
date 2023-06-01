@@ -19,36 +19,41 @@
     <nav-bar></nav-bar>
 
 	<main>
-        <form action="/" method="POST" id="jetson-form">
-            <fieldset>
-                <legend>Jetson Info</legend>
-
-                <label for="url-input" id="url-input-label">IP:PORT</label>
-                <input type="text" id="url-input" name="url-input" value="192.168.1.50:5010">
-
-                <button>Take Picture</button>
-            </fieldset>
-        </form>
-
-        <image-gallery id="gallery" width="640" height="480">
+        <image-gallery id="gallery" width="1280" height="720">
         </image-gallery>
 
-        <form action="/" method="POST" id="camera-form">
-            <fieldset>
-                <legend>Camera Config</legend>
-                <label for="gain"></label>
-                <input type="number" name="Gain" id="gain-input">
+        <div id="form-container">
+            <form action="/" method="POST" id="jetson-form">
+                <fieldset>
+                    <legend>Jetson Info</legend>
 
-                <label for="gainAuto"></label>
-                <input type="checkbox" name="GainAuto" id="gain-auto-input">
+                    <label for="url-input" id="url-input-label">IP:PORT</label>
+                    <input type="text" id="url-input" name="url-input" value="192.168.1.50:5010">
 
-                <label for="exposure"></label>
-                <input type="number" name="Exposure" id="exposure-input">
+                    <button>Take Picture</button>
+                </fieldset>
+            </form>
 
-                <label for="exposureAuto"></label>
-                <input type="checkbox" name="ExposureAuto" id="exposure-auto-input">
-            </fieldset>
-        </form>
+            <form action="/" method="POST" id="camera-form">
+                <fieldset>
+                    <legend>Camera Config</legend>
+                    <label for="Gain">Gain</label>
+                    <input type="number" name="Gain" id="gain-input">
+
+                    <label for="GainAuto">GainAuto</label>
+                    <input type="text" name="GainAuto" id="gain-auto-input">
+
+                    <label for="Exposure">Exposure</label>
+                    <input type="number" name="Exposure" id="exposure-input">
+
+                    <label for="ExposureAuto">ExposureAuto</label>
+                    <input type="text" name="ExposureAuto" id="exposure-auto-input">
+
+                    <input type="submit" value="Submit">
+                </fieldset>
+            </form>
+        </div>
+
 	</main>
 </body>
 </html>

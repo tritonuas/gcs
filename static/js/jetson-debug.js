@@ -19,7 +19,50 @@ function pullCameraConfig() {
 
 // Set values based on the config
 function setCameraConfig(config) {
-    
+    let gainInput = document.getElementById('gain-input');
+    gainInput.value = config["Gain"]
+    let gainAutoInput = document.getElementById('gain-auto-input');
+    gainAutoInput.value = config["GainAuto"]
+    let exposureInput = document.getElementById('exposure-input');
+    exposureInput.value = config["Exposure"]
+    let exposureAutoInput = document.getElementById('exposure-auto-input');
+    exposureAutoInput.value = config["ExposureAuto"]
+}
+
+function setupCameraConfigForm() {
+    let form = document.getElementById('camera-form');
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        let gainInput = document.getElementById('gain-input');
+        let gainAutoInput = document.getElementById('gain-auto-input');
+        let exposureInput = document.getElementById('exposure-input');
+        let exposureAutoInput = document.getElementById('exposure-auto-input');
+
+        let config = {
+            "Gain": gainInput.value,
+            "GainAuto": gainAutoInput.value,
+            "Exposure": exposureInput.value,
+            "ExposureAuto": exposureAutoInput.value
+        };
+
+        fetch(formatHubURL("/camera/config"), {
+            method: "POST",
+            body: JSON.stringify(config)
+        })
+            .then(r => {
+                checkRequest(r);
+                return r;
+            })
+            .then(response => response.text())
+            .then(text => {
+                alertDialog(text);
+            })
+            .catch(err => {
+                alertDialog(err, true);
+            })
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -52,4 +95,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     pullCameraConfig();
+    setupCameraConfigForm();
 });

@@ -36,9 +36,25 @@ class ImageGallery extends HTMLElement {
         }
         output.appendChild(this.img);
 
+        this.container = document.createElement('div');
+        this.container.id = "bottom-bar-container";
+
+        output.appendChild(this.container);
+
         this.label = document.createElement('p');
         this.label.innerText = '0/0';
-        output.appendChild(this.label);
+
+        this.leftButton = document.createElement('button');
+        this.leftButton.innerText = "<";
+        this.leftButton.addEventListener('click', () => {this.swipe("left")});
+
+        this.rightButton = document.createElement('button');
+        this.rightButton.innerText = ">";
+        this.rightButton.addEventListener('click', () => {this.swipe("left")});
+
+        this.container.appendChild(this.leftButton);
+        this.container.appendChild(this.label);
+        this.container.appendChild(this.rightButton);
 
         this.imageList = [];
         this.currImage = -1;

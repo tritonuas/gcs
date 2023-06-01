@@ -1,4 +1,50 @@
+output {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
 img {
     border: 1px black solid;
     border-radius: 10px;
+    background-color: white;
+}
+
+div#bottom-bar-container {
+    display: flex;
+    flex-direction: row;
+}
+
+/*copied from global... giving up on making this code maintainable at this point cause we are going to rewrite it */
+
+button {
+    margin: 1em;
+    padding: 1em;
+    border-radius: 10px;
+    border: 1px solid black;
+    background-color: lightblue;
+    
+    width: fit-content;
+}
+
+button {
+    display: block;
+    background-color: darkblue;
+    color: white;
+    margin: .8rem;
+    padding: .2rem .4rem;
+    border: .1rem black solid;
+    font-size: 1.5rem;
+    border-radius: 1em;
+    top: 0px;
+    transition: all .3s;
+}
+
+
+button:hover {
+    box-shadow: 0 0.5em 0.5em -0.4em darkblue;
+    transform: translateY(-0.25em);
+
+    background-color: blue;
 }
