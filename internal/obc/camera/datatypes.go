@@ -5,8 +5,8 @@ type Config struct {
 	GainAuto           string  `json:"GainAuto"`
 	ExposureTime       float64 `json:"ExposureTime"`
 	ExposureAuto       string  `json:"ExposureAuto"`
-	WhiteBalanceAuto   string  `json:"WhiteBalanceAuto"`
-	WhiteBalanceEnable bool    `json:"WhiteBalanceEnable"`
+	BalanceWhiteAuto   string  `json:"BalanceWhiteAuto"`
+	BalanceWhiteEnable bool    `json:"BalanceWhiteEnable"`
 	Gamma              float64 `json:"Gamma"`
 	GammaEnable        bool    `json:"GammaEnable"`
 }
