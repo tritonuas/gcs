@@ -44,16 +44,28 @@
                     <fieldset>
                         <legend>Camera Config</legend>
                         <label for="Gain">Gain</label>
-                        <input type="number" step="any" name="Gain" id="gain-input">
+                        <input type="number" step="any" min="0" max="27.045771" name="Gain" id="gain-input">
 
                         <label for="GainAuto">GainAuto</label>
                         <input type="text" name="GainAuto" id="gain-auto-input">
 
                         <label for="Exposure">ExposureTime</label>
-                        <input type="number" step="any" name="ExposureTime" id="exposure-time-input">
+                        <input type="number" step="any" min="359" name="ExposureTime" id="exposure-time-input">
 
                         <label for="ExposureAuto">ExposureAuto</label>
                         <input type="text" name="ExposureAuto" id="exposure-auto-input">
+
+                        <label for="WhiteBalanceAuto">WhiteBalanceAuto</label>
+                        <input type="text" name="WhiteBalanceAuto" id="white-balance-auto-input">
+
+                        <label for="WhiteBalanceEnable">WhiteBalanceEnable</label>
+                        <input type="checkbox" name="WhiteBalanceEnable" id="white-balance-enable-input">
+
+                        <label for="Gamma">Gamma</label>
+                        <input type="number" step="any" min="0.2" max="2.0" name="Gamma" id="gamma-input">
+
+                        <label for="GammaEnable">GammaEnable</label>
+                        <input type="checkbox" name="GammaEnable" id="gamma-enable-input">
 
                         <input type="submit" value="Submit">
                     </fieldset>

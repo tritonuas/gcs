@@ -27,6 +27,15 @@ function setCameraConfig(config) {
     exposureInput.value = config["ExposureTime"]
     let exposureAutoInput = document.getElementById('exposure-auto-input');
     exposureAutoInput.value = config["ExposureAuto"]
+    let whiteBalanceAutoInput = document.getElementById('white-balance-auto-input');
+    whiteBalanceAutoInput.value = config["WhiteBalanceAuto"]
+    let whiteBalanceEnableInput = document.getElementById('white-balance-enable-input');
+    whiteBalanceEnableInput.checked = config["WhiteBalanceEnable"]
+    let gammaInput = document.getElementById('gamma-input');
+    gammaInput.value = config["Gamma"]
+    let gammaEnableInput = document.getElementById('gamma-enable-input');
+    gammaEnableInput.checked = config["GammaEnable"]
+
 }
 
 function setupCameraConfigForm() {
@@ -39,12 +48,20 @@ function setupCameraConfigForm() {
         let gainAutoInput = document.getElementById('gain-auto-input');
         let exposureTimeInput = document.getElementById('exposure-time-input');
         let exposureAutoInput = document.getElementById('exposure-auto-input');
+        let whiteBalanceAutoInput = document.getElementById('white-balance-auto-input');
+        let whiteBalanceEnableInput = document.getElementById('white-balance-enable-input');
+        let gammaInput = document.getElementById('gamma-input');
+        let gammaEnableInput = document.getElementById('gamma-enable-input');
 
         let config = {
             "Gain": parseFloat(gainInput.value),
             "GainAuto": gainAutoInput.value,
             "ExposureTime": parseFloat(exposureTimeInput.value),
-            "ExposureAuto": exposureAutoInput.value
+            "ExposureAuto": exposureAutoInput.value,
+            "WhiteBalanceAuto": whiteBalanceAutoInput.value,
+            "WhiteBalanceEnable": whiteBalanceEnableInput.checked,
+            "Gamma": parseFloat(gammaInput.value),
+            "GammaEnable": gammaEnableInput.checked
         };
 
         fetch(formatHubURL("/api/mission/camera/config"), {
