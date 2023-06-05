@@ -6,8 +6,9 @@ import (
 	Log "github.com/sirupsen/logrus"
 )
 
-type MavlinkConnection struct {
-	Ip string `json:"ip"`
+// JetsonMavConn defines a message to change the mavlink connection on the Jetson itself
+type JetsonMavConn struct {
+	IP string `json:"ip"`
 }
 
 /*
@@ -37,9 +38,7 @@ type Path struct {
 	PlaneAcknowledged bool
 }
 
-/*
-Make generic coordinate struct
-*/
+// Coordinate defines a latitude and longitude coordinate
 type Coordinate struct {
 	Latitude  float64 `json:"latitude,omitempty"`
 	Longitude float64 `json:"longitude,omitempty"`

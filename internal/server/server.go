@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -904,7 +904,7 @@ func (server *Server) getJetsonMavStatus() gin.HandlerFunc {
 
 func (server *Server) connectJetsonMav() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		mavConn := pp.MavlinkConnection{}
+		mavConn := pp.JetsonMavConn{}
 		err := c.BindJSON(&mavConn)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
@@ -956,7 +956,7 @@ func (server *Server) getCameraCapture() gin.HandlerFunc {
 
 func (server *Server) postRawImage() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		img, err := ioutil.ReadAll(c.Request.Body)
+		img, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Bad image data %s", err.Error())
 		}

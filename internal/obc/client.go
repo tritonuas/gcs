@@ -217,7 +217,7 @@ func (client *Client) GetMavlinkStatus() ([]byte, int) {
 /*
 Sends Post request to OBC to attempt mavlink connection
 */
-func (client *Client) ConnectMavlink(mavConn pp.MavlinkConnection) ([]byte, int) {
+func (client *Client) ConnectMavlink(mavConn pp.JetsonMavConn) ([]byte, int) {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(mavConn)
 
@@ -229,11 +229,13 @@ func (client *Client) ConnectMavlink(mavConn pp.MavlinkConnection) ([]byte, int)
 	return body, httpErr.Status
 }
 
+// GetCameraConfig gets the current camera configuration from the OBC in JSON format
 func (client *Client) GetCameraConfig() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/camera/config")
 	return body, httpErr.Status
 }
 
+// PostCameraConfig posts a new camera configuration to the OBC
 func (client *Client) PostCameraConfig(config camera.Config) ([]byte, int) {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(config)
@@ -246,6 +248,7 @@ func (client *Client) PostCameraConfig(config camera.Config) ([]byte, int) {
 	return body, httpErr.Status
 }
 
+// GetCamereStatus gets the current camera status from the OBC
 func (client *Client) GetCameraStatus() (camera.Status, int) {
 	body, httpErr := client.httpClient.Get("/camera/status")
 	if httpErr.Get {
