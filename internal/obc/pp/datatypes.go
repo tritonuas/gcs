@@ -6,8 +6,9 @@ import (
 	Log "github.com/sirupsen/logrus"
 )
 
+// MavlinkConnection handles connection between the OBC and the Pixhawk
 type MavlinkConnection struct {
-	Ip string `json:"ip"`
+	IP string `json:"ip"`
 }
 
 /*
