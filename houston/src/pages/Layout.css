@@ -1,5 +1,5 @@
 nav {
-    background-color: var(--med-bg);
+    background-color: var(--dark-bg);
     font-size: 2rem;
 }
 
@@ -19,17 +19,19 @@ ul {
 
 li {
     padding: 0.5rem 1rem;
+    transition: background-color 0.1s ease-in;
 }
 
 a {
     text-decoration: none;
     color: var(--highlight);
+    transition: color 0.1s ease-in;
 }
 
 a:is(:hover, :focus), a.active {
-    color: var(--dark-text);
+    color: var(--light-text);
 }
 
 li:has(a:is(:hover, :focus)), li:has(a.active) {
-    background-color: var(--light-bg);
+    background-color: var(--med-bg);
 }
