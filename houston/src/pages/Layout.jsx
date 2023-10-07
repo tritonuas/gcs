@@ -1,11 +1,13 @@
 import { Outlet, NavLink } from "react-router-dom";
 import "./Layout.css";
+import duck from "../images/duck.png"
 
 const Layout = () => {
   return (
     <>
       <nav>
         <ul>
+          <img src={duck} alt={""}/>
           <li>
             <NavLink to="/" activeClassName="active">Connection</NavLink>
           </li>

@@ -3,6 +3,10 @@ nav {
     font-size: 2rem;
 }
 
+img {
+    margin: 0 0.5rem;
+}
+
 ul {
     margin: 0;
     padding: 0;

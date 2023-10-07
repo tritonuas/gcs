@@ -48,6 +48,9 @@ build-docker: build-react
 run: build
 	./gcs
 
+run-react-dev:
+	npm run --prefix ./houston start
+
 run-docker:
 	docker run -e --network=host --name gcs tritonuas/gcs
 
