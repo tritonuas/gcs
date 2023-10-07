@@ -1,8 +1,16 @@
+@font-face {
+  font-family: 'Jetbrains Mono';
+  font-display: swap;
+  src: url("./fonts/JetBrainsMono-Regular.ttf");
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  min-height: 100%;
+  font-family: 'Jetbrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  caret-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -10,4 +18,15 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+:root { 
+	--dark-bg: #00204a; 
+	--med-bg: #005792; 
+	--light-bg: #00bbf0; 
+
+	--highlight: #fdb44b; 
+
+  --dark-text: #111111; 
+  --light-text: #DDDDDD;
 }

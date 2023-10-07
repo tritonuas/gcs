@@ -1,25 +1,29 @@
-import logo from './logo.svg';
 import './App.css';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Connection from './pages/Connection';
+import Camera from './pages/Camera';
+import Control from './pages/Control';
+import Input from './pages/Input';
+import Layout from './pages/Layout';
+import Report from './pages/Report';
+import NoPage from './pages/NoPage';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Layout />}>
+                    <Route index element={<Connection />} />
+                    <Route path="control" element={<Control />} />
+                    <Route path="input" element={<Input />} />
+                    <Route path="report" element={<Report />} />
+                    <Route path="camera" element={<Camera />} />
+                    <Route path="*" element={<NoPage />} />
+                </Route>
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
 export default App;
