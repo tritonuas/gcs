@@ -19,34 +19,62 @@
     <nav-bar></nav-bar>
 
 	<main>
-        <form action="/" method="POST" id="jetson-form">
-            <fieldset>
-                <legend>Jetson Info</legend>
+        <div id="gallery-container">
+            <div id="left-bar">
+                <div id="camera-status-container">
+                    <p>
+                        <span style="font-weight: bold; color: darkblue;">Connected:</span>
+                        <span id="camera-status-desc">null</span>
+                    </p>
+                    <p>
+                        <span style="font-weight: bold; color: darkblue;">Streaming:</span>
+                        <span id="camera-streaming-desc">null</span>
+                    </p>
+                </div>
+                <form action="/" method="POST" id="camera-control-form">
+                    <fieldset>
+                        <legend>Camera Controls</legend>
 
-                <label for="url-input" id="url-input-label">IP:PORT</label>
-                <input type="text" id="url-input" name="url-input" value="192.168.1.50:5010">
+                        <button id="take-pic-btn">Take Picture</button>
+                        <button id="start-stream-btn">Start Streaming Pictures</button>
+                        <button id="stop-stream-btn">Stop Streaming Pictures</button>
+                    </fieldset>
+                </form>
+                <form action="/" method="POST" id="camera-form">
+                    <fieldset>
+                        <legend>Camera Config</legend>
+                        <label for="Gain">Gain</label>
+                        <input type="number" step="any" min="0" max="27.045771" name="Gain" id="gain-input">
 
-                <button>Take Picture</button>
-            </fieldset>
-        </form>
+                        <label for="GainAuto">GainAuto</label>
+                        <input type="text" name="GainAuto" id="gain-auto-input">
 
-        <image-gallery id="gallery" width="640" height="480">
-        </image-gallery>
+                        <label for="Exposure">ExposureTime</label>
+                        <input type="number" step="any" min="359" name="ExposureTime" id="exposure-time-input">
 
-        <form action="/" method="POST" id="camera-form">
-            <fieldset>
-                <legend>Camera Parameters</legend>
-                <fieldset id="analog-fieldset"> 
-                    <legend>Analog Controls</legend>
-                </fieldset>
-                <fieldset id="activation-fieldset">
-                    <legend>Activation Controls</legend>
-                </fieldset>
+                        <label for="ExposureAuto">ExposureAuto</label>
+                        <input type="text" name="ExposureAuto" id="exposure-auto-input">
 
-                <input type="button" value="Pull" id="pull-params-btn">
-                <input type="submit" value="Submit">
-            </fieldset>
-        </form>
+                        <label for="BalanceWhiteAuto">BalanceWhiteAuto</label>
+                        <input type="text" name="BalanceWhiteAuto" id="balance-white-auto-input">
+
+                        <label for="BalanceWhiteEnable">BalanceWhiteEnable</label>
+                        <input type="checkbox" name="BalanceWhiteEnable" id="balance-white-enable-input">
+
+                        <label for="Gamma">Gamma</label>
+                        <input type="number" step="any" min="0.2" max="2.0" name="Gamma" id="gamma-input">
+
+                        <label for="GammaEnable">GammaEnable</label>
+                        <input type="checkbox" name="GammaEnable" id="gamma-enable-input">
+
+                        <input type="submit" value="Submit">
+                    </fieldset>
+                </form>
+            </div>
+
+            <image-gallery id="gallery" width="1280" height="720">
+            </image-gallery>
+        </div>
 	</main>
 </body>
 </html>

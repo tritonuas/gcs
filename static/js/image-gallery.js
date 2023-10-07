@@ -36,9 +36,54 @@ class ImageGallery extends HTMLElement {
         }
         output.appendChild(this.img);
 
+        this.container = document.createElement('div');
+        this.container.id = "bottom-bar-container";
+
+        output.appendChild(this.container);
+
         this.label = document.createElement('p');
-        this.label.innerText = '0/0';
-        output.appendChild(this.label);
+        this.label.innerText = '0';
+
+        this.leftButton = document.createElement('button');
+        this.leftButton.innerText = "<";
+        this.leftButton.addEventListener('click', () => {this.swipe("left")});
+
+        this.rightButton = document.createElement('button');
+        this.rightButton.innerText = ">";
+        this.rightButton.addEventListener('click', () => {this.swipe("right")});
+
+        this.autoViewLabel = document.createElement("label");
+        this.autoViewLabel.innerText = "Auto View New Images";
+        this.autoViewLabel.htmlFor = "auto-view-checkbox";
+
+        this.autoViewCheckbox = document.createElement("input");
+        this.autoViewCheckbox.type = "checkbox";
+        this.autoViewCheckbox.checked = true;
+        this.autoViewCheckbox.name = "auto-view-checkbox";
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "ArrowLeft") {
+                this.leftButton.dataset["active"] = "true";
+                this.swipe("left");
+            } else if (e.key === "ArrowRight") {
+                this.rightButton.dataset["active"] = "true";
+                this.swipe("right");
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === "ArrowLeft") {
+                this.leftButton.dataset["active"] = "false";
+            } else if (e.key === "ArrowRight") {
+                this.rightButton.dataset["active"] = "false";
+            }
+        })
+
+        this.container.appendChild(this.leftButton);
+        this.container.appendChild(this.label);
+        this.container.appendChild(this.rightButton);
+        this.container.appendChild(this.autoViewLabel);
+        this.container.appendChild(this.autoViewCheckbox);
 
         this.imageList = [];
         this.currImage = -1;
@@ -73,10 +118,12 @@ class ImageGallery extends HTMLElement {
         this.label.innerText = `${this.currImage+1}/${this.imageList.length}`;
     }
 
-    addImage(src, jsonCap) {
+    addImage(src) {
         this.imageList.push(src);
-        this.currImage = this.imageList.length-1;
-        this.setImage(src);
+        if (this.autoViewCheckbox.checked) {
+            this.currImage = this.imageList.length-1;
+            this.setImage(src);
+        }
     }
 
     connectedCallback() {

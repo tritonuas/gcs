@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 	"github.com/tritonuas/gcs/internal/obc"
 	"github.com/tritonuas/gcs/internal/obc/airdrop"
+	"github.com/tritonuas/gcs/internal/obc/camera"
 	"github.com/tritonuas/gcs/internal/obc/pp"
 )
 
@@ -30,6 +32,7 @@ type Server struct {
 	influxDBClient      *influxdb.Client
 	mavlinkClient       *mav.Client
 	obcClient           *obc.Client
+	newestRawImage      camera.RawImage
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	Bottles             *airdrop.Bottles
 	MissionTime         int64
@@ -133,8 +136,18 @@ func (server *Server) initBackend(router *gin.Engine) {
 			mission.GET("/state/time", server.getStateStartTime())
 			mission.GET("/state/history", server.getStateHistory())
 
+			mission.GET("/camera/capture", server.getCameraCapture())
+
 			mission.GET("/camera/status", server.getCameraStatus())
-			mission.GET("/camera/mock/status", server.getMockCameraStatus())
+
+			mission.GET("/camera/config", server.getCameraConfig())
+			mission.POST("/camera/config", server.postCameraConfig())
+
+			mission.POST("/camera/start", server.startCameraStream())
+			mission.POST("/camera/stop", server.stopCameraStream())
+
+			mission.POST("/image/raw", server.postRawImage())
+			mission.GET("/image/raw", server.getRawImage())
 
 			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
 			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
@@ -761,34 +774,14 @@ func (server *Server) getStoredCVSResults() gin.HandlerFunc {
 }
 
 /*
-Returns a JSON containing true if camera is currently taking images; false otherwise.
+Returns camera status object as defined in obc/camera/datatypes.go
 
 This is intended for Houston to use.
 */
 func (server *Server) getCameraStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		status := struct {
-			status bool
-		}{
-			status: server.obcClient.CameraStatus,
-		}
-		c.JSON(http.StatusOK, status)
-	}
-}
-
-/*
-Returns a JSON containing true if the mock camera is currently "taking images"; false otherwise.
-
-This is intended for Houston to use.
-*/
-func (server *Server) getMockCameraStatus() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		status := struct {
-			status bool
-		}{
-			status: server.obcClient.MockCameraStatus,
-		}
-		c.JSON(http.StatusOK, status)
+		cameraStatus, httpStatus := server.obcClient.GetCameraStatus()
+		c.JSON(httpStatus, cameraStatus)
 	}
 }
 
@@ -911,12 +904,85 @@ func (server *Server) getJetsonMavStatus() gin.HandlerFunc {
 
 func (server *Server) connectJetsonMav() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		mavConn := pp.MavlinkConnection{}
+		mavConn := pp.JetsonMavConn{}
 		err := c.BindJSON(&mavConn)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
 		}
 		resp, status := server.obcClient.ConnectMavlink(mavConn)
 		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) getCameraConfig() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.GetCameraConfig()
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) postCameraConfig() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cameraConfig := camera.Config{}
+		err := c.BindJSON(&cameraConfig)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
+		}
+		resp, status := server.obcClient.PostCameraConfig(cameraConfig)
+		c.String(status, string(resp))
+	}
+}
+
+func (server *Server) startCameraStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.StartCamera()
+		c.String(status, resp)
+	}
+}
+
+func (server *Server) stopCameraStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp, status := server.obcClient.StopCamera()
+		c.String(status, resp)
+	}
+}
+
+func (server *Server) getCameraCapture() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		imgData, status := server.obcClient.GetCameraCapture()
+		c.Data(status, "image/jpeg", imgData)
+	}
+}
+
+func (server *Server) postRawImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		img, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad image data %s", err.Error())
+		}
+		currentTime := time.Now().Unix()
+		server.newestRawImage = camera.RawImage{Data: img, Timestamp: currentTime}
+	}
+}
+
+/*
+getRawImage handles get requests asking for the most recent raw image received from the camera. This request is
+intended to originate from Houston. If the timestamp query parameter is provided, the server will only return the
+most recent image if its timestamp is more recent than the given timestamp (in seconds since epoch).
+
+If it sends down the image, it will also send down the timestamp of the image in the "Timestamp" header
+*/
+func (server *Server) getRawImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		givenTimestamp, err := strconv.ParseInt(c.DefaultQuery("timestamp", "0"), 10, 64)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Bad timestamp %s", err.Error())
+		}
+		if givenTimestamp < server.newestRawImage.Timestamp {
+			c.Writer.Header().Set("Timestamp", fmt.Sprintf("%d", server.newestRawImage.Timestamp))
+			c.Data(http.StatusOK, "image/jpeg", server.newestRawImage.Data)
+		} else {
+			c.String(http.StatusNotFound, "No new image")
+		}
 	}
 }

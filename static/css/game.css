@@ -12,6 +12,19 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    background-image: url()
+}
+
+body {
+    font-size: 1.5rem;
+    font-family: 'Fira-Sans', sans-serif;
+    background-color: none !important;
+    background-image: url("../images/cloud-bg2.jpg") !important;
+}
+
+body[data-lol="true"] {
+    background-image: url("../images/LOL.gif");
+    font-family: 'Comic-Sans', sans-serif;
 }
 
 #title-section {

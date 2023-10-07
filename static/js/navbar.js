@@ -65,7 +65,7 @@ class Navbar extends HTMLElement {
         ul.appendChild(getNavSection('mission-control.html', 'Control'));
         ul.appendChild(getNavSection('mission-input.html', 'Input'));
         ul.appendChild(getNavSection('mission-report.html',  'Report'));
-        ul.appendChild(getNavSection('jetson-debug.html',  'Jetson'));
+        ul.appendChild(getNavSection('jetson-debug.html',  'Camera'));
 
         shadow.appendChild(nav);
     }

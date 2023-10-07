@@ -8,7 +8,7 @@ services:
     #   - 5000:5000
     environment:
       - DEBUG_MODE=true
-      - OBC_ADDR=192.168.1.3:5010
+      - OBC_ADDR=192.168.1.51:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
       - MAV_DEVICE=tcp:localhost:5760
@@ -85,33 +85,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 9999:8080
-  # mavproxy:
-  #   image: tritonuas/mavproxy
-  #   # depends_on:
-  #   #   - sitl
-  #   network_mode: "host"
-  #   # ports:
-  #   #   - "5761:5762"
-  #   #   - "14551:14551"
-  #   environment:
-  #     - "MASTER=--master=tcp:localhost:5760"
-  #     # Forwards messages to MissionPlanner/QGC
-  #     - "OUT1=--out=udp:localhost:14550"
-  #     - "OUT2=--out=udp:localhost:14551"
-  #     # Forwards messages to hub
-  #     # - "OUT2=--out=udpin:mavproxy:14551"
-  #     # - "OUT2=--out=udp:mavproxy:14555"
-  #     # - "OUT3=--out=udp:192.168.1.2:14551"
-  #     # - "OUT4=--out=udp:192.168.1.7:14551"
-  #     # - "OUT3=--out=udp:mavproxy:14556"
-  #     # - "OUT4=--out=tcpin:mavproxy:5761"
-  #     # - "OUT5=--out=udp:mavproxy:5762"
-  #     # - OUT6=
-  #     # - OUT7=
-  #   restart: always
-  #   # logging:
-  #   #   driver: none
-
 volumes:
   grafana_data:
   missions:

@@ -1,41 +1,56 @@
+main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: darkslateblue;
+}
+
 image-gallery {
     text-align: center;
     padding: 1em;
     margin: 1em;
     display: block;
     float:right;
-    background-color: white;
-    border: 3px solid black;
+    border: 1px solid black;
+    background-color: lightgray;
     border-radius: 10px;
+    width: fit-content;
+    height: fit-content;
+}
+
+image-gallery img {
+    background-color: white;
+}
+
+div#form-container {
+    display: flex;
+    flex-direction: row;
 }
 
 form {
-    float: left;
+    width: fit-content;
 }
 
-form > fieldset {
+form#camera-form fieldset {
+    padding-bottom: 1em;
+    margin-bottom: 1em;
+}
+
+div#camera-status-container {
+    background-color: white;
+    border: .2rem solid black;
+    border-radius: 8px;
+    margin-top: 1em;
+    padding: .75em;
+}
+
+div#gallery-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
 }
 
-form > fieldset fieldset {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    text-align: left;
-    align-items: flex-start;
-    justify-content: flex-start;
-}
-
-form > fieldset fieldset input {
-    width: 100%;
-}
-
-form > fieldset fieldset label:hover {
-    transform: translateY(-2px);
-    color: skyblue;
-    transition: all 0.1s ease-in;
-}
-
-legend ~ fieldset > legend {
-    font-size: 1.2rem;
+div#camera-status-container {
+    height: fit-content;
+    align-self: center;
 }

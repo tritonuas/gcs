@@ -6,8 +6,8 @@ import (
 	Log "github.com/sirupsen/logrus"
 )
 
-// MavlinkConnection handles connection between the OBC and the Pixhawk
-type MavlinkConnection struct {
+// JetsonMavConn defines a message to change the mavlink connection on the Jetson itself
+type JetsonMavConn struct {
 	IP string `json:"ip"`
 }
 
@@ -38,9 +38,7 @@ type Path struct {
 	PlaneAcknowledged bool
 }
 
-/*
-Make generic coordinate struct
-*/
+// Coordinate defines a latitude and longitude coordinate
 type Coordinate struct {
 	Latitude  float64 `json:"latitude,omitempty"`
 	Longitude float64 `json:"longitude,omitempty"`
