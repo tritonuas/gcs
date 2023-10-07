@@ -25,10 +25,10 @@ install-assets:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git build-go build-docker
+.PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker
 pre-build: configure-git 
 
-build: build-go
+build: build-go build-react
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
@@ -36,7 +36,10 @@ configure-git:
 build-go:
 	go build
 
-build-docker:
+build-react:
+	npm run --prefix ./houston build
+
+build-docker: build-react
 	DOCKER_BUILDKIT=1 docker build -t tritonuas/gcs -f build/package/Dockerfile .
 
 # Run
