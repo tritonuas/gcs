@@ -30,4 +30,9 @@ code {
 
   --dark-text: #111111; 
   --light-text: #DDDDDD;
+
+  --success-text: #33AA66; 
+  --failure-text: #AA3344;
+  --success-filter: invert(50%) sepia(71%) saturate(411%) hue-rotate(93deg) brightness(96%) contrast(86%);
+  --failure-filter: invert(23%) sepia(22%) saturate(4213%) hue-rotate(321deg) brightness(108%) contrast(91%);
 }

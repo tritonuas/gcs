@@ -1,13 +1,13 @@
-nav {
+nav.topbar {
     background-color: var(--dark-bg);
     font-size: 2rem;
 }
 
-img {
+nav.topbar img {
     margin: 0 0.5rem;
 }
 
-ul {
+nav.topbar ul {
     margin: 0;
     padding: 0;
     display: flex;
@@ -17,21 +17,21 @@ ul {
     justify-content: flex-start;
 }
 
-li {
+nav.topbar li {
     padding: 0.5rem 1rem;
     transition: background-color 0.1s ease-in;
 }
 
-a {
+nav.topbar a {
     text-decoration: none;
     color: var(--highlight);
     transition: color 0.1s ease-in;
 }
 
-a:is(:hover, :focus), a.active {
+nav.topbar a:is(:hover, :focus), a.active {
     color: var(--light-text);
 }
 
-li:has(a:is(:hover, :focus)), li:has(a.active) {
+nav.topbar li:has(a:is(:hover, :focus)), li:has(a.active) {
     background-color: var(--med-bg);
 }

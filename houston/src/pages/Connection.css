@@ -1,0 +1,75 @@
+main.connection-page {
+    display: flex;
+    flex-direction: column; 
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    flex-grow: 1;
+
+    --skew-amt: 2deg;
+}
+
+main.connection-page ul {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem;
+    padding: 3rem 0;
+
+    font-size: 3rem;
+
+    list-style: none;
+
+    background-color: var(--dark-bg);
+    color: var(--highlight);
+    overflow: hidden;
+
+   transform: skewY(var(--skew-amt));
+
+    min-width: 100dvw;
+}
+
+main.connection-page li {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    transform: skewY(calc(var(--skew-amt) * -1));
+
+    min-width: 66dvw;
+}
+
+main.connection-page li:is(:hover, :focus) {
+    background-color: var(--highlight);
+    color: var(--dark-text);
+}
+
+main.connection-page li:is(:hover, :focus)::before {
+    content: '>';
+    color: var(--highlight);
+    position: absolute;
+    left: -3rem;
+}
+
+@media only screen and (max-width: 62rem)  {
+    main.connection-page li {
+        justify-content: flex-start;
+    }    
+
+    main.connection-page span.conn-name{
+        padding-right: 2rem;
+    }
+}
+
+main.connection-page span.conn-status img {
+    width: 3rem;
+}
+
+main.connection-page span.active {
+    filter: var(--success-filter);
+}
+
+main.connection-page span.inactive {
+    filter: var(--failure-filter);
+}

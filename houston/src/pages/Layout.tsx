@@ -17,7 +17,7 @@ const Layout: FC = () => {
     
     return (
         <>
-            <nav>
+            <nav className="topbar">
                 <ul>
                     <img src={duck} alt={""}/>
                     <li>
