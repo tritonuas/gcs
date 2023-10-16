@@ -24,7 +24,7 @@ RUN --mount=target=. \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
 
-COPY ./houston/build/ /build/houston/
+COPY ./houston/dist/ /build/houston/
 
 # go build mounts code read-only without copying to container,
 # so you have to put binary in another folder
