@@ -3,3 +3,15 @@ div#root {
     display: flex;
     flex-direction:column;
 }
+
+img.svg {
+    width: 3rem;
+}
+
+.svg.active {
+    filter: var(--success-filter);
+}
+
+.svg.inactive {
+    filter: var(--failure-filter);
+}

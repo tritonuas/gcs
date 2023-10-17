@@ -1,11 +1,11 @@
-import {FC} from "react"
 import { Outlet, NavLink } from "react-router-dom";
 import "./Layout.css";
 import duck from "../assets/duck.png"
 
+import {getIconFromStatus, ConnectionStatus} from "./Connection" // TODO modify to protobufs
 
 
-const Layout: FC = () => {
+function Layout({statuses}:{statuses:ConnectionStatus[]}) {
 
     const checkForActive = ({isActive}:{isActive:boolean}) => {
         if (isActive) {
@@ -35,6 +35,9 @@ const Layout: FC = () => {
                     <li>
                         <NavLink to="/camera" className={checkForActive}>Camera</NavLink>
                     </li>
+                    {/* If another page is added, need to adjust the nth child rule in the css
+                    so that the status icons are still right aligned */}
+                    {statuses.map(getIconFromStatus)}
                 </ul>
             </nav>
             <Outlet/>

@@ -35,3 +35,7 @@ nav.topbar a:is(:hover, :focus), a.active {
 nav.topbar li:has(a:is(:hover, :focus)), li:has(a.active) {
     background-color: var(--med-bg);
 }
+
+nav.topbar li:nth-child(6) {
+    margin-right: auto;
+}
