@@ -22,9 +22,9 @@ code {
 }
 
 :root { 
-	--dark-bg: #00204a; 
-	--med-bg: #005792; 
-	--light-bg: #00bbf0; 
+	--dark-bg: #00204a;
+  --med-bg: #2667ff;
+  --light-bg: #3f8efc;
 
 	--highlight: #fdb44b; 
 

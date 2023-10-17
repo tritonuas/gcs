@@ -23,24 +23,24 @@ import radioDisconnected from "../assets/radio-disconnected.svg"
 import wifiConnected from "../assets/wifi-connected.svg"
 import wifiDisconnected from "../assets/wifi-disconnected.svg"
 
-export function getIconFromStatus(status: ConnectionStatus) {
+export function getIconFromStatus(status: ConnectionStatus, i: number) {
         if (status.type == ConnectionType.Ethernet) {
             if (status.isActive) {
-                return (<img className="svg active" src={ethernetConnected}></img>)
+                return (<img key={i} className="svg active" src={ethernetConnected}></img>)
             } else {
-                return (<> <img className="svg inactive" src={ethernetDisconnected}></img> </>)
+                return (<img key={i} className="svg inactive" src={ethernetDisconnected}></img>)
             }
         } else if (status.type == ConnectionType.Radio) {
             if (status.isActive) {
-                return (<img className="svg active" src={radioConnected}></img>)
+                return (<img key={i} className="svg active" src={radioConnected}></img>)
             } else {
-                return (<img className="svg inactive" src={radioDisconnected}></img>)
+                return (<img key={i} className="svg inactive" src={radioDisconnected}></img>)
             }
         } else { // wifi
             if (status.isActive) {
-                return (<img className="svg active" src={wifiConnected}></img>)
+                return (<img key={i} className="svg active" src={wifiConnected}></img>)
             } else {
-                return (<img className="svg inactive" src={wifiDisconnected}></img>)
+                return (<img key={i} className="svg inactive" src={wifiDisconnected}></img>)
             }
         }
     }
