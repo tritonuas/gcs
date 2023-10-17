@@ -50,7 +50,7 @@ function statusToJSX(status: ConnectionStatus, i: number) {
         <li key={i}>
             <span className="conn-name">{status.name}</span>
             <span className={"conn-status"}>
-                {getIconFromStatus(status)}
+                {getIconFromStatus(status, i)}
             </span>
         </li>
     );

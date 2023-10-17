@@ -40,18 +40,31 @@ main.connection-page li {
     min-width: 66dvw;
 
     padding: 0 1rem;
+    
+    background: linear-gradient(to left, var(--dark-bg) 50%, var(--highlight) 50%) right;
+    background-size: 200% 100%;
+
+    transition: all .3s ease-in;
 }
 
 main.connection-page li:is(:hover, :focus) {
-    background-color: var(--highlight);
+    /* background-color: var(--highlight); */
+    background-position: left;
     color: var(--dark-text);
+}
+
+main.connection-page li::before {
+    content: '>';
+    color: var(--highlight);
+    opacity: 0;
+    position: absolute;
+    left: -8rem;
+    transition: opacity .2s ease-in, left .2s ease-in;
 }
 
 main.connection-page li:is(:hover, :focus)::before,
 main.connection-page li.selected {
-    content: '>';
-    color: var(--highlight);
-    position: absolute;
+    opacity: 1;
     left: -3rem;
 }
 

@@ -18,14 +18,20 @@ nav.topbar ul {
 }
 
 nav.topbar li {
-    padding: 0.5rem 1rem;
-    transition: background-color 0.1s ease-in;
+    background: linear-gradient(to bottom, var(--dark-bg) 50%, var(--med-bg) 50%) top;
+    background-size: 100% 200%;
+    transition: background-position .1s ease-in;
 }
 
 nav.topbar a {
     text-decoration: none;
     color: var(--highlight);
     transition: color 0.1s ease-in;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 nav.topbar a:is(:hover, :focus), a.active {
@@ -33,7 +39,7 @@ nav.topbar a:is(:hover, :focus), a.active {
 }
 
 nav.topbar li:has(a:is(:hover, :focus)), li:has(a.active) {
-    background-color: var(--med-bg);
+    background-position: bottom;
 }
 
 nav.topbar li:nth-child(6) {
