@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from 'react'
 
 import Connection from "./pages/Connection";
+import AntennaTracker from "./pages/AntennaTracker";
+import OnboardComputer from "./pages/OnboardComputer";
+import RadioMavlink from "./pages/RadioMavlink";
 import Camera from './pages/Camera';
 import Control from './pages/Control';
 import Input from './pages/Input';
@@ -29,10 +32,14 @@ function App() {
             <Routes>
                 <Route path="/" element={<Layout statuses={statuses}/>}>
                     <Route index element={<Connection statuses={statuses}/>} />
+                    <Route path="antennatracker" element={<AntennaTracker/>} />
+                    <Route path="onboardcomputer" element={<OnboardComputer/>} />
+                    <Route path="radiomavlink" element={<RadioMavlink/>} />
                     <Route path="control" element={<Control />} />
                     <Route path="input" element={<Input />} />
                     <Route path="report" element={<Report />} />
                     <Route path="camera" element={<Camera />} />
+
                     <Route path="*" element={<NoPage />} />
                 </Route>
             </Routes>

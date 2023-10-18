@@ -42,6 +42,16 @@ nav.topbar li:has(a:is(:hover, :focus)), li:has(a.active) {
     background-position: bottom;
 }
 
+/* 
+    For the current active tab, just override the background so its a simple background
+    color. Helpful for extra styling / color changes we do in the Connection page.
+*/
+li:has(a.active) {
+    background: none;
+    background-color: var(--med-bg);
+    transition: background-color var(--std-transition);
+}
+
 nav.topbar li:nth-child(6) {
     margin-right: auto;
 }

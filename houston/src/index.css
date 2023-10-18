@@ -35,4 +35,6 @@ code {
   --failure-text: #AA3344;
   --success-filter: invert(50%) sepia(71%) saturate(411%) hue-rotate(93deg) brightness(96%) contrast(86%);
   --failure-filter: invert(23%) sepia(22%) saturate(4213%) hue-rotate(321deg) brightness(108%) contrast(91%);
+
+  --std-transition: 0.3s ease-in;
 }

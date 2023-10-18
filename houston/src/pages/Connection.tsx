@@ -1,6 +1,7 @@
 import {FC, useState} from 'react'
 import { DotPulse } from '@uiball/loaders'
 import "./Connection.css"
+import { Link } from 'react-router-dom'
 
 // TODO: standardize connection status data structure
 // and make it a protobuf
@@ -48,10 +49,12 @@ export function getIconFromStatus(status: ConnectionStatus, i: number) {
 function statusToJSX(status: ConnectionStatus, i: number) {
     return (
         <li key={i}>
-            <span className="conn-name">{status.name}</span>
-            <span className={"conn-status"}>
-                {getIconFromStatus(status, i)}
-            </span>
+            <Link className="conn-link" to={status.name.replace(/\s+/g, '').toLowerCase()}>
+                <span className="conn-name">{status.name}</span>
+                <span className={"conn-status"}>
+                    {getIconFromStatus(status, i)}
+                </span>
+            </Link>
         </li>
     );
 }

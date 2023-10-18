@@ -1,4 +1,7 @@
 main.connection-page {
+    --skew-amt: 2deg; /* By how much to rotate the horizontal background for the content */
+    --connection-font-size: 3rem;
+
     /*
         Take up the whole screen, and vertically center content
     */
@@ -9,8 +12,8 @@ main.connection-page {
     min-height: 100%;
     flex-grow: 1;
 
-    --skew-amt: 2deg; /* By how much to rotate the horizontal background for the content */
-    --connection-font-size: 3rem;
+    /* smooth transition when hovering over connection subpage link */
+    transition: background-color var(--std-transition);
 }
 
 main.connection-page ul {
@@ -38,11 +41,26 @@ main.connection-page ul {
     min-width: 100dvw;
 }
 
-main.connection-page li {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+/* Select the current selected page in the navbar, if in the connection page the user is 
+   currently selecting an active connection */
+nav.topbar:has(+ main.connection-page li:is(:hover, :focus) img.svg.active) li:has(a.active) {
+    background-color: var(--success-text);
+}
+/* Select the current selected page in the navbar, if in the connection page the user is 
+   currently selecting an INactive connection */
+nav.topbar:has(+ main.connection-page li:is(:hover, :focus) img.svg.inactive) li:has(a.active) {
+    background-color: var(--failure-text);
+}
 
+/* When you hover over a selection, alter the background color to green/red to match active connection */
+main.connection-page:has(li:is(:hover, :focus) img.svg.active) {
+    background-color: var(--success-text);
+}
+main.connection-page:has(li:is(:hover, :focus) img.svg.inactive) {
+    background-color: var(--failure-text);
+}
+
+main.connection-page li {
     /* Unrotate the tilt on the items inside the background */
     transform: skewY(calc(var(--skew-amt) * -1));
 
@@ -55,12 +73,24 @@ main.connection-page li {
     background: linear-gradient(to left, var(--dark-bg) 50%, var(--highlight) 50%) right;
     background-size: 200% 100%;
 
-    transition: all .3s ease-in;
+    transition: all var(--std-transition);
+}
+
+main.connection-page .conn-link {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--highlight);
+    transition: color var(--std-transition);
+}
+
+main.connection-page li:is(:hover, :focus) .conn-link {
+    color: var(--dark-text);
 }
 
 main.connection-page li:is(:hover, :focus) {
     background-position: left;
-    color: var(--dark-text);
 }
 
 main.connection-page li::before {
@@ -68,14 +98,16 @@ main.connection-page li::before {
     content: '>';
     color: var(--highlight);
     opacity: 0;
+    visibility: hidden;
     position: absolute;
     left: -8rem;
-    transition: opacity .2s ease-in, left .2s ease-in;
+    transition: opacity var(--std-transition), left var(--std-transition);
 }
 
 main.connection-page li:is(:hover, :focus)::before,
 main.connection-page li.selected {
     opacity: 1;
+    visibility: visible;
     left: -3rem;
 }
 
