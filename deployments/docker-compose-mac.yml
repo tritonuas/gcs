@@ -1,0 +1,92 @@
+# TODO: setup env variables https://docs.docker.com/compose/environment-variables/
+version: "3"
+services:
+  gcs:
+    image: tritonuas/gcs
+    # network_mode: "host"
+    ports:
+      - 5000:5000
+    environment:
+      - DEBUG_MODE=true
+      - OBC_ADDR=192.168.1.51:5010
+      - ANTENNA_TRACKER_IP=192.168.1.36
+      - ANTENNA_TRACKER_PORT=4000
+      - MAV_DEVICE=tcp:localhost:5760
+      - MAV_OUTPUT4=udp:localhost:14550
+      - MAV_OUTPUT5=tcp:localhost:14551
+      - INFLUXDB_BUCKET=mavlink
+      - INFLUXDB_ORG=TritonUAS
+      - INFLUXDB_TOKEN=influxdbToken
+      - INFLUXDB_URI=http://localhost:8086
+      - HUB_PATH=/go/src/github.com/tritonuas/gcs
+    volumes:
+      - missions:/go/src/github.com/tritonuas/gcs/missions
+    extra_hosts:
+      - host.docker.internal:host-gateway
+      
+  influxdb:
+    image: influxdb:2.0-alpine
+    # network_mode: "host"
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+  grafana:
+    image: grafana/grafana:7.5.5
+    # network_mode: "host"
+    ports:
+      - 3000:3000
+    depends_on:
+      - gcs
+    environment: 
+      - GF_USERS_DEFAULT_THEME=dark
+      - GF_USERS_HOME_PAGE=/dashboards
+        #- GF_INSTALL_PLUGINS=briangann-gauge-panel
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+  influxdb_cli:
+    depends_on:
+      - influxdb
+    image: influxdb:2.0-alpine
+    # network_mode: "host"
+    entrypoint: > 
+      influx setup 
+      --bucket mavlink 
+      --org TritonUAS 
+      --token influxdbToken 
+      --username tritons 
+      --password tritonuas 
+      --host http://localhost:8086 
+      --force
+    restart: on-failure:20
+  sitl:
+    image: tritonuas/plane.rascal
+    # network_mode: "host"
+    ports:
+      - 5760:5760
+    environment:
+      - "SITL_HOME=38.31542593549111,-76.55062632801757,8,0"
+      - SITL_SPEEDUP=1
+    volumes:
+      - sitl:/app/logs
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 9999:8080
+volumes:
+  grafana_data:
+  missions:
+  sitl:
+  influxdb_data:
