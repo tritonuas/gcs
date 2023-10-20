@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Control: React.FC = () => {
+function Control() {
     return <h1>todo</h1>
 }
 
