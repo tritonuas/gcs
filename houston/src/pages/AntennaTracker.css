@@ -1,0 +1,28 @@
+main.atracker-page {
+    /* The map is a child of this flex container, so it will take up the entire space */
+    display: flex;
+    flex-direction: row;
+    height: var(--main-height);
+    overflow-y: hidden;
+}
+
+main.atracker-page .atracker-map {
+    /* Make the map take up the entire flex container */
+    flex: 3;
+    width: 100%;
+}
+
+main.atracker-page .atracker-terminal {
+    flex: 1;
+    background-color: var(--dark-text);
+    color: var(--light-text);
+}
+
+main.atracker-page .atracker-terminal pre{
+    padding: 0;
+    margin: 0;
+    font-family: 'Jetbrains Mono';
+    height: var(--main-height);
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
