@@ -9,10 +9,7 @@ import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
 
-/**
- * Main React function
- * @returns App
- */
+
 function App() {
     return (
         <BrowserRouter>
