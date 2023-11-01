@@ -27,8 +27,7 @@ jobs:
 
       - name: Test
         run: |
-          npm install  
-          make test
+          go test -race ./...
 
   Jest:
     name: Test Frontend
