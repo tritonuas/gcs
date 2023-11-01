@@ -9,7 +9,6 @@ import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
 
-
 function App() {
     return (
         <BrowserRouter>
