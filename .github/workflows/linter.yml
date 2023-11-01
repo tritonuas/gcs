@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Run Frontend Linter
-        run:
+        run: |
           cd houston
           npm install
           npm run lint
