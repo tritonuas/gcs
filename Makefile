@@ -55,16 +55,16 @@ run-docker:
 	docker run -e --network=host --name gcs tritonuas/gcs
 
 run-compose:
-	docker-compose -f deployments/docker-compose.yml up -d
+	docker compose -f deployments/docker-compose.yml up -d
 
 stop-compose:
-	docker-compose -f deployments/docker-compose.yml down
+	docker compose -f deployments/docker-compose.yml down
 
 run-broach-compose:
-	docker-compose -f deployments/broach-docker-compose.yml up -d
+	docker compose -f deployments/broach-docker-compose.yml up -d
 	
 stop-broach-compose:
-	docker-compose -f deployments/broach-docker-compose.yml down
+	docker compose -f deployments/broach-docker-compose.yml down
 
 develop:
 	make stop-compose && make build-docker && make run-compose
