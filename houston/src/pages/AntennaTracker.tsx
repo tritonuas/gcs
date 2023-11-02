@@ -10,11 +10,11 @@ function AntennaTracker() {
     useEffect(() => {
         const interval = setInterval(() => {
             // Update the text
-            let date = new Date();
+            const date = new Date();
             setTerminalText(txt => `${txt}\n${date.toString()}`);
 
             // Scroll the <pre>
-            let pre = document.getElementById("atracker-pre");
+            const pre = document.getElementById("atracker-pre");
             if (pre != null) {
                 pre.scrollTop = pre?.scrollHeight;
             }

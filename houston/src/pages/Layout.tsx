@@ -5,6 +5,11 @@ import duck from "../assets/duck.png"
 import {getIconFromStatus, ConnectionStatus} from "./Connection" // TODO modify to protobufs
 
 
+/**
+ * 
+ * @param param0 
+ * @returns 
+ */
 function Layout({statuses}:{statuses:ConnectionStatus[]}) {
 
     const checkForActive = ({isActive}:{isActive:boolean}) => {

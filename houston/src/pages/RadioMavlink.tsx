@@ -1,7 +1,11 @@
 import './RadioMavlink.css';
 
+/**
+ * 
+ * @returns 
+ */
 function RadioMavlink() {
-    let urlBase = location.href.split(':').slice(0,2).join(':');
+    const urlBase = location.href.split(':').slice(0,2).join(':');
     // Will look something like http://localhost or http://192.168.1.5
     // We can then append on the correct influxdb port and URI 
 

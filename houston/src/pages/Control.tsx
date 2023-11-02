@@ -1,3 +1,7 @@
+/**
+ * 
+ * @returns 
+ */
 function Control() {
     return <h1>todo</h1>
 }

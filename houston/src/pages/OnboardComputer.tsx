@@ -1,3 +1,7 @@
+/**
+ * 
+ * @returns 
+ * */
 function OnboardComputer() {
     return (
         <>

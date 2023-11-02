@@ -21,7 +21,7 @@ import {ConnectionType, ConnectionStatus} from "./pages/Connection" // TODO modi
  */
 function App() {
     // for testing purposes
-    let flipCoin = () => {
+    const flipCoin = () => {
         return (Math.random() > 0.5);
     }
 
