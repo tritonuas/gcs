@@ -2,6 +2,7 @@
 name: Linting
 
 on:
+  push:
   pull_request:
 
 permissions:
@@ -9,7 +10,7 @@ permissions:
 
 jobs:
   golangci:
-    name: lint
+    name: Lint Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v3
@@ -21,3 +22,14 @@ jobs:
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: v1.50
+
+  eslint:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run Frontend Linter
+        run: |
+          cd houston
+          npm install
+          npm run lint

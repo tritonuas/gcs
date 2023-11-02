@@ -74,9 +74,16 @@ develop:
 .PHONY: test test-all clear-cache
 
 test:
-	go test -race ./...
+	go test -race ./... && cd houston && npm test
 
-test-all: clear-cache test
+# clears go cache before running tests
+test-all: clear-cache test && cd houston && npm test
+
+test-frontend:
+	cd houston && npm test
+
+test-backend:
+	go test -race ./...
 
 clear-cache:
 	go clean -testcache
@@ -91,4 +98,10 @@ fmt:
 # --------------------------------------------------------------------
 .PHONY: lint 
 lint:
+	golangci-lint run && cd houston && npm run lint
+
+lint-frontend:
+	cd houston && npm run lint
+
+lint-backend:
 	golangci-lint run
