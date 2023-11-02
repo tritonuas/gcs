@@ -1,5 +1,3 @@
-import {FC, useState} from 'react'
-import { DotPulse } from '@uiball/loaders'
 import "./Connection.css"
 import { Link } from 'react-router-dom'
 

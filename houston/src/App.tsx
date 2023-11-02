@@ -21,7 +21,7 @@ function App() {
         return (Math.random() > 0.5);
     }
 
-    const [statuses, setStatuses] = useState<ConnectionStatus[]>([
+    const [statuses, _setStatuses] = useState<ConnectionStatus[]>([
         {name: "Antenna Tracker", isActive: flipCoin(), type: ConnectionType.Ethernet} as ConnectionStatus,
         {name: "Onboard Computer", isActive: flipCoin(), type: ConnectionType.Wifi} as ConnectionStatus,
         {name: "Radio Mavlink", isActive: flipCoin(), type: ConnectionType.Radio} as ConnectionStatus,
