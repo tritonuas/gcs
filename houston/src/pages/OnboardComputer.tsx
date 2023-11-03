@@ -1,7 +1,7 @@
 /**
  * 
- * @returns 
- * */
+ * @returns Page for the Onboard computer connection status.
+ */
 function OnboardComputer() {
     return (
         <>

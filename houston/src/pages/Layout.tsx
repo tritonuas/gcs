@@ -2,13 +2,14 @@ import { Outlet, NavLink } from "react-router-dom";
 import "./Layout.css";
 import duck from "../assets/duck.png"
 
-import {getIconFromStatus, ConnectionStatus} from "./Connection" // TODO modify to protobufs
+import {getIconFromStatus, } from "../utilities/ConnectionHelpers"
+import {ConnectionStatus, } from "./Connection"
 
 
 /**
- * 
- * @param param0 
- * @returns 
+ * @param props Props
+ * @param props.statuses List of connection statuses for major GCS connections.
+ * @returns Layout for the entire page, including the navbar and active page.
  */
 function Layout({statuses}:{statuses:ConnectionStatus[]}) {
 
@@ -48,6 +49,6 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
             <Outlet/>
         </>
     )
-};
+}
 
 export default Layout;
