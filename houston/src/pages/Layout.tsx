@@ -38,9 +38,6 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     <li>
                         <NavLink to="/report" className={checkForActive}>Report</NavLink>
                     </li>
-                    <li>
-                        <NavLink to="/camera" className={checkForActive}>Camera</NavLink>
-                    </li>
                     {/* If another page is added, need to adjust the nth child rule in the css
                     so that the status icons are still right aligned */}
                     {statuses.map(getIconFromStatus)}

@@ -7,6 +7,9 @@ import "react-image-gallery/styles/css/image-gallery.css";
 import heartbeatIcon from '../assets/heartbeat.svg'
 import cameraIcon from '../assets/camera.svg'
 
+import { PageOpenPopup } from '../utilities/PageOpenPopup';
+import { UBIQUITI_IP } from '../utilities/general';
+
 // TODO: move to protobuf
 interface OBCConnection {
     cameraConnected: boolean,
@@ -40,6 +43,17 @@ function OnboardComputer() {
 
     return (
         <>
+            <PageOpenPopup
+                storageKey='ubiquiti-popup'
+                contentLabel='Ubiquiti Login Information'
+            >
+                <p>
+                    <b>Username:</b> ucsdauvsi
+                </p> 
+                <p>
+                    <b>Password:</b> triton
+                </p>
+            </PageOpenPopup>
             <main className="obc-page">
                 <div className="left-container">
                     <ImageGallery items={images}/>
@@ -105,7 +119,7 @@ function OnboardComputer() {
                         </li>
                     </ul>
                 </div>
-                <iframe className="ubiquiti" src="https://www.ucsd.edu">
+                <iframe className="ubiquiti" src={`${UBIQUITI_IP}`}>
                 </iframe>
             </main>
         </>

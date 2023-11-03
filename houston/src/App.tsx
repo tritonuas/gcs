@@ -6,7 +6,6 @@ import Connection from "./pages/Connection";
 import AntennaTracker from "./pages/AntennaTracker";
 import OnboardComputer from "./pages/OnboardComputer";
 import RadioMavlink from "./pages/RadioMavlink";
-import Camera from './pages/Camera';
 import Control from './pages/Control';
 import Input from './pages/Input';
 import Layout from './pages/Layout';
@@ -42,7 +41,6 @@ function App() {
                     <Route path="control" element={<Control />} />
                     <Route path="input" element={<Input />} />
                     <Route path="report" element={<Report />} />
-                    <Route path="camera" element={<Camera />} />
 
                     <Route path="*" element={<NoPage />} />
                 </Route>
