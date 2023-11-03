@@ -10,6 +10,9 @@ import cameraIcon from '../assets/camera.svg'
 import { PageOpenPopup } from '../utilities/PageOpenPopup';
 import { UBIQUITI_URL } from '../utilities/general';
 
+// testing
+import duckPic from '../assets/duck.png'
+
 // TODO: move to protobuf
 interface OBCConnection {
     cameraConnected: boolean,
@@ -31,13 +34,13 @@ function OnboardComputer() {
     // TODO: testing... eventually load these from the fetch requests from backend
     const images = [
         {
-            original: "/src/assets/duck.png"
+            original: duckPic,
         },
         {
-            original: "/src/assets/duck.png"
+            original: duckPic,
         },
         {
-            original: "/src/assets/duck.png"
+            original: duckPic,
         }
     ]
 
