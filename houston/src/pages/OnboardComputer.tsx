@@ -100,7 +100,7 @@ function OnboardComputer() {
                             <figure>
                                 <img src={heartbeatIcon}
                                     className={(obcConn.mavHeartbeat != null) ? "svg active" : "svg inactive"}/>
-                                <figcaption>{obcConn.mavHeartbeat.toFixed(4)}</figcaption>
+                                <figcaption>{obcConn.mavHeartbeat?.toFixed(4)}</figcaption>
                             </figure>
                         </li>
                     </ul>
