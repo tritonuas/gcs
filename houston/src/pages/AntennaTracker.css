@@ -2,27 +2,27 @@ main.atracker-page {
     /* The map is a child of this flex container, so it will take up the entire space */
     display: flex;
     flex-direction: row;
-    height: var(--main-height);
     overflow-y: hidden;
+    flex: 1; /* Take up remainder of screen */
 }
 
 main.atracker-page .atracker-map {
-    /* Make the map take up the entire flex container */
-    flex: 3;
-    width: 100%;
+    /* Make the map take up roughly 2/3 of screen */
+    flex: 2;
 }
 
 main.atracker-page .atracker-terminal {
-    flex: 1;
+    flex: 1; /* 1/3 of screen */
     background-color: var(--dark-text);
     color: var(--light-text);
+
+    display: flex;
+    flex-direction: column-reverse;
+    overflow-y: scroll;
+
+    padding: 0 0.5rem;
 }
 
-main.atracker-page .atracker-terminal pre{
-    padding: 0;
+main.atracker-page .atracker-terminal > p {
     margin: 0;
-    font-family: 'Jetbrains Mono';
-    height: var(--main-height);
-    overflow-x: hidden;
-    overflow-y: scroll;
 }

@@ -11,21 +11,20 @@ import 'leaflet/dist/leaflet.css'
  * @returns Component representing page for the Antenna Tracker Connection Status
  */
 function AntennaTracker() {
-    const [terminalText, setTerminalText] = useState("");
+    const [terminalText, setTerminalText] = useState<Array<string>>([]);
 
     // For testing so text is constantly being added to the terminal
     useEffect(() => {
         const interval = setInterval(() => {
             // Update the text
             const date = new Date();
-            setTerminalText(txt => `${txt}\n${date.toString()}`);
+            setTerminalText(txt => [`${date.toString()}`].concat(txt)); 
 
-            // Scroll the <pre>
-            const pre = document.getElementById("atracker-pre");
-            if (pre != null) {
-                pre.scrollTop = pre?.scrollHeight;
-            }
-        }, 100);
+            // const pre = document.querySelector(".atracker-terminal");
+            // if (pre != null) {
+            //     pre.scrollTop = pre?.scrollHeight;
+            // }
+        }, 500);
 
         return () => clearInterval(interval);
     }, []);
@@ -44,7 +43,9 @@ function AntennaTracker() {
                     />
                 </MapContainer>
                 <div className="atracker-terminal">
-                    <pre id="atracker-pre"> {terminalText} </pre>
+                    {
+                        terminalText.map((str, i) => <p key={i}>{str}</p>)
+                    }
                 </div>
             </main>
         </>
