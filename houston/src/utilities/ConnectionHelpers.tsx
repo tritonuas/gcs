@@ -5,7 +5,7 @@ import radioDisconnected from "../assets/radio-disconnected.svg"
 import wifiConnected from "../assets/wifi-connected.svg"
 import wifiDisconnected from "../assets/wifi-disconnected.svg"
 
-import {ConnectionStatus, ConnectionType} from "../pages/Connection"
+import {ConnectionStatus, ConnectionType} from "./temp"
 
 import {Link} from 'react-router-dom'
 

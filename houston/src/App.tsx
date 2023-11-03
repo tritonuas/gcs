@@ -12,7 +12,8 @@ import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
 
-import {ConnectionType, ConnectionStatus} from "./pages/Connection" // TODO modify to protobufs
+
+import { ConnectionType, ConnectionStatus } from "./utilities/temp";
 
 /**
  * Main React function

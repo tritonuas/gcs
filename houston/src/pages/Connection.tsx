@@ -1,19 +1,7 @@
 import "./Connection.css"
 import {statusToLink} from "../utilities/ConnectionHelpers"
 
-// TODO: standardize connection status data structure
-// and make it a protobuf
-export interface ConnectionStatus {
-    name: string,
-    isActive: boolean
-    type: ConnectionType
-}
-
-export const enum ConnectionType {
-    Radio,
-    Ethernet,
-    Wifi
-}
+import { ConnectionStatus } from "../utilities/temp";
 
 // TODO: allow clicking on each connection status item
 // in order to see a more in depth description of that
