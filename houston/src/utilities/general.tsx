@@ -1,4 +1,4 @@
-export const UBIQUITI_IP = "192.168.1.35"
+export const UBIQUITI_URL = "http://192.168.1.35/login.cgi?uri=/"
 
 export const INFLUX_PORT = "8086";
 export const INFLUX_URI = "/orgs/83cf98a33ce1da25/data-explorer?bucket=mavlink";

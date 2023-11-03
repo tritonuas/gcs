@@ -8,7 +8,7 @@ import heartbeatIcon from '../assets/heartbeat.svg'
 import cameraIcon from '../assets/camera.svg'
 
 import { PageOpenPopup } from '../utilities/PageOpenPopup';
-import { UBIQUITI_IP } from '../utilities/general';
+import { UBIQUITI_URL } from '../utilities/general';
 
 // TODO: move to protobuf
 interface OBCConnection {
@@ -119,7 +119,7 @@ function OnboardComputer() {
                         </li>
                     </ul>
                 </div>
-                <iframe className="ubiquiti" src={`${UBIQUITI_IP}`}>
+                <iframe className="ubiquiti" src={`${UBIQUITI_URL}`}>
                 </iframe>
             </main>
         </>
