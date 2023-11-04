@@ -3,7 +3,7 @@ import "./Layout.css";
 import duck from "../assets/duck.png"
 
 import {getIconFromStatus, } from "../utilities/ConnectionHelpers"
-import {ConnectionStatus, } from "./Connection"
+import {ConnectionStatus, } from "../utilities/temp"
 
 
 /**
