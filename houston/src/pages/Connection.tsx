@@ -11,6 +11,7 @@ export interface ConnectionStatus {
     type: ConnectionType
 }
 
+/* eslint-disable */
 export const enum ConnectionType {
     Radio,
     Ethernet,
