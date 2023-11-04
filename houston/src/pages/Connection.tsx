@@ -1,5 +1,5 @@
-import {FC, useState} from 'react'
-import { DotPulse } from '@uiball/loaders'
+// import {FC, useState} from 'react'
+// import { DotPulse } from '@uiball/loaders'
 import "./Connection.css"
 import { Link } from 'react-router-dom'
 
@@ -24,6 +24,7 @@ import radioDisconnected from "../assets/radio-disconnected.svg"
 import wifiConnected from "../assets/wifi-connected.svg"
 import wifiDisconnected from "../assets/wifi-disconnected.svg"
 
+/* eslint-disable */
 export function getIconFromStatus(status: ConnectionStatus, i: number) {
         if (status.type == ConnectionType.Ethernet) {
             if (status.isActive) {
@@ -46,6 +47,7 @@ export function getIconFromStatus(status: ConnectionStatus, i: number) {
         }
     }
 
+/* eslint-disable */
 function statusToJSX(status: ConnectionStatus, i: number) {
     return (
         <li key={i}>
@@ -66,7 +68,7 @@ function statusToJSX(status: ConnectionStatus, i: number) {
 
 // TODO: Pull connection info from gcs, use DotPulse waiting icon before 
 // data has been pulled
-
+/* eslint-disable */
 function Connection({statuses}:{statuses:ConnectionStatus[]}) {
 
     return (

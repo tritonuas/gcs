@@ -2,6 +2,7 @@ import {MapContainer, TileLayer, Marker, Popup} from "react-leaflet"
 import "./AntennaTracker.css"
 import 'leaflet/dist/leaflet.css'
 
+/* eslint-disable */
 function AntennaTracker() {
     return (
         <>

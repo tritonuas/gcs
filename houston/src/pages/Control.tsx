@@ -24,30 +24,40 @@ class Parameter {
     }
 }
 
-function valueRandomizer() { //for speed
-    let number = [60, 120, 240];
-    const randomIndex = Math.floor(Math.random() * number.length);
+/* randomizer function for testing */
+/* eslint-disable */
+function valueRandomizer() { 
+    const number = [60, 120, 240];
+    // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], parseFloat((number[1]*1.94384).toFixed(2))]);
 }
 
+/* randomizer function for testing */
+/* eslint-disable */
 function valueRandomizer2() { //for altitude
-    let number = [60, 120, 240];
-    const randomIndex = Math.floor(Math.random() * number.length);
+    const number = [60, 120, 240];
+    // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], parseFloat((number[1]*0.3048).toFixed(2))]);
 }
 
+/* randomizer function for testing */
+/* eslint-disable */
 function valueRandomizer3() { //for ESC temperature
-    let number = [60, 120, 240];
-    const randomIndex = Math.floor(Math.random() * number.length);
+    const number = [60, 120, 240];
+    // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], parseFloat(((number[1]-32) * (5/9)).toFixed(2))]);
 }
 
+/* randomizer function for testing */
+/* eslint-disable */
 function valueRandomizer4() { //for battery
-    let number = [60, 120, 240];
-    const randomIndex = Math.floor(Math.random() * number.length);
+    const number = [60, 120, 240];
+    // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], number[1]]);
 }
 
+/* color assigner function*/
+/* eslint-disable */
 function randomColor({values, value, threshold}: {values: number[], value: number, threshold: number[]}) {
     if (value >= threshold[(values.indexOf(value)) * 2] && value <= threshold[(values.indexOf(value)) * 2 + 1]) {
         return { backgroundColor: 'var(--success-text)' };
@@ -55,8 +65,10 @@ function randomColor({values, value, threshold}: {values: number[], value: numbe
     else {
         return { backgroundColor: 'var(--failure-text)' };
     }
-};
+}
 
+/* Telemetry Generator */
+/* eslint-disable */
 function TelemetryGenerator({ key, heading, color, value, unit, onClick }: { key: number, heading: string, color: React.CSSProperties, value: number, unit: Unit, onClick: any}) {
     return (
         <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
@@ -66,6 +78,7 @@ function TelemetryGenerator({ key, heading, color, value, unit, onClick }: { key
     );
 }
 
+/* Control Page */
 function Control() {
     const [index, setIndex] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
@@ -77,13 +90,13 @@ function Control() {
         });
     };
 
-    let airspeedVal = valueRandomizer();
-    let groundspeedVal = valueRandomizer();
-    let altitudeMSLVal = valueRandomizer2();
-    let altitudeAGLVal = valueRandomizer2();
-    let motorBatteryVal = valueRandomizer4();
-    let pixhawkBatteryVal = valueRandomizer4();
-    let ESCtemperatureVal = valueRandomizer3();
+    const airspeedVal = valueRandomizer();
+    const groundspeedVal = valueRandomizer();
+    const altitudeMSLVal = valueRandomizer2();
+    const altitudeAGLVal = valueRandomizer2();
+    const motorBatteryVal = valueRandomizer4();
+    const pixhawkBatteryVal = valueRandomizer4();
+    const ESCtemperatureVal = valueRandomizer3();
 
     const airspeedThreshold = [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
     const groundspeedThreshold = [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
@@ -93,16 +106,16 @@ function Control() {
     const pixhawkBatteryThreshold = [80, 160, 80, 160];
     const ESCtemperatureThreshold = [80, 160, parseFloat(((80-32) * (5/9)).toFixed(2)), parseFloat(((160-32) * (5/9)).toFixed(2))];
 
-    let airspeed = new Parameter(airspeedVal, ['knots', 'm/s'], airspeedThreshold, index[0]);
-    let groundspeed = new Parameter(groundspeedVal, ['knots', 'm/s'], groundspeedThreshold, index[1]);
-    let altitudeMSL = new Parameter(altitudeMSLVal, ['feet', 'meters'], altitudeMSLThreshold, index[2]);
-    let altitudeAGL = new Parameter(altitudeAGLVal, ['feet', 'meters'], altitudeAGLThreshold, index[3]);
-    let motorBattery = new Parameter(motorBatteryVal, ['V', 'V'], motorBatteryThreshold, index[4]);
-    let pixhawkBattery = new Parameter(pixhawkBatteryVal, ['V', 'V'], pixhawkBatteryThreshold, index[5]);
-    let ESCtemperature = new Parameter(ESCtemperatureVal, ['°F', '°C'], ESCtemperatureThreshold, index[6]);
+    const airspeed = new Parameter(airspeedVal, ['knots', 'm/s'], airspeedThreshold, index[0]);
+    const groundspeed = new Parameter(groundspeedVal, ['knots', 'm/s'], groundspeedThreshold, index[1]);
+    const altitudeMSL = new Parameter(altitudeMSLVal, ['feet', 'meters'], altitudeMSLThreshold, index[2]);
+    const altitudeAGL = new Parameter(altitudeAGLVal, ['feet', 'meters'], altitudeAGLThreshold, index[3]);
+    const motorBattery = new Parameter(motorBatteryVal, ['V', 'V'], motorBatteryThreshold, index[4]);
+    const pixhawkBattery = new Parameter(pixhawkBatteryVal, ['V', 'V'], pixhawkBatteryThreshold, index[5]);
+    const ESCtemperature = new Parameter(ESCtemperatureVal, ['°F', '°C'], ESCtemperatureThreshold, index[6]);
     
-    let flightMode = 'idk';
-    let flightModeColor = { backgroundColor: 'var(--highlight)' };
+    const flightMode = 'idk';
+    const flightModeColor = { backgroundColor: 'var(--highlight)' };
     
     return (
         <>

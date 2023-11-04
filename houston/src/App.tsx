@@ -19,13 +19,15 @@ import {ConnectionType, ConnectionStatus} from "./pages/Connection" // TODO modi
  * Main React function
  * @returns App
  */
+
+/* eslint-disable */
 function App() {
     // for testing purposes
-    let flipCoin = () => {
+    const flipCoin = () => {
         return (Math.random() > 0.5);
     }
 
-    const [statuses, setStatuses] = useState<ConnectionStatus[]>([
+    const [statuses, _setStatuses] = useState<ConnectionStatus[]>([
         {name: "Antenna Tracker", isActive: flipCoin(), type: ConnectionType.Ethernet} as ConnectionStatus,
         {name: "Onboard Computer", isActive: flipCoin(), type: ConnectionType.Wifi} as ConnectionStatus,
         {name: "Radio Mavlink", isActive: flipCoin(), type: ConnectionType.Radio} as ConnectionStatus,

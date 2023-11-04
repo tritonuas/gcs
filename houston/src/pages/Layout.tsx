@@ -4,7 +4,7 @@ import duck from "../assets/duck.png"
 
 import {getIconFromStatus, ConnectionStatus} from "./Connection" // TODO modify to protobufs
 
-
+/* eslint-disable */
 function Layout({statuses}:{statuses:ConnectionStatus[]}) {
 
     const checkForActive = ({isActive}:{isActive:boolean}) => {
@@ -43,6 +43,6 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
             <Outlet/>
         </>
     )
-};
+}
 
 export default Layout;
