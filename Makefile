@@ -55,16 +55,16 @@ run-docker:
 	docker run -e --network=host --name gcs tritonuas/gcs
 
 run-compose:
-	docker-compose -f deployments/docker-compose.yml up -d
+	docker compose -f deployments/docker-compose.yml up -d
 
 stop-compose:
-	docker-compose -f deployments/docker-compose.yml down
+	docker compose -f deployments/docker-compose.yml down
 
 run-broach-compose:
-	docker-compose -f deployments/broach-docker-compose.yml up -d
+	docker compose -f deployments/broach-docker-compose.yml up -d
 	
 stop-broach-compose:
-	docker-compose -f deployments/broach-docker-compose.yml down
+	docker compose -f deployments/broach-docker-compose.yml down
 
 develop:
 	make stop-compose && make build-docker && make run-compose
@@ -74,9 +74,16 @@ develop:
 .PHONY: test test-all clear-cache
 
 test:
-	go test -race ./...
+	go test -race ./... && cd houston && npm test
 
-test-all: clear-cache test
+# clears go cache before running tests
+test-all: clear-cache test && cd houston && npm test
+
+test-frontend:
+	cd houston && npm test
+
+test-backend:
+	go test -race ./...
 
 clear-cache:
 	go clean -testcache
@@ -91,4 +98,10 @@ fmt:
 # --------------------------------------------------------------------
 .PHONY: lint 
 lint:
+	golangci-lint run && cd houston && npm run lint
+
+lint-frontend:
+	cd houston && npm run lint
+
+lint-backend:
 	golangci-lint run

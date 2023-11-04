@@ -2,6 +2,7 @@ function OnboardComputer() {
     return (
         <>
             <main className="obc-page">
+                
             </main>
         </>
     );

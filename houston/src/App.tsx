@@ -15,6 +15,10 @@ import NoPage from './pages/NoPage';
 
 import {ConnectionType, ConnectionStatus} from "./pages/Connection" // TODO modify to protobufs
 
+/**
+ * Main React function
+ * @returns App
+ */
 function App() {
     // for testing purposes
     let flipCoin = () => {
