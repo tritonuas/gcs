@@ -8,7 +8,7 @@ import "react-image-gallery/styles/css/image-gallery.css";
 import heartbeatIcon from '../assets/heartbeat.svg'
 import cameraIcon from '../assets/camera.svg'
 
-import { PageOpenPopup } from '../utilities/PageOpenPopup';
+import PageOpenPopup from '../components/PageOpenPopup';
 import { UBIQUITI_URL } from '../utilities/general';
 
 // testing

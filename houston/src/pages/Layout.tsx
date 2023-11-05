@@ -2,7 +2,7 @@ import { Outlet, NavLink } from "react-router-dom";
 import "./Layout.css";
 import duck from "../assets/duck.png"
 
-import {getIconFromStatus, } from "../utilities/ConnectionHelpers"
+import {getIconFromStatus, } from "../utilities/connection"
 import {ConnectionStatus, } from "../utilities/temp"
 
 

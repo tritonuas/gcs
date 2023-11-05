@@ -12,7 +12,7 @@ Modal.setAppElement("#root");
  * @param props.children Children elements in the DOM, which will be rendered inside.
  * @returns PageOpenPopup component
  */
-export function PageOpenPopup(
+function PageOpenPopup(
     {storageKey, contentLabel, children}
     :{storageKey: string, contentLabel: string, children: JSX.Element | JSX.Element[] | never[]}
 ) {
@@ -66,3 +66,5 @@ export function PageOpenPopup(
         </>
     )
 }
+
+export default PageOpenPopup;

@@ -1,7 +1,7 @@
 import './RadioMavlink.css';
 
 import { INFLUX_PORT, INFLUX_URI, getURLBase } from '../utilities/general';
-import { PageOpenPopup } from '../utilities/PageOpenPopup';
+import PageOpenPopup from '../components/PageOpenPopup';
 
 /**
  * Page where we can analyze the connection directly to the pixhawk over radio.

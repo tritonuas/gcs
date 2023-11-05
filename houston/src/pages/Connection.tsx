@@ -1,5 +1,5 @@
 import "./Connection.css"
-import {statusToLink} from "../utilities/ConnectionHelpers"
+import {statusToLink} from "../utilities/connection"
 
 import { ConnectionStatus } from "../utilities/temp";
 

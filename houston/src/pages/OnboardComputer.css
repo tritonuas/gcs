@@ -10,7 +10,7 @@ main.obc-page .left-container {
     flex: 1; /* take up as much available space */
 }
 
-/* list of all the status icons */
+/* list of all the status icons on the right side */
 main.obc-page ul.status-list {
     display: flex;
     flex-direction: column;
