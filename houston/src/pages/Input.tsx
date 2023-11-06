@@ -1,7 +1,10 @@
-import { SetStateAction, useState } from 'react';
+import { SetStateAction, useState, useEffect } from 'react';
+
+import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 
 import './Input.css';
 import TuasMap from '../components/TuasMap';
+import { LatLng } from 'leaflet';
 
 enum MapMode {
     FlightBound,
@@ -9,10 +12,51 @@ enum MapMode {
     Waypoint
 }
 
+enum ShapeType {
+    Line,
+    Polygon
+}
+
+interface MapModeConfig {
+    color: string,
+    headings: string[],
+    type: ShapeType,
+}
+
+const getModeConfig = (mapMode: MapMode) => {
+    switch (mapMode) {
+        case MapMode.FlightBound:
+            return {
+                color: "red",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Polygon
+            } as MapModeConfig;
+        case MapMode.SearchBound:
+            return {
+                color: "blue",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Polygon
+            } as MapModeConfig;
+        case MapMode.Waypoint:
+            return {
+                color: "yellow",
+                headings: ["Latitude", "Longitude", "Altitude"],
+                type: ShapeType.Line
+            } as MapModeConfig;
+    }
+}
+
 function FormTable(
-    {headings, data, setData}:
-    {headings: string[], data: Array<Array<number>>, setData: React.Dispatch<SetStateAction<Array<Array<number>>>>}
+    {headings, mapMode, mapData, setMapData}:
+    {
+        headings: string[], 
+        mapMode: MapMode,
+        mapData: Map<MapMode, number[][]>, 
+        setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>
+    }
 ) {
+    const data = mapData.get(mapMode);
+
     return (
         <>
             <table>
@@ -23,7 +67,7 @@ function FormTable(
                 </thead>
                 <tbody>
                     {
-                        data.map((row, i) => {
+                        data?.map((row, i) => {
                             return (
                                 <tr key={i}>
                                 {
@@ -33,7 +77,7 @@ function FormTable(
                                                 <input type="number" step="any" defaultValue={num} onChange={(e) => {
                                                     let newData = data;
                                                     newData[i][j] = Number(e.target.value);
-                                                    setData(newData);
+                                                    setMapData(mapData.set(mapMode, newData));
                                                 }}/>
                                             </td>
                                         )
@@ -54,13 +98,16 @@ function FormTable(
  * and waypoint data for the mission
  * @returns Map Input Form
  */
-function MapInputForm({mapMode, setMapMode}:{mapMode:MapMode, setMapMode: React.Dispatch<SetStateAction<MapMode>>}) {
-    const testData = [
-        [1, 2, 3],
-        [4, 5, 6]
-    ];
-    const [data, setData] = useState(testData);
-    
+function MapInputForm(
+    {mapMode, setMapMode, mapData, setMapData}:
+    {
+        mapMode:MapMode, 
+        setMapMode: React.Dispatch<SetStateAction<MapMode>>, 
+        mapData: Map<MapMode, number[][]>, 
+        setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
+    }
+) {
+
     return (
         <>
             <form className="tuas-form">
@@ -83,7 +130,12 @@ function MapInputForm({mapMode, setMapMode}:{mapMode:MapMode, setMapMode: React.
                             })
                         }
                     </div>
-                    <FormTable headings={["Latitude", "Longitude", "Altitude"]} data={data} setData={setData}/>
+                        <FormTable 
+                            headings={getModeConfig(mapMode).headings} 
+                            mapMode={mapMode} 
+                            mapData={mapData} 
+                            setMapData={setMapData}
+                            />
                 </fieldset>
             </form>
         </>
@@ -108,18 +160,92 @@ function BottleInputForm() {
 
 }
 
+function MapClickHandler(
+    {mapMode, mapData, setMapData}:
+    {
+        mapMode: MapMode
+        mapData: Map<MapMode, number[][]>, 
+        setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
+    }
+) {
+    useMapEvents({
+        click(e) {
+            const config = getModeConfig(mapMode);
+
+            // Update the data state variable
+            let newData = mapData.get(mapMode);
+            if (newData === undefined) {
+                newData = [];
+            }
+            if (config.headings.length == 2) {
+                newData?.push([e.latlng.lat, e.latlng.lng])
+            } else {
+                newData?.push([e.latlng.lat, e.latlng.lng, 75]); // fill in 75ft for alt
+            }
+            setMapData(new Map(mapData.set(mapMode, newData)));
+        }
+    }) 
+
+    return (
+        <>
+            {null}
+        </>
+    );
+}
+
+function MapIllustrator(
+    {mapMode, mapData}:
+    {
+        mapMode: MapMode,
+        mapData: Map<MapMode, number[][]>
+    }
+) {
+    return (
+        <>
+        {
+            Array.from(mapData).map(([mode, currData], i) => {
+                const currConfig = getModeConfig(mode);
+
+                const parsedData = currData.map((latlng) => new LatLng(latlng[0], latlng[1]));
+
+                switch (currConfig.type) {
+                    case ShapeType.Line:
+                        return (
+                            <Polyline key={i} color={currConfig.color} positions={parsedData} />
+                        );
+                    case ShapeType.Polygon:
+                        return (
+                            <Polygon key={i} color={currConfig.color} positions={[parsedData]} />
+                        );
+                }
+            })
+        }
+        </>
+    );
+}
+
 /**
  * 
  * @returns Input page
  */
 function Input() {
     const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
+    const [mapData, setMapData] = useState<Map<MapMode,number[][]>>(new Map());
+
     return (
         <>
             <main className="input-page">
-                <TuasMap className="input-map" lat={51} lng={10}/>
+                <TuasMap className="input-map" lat={51} lng={10}>
+                    <MapClickHandler mapMode={mapMode} mapData={mapData} setMapData={setMapData}/>
+                    <MapIllustrator mapMode={mapMode} mapData={mapData}/>
+                </TuasMap>
                 <div className="right-container">
-                    <MapInputForm mapMode={mapMode} setMapMode={setMapMode}/>
+                    <MapInputForm 
+                        mapMode={mapMode} 
+                        setMapMode={setMapMode}
+                        mapData={mapData}
+                        setMapData={setMapData}
+                        />
                     <BottleInputForm />
                 </div>
             </main>

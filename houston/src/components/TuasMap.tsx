@@ -8,9 +8,13 @@ import 'leaflet/dist/leaflet.css'
  * @param props.className class to apply to the map
  * @param props.lat starting latitude of the map
  * @param props.lng starting longitude of the map
+ * @param props.children children components to pass into the map
  * @returns TuasMap wrapper component
  */
-function TuasMap({className, lat, lng}:{className: string, lat: number, lng: number}) {
+function TuasMap(
+    {className, lat, lng, children}:
+    {className: string, lat: number, lng: number, children: JSX.Element | JSX.Element[] | never[]}
+) {
     return (
         <>
             <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
@@ -22,6 +26,7 @@ function TuasMap({className, lat, lng}:{className: string, lat: number, lng: num
                     zoomOffset={-1}
                     id= 'mapbox/satellite-v9'
                 />
+                {children}
             </MapContainer>
         </>
     );

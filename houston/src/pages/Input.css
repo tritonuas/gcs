@@ -10,7 +10,7 @@ main.input-page .input-map {
 }
 
 main.input-page .right-container {
-    border: 1px solid red;
+    -border: 1px solid red;
 }
 
 main.input-page .tuas-form table{
