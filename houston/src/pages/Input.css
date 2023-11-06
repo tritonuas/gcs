@@ -12,3 +12,21 @@ main.input-page .input-map {
 main.input-page .right-container {
     border: 1px solid red;
 }
+
+main.input-page .tuas-form table{
+    border-collapse: collapse;
+}
+
+main.input-page .tuas-form thead {
+    color: var(--highlight);
+    background-color: var(--dark-bg);
+}
+
+main.input-page .tuas-form tbody {
+    background-color: var(--light-text);
+    color: var(--dark-text);
+}
+
+main.input-page .tuas-form td {
+    text-align: center;
+}

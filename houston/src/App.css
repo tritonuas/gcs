@@ -40,6 +40,12 @@ form.tuas-form legend {
     border: 1px solid var(--dark-text);
 }
 
+form.tuas-form input {
+    font-family: 'Jetbrains Mono', sans-serif;
+    outline: 0;
+    caret-color: var(--dark-text) !important;
+}
+
 form.tuas-form input:is([type="submit"], [type="button"]) {
     border: none;
 }
