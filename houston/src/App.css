@@ -15,3 +15,46 @@ img.svg {
 .svg.inactive {
     filter: var(--failure-filter);
 }
+
+/* For any form where we want the basic same style format */
+form.tuas-form {
+    border: 0;
+}
+
+/* Put all the field items going down in a nice column */
+form.tuas-form fieldset {
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    background-color: var(--light-bg);
+    margin: 0;
+    padding: 0;
+    font-family: 'Jetbrains Mono', sans-serif;
+}
+
+form.tuas-form legend {
+    color: var(--highlight);
+    background-color: var(--dark-bg);
+    border: 1px solid var(--dark-text);
+}
+
+form.tuas-form input:is([type="submit"], [type="button"]) {
+    border: none;
+}
+
+form.tuas-form input:is([type="submit"], [type="button"]):is(:hover),
+form.tuas-form input[data-selected="true"] {
+    background-color: var(--dark-bg);
+    color: var(--highlight);
+    border: none;
+}
+
+form.tuas-form fieldset > * {
+    margin: 0.3rem;
+}
+
+input:is[data-selected="true"] {
+    border: 1px solid red;
+}

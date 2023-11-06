@@ -1,0 +1,14 @@
+main.input-page {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+}
+
+main.input-page .input-map {
+    /* take up left 2/3 of screen */
+    flex: 2;
+}
+
+main.input-page .right-container {
+    border: 1px solid red;
+}
