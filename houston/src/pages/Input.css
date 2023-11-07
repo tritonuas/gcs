@@ -10,7 +10,11 @@ main.input-page .input-map {
 }
 
 main.input-page .right-container {
-    -border: 1px solid red;
+    width: 50dvw;
+}
+
+main.input-page .right-container .tuas-form {
+    padding: 1rem;
 }
 
 main.input-page .tuas-form table{
@@ -29,4 +33,8 @@ main.input-page .tuas-form tbody {
 
 main.input-page .tuas-form td {
     text-align: center;
+}
+
+main.input-page .tuas-form input {
+    width: fit-content;
 }
