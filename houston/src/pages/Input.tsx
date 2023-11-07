@@ -1,4 +1,4 @@
-import { SetStateAction, useState, useEffect } from 'react';
+import { SetStateAction, useState, useReducer, useEffect, cloneElement} from 'react';
 
 import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 
@@ -52,11 +52,9 @@ function FormTable(
         headings: string[], 
         mapMode: MapMode,
         mapData: Map<MapMode, number[][]>, 
-        setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>
+        setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
     }
 ) {
-    const data = mapData.get(mapMode);
-
     return (
         <>
             <table>
@@ -67,18 +65,27 @@ function FormTable(
                 </thead>
                 <tbody>
                     {
-                        data?.map((row, i) => {
+                        mapData.get(mapMode)?.map((row, i) => {
                             return (
                                 <tr key={i}>
                                 {
                                     row.map((num, j) => {
                                         return (
                                             <td key={j}>
-                                                <input type="number" step="any" defaultValue={num} onChange={(e) => {
-                                                    let newData = data;
-                                                    newData[i][j] = Number(e.target.value);
-                                                    setMapData(mapData.set(mapMode, newData));
-                                                }}/>
+                                                <input
+                                                    type="number" 
+                                                    key={mapMode}
+                                                    step="any" 
+                                                    defaultValue={num} 
+                                                    onChange={(e) => {
+                                                        let newArr = mapData.get(mapMode);
+                                                        if (newArr == undefined) {
+                                                            return;
+                                                        }
+                                                        newArr[i][j] = Number(e.target.value);
+                                                        setMapData(new Map(mapData.set(mapMode, newArr)));
+                                                    }}
+                                                    />
                                             </td>
                                         )
                                     })
@@ -130,12 +137,12 @@ function MapInputForm(
                             })
                         }
                     </div>
-                        <FormTable 
-                            headings={getModeConfig(mapMode).headings} 
-                            mapMode={mapMode} 
-                            mapData={mapData} 
-                            setMapData={setMapData}
-                            />
+                    <FormTable 
+                        headings={getModeConfig(mapMode).headings} 
+                        mapMode={mapMode} 
+                        mapData={mapData} 
+                        setMapData={setMapData}
+                        />
                 </fieldset>
             </form>
         </>
@@ -173,15 +180,19 @@ function MapClickHandler(
             const config = getModeConfig(mapMode);
 
             // Update the data state variable
-            let newData = mapData.get(mapMode);
-            if (newData === undefined) {
-                newData = [];
+            let data = mapData.get(mapMode);
+            if (data == undefined) {
+                data = [];
             }
-            if (config.headings.length == 2) {
-                newData?.push([e.latlng.lat, e.latlng.lng])
-            } else {
-                newData?.push([e.latlng.lat, e.latlng.lng, 75]); // fill in 75ft for alt
-            }
+
+            const newData = (() => {
+                if (config.headings.length == 2) {
+                    return [...data, [e.latlng.lat, e.latlng.lng]];
+                } else {
+                    return [...data, [e.latlng.lat, e.latlng.lng, 75]];// fill in 75 for default alt 
+                }
+            })();
+
             setMapData(new Map(mapData.set(mapMode, newData)));
         }
     }) 
@@ -194,9 +205,8 @@ function MapClickHandler(
 }
 
 function MapIllustrator(
-    {mapMode, mapData}:
+    {mapData}:
     {
-        mapMode: MapMode,
         mapData: Map<MapMode, number[][]>
     }
 ) {
@@ -205,17 +215,16 @@ function MapIllustrator(
         {
             Array.from(mapData).map(([mode, currData], i) => {
                 const currConfig = getModeConfig(mode);
-
                 const parsedData = currData.map((latlng) => new LatLng(latlng[0], latlng[1]));
 
                 switch (currConfig.type) {
                     case ShapeType.Line:
                         return (
-                            <Polyline key={i} color={currConfig.color} positions={parsedData} />
+                            <Polyline key={JSON.stringify(parsedData)} color={currConfig.color} positions={parsedData} />
                         );
                     case ShapeType.Polygon:
                         return (
-                            <Polygon key={i} color={currConfig.color} positions={[parsedData]} />
+                            <Polygon key={JSON.stringify(parsedData)} color={currConfig.color} positions={[parsedData]} />
                         );
                 }
             })
@@ -237,7 +246,7 @@ function Input() {
             <main className="input-page">
                 <TuasMap className="input-map" lat={51} lng={10}>
                     <MapClickHandler mapMode={mapMode} mapData={mapData} setMapData={setMapData}/>
-                    <MapIllustrator mapMode={mapMode} mapData={mapData}/>
+                    <MapIllustrator mapData={mapData}/>
                 </TuasMap>
                 <div className="right-container">
                     <MapInputForm 

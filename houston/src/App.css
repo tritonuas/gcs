@@ -40,7 +40,8 @@ form.tuas-form legend {
     border: 1px solid var(--dark-text);
 }
 
-form.tuas-form input {
+form.tuas-form input,
+[contenteditable] {
     font-family: 'Jetbrains Mono', sans-serif;
     outline: 0;
     caret-color: var(--dark-text) !important;
