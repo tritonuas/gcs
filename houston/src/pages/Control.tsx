@@ -19,46 +19,59 @@ class Parameter {
         this.value = values[index];
         this.unit = this.units[values.indexOf(this.value)];
         this.threshold = threshold;
-        this.color = randomColor({values: this.values, value: this.value, threshold: this.threshold});
+        this.color = colorDeterminer(this.values, this.value, this.threshold);
         this.index = index;
     }
 }
 
-/* randomizer function for testing */
-/* eslint-disable */
+/**
+ * airspeed and groundspeed randomizer function for testing
+ * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
+ */
 function valueRandomizer() { 
     const number = [60, 120, 240];
     // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], parseFloat((number[1]*1.94384).toFixed(2))]);
 }
 
-/* randomizer function for testing */
-/* eslint-disable */
-function valueRandomizer2() { //for altitude
+/**
+ * altitude randomizer function for testing
+ * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
+ */
+function valueRandomizer2() { 
     const number = [60, 120, 240];
     // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], parseFloat((number[1]*0.3048).toFixed(2))]);
 }
 
-/* randomizer function for testing */
-/* eslint-disable */
-function valueRandomizer3() { //for ESC temperature
+/**
+ * ESC temperature randomizer function for testing
+ * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
+ */
+function valueRandomizer3() { 
     const number = [60, 120, 240];
     // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], parseFloat(((number[1]-32) * (5/9)).toFixed(2))]);
 }
 
-/* randomizer function for testing */
-/* eslint-disable */
-function valueRandomizer4() { //for battery
+/**
+ * battery randomizer function for testing
+ * @returns the middle value of the array twice to make implementation and logic easier
+ */
+function valueRandomizer4() { 
     const number = [60, 120, 240];
     // const randomIndex = Math.floor(Math.random() * number.length);
     return ([number[1], number[1]]);
 }
 
-/* color assigner function*/
-/* eslint-disable */
-function randomColor({values, value, threshold}: {values: number[], value: number, threshold: number[]}) {
+/**
+ * color determiner function for testing
+ * @param values - the tuple of values
+ * @param value - the value of the telemetry
+ * @param threshold - the tuple of threshold values
+ * @returns - the color of the telemetry based on the current and threshold values
+ */
+function colorDeterminer(values : number[], value : number, threshold : number[]) {
     if (value >= threshold[(values.indexOf(value)) * 2] && value <= threshold[(values.indexOf(value)) * 2 + 1]) {
         return { backgroundColor: 'var(--success-text)' };
     }
@@ -67,9 +80,26 @@ function randomColor({values, value, threshold}: {values: number[], value: numbe
     }
 }
 
-/* Telemetry Generator */
-/* eslint-disable */
-function TelemetryGenerator({ key, heading, color, value, unit, onClick }: { key: number, heading: string, color: React.CSSProperties, value: number, unit: Unit, onClick: any}) {
+interface TelemetryProps {
+    key: number;
+    heading: string;
+    color: React.CSSProperties;
+    value: number;
+    unit: Unit;
+    onClick: () => void;
+}
+
+/**
+ * @param props - the props of the telemetry
+ * @param props.key - the key of the telemetry
+ * @param props.heading - the heading of the telemetry
+ * @param props.color - the color of the telemetry
+ * @param props.value - the value of the telemetry
+ * @param props.unit - the unit of the telemetry
+ * @param props.onClick - the onClick function of the telemetry
+ * @returns the telemetry component
+ */
+function TelemetryGenerator({ key, heading, color, value, unit, onClick }: TelemetryProps) {
     return (
         <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
             <h1 className='heading  '>{heading}</h1>
@@ -78,7 +108,10 @@ function TelemetryGenerator({ key, heading, color, value, unit, onClick }: { key
     );
 }
 
-/* Control Page */
+/**
+ * control page
+ * @returns the control page
+ */ 
 function Control() {
     const [index, setIndex] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
@@ -122,7 +155,7 @@ function Control() {
             <main className="controls-page">
                 <div className="flight-telemetry-container">
                     <div className='flight-telemetry' id='compass'>
-                        <h1>/*insert compass*/</h1>
+                        <h1>*insert compass*</h1>
                     </div>
                     <TelemetryGenerator key={0} heading='Airspeed' color={airspeed.color} value={airspeed.value} unit={airspeed.unit} onClick={() => handleClick(0)}/>
                     <TelemetryGenerator key={1} heading='Groundspeed' color={groundspeed.color} value={groundspeed.value} unit={groundspeed.unit} onClick={() => handleClick(1)}/>
