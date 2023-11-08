@@ -1,6 +1,8 @@
-import React from 'react'
-
-const Control: React.FC = () => {
+/**
+ * Mission Control Page. TODO: write description.
+ * @returns Control Page
+ */
+function Control() {
     return <h1>todo</h1>
 }
 
