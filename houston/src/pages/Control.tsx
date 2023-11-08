@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import TuasMap from '../components/TuasMap.tsx'
 import "./Control.css"
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
@@ -103,7 +103,7 @@ interface TelemetryProps {
 function TelemetryGenerator({ key, heading, color, value, unit, onClick }: TelemetryProps) {
     return (
         <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
-            <h1 className='heading  '>{heading}</h1>
+            <h1 className='heading'>{heading}</h1>
             <p className='data'>{value} {unit}</p>
         </div>
     );
@@ -156,31 +156,17 @@ function Control() {
             <main className="controls-page">
                 <div className="flight-telemetry-container">
                     <div className='flight-telemetry' id='compass'>
-                        <h1>*insert compass*</h1>
+                        <h1 className='heading'>*insert compass*</h1>
                     </div>
                     <TelemetryGenerator key={0} heading='Airspeed' color={airspeed.color} value={airspeed.value} unit={airspeed.unit} onClick={() => handleClick(0)}/>
                     <TelemetryGenerator key={1} heading='Groundspeed' color={groundspeed.color} value={groundspeed.value} unit={groundspeed.unit} onClick={() => handleClick(1)}/>
                     <TelemetryGenerator key={2} heading='Altitude MSL' color={altitudeMSL.color} value={altitudeMSL.value} unit={altitudeMSL.unit} onClick={() => handleClick(2)}/>
                     <TelemetryGenerator key={3} heading='Altitude AGL' color={altitudeAGL.color} value={altitudeAGL.value} unit={altitudeAGL.unit} onClick={() => handleClick(3)}/>
                 </div>
-                <MapContainer className={"map"} center={[51.505, -0.09]} zoom={13} scrollWheelZoom={false}>
-                    <TileLayer
-                        attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
-                        url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}"
-                        accessToken="pk.eyJ1IjoidGxlbnR6IiwiYSI6ImNsM2dwNmwzczBrb24zaXcxcWNoNWZjMjQifQ.sgAV6vkF7vOLC4P1_WkV_w"
-                        tileSize={512}
-                        zoomOffset={-1}
-                        id= 'mapbox/satellite-v9'
-                    />
-                    <Marker position={[51.505, -0.09]}>
-                        <Popup>
-                        A pretty CSS3 popup. <br /> Easily customizable.
-                        </Popup>
-                    </Marker>
-                </MapContainer>
+                <TuasMap className={'map'} lat={1.3467} lng={103.9326}/>
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
-                        <h1>Flight Mode</h1>
+                        <h1 className='heading'>Flight Mode</h1>
                         <p className='data'>{flightMode}</p>
                     </div>
                     <TelemetryGenerator key={4} heading='Motor Battery' color={motorBattery.color} value={motorBattery.value} unit={motorBattery.unit} onClick={() => handleClick(4)}/>
