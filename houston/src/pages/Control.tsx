@@ -90,6 +90,7 @@ interface TelemetryProps {
 }
 
 /**
+ * Telemetry component
  * @param props - the props of the telemetry
  * @param props.key - the key of the telemetry
  * @param props.heading - the heading of the telemetry
