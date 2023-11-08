@@ -1,66 +1,7 @@
-// import {FC, useState} from 'react'
-// import { DotPulse } from '@uiball/loaders'
 import "./Connection.css"
-import { Link } from 'react-router-dom'
+import {statusToLink} from "../utilities/connection"
 
-// TODO: standardize connection status data structure
-// and make it a protobuf
-export interface ConnectionStatus {
-    name: string,
-    isActive: boolean
-    type: ConnectionType
-}
-
-/* eslint-disable */
-export const enum ConnectionType {
-    Radio,
-    Ethernet,
-    Wifi
-}
-
-import ethernetConnected from "../assets/ethernet-connected.svg"
-import ethernetDisconnected from "../assets/ethernet-disconnected.svg"
-import radioConnected from "../assets/radio-connected.svg"
-import radioDisconnected from "../assets/radio-disconnected.svg"
-import wifiConnected from "../assets/wifi-connected.svg"
-import wifiDisconnected from "../assets/wifi-disconnected.svg"
-
-/* eslint-disable */
-export function getIconFromStatus(status: ConnectionStatus, i: number) {
-        if (status.type == ConnectionType.Ethernet) {
-            if (status.isActive) {
-                return (<img key={i} className="svg active" src={ethernetConnected}></img>)
-            } else {
-                return (<img key={i} className="svg inactive" src={ethernetDisconnected}></img>)
-            }
-        } else if (status.type == ConnectionType.Radio) {
-            if (status.isActive) {
-                return (<img key={i} className="svg active" src={radioConnected}></img>)
-            } else {
-                return (<img key={i} className="svg inactive" src={radioDisconnected}></img>)
-            }
-        } else { // wifi
-            if (status.isActive) {
-                return (<img key={i} className="svg active" src={wifiConnected}></img>)
-            } else {
-                return (<img key={i} className="svg inactive" src={wifiDisconnected}></img>)
-            }
-        }
-    }
-
-/* eslint-disable */
-function statusToJSX(status: ConnectionStatus, i: number) {
-    return (
-        <li key={i}>
-            <Link className="conn-link" to={status.name.replace(/\s+/g, '').toLowerCase()}>
-                <span className="conn-name">{status.name}</span>
-                <span className={"conn-status"}>
-                    {getIconFromStatus(status, i)}
-                </span>
-            </Link>
-        </li>
-    );
-}
+import { ConnectionStatus } from "../utilities/temp";
 
 // TODO: allow clicking on each connection status item
 // in order to see a more in depth description of that
@@ -69,14 +10,20 @@ function statusToJSX(status: ConnectionStatus, i: number) {
 
 // TODO: Pull connection info from gcs, use DotPulse waiting icon before 
 // data has been pulled
-/* eslint-disable */
-function Connection({statuses}:{statuses:ConnectionStatus[]}) {
 
+/**
+ * Page that shows the high level connection statuses of all the components of our system
+ * the GCS communicates with.
+ * @param props Props
+ * @param props.statuses List of connection statuses that we are tracking.
+ * @returns Connection Page
+ */
+function Connection({statuses}:{statuses:ConnectionStatus[]}) {
     return (
         <>
             <main className="connection-page">
                 <ul>
-                    {statuses.map(statusToJSX)} 
+                    {statuses.map(statusToLink)} 
                 </ul>
             </main>
         </>

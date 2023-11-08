@@ -1,23 +1,42 @@
-import {MapContainer, TileLayer, Marker, Popup} from "react-leaflet"
+import {useState, useEffect} from 'react'
 import "./AntennaTracker.css"
-import 'leaflet/dist/leaflet.css'
+import TuasMap from '../components/TuasMap';
 
-/* eslint-disable */
+/**
+ * This page displays all of the relevant connection information for the Antenna Tracker.
+ * It displays this with a map that shows the antenna tracker pointing towards the plane's
+ * current location. It also has a terminal which displays the raw UDP frames being sent
+ * over the wire. Eventually, it will take in props which provide the connection status information.
+ * @returns Component representing page for the Antenna Tracker Connection Status
+ */
 function AntennaTracker() {
+    const [terminalText, setTerminalText] = useState<Array<string>>([]);
+
+    // For testing so text is constantly being added to the terminal
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Update the text
+            const date = new Date();
+            setTerminalText(txt => [`${date.toString()}`].concat(txt)); 
+
+            // const pre = document.querySelector(".atracker-terminal");
+            // if (pre != null) {
+            //     pre.scrollTop = pre?.scrollHeight;
+            // }
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <>
             <main className="atracker-page">
-                <MapContainer style={{width: 600, height: 600}} center={[51.505, -0.09]} zoom={13} scrollWheelZoom={false}>
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <Marker position={[51.505, -0.09]}>
-                        <Popup>
-                        A pretty CSS3 popup. <br /> Easily customizable.
-                        </Popup>
-                    </Marker>
-                </MapContainer>
+                <TuasMap className="atracker-map" lat={51} lng={10} />
+                <div className="atracker-terminal">
+                    {
+                        terminalText.map((str, i) => <p key={i}>{str}</p>)
+                    }
+                </div>
             </main>
         </>
     );

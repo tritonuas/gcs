@@ -17,6 +17,19 @@ module.exports = {
       { allowConstantExport: true },
     ],
 
+    // Make an unused variable a warning, and
+    // Ignore unused variable warning if the
+    // variable begins with underscore
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "warn", // or "error"
+      { 
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+
     // suppress errors that require React to be imported (not necessary in React versions >= v17.0)
     'react/react-in-jsx-scope': 'off',
     'react/jsx-uses-react': 'off',

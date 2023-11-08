@@ -9,8 +9,7 @@ main.connection-page {
     flex-direction: column; 
     justify-content: center;
     align-items: center;
-    min-height: 100%;
-    flex-grow: 1;
+    flex-grow: 1; /* Take up remainder of screen */
 
     /* smooth transition when hovering over connection subpage link */
     transition: background-color var(--std-transition);

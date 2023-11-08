@@ -6,21 +6,19 @@ import Connection from "./pages/Connection";
 import AntennaTracker from "./pages/AntennaTracker";
 import OnboardComputer from "./pages/OnboardComputer";
 import RadioMavlink from "./pages/RadioMavlink";
-import Camera from './pages/Camera';
 import Control from './pages/Control';
 import Input from './pages/Input';
 import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
 
-import {ConnectionType, ConnectionStatus} from "./pages/Connection" // TODO modify to protobufs
+
+import { ConnectionType, ConnectionStatus } from "./utilities/temp";
 
 /**
  * Main React function
  * @returns App
  */
-
-/* eslint-disable */
 function App() {
     // for testing purposes
     const flipCoin = () => {
@@ -44,7 +42,6 @@ function App() {
                     <Route path="control" element={<Control />} />
                     <Route path="input" element={<Input />} />
                     <Route path="report" element={<Report />} />
-                    <Route path="camera" element={<Camera />} />
 
                     <Route path="*" element={<NoPage />} />
                 </Route>
