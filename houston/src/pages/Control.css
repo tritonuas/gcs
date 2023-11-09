@@ -85,6 +85,7 @@
     background-color: var(--highlight);
     border-top-left-radius: 3dvh;
     border-bottom-left-radius: 3dvh;
+     user-select: none
 }
 
 .unit:last-child {
