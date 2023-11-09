@@ -143,7 +143,7 @@ function MapInputForm(
             <form className="tuas-form">
                 <fieldset>
                     <legend>Map Input</legend>
-                    <div>
+                    <div className="button-container">
                         {
                             Object.keys(MapMode).filter((v => isNaN(Number(v)))).map((v, i) => {
                                 return (
@@ -159,6 +159,13 @@ function MapInputForm(
                                 )
                             })
                         }
+                        <input
+                            type="button"
+                            value="+"
+                            onClick={() => {
+                                
+                            }}
+                            />
                     </div>
                     <FormTable 
                         headings={getModeConfig(mapMode).headings} 

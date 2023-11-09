@@ -38,3 +38,18 @@ main.input-page .tuas-form td {
 main.input-page .tuas-form input {
     width: fit-content;
 }
+
+main.input-page .button-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+main.input-page .button-container > input {
+    margin-right: 1rem;
+}
+
+main.input-page .button-container input:nth-child(3){
+    margin-right: auto;
+}
