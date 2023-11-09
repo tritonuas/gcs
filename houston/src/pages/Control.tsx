@@ -10,7 +10,20 @@ class Parameter {
     units: Unit[];
     unit: Unit;
     color: React.CSSProperties;
-    threshold: number[];
+
+    // threshold: 
+    // - length = 4
+    // - format: [lower bound value for unit[0], upper bound value for unit[0], lower bound value for unit[1], upper bound value for unit[1]]
+    // - use: 
+    //      - to determine the color of the telemetry based on the current and threshold values. 
+    //      - if the current value is within the threshold, the color is green. if not, the color is red.
+    threshold: number[]; 
+
+    // index:
+    // - use: -
+    //      - to determine which unit to display.
+    //      - if the index is 0, display the value in unit[0]. if the index is 1, display the value in unit[1].
+    //      - value of index is toggled when the telemetry is clicked, which is handled by the handleClick function.
     index: number;
 
     constructor(values: number[], units: Unit[], threshold: number[], index: number) {
@@ -85,6 +98,7 @@ interface TelemetryProps {
     heading: string;
     color: React.CSSProperties;
     value: number;
+    units: Unit[];
     unit: Unit;
     onClick: () => void;
 }
@@ -96,17 +110,40 @@ interface TelemetryProps {
  * @param props.heading - the heading of the telemetry
  * @param props.color - the color of the telemetry
  * @param props.value - the value of the telemetry
- * @param props.unit - the unit of the telemetry
+ * @param props.units - the units of the telemetry
+ * @param props.unit - the current unit of the telemetry
  * @param props.onClick - the onClick function of the telemetry
  * @returns the telemetry component
  */
-function TelemetryGenerator({ key, heading, color, value, unit, onClick }: TelemetryProps) {
-    return (
-        <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
-            <h1 className='heading'>{heading}</h1>
-            <p className='data'>{value} {unit}</p>
-        </div>
-    );
+function TelemetryGenerator({ key, heading, color, value, units, unit, onClick }: TelemetryProps) {
+    let unit0_color = { backgroundColor: '#808080' };
+    let unit1_color = { backgroundColor: 'var(--secondary-text)' };
+    if (units[0] !== units[1]) {
+        if (unit === units[0]) {
+            unit0_color = { backgroundColor: 'var(--highlight)' };
+            unit1_color = { backgroundColor: '#808080' };
+        } else {
+            unit0_color = { backgroundColor: '#808080' };
+            unit1_color = { backgroundColor: 'var(--highlight)' };
+        }
+        return (
+            <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
+                <h1 className='heading'>{heading}</h1>
+                <p className='data'>{value} {unit}</p>
+                <div className='unit-indicator'>
+                    <p className='unit' style={unit0_color}>{units[0]}</p>
+                    <p className='unit' style={unit1_color}>{units[1]}</p>
+                </div>
+            </div>
+        );
+    } else {
+        return (
+            <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
+                <h1 className='heading'>{heading}</h1>
+                <p className='data'>{value} {unit}</p>
+            </div>
+        );
+    }
 }
 
 /**
@@ -158,10 +195,10 @@ function Control() {
                     <div className='flight-telemetry' id='compass'>
                         <h1 className='heading'>*insert compass*</h1>
                     </div>
-                    <TelemetryGenerator key={0} heading='Airspeed' color={airspeed.color} value={airspeed.value} unit={airspeed.unit} onClick={() => handleClick(0)}/>
-                    <TelemetryGenerator key={1} heading='Groundspeed' color={groundspeed.color} value={groundspeed.value} unit={groundspeed.unit} onClick={() => handleClick(1)}/>
-                    <TelemetryGenerator key={2} heading='Altitude MSL' color={altitudeMSL.color} value={altitudeMSL.value} unit={altitudeMSL.unit} onClick={() => handleClick(2)}/>
-                    <TelemetryGenerator key={3} heading='Altitude AGL' color={altitudeAGL.color} value={altitudeAGL.value} unit={altitudeAGL.unit} onClick={() => handleClick(3)}/>
+                    <TelemetryGenerator key={0} heading='Airspeed' color={airspeed.color} value={airspeed.value} units={airspeed.units} unit={airspeed.unit} onClick={() => handleClick(0)}/>
+                    <TelemetryGenerator key={1} heading='Groundspeed' color={groundspeed.color} value={groundspeed.value} units={groundspeed.units} unit={groundspeed.unit} onClick={() => handleClick(1)}/>
+                    <TelemetryGenerator key={2} heading='Altitude MSL' color={altitudeMSL.color} value={altitudeMSL.value} units={altitudeMSL.units} unit={altitudeMSL.unit} onClick={() => handleClick(2)}/>
+                    <TelemetryGenerator key={3} heading='Altitude AGL' color={altitudeAGL.color} value={altitudeAGL.value} units={altitudeAGL.units} unit={altitudeAGL.unit} onClick={() => handleClick(3)}/>
                 </div>
                 <TuasMap className={'map'} lat={1.3467} lng={103.9326}/>
                 <div className="flight-telemetry-container">
@@ -169,9 +206,9 @@ function Control() {
                         <h1 className='heading'>Flight Mode</h1>
                         <p className='data'>{flightMode}</p>
                     </div>
-                    <TelemetryGenerator key={4} heading='Motor Battery' color={motorBattery.color} value={motorBattery.value} unit={motorBattery.unit} onClick={() => handleClick(4)}/>
-                    <TelemetryGenerator key={5} heading='Pixhawk Battery' color={pixhawkBattery.color} value={pixhawkBattery.value} unit={pixhawkBattery.unit} onClick={() => handleClick(5)}/>
-                    <TelemetryGenerator key={6} heading='ESC Temperature' color={ESCtemperature.color} value={ESCtemperature.value} unit={ESCtemperature.unit} onClick={() => handleClick(6)}/>
+                    <TelemetryGenerator key={4} heading='Motor Battery' color={motorBattery.color} value={motorBattery.value} units={motorBattery.units} unit={motorBattery.unit} onClick={() => handleClick(4)}/>
+                    <TelemetryGenerator key={5} heading='Pixhawk Battery' color={pixhawkBattery.color} value={pixhawkBattery.value} units={pixhawkBattery.units} unit={pixhawkBattery.unit} onClick={() => handleClick(5)}/>
+                    <TelemetryGenerator key={6} heading='ESC Temperature' color={ESCtemperature.color} value={ESCtemperature.value} units={ESCtemperature.units} unit={ESCtemperature.unit} onClick={() => handleClick(6)}/>
                 </div>
             </main>
         </>
