@@ -163,6 +163,23 @@ function MapInputForm(
                             type="button"
                             value="+"
                             onClick={() => {
+                                setMapData(mapData => {
+                                    const data = mapData.get(mapMode);
+                                    const headingLength = getModeConfig(mapMode).headings.length;
+
+                                    if (data !== undefined) {
+                                        data.push(new Array(headingLength));
+                                        mapData.set(mapMode, data);
+                                        return new Map(mapData);
+                                    }
+                                    return new Map(); // this should never happen
+                                });
+                            }}
+                            />
+                        <input
+                            type="button"
+                            value="-"
+                            onClick={() => {
                                 
                             }}
                             />
