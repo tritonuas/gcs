@@ -53,3 +53,11 @@ main.input-page .button-container > input {
 main.input-page .button-container input:nth-child(3){
     margin-right: auto;
 }
+
+main.input-page .add-btn:hover {
+    background-color: var(--success-text) !important;
+}
+
+main.input-page .del-btn:hover {
+    background-color: var(--failure-text) !important;
+}

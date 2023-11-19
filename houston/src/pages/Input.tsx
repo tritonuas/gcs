@@ -66,6 +66,9 @@ function FormTable(
         setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
     }
 ) {
+    // add extra left column for the X button
+    headings = [""].concat(headings);
+    
     return (
         <>
             <table>
@@ -79,13 +82,33 @@ function FormTable(
                         mapData.get(mapMode)?.map((row, i) => {
                             return (
                                 <tr key={i}>
+                                    <td>
+                                        <input
+                                            type="button"
+                                            className="del-btn"
+                                            value="X"
+                                            onClick={() => {
+                                                const data = mapData.get(mapMode);
+
+                                                setMapData(mapData => {
+                                                    if (data !== undefined) {
+                                                        const temp = (data.slice(0, i).concat(data.slice(i+1)));
+                                                        console.log(temp);
+                                                        return new Map(mapData.set(mapMode, temp));
+                                                    } else {
+                                                        return mapData; // should never happen
+                                                    }
+                                                });
+                                            }}
+                                            />
+                                    </td>
                                 {
                                     row.map((num, j) => {
                                         return (
                                             <td key={j}>
                                                 <input
                                                     type="number" 
-                                                    key={mapMode}
+                                                    key={mapMode.toString() + (mapData.get(mapMode)?.at(i)?.at(j))}
                                                     step="any" 
                                                     defaultValue={num} 
                                                     onChange={(e) => {
@@ -162,25 +185,38 @@ function MapInputForm(
                         <input
                             type="button"
                             value="+"
+                            className="add-btn"
                             onClick={() => {
-                                setMapData(mapData => {
-                                    const data = mapData.get(mapMode);
-                                    const headingLength = getModeConfig(mapMode).headings.length;
+                                const data = mapData.get(mapMode);
+                                const headingLength = getModeConfig(mapMode).headings.length;
+                                const newRow = new Array(headingLength).fill(0);
 
+                                setMapData(mapData => {
                                     if (data !== undefined) {
-                                        data.push(new Array(headingLength));
-                                        mapData.set(mapMode, data);
-                                        return new Map(mapData);
+                                        return new Map(
+                                            mapData.set(mapMode, data.concat([newRow]))
+                                        );
+                                    } else {
+                                        return new Map(mapData.set(mapMode, [newRow]));
                                     }
-                                    return new Map(); // this should never happen
                                 });
                             }}
                             />
                         <input
                             type="button"
                             value="-"
+                            className="del-btn"
                             onClick={() => {
-                                
+                                 const data = mapData.get(mapMode);
+
+                                 setMapData(mapData => {
+                                    if (data !== undefined && data.length > 0) {
+                                        return new Map(mapData.set(mapMode, data.slice(0, -1)));
+                                    } else {
+                                        // can't remove anything if data is undefined because there is already nothing
+                                        return mapData;
+                                    }
+                                 });
                             }}
                             />
                     </div>
