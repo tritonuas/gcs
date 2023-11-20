@@ -67,7 +67,7 @@ function FormTable(
     }
 ) {
     // add extra left column for the X button
-    headings = [""].concat(headings);
+    headings = ["---"].concat(headings);
     
     return (
         <>
@@ -238,11 +238,71 @@ function MapInputForm(
  * @returns Bottle Input Form
  */
 function BottleInputForm() {
+    let bottleXInput = (x: string) => {
+        return (
+            <>
+                <fieldset>
+                    <legend>Bottle {x}</legend>
+                    <label>
+                        Alphanumeric: 
+                        <input maxLength={1} />
+                    </label>
+                    <label>
+                        Alphanumeric Color:
+                        <select>
+                            <option value="white">White</option>
+                            <option value="black">Black</option>
+                            <option value="red">Red</option>
+                            <option value="blue">Blue</option>
+                            <option value="green">Green</option>
+                            <option value="purple">Purple</option>
+                            <option value="brown">Brown</option>
+                            <option value="orange">Orange</option>
+                        </select>
+                    </label>
+                    <label>
+                        Shape: 
+                        <select>
+                            <option value="circle">Circle</option>
+                            <option value="semicircle">Semicircle</option>
+                            <option value="quartercircle">Quarter Circle</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="rectangle">Rectangle</option>
+                            <option value="pentagon">Pentagon</option>
+                            <option value="star">Star</option>
+                            <option value="cross">Cross</option>
+                        </select>
+                    </label>
+                    <label>
+                        Shape Color: 
+                        <select>
+                            <option value="white">White</option>
+                            <option value="black">Black</option>
+                            <option value="red">Red</option>
+                            <option value="blue">Blue</option>
+                            <option value="green">Green</option>
+                            <option value="purple">Purple</option>
+                            <option value="brown">Brown</option>
+                            <option value="orange">Orange</option>
+                        </select>
+                    </label>
+                </fieldset>
+            </>
+        );
+    }
+
     return (
         <>
             <form className="tuas-form">
                 <fieldset>
                     <legend>Bottle Input</legend>
+                    <div className="bottle-form-container">
+                        {bottleXInput("A")}
+                        {bottleXInput("B")}
+                        {bottleXInput("C")}
+                        {bottleXInput("D")}
+                        {bottleXInput("E")}
+                    </div>
                 </fieldset>
             </form>
         </>
