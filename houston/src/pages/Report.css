@@ -8,14 +8,63 @@
     padding: 40px;
     overflow-y: hidden;
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.75) inset;
+    user-select: none;
+}
+
+.left-container {
+    display: flex;
+    flex: 50%;
+    flex-direction: column;
+    height: 100%;
+    border-radius: 20px;
+    flex-direction: column;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    align-content: center;
+}
+
+.checkbox-container {
+    display: flex;
+    flex-direction: row;
+    flex: 5%;
+    margin-bottom: 10px;
+    background-color: var(--light-bg);
+    height: 100%;
+    width: 100%;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.75) inset;
+    border-radius: 15px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    justify-self: center;
+}
+
+.checkbox {
+    display: flex;
+    flex: 33%;
+    font-size: 1.8dvh;
+    justify-content: center;
+}
+
+.checkbox-text {
+    background-color: var(--highlight);
+    border-radius: 20px;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.75);
+    padding: 5px;
+    width: 22dvh;
 }
 
 .gallery-container {
     display: flex;
-    flex: 50%;
-    height: 100%;
+    flex: 95%;
+    max-height: 90%;
     border-radius: 20px;
     flex-direction: column;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    align-content: center;
 }
 
 .unmatched-gallery {
@@ -23,12 +72,11 @@
     padding: 10px;
     justify-content: center;
     align-items: center;
-    flex: 67%;
-    height: 100%;
+    flex: 2;
     width: 100%;
     background-color: var(--failure-text);
     border-radius: 20px;
-    margin: 5px;
+    margin-bottom: 10px;
     box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.75) inset;
     flex-wrap: wrap;
     overflow-y: scroll;
@@ -43,12 +91,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    flex: 33%;
+    flex: 1;
     width: 100%;
     height: 100%;
     background-color: var(--success-text);
     border-radius: 20px;
-    margin: 5px;
     box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.75) inset;
     flex-wrap: wrap;
     overflow-y: scroll;
@@ -61,8 +108,7 @@
     height: 100%;
     border-radius: 20px;
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.75);
-    margin: 50px;
-    margin-right: 0px;
+    margin-left: 25px;
 }
 
 .image-container {
@@ -83,7 +129,9 @@
     align-self: center;
     margin: 5px;
     flex: 40%;
-    width: 12dvh;
+    min-width: 12dvh;
+    max-width: 12dvh;
+    min-height: 12dvh;
     max-height: 12dvh;
     overflow: hidden;
 }
@@ -99,4 +147,46 @@
     text-overflow: hidden;
     text-wrap: wrap;
     user-select: none;
+}
+
+@media (max-width: 1500px) {
+    .report-page {
+        flex-direction: column;
+        padding: 25px;
+        padding-left: 50px;
+        padding-right: 50px;
+    }
+
+    .report-page-map {
+        flex: 75%;
+    }
+
+    .gallery-container {
+        flex-direction: row;
+        flex: 50%;
+        margin: 0px;
+        width: 100%;
+    }
+
+    .checkbox-container {
+        flex: 10%;
+        max-height: 25dvh;
+        margin-left: 5px;
+        margin-right: 5px;
+    }
+
+    .unmatched-gallery {
+        flex: 45%;
+        max-height: 25dvh;
+        margin: 0px;
+        margin-left: 5px;
+        margin-right: 5px;
+    }
+
+    .matched-gallery {
+        flex: 45%;
+        max-height: 25dvh;
+        margin-left: 5px;
+        margin-right: 5px;
+    }
 }

@@ -62,32 +62,45 @@ const item5 = new Item(5, 1.3467, 103.9326, img5, "E", "purple", "Square", "purp
 function Report() {
   return (
     <main className="report-page">
-        <div className="gallery-container">
-            <div className="unmatched-gallery">
-                <Image item={item1}/>
-                <Image item={item2}/>
-                <Image item={item3}/>
-                <Image item={item4}/>
-                <Image item={item5}/>
-
-                <Image item={item1}/>
-                <Image item={item2}/>
-                <Image item={item3}/>
-                <Image item={item4}/>
-                <Image item={item5}/>
-
-                <Image item={item1}/>
-                <Image item={item2}/>
-                <Image item={item3}/>
-                <Image item={item4}/>
-                <Image item={item5}/>
+        <div className="left-container">
+            <div className="checkbox-container">
+                    <div className="checkbox">
+                        <p className="checkbox-text">Unmatched Targets</p>
+                    </div>
+                    <div className="checkbox">
+                        <p className="checkbox-text">Matched Targets</p>
+                    </div>
+                    <div className="checkbox">
+                        <p className="checkbox-text">Map</p>
+                    </div>
             </div>
-            <div className="matched-gallery">
-                <Image item={item1}/>
-                <Image item={item2}/>
-                <Image item={item3}/>
-                <Image item={item4}/>
-                <Image item={item5}/>
+            <div className="gallery-container">
+                <div className="unmatched-gallery">
+                    <Image item={item1}/>
+                    <Image item={item2}/>
+                    <Image item={item3}/>
+                    <Image item={item4}/>
+                    <Image item={item5}/>
+
+                    <Image item={item1}/>
+                    <Image item={item2}/>
+                    <Image item={item3}/>
+                    <Image item={item4}/>
+                    <Image item={item5}/>
+
+                    <Image item={item1}/>
+                    <Image item={item2}/>
+                    <Image item={item3}/>
+                    <Image item={item4}/>
+                    <Image item={item5}/>
+                </div>
+                <div className="matched-gallery">
+                    <Image item={item1}/>
+                    <Image item={item2}/>
+                    <Image item={item3}/>
+                    <Image item={item4}/>
+                    <Image item={item5}/>
+                </div>
             </div>
         </div>
         <TuasMap className={'report-page-map'} lat={1.3467} lng={103.9326}/>
