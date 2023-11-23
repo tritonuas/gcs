@@ -238,7 +238,7 @@ function MapInputForm(
  * @returns Bottle Input Form
  */
 function BottleInputForm() {
-    let bottleXInput = (x: string) => {
+    const bottleXInput = (x: string) => {
         return (
             <>
                 <fieldset>
