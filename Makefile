@@ -25,10 +25,10 @@ install-assets:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker
+.PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker build-protos build-typescript-protos
 pre-build: configure-git 
 
-build: build-go build-react
+build: build-go build-react build-protos
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
@@ -39,8 +39,19 @@ build-go:
 build-react:
 	npm run --prefix ./houston build
 
-build-docker: build-react
+build-docker: build-react build-protos
 	DOCKER_BUILDKIT=1 docker build -t tritonuas/gcs -f build/package/Dockerfile .
+
+build-protos: internal/protos/frontendConnection.pb.go
+
+internal/protos/frontendConnection.pb.go: protos/frontendConnection.proto
+	protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/frontendConnection.proto
+
+build-typescript-protos: houston/src/protos
+
+houston/src/protos: protos/frontendConnection.proto
+	protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./source_relative ./frontendConnection.proto
+
 
 # Run
 # --------------------------------------------------------------------
