@@ -42,6 +42,12 @@ To install the formatter, run the following make command.
 make install-fmter
 ```
 
+To make sure you have the protobufs git submodule loaded, run the following make command.
+
+```sh
+make install-protos
+```
+
 ## Build
 
 ``` sh

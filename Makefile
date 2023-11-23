@@ -17,6 +17,9 @@ install-linter:
 		./scripts/install-linter-linux.sh ;\
 	fi;\
 
+install-protos:
+	git submodule init && git submodule update
+
 install-fmter:
 	go install golang.org/x/tools/cmd/goimports@latest
 
