@@ -31,7 +31,7 @@ install-assets:
 .PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker build-protos build-typescript-protos
 pre-build: configure-git 
 
-build: build-go build-react build-protos
+build: build-go build-react build-protos build-typescript-protos
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
@@ -53,7 +53,7 @@ internal/protos/frontendConnection.pb.go: protos/frontendConnection.proto
 build-typescript-protos: houston/src/protos
 
 houston/src/protos: protos/frontendConnection.proto
-	protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./source_relative ./frontendConnection.proto
+	protoc --plugin=houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./houston/src/ ./protos/frontendConnection.proto
 
 
 # Run
