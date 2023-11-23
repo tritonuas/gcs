@@ -6,19 +6,9 @@ import img2 from '../assets/report-page-images/amogus-2.png'
 import img3 from '../assets/report-page-images/amogus-3.png'
 import img4 from '../assets/report-page-images/amogus-4.png'
 import img5 from '../assets/report-page-images/amogus-5.png'
-import L, { Icon } from 'leaflet';
+import L from 'leaflet';
 
 export type item = typeof item1;
-
-const imageArray = [img1, img2, img3, img4, img5, img1, img2, img3, img4, img5, img1, img2, img3, img4, img5, img1, img2, img3, img4, img5];
-
-const icons: Icon[] = imageArray.map((image) => 
-        L.icon({
-            iconUrl: image,
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-        })
-    );
 
 interface ImageProps {
     item: item;
@@ -114,30 +104,49 @@ const itemArray = [itemA, itemB, itemC, itemD, itemE];
 
 const matchedItems = foundItemArray.filter(itemTwo => 
     itemArray.some(itemOne => itemOne.alphanumeric === itemTwo.alphanumeric && itemOne.shape === itemTwo.shape && itemOne.alphanumericColor === itemTwo.alphanumericColor && itemOne.shapeColor === itemTwo.shapeColor)
-  );
+);
 
 const unmatchedItems = foundItemArray.filter(itemTwo => 
     !itemArray.some(itemOne => itemOne.alphanumeric === itemTwo.alphanumeric && itemOne.shape === itemTwo.shape && itemOne.alphanumericColor === itemTwo.alphanumericColor && itemOne.shapeColor === itemTwo.shapeColor)
-  );
+);
+
 /**
  * @returns report page
  */
 function Report() {
-    const [matched, setMatched] = React.useState(false);
-    const [unmatched, setUnmatched] = React.useState(false);
+    const [matched, setMatched] = React.useState(true);
+    const [unmatched, setUnmatched] = React.useState(true);
 
     const matchedStyle = matched ? {backgroundColor: "var(--highlight)"} : {backgroundColor: "#808080", boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.75) inset"};
     const unmatchedStyle = unmatched ? {backgroundColor: "var(--highlight)"} : {backgroundColor: "#808080", boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.75) inset"};
 
+    const matchedArray = matched ? matchedItems : [];
+    const unmatchedArray = unmatched ? unmatchedItems : [];
+
+    const matchedIcons = matched ? matchedArray.map(item =>
+        L.icon({
+            iconUrl: item.image,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+        })
+    ) : [];
+
+    const unmatchedIcons = unmatched ? unmatchedArray.map(item =>
+        L.icon({
+            iconUrl: item.image,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+        })
+    ) : [];
+
     const handleMatched = () => {
-        setMatched(!matched);
+        setMatched(prevMatched => !prevMatched);
     }
-
+    
     const handleUnmatched = () => {
-        setUnmatched(!unmatched);
+        setUnmatched(prevUnmatched => !prevUnmatched);
     }
-
-    const mapArray = (matched && unmatched) ? foundItemArray : matched ? matchedItems : unmatched ? unmatchedItems : [];
+    
   return (
     <main className="report-page">
         <div className="checkbox-container">
@@ -157,7 +166,7 @@ function Report() {
                     {itemArray.map((item) => <Image key={item.id} item={item}/>)}
                 </div>
             </div>
-            <TuasMap className={'report-page-map'} lat={1.3467} lng={103.9326} popupArray={mapArray} icons={icons}/>
+            <TuasMap className={'report-page-map'} lat={1.3467} lng={103.9326} matchedArray={matchedArray} unmatchedArray={unmatchedArray} matchedIcons={matchedIcons} unmatchedIcons={unmatchedIcons}/>
         </div>
     </main>
   )

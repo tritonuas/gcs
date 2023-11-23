@@ -10,11 +10,13 @@ import { item } from "../pages/Report.tsx"
  * @param props.className class to apply to the map
  * @param props.lat starting latitude of the map
  * @param props.lng starting longitude of the map
- * @param props.popupArray array of items to display on the map
- * @param props.icons array of icons to display on the map
+ * @param props.matchedArray array of matched items
+ * @param props.unmatchedArray array of unmatched items
+ * @param props.matchedIcons array of matched icons
+ * @param props.unmatchedIcons array of unmatched icons
  * @returns TuasMap wrapper component
  */
-function TuasMap({className, lat, lng, popupArray, icons}:{className: string, lat: number, lng: number, popupArray: item[], icons: Icon[]}) {      
+function TuasMap({className, lat, lng, matchedArray, unmatchedArray, matchedIcons, unmatchedIcons}:{className: string, lat: number, lng: number, matchedArray: item[], unmatchedArray: item[], matchedIcons: Icon[], unmatchedIcons: Icon[]}) {
     return (
         <>
             <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
@@ -26,8 +28,13 @@ function TuasMap({className, lat, lng, popupArray, icons}:{className: string, la
                     zoomOffset={-1}
                     id= 'mapbox/satellite-v9'
                 />
-                {popupArray.map((marker) => (
-                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={icons[popupArray.indexOf(marker)]}>
+                {matchedArray.map((marker) => (
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
+                        <Popup className={marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}>{marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}</Popup>
+                    </Marker>
+                ))}
+                {unmatchedArray.map((marker) => (
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
                         <Popup className={marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}>{marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}</Popup>
                     </Marker>
                 ))}
