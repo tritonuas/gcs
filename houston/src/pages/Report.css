@@ -1,7 +1,7 @@
 .report-page {
     display: flex;
     flex: 1;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     border: 1px solid black;
@@ -13,11 +13,11 @@
 
 .left-container {
     display: flex;
-    flex: 50%;
-    flex-direction: column;
+    flex: 19;
+    flex-direction: row;
+    width: 100%;
     height: 100%;
     border-radius: 20px;
-    flex-direction: column;
     align-items: center;
     justify-items: center;
     justify-content: center;
@@ -27,7 +27,7 @@
 .checkbox-container {
     display: flex;
     flex-direction: row;
-    flex: 5%;
+    flex: 1;
     margin-bottom: 10px;
     background-color: var(--light-bg);
     height: 100%;
@@ -42,8 +42,8 @@
 
 .checkbox {
     display: flex;
-    flex: 33%;
-    font-size: 1.8dvh;
+    flex: 50%;
+    font-size: 1.5dvh;
     justify-content: center;
 }
 
@@ -57,8 +57,7 @@
 
 .gallery-container {
     display: flex;
-    flex: 95%;
-    max-height: 90%;
+    flex: 1;
     border-radius: 20px;
     flex-direction: column;
     align-items: center;
@@ -74,6 +73,7 @@
     align-items: center;
     flex: 2;
     width: 100%;
+    max-height: 51dvh;
     background-color: var(--failure-text);
     border-radius: 20px;
     margin-bottom: 10px;
@@ -93,7 +93,7 @@
     align-items: center;
     flex: 1;
     width: 100%;
-    height: 100%;
+    max-height: 26dvh;
     background-color: var(--success-text);
     border-radius: 20px;
     box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.75) inset;
@@ -103,7 +103,7 @@
 
 .report-page-map {
     display: flex;
-    flex: 50%;
+    flex: 1;
     width: 100%;
     height: 100%;
     border-radius: 20px;
@@ -149,6 +149,14 @@
     user-select: none;
 }
 
+.leaflet-popup {
+    background-color: gray;
+}
+
+.AredCircleblue{
+    background-color: red;
+}
+
 @media (max-width: 1500px) {
     .report-page {
         flex-direction: column;
@@ -157,22 +165,29 @@
         padding-right: 50px;
     }
 
+    .left-container {
+        flex-direction: column;
+        flex: 95%;
+    }
+
+    .checkbox-container {
+        flex: 5%;
+        max-height: 25dvh;
+        margin-left: 5px;
+        margin-right: 5px;
+        margin: 0px;
+    }
+
     .report-page-map {
         flex: 75%;
+        margin: 0px;
     }
 
     .gallery-container {
         flex-direction: row;
-        flex: 50%;
-        margin: 0px;
+        flex: 25%;
+        margin: 10px;
         width: 100%;
-    }
-
-    .checkbox-container {
-        flex: 10%;
-        max-height: 25dvh;
-        margin-left: 5px;
-        margin-right: 5px;
     }
 
     .unmatched-gallery {

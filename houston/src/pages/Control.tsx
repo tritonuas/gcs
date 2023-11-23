@@ -200,7 +200,7 @@ function Control() {
                     <TelemetryGenerator key={2} heading='Altitude MSL' color={altitudeMSL.color} value={altitudeMSL.value} units={altitudeMSL.units} unit={altitudeMSL.unit} onClick={() => handleClick(2)}/>
                     <TelemetryGenerator key={3} heading='Altitude AGL' color={altitudeAGL.color} value={altitudeAGL.value} units={altitudeAGL.units} unit={altitudeAGL.unit} onClick={() => handleClick(3)}/>
                 </div>
-                <TuasMap className={'map'} lat={1.3467} lng={103.9326}/>
+                <TuasMap className={'map'} lat={1.3467} lng={103.9326} popupArray={[]} icons={[]}/>
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
                         <h1 className='heading'>Flight Mode</h1>

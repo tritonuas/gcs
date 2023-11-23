@@ -1,5 +1,7 @@
-import {MapContainer, TileLayer } from "react-leaflet"
+import { MapContainer, Popup, TileLayer, Marker } from "react-leaflet"
 import 'leaflet/dist/leaflet.css'
+import { Icon } from 'leaflet';
+import { item } from "../pages/Report.tsx"
 
 /**
  * Wrapper component around all leaflet maps for the application. Any functionality we do with leaflet should be encased
@@ -10,7 +12,7 @@ import 'leaflet/dist/leaflet.css'
  * @param props.lng starting longitude of the map
  * @returns TuasMap wrapper component
  */
-function TuasMap({className, lat, lng}:{className: string, lat: number, lng: number}) {
+function TuasMap({className, lat, lng, popupArray, icons}:{className: string, lat: number, lng: number, popupArray: item[], icons: Icon[]}) {      
     return (
         <>
             <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
@@ -22,6 +24,11 @@ function TuasMap({className, lat, lng}:{className: string, lat: number, lng: num
                     zoomOffset={-1}
                     id= 'mapbox/satellite-v9'
                 />
+                {popupArray.map((marker) => (
+                    <Marker position={[marker.lat, marker.lng]} icon={icons[popupArray.indexOf(marker)]}>
+                        <Popup className={marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}>{marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}</Popup>
+                    </Marker>
+                ))}
             </MapContainer>
         </>
     );
