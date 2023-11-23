@@ -10,6 +10,8 @@ import { item } from "../pages/Report.tsx"
  * @param props.className class to apply to the map
  * @param props.lat starting latitude of the map
  * @param props.lng starting longitude of the map
+ * @param props.popupArray array of items to display on the map
+ * @param props.icons array of icons to display on the map
  * @returns TuasMap wrapper component
  */
 function TuasMap({className, lat, lng, popupArray, icons}:{className: string, lat: number, lng: number, popupArray: item[], icons: Icon[]}) {      
@@ -25,7 +27,7 @@ function TuasMap({className, lat, lng, popupArray, icons}:{className: string, la
                     id= 'mapbox/satellite-v9'
                 />
                 {popupArray.map((marker) => (
-                    <Marker position={[marker.lat, marker.lng]} icon={icons[popupArray.indexOf(marker)]}>
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={icons[popupArray.indexOf(marker)]}>
                         <Popup className={marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}>{marker.alphanumeric+marker.alphanumericColor+marker.shape+marker.shapeColor}</Popup>
                     </Marker>
                 ))}
