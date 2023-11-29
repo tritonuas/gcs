@@ -52,10 +52,10 @@ build-backend-protos: internal/protos/houston.pb.go
 internal/protos/houston.pb.go: protos/houston.proto
 	protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
 
-build-frontend-protos: houston/src/protos
+build-frontend-protos: houston/src/protos/houston.pb.ts
 
-houston/src/protos: protos/houston.proto
-	protoc --plugin=houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./houston/src/ ./protos/houston.proto
+houston/src/protos/houston.pb.ts: protos/houston.proto
+	protoc --plugin=houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/houston.proto
 
 
 # Run
