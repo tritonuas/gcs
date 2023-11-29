@@ -47,10 +47,13 @@ build-docker: build-react build-protos
 
 build-protos: build-backend-protos build-frontend-protos
 
-build-backend-protos: internal/protos/houston.pb.go
+build-backend-protos: internal/protos/houston.pb.go internal/protos/obc.pb.go
 
 internal/protos/houston.pb.go: protos/houston.proto
 	protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
+
+internal/protos/obc.pb.go: protos/obc.proto
+	protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/obc.proto
 
 build-frontend-protos: houston/src/protos/houston.pb.ts
 
