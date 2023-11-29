@@ -77,7 +77,7 @@ make build
 make build-docker
 
 # Update protobuf files (if needed)
-make build-protos && make build-typescript-protos
+make build-protos
 ```
 
 Note that running docker commands may require sudo. 
