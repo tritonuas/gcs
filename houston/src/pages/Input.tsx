@@ -1,4 +1,4 @@
-import { SetStateAction, useState } from 'react';
+import { SetStateAction, useState, FormEvent } from 'react';
 
 import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 
@@ -245,7 +245,7 @@ function BottleInputForm() {
                     <legend>Bottle {x}</legend>
                     <label>
                         Alphanumeric: 
-                        <input maxLength={1} />
+                        <input maxLength={1} id=""/>
                     </label>
                     <label>
                         Alphanumeric Color:
@@ -290,10 +290,11 @@ function BottleInputForm() {
             </>
         );
     }
+    
 
     return (
         <>
-            <form className="tuas-form">
+            <form className="tuas-form" onSubmit={submitForm}>
                 <fieldset>
                     <legend>Bottle Input</legend>
                     <div className="bottle-form-container">
