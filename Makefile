@@ -17,6 +17,9 @@ install-linter:
 		./scripts/install-linter-linux.sh ;\
 	fi;\
 
+install-protos:
+	git submodule init && git submodule update
+
 install-fmter:
 	go install golang.org/x/tools/cmd/goimports@latest
 
@@ -25,10 +28,10 @@ install-assets:
 
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker
+.PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker build-protos build-backend-protos build-frontend-protos
 pre-build: configure-git 
 
-build: build-go build-react
+build: build-go build-react build-protos
 
 configure-git:
 	git config --global url."git@github.com:".insteadOf "https://github.com/"
@@ -39,8 +42,24 @@ build-go:
 build-react:
 	npm run --prefix ./houston build
 
-build-docker: build-react
+build-docker: build-react build-protos
 	DOCKER_BUILDKIT=1 docker build -t tritonuas/gcs -f build/package/Dockerfile .
+
+build-protos: build-backend-protos build-frontend-protos
+
+build-backend-protos: internal/protos/houston.pb.go internal/protos/obc.pb.go
+
+internal/protos/houston.pb.go: protos/houston.proto
+	protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
+
+internal/protos/obc.pb.go: protos/obc.proto
+	protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/obc.proto
+
+build-frontend-protos: houston/src/protos/houston.pb.ts
+
+houston/src/protos/houston.pb.ts: protos/houston.proto
+	protoc --plugin=houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/houston.proto
+
 
 # Run
 # --------------------------------------------------------------------

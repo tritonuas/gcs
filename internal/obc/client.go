@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/tritonuas/gcs/internal/obc/airdrop"
 	"github.com/tritonuas/gcs/internal/obc/camera"
-	"github.com/tritonuas/gcs/internal/obc/pp"
+	"github.com/tritonuas/gcs/internal/protos"
 	"github.com/tritonuas/gcs/internal/utils"
 )
 
@@ -43,21 +42,6 @@ func (client *Client) GenerateNewInitialPath() ([]byte, int) {
 }
 
 /*
-Posts the initial path to the OBC so that it can be uploaded to the plane
-*/
-func (client *Client) PostInitialPath(path []pp.Waypoint) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(path)
-
-	if err != nil {
-		return nil, -1
-	}
-
-	body, httpErr := client.httpClient.Post("/path/initial", &buf)
-	return body, httpErr.Status
-}
-
-/*
 Requests the currently uploaded initial path on the OBC
 */
 func (client *Client) GetCurrentInitialPath() ([]byte, int) {
@@ -66,19 +50,11 @@ func (client *Client) GetCurrentInitialPath() ([]byte, int) {
 }
 
 /*
-Sends a message to the OBC to start the mission
-*/
-func (client *Client) StartMission() ([]byte, int) {
-	body, httpErr := client.httpClient.Post("/mission/start", &bytes.Buffer{}) // empty bc no data
-	return body, httpErr.Status
-}
-
-/*
 Sends Mission data (boundaries) to the OBC via POST request.
 
 Returns potential errors and returned status code
 */
-func (client *Client) PostMission(mission *pp.Mission) ([]byte, int) {
+func (client *Client) PostMission(mission *protos.Mission) ([]byte, int) {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(mission)
 
@@ -96,7 +72,7 @@ func (client *Client) IsConnected() (bool, string) {
 }
 
 // Sends Airdrop waypoints to the OBC via POST request.
-func (client *Client) PostAirdropWaypoints(waypoints *[]pp.Waypoint) ([]byte, int) {
+func (client *Client) PostAirdropTargets(waypoints *[]protos.AirdropTarget) ([]byte, int) {
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(waypoints)
 
@@ -104,32 +80,7 @@ func (client *Client) PostAirdropWaypoints(waypoints *[]pp.Waypoint) ([]byte, in
 		return nil, -1
 	}
 
-	body, httpErr := client.httpClient.Post("/waypoints/airdrop", &buf)
-	return body, httpErr.Status
-}
-
-/*
-Sends initial waypoints to the OBC via POST request.
-
-TODO: this function is exactly the same as PostAirdropWaypoints, but with the route changed. This sucks and we should change it.
-*/
-func (client *Client) PostInitialWaypoint(waypoints *[]pp.Waypoint) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(waypoints)
-
-	if err != nil {
-		return nil, -1
-	}
-
-	body, httpErr := client.httpClient.Post("/waypoints/initial", &buf)
-	return body, httpErr.Status
-}
-
-/*
-Gets the initial competition waypoints uploaded to the obc
-*/
-func (client *Client) GetInitialWaypoints() ([]byte, int) {
-	body, httpErr := client.httpClient.Get("/waypoints/initial")
+	body, httpErr := client.httpClient.Post("/airdrop", &buf)
 	return body, httpErr.Status
 }
 
@@ -181,52 +132,6 @@ Note that this returns an "image" as a byte array (probably base64 encoded?)
 func (client *Client) GetCameraCapture() ([]byte, int) {
 	image, httpErr := client.httpClient.Get("/camera/capture")
 	return image, httpErr.Status
-}
-
-/*
-Sends POST request to OBC to do manual bottle SWAP
-*/
-func (client *Client) ManualBottleSwap(bottle airdrop.BottleSwap) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(bottle)
-
-	if err != nil {
-		return nil, -1
-	}
-
-	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/swap", &buf)
-	return body, httpErr.Status
-}
-
-/*
-Sends POST request to OBC to do manual bottle DROP
-*/
-func (client *Client) ManualBottleDrop() ([]byte, int) {
-	body, httpErr := client.httpClient.Post("/mission/airdrop/manual/drop", nil)
-	return body, httpErr.Status
-}
-
-/*
-Sends Get request to OBC testing mav status
-*/
-func (client *Client) GetMavlinkStatus() ([]byte, int) {
-	body, httpErr := client.httpClient.Get("/mavlink/status")
-	return body, httpErr.Status
-}
-
-/*
-Sends Post request to OBC to attempt mavlink connection
-*/
-func (client *Client) ConnectMavlink(mavConn pp.JetsonMavConn) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(mavConn)
-
-	if err != nil {
-		return nil, -1
-	}
-
-	body, httpErr := client.httpClient.Post("/mavlink/connect", &buf)
-	return body, httpErr.Status
 }
 
 // GetCameraConfig gets the current camera configuration from the OBC in JSON format
