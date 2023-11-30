@@ -1,13 +1,13 @@
-nav {
+nav.topbar {
     background-color: var(--dark-bg);
     font-size: 2rem;
 }
 
-img {
+nav.topbar img {
     margin: 0 0.5rem;
 }
 
-ul {
+nav.topbar ul {
     margin: 0;
     padding: 0;
     display: flex;
@@ -17,21 +17,41 @@ ul {
     justify-content: flex-start;
 }
 
-li {
-    padding: 0.5rem 1rem;
-    transition: background-color 0.1s ease-in;
+nav.topbar li {
+    background: linear-gradient(to bottom, var(--dark-bg) 50%, var(--med-bg) 50%) top;
+    background-size: 100% 200%;
+    transition: background-position .1s ease-in;
 }
 
-a {
+nav.topbar a {
     text-decoration: none;
     color: var(--highlight);
     transition: color 0.1s ease-in;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
-a:is(:hover, :focus), a.active {
+nav.topbar a:is(:hover, :focus), a.active {
     color: var(--light-text);
 }
 
-li:has(a:is(:hover, :focus)), li:has(a.active) {
+nav.topbar li:has(a:is(:hover, :focus)), li:has(a.active) {
+    background-position: bottom;
+}
+
+/* 
+    For the current active tab, just override the background so its a simple background
+    color. Helpful for extra styling / color changes we do in the Connection page.
+*/
+li:has(a.active) {
+    background: none;
     background-color: var(--med-bg);
+    transition: background-color var(--std-transition);
+}
+
+nav.topbar li:nth-child(5) {
+    margin-right: auto;
 }

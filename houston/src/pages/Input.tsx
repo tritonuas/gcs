@@ -1,7 +1,17 @@
-import React from "react"
+import './Input.css';
 
-const Input: React.FC = () => {
-    return <h1>todo</h1>
+/**
+ * 
+ * @returns Input page
+ */
+function Input() {
+    return (
+        <>
+            <main id="input-page">
+
+            </main>
+        </>
+    );
 }
 
 export default Input;
