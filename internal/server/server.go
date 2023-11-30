@@ -1,8 +1,6 @@
 package server
 
 import (
-	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,12 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tritonuas/gcs/internal/cvs"
 	"github.com/tritonuas/gcs/internal/influxdb"
-	"github.com/tritonuas/gcs/internal/manager"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 	"github.com/tritonuas/gcs/internal/obc"
-	"github.com/tritonuas/gcs/internal/obc/airdrop"
 	"github.com/tritonuas/gcs/internal/obc/camera"
-	"github.com/tritonuas/gcs/internal/obc/pp"
+	"github.com/tritonuas/gcs/internal/protos"
 )
 
 // Log is the logger for the server
@@ -34,12 +30,10 @@ type Server struct {
 	obcClient           *obc.Client
 	newestRawImage      camera.RawImage
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
-	Bottles             *airdrop.Bottles
 	MissionTime         int64
-	FlightBounds        []pp.Coordinate
-	AirDropBounds       []pp.Coordinate
 	ClassifiedTargets   []cvs.ClassifiedODLC
-	Manager             *manager.Manager
+
+	MissionConfig *protos.Mission
 }
 
 /*
@@ -71,33 +65,16 @@ func (server *Server) initFrontend(router *gin.Engine) {
 func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
-		/*
-			TODO:
-
-			---------------------------
-
-			1. in the mission manager, detect a change in state to airdrop and forward the classified targets to obc
-		*/
-
 		api.GET("/connections", server.testConnections())
 
-		targets := api.Group("/targets")
-		{
-			targets.POST("/unclassified", server.postOBCTargets())
-			targets.POST("/classified", server.postCVSResults())
-
-			targets.GET("/unclassified", server.getOBCTargets())
-			targets.GET("/classified", server.getStoredCVSResults())
-
-			targets.PUT("/classified", server.updateCVSResults())
-		}
+		api.GET("/mission", server.getMission())
+		api.POST("/mission", server.postMission())
+		api.POST("/airdrop", server.postAirdropTargets())
+		api.GET("/path/initial", server.getInitialPath())
+		api.GET("/path/initial/new", server.getInitialPathNew())
 
 		plane := api.Group("/plane")
 		{
-			plane.POST("/airdrop", server.uploadDropOrder())
-			plane.GET("/airdrop", server.getDropOrder())
-			plane.PATCH("/airdrop", server.updateDropOrder())
-
 			plane.GET("/telemetry/history", server.getTelemetryHistory())
 			plane.GET("/telemetry", server.getTelemetry())
 
@@ -105,52 +82,6 @@ func (server *Server) initBackend(router *gin.Engine) {
 			plane.GET("/position", server.getPosition())
 
 			plane.GET("/voltage", server.getBatteryVoltages())
-
-			plane.GET("/mavlink/status", server.getJetsonMavStatus())
-			plane.POST("/mavlink/connect", server.connectJetsonMav())
-		}
-
-		mission := api.Group("/mission")
-		{
-			/*change field to flight */
-			mission.GET("/bounds/field", server.getFieldBounds())
-			mission.POST("/bounds/field", server.uploadFieldBounds())
-
-			mission.GET("/bounds/airdrop", server.getAirdropBounds())
-			mission.POST("/bounds/airdrop", server.uploadAirDropBounds())
-
-			mission.GET("/path/initial/new", server.generateNewInitialPath())
-			mission.GET("/path/initial", server.getCurrentInitialPath())
-			mission.POST("/path/initial", server.postInitialPath())
-
-			mission.POST("/waypoints", server.handleInitialWaypoints())
-			mission.GET("/waypoints", server.getInitialWaypoints())
-
-			mission.POST("/start", server.startMission())
-
-			mission.POST("/time", server.startMissionTimer())
-			mission.GET("/time", server.getTimeElapsed())
-
-			mission.GET("/state", server.getState())
-			mission.POST("/state", server.changeState())
-			mission.GET("/state/time", server.getStateStartTime())
-			mission.GET("/state/history", server.getStateHistory())
-
-			mission.GET("/camera/capture", server.getCameraCapture())
-
-			mission.GET("/camera/status", server.getCameraStatus())
-
-			mission.GET("/camera/config", server.getCameraConfig())
-			mission.POST("/camera/config", server.postCameraConfig())
-
-			mission.POST("/camera/start", server.startCameraStream())
-			mission.POST("/camera/stop", server.stopCameraStream())
-
-			mission.POST("/image/raw", server.postRawImage())
-			mission.GET("/image/raw", server.getRawImage())
-
-			mission.POST("/airdrop/manual/drop", server.manualBottleDrop())
-			mission.POST("/airdrop/manual/swap", server.manualBottleSwap())
 		}
 
 		mavlink := api.Group("/mavlink")
@@ -184,8 +115,7 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *
 	server.mavlinkClient = mavlinkClient
 	server.obcClient = obcClient
 
-	server.AirDropBounds = nil
-	server.FlightBounds = nil
+	server.MissionConfig = nil
 
 	return server
 }
@@ -195,7 +125,6 @@ Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if
 */
 func (server *Server) Start() {
 	router := server.SetupRouter()
-	server.Manager = manager.NewManager()
 
 	err := router.Run(":5000")
 	if err != nil {
@@ -469,520 +398,41 @@ func (server *Server) putMavlinkEndpoints() gin.HandlerFunc {
 	}
 }
 
-/*
-User (plane/jetson) sends cropped image, bounding box, and other plane telemetry, and it is saved in the server struct.
-*/
-func (server *Server) postOBCTargets() gin.HandlerFunc {
+func (server *Server) getMission() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		unclassifiedODLCData := []cvs.UnclassifiedODLC{}
-		err := c.BindJSON(&unclassifiedODLCData)
-
-		if err == nil {
-			server.UnclassifiedTargets = append(server.UnclassifiedTargets, unclassifiedODLCData...)
-			c.String(http.StatusOK, "Accepted ODLC data")
-			return
-		}
-		c.String(http.StatusBadRequest, err.Error())
+		c.String(http.StatusNotImplemented, "Not Implemented")
 	}
 }
 
-/*
-Returns the unclassified targets that are currently stored in Hub,
-or an error if they have not been posted yet.
-*/
-func (server *Server) getOBCTargets() gin.HandlerFunc {
+func (server *Server) postMission() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if server.UnclassifiedTargets == nil {
-			c.String(http.StatusBadRequest, "ERROR: Unclassified Targets have not been posted yet")
-		} else {
-			c.JSON(http.StatusOK, server.UnclassifiedTargets)
-		}
-	}
-}
-
-/*
-Returns an integer representing the Unix time of when startMissionTimer() was called.
-This is intended to be passed to Houston, which will then convert it to the time since the mission started.
-*/
-func (server *Server) getTimeElapsed() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// if time hasn't been initialized yet, throw error
-		if server.MissionTime == 0 {
-			c.String(http.StatusBadRequest, "ERROR: time hasn't been initalized yet") // not sure if there's a built-in error message to use here
-		} else {
-			c.String(http.StatusOK, fmt.Sprint(server.MissionTime))
-		}
-	}
-}
-
-/*
-Starts a timer when the mission begins, in order to keep track of how long the mission has gone on.
-*/
-func (server *Server) startMissionTimer() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		server.MissionTime = time.Now().Unix()
-		c.String(http.StatusOK, "Mission timer successfully started!")
-	}
-}
-
-/*
-Query Hub for the mission's current state
-*/
-func (server *Server) getState() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.String(http.StatusOK, server.Manager.State.String())
-	}
-}
-
-/*
-Request a change to the mission's state.
-
-If the state is changing to "AIRDROP APPROACH" (signaling the start of the airdrop sequence),
-it will post the classified ODLCs to the OBC using the client function.
-
-The request will error with code 409 CONFLICT if it is an invalid state change.
-*/
-func (server *Server) changeState() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		stateJSON := manager.StateJSON{}
-		err := c.BindJSON(&stateJSON)
-
+		mission := protos.Mission{}
+		err := c.BindJSON(&mission)
 		if err != nil {
 			c.String(http.StatusBadRequest, err.Error())
 		}
 
-		prevState := server.Manager.State
-		state := stateJSON.ToEnum()
+		server.MissionConfig = &mission
 
-		if server.Manager.ChangeState(state) {
-			// if state.String() == "AIRDROP APPROACH" {
-			//TODO: FINISH THIS WHEN THE OBC SERVER HAS A ROUTE FOR UPLOADING CLASSIFIED ODLCS
-			// }
-			c.String(http.StatusOK, fmt.Sprintf("Successful state change: %s to %s.", prevState, state))
-		} else {
-			c.String(http.StatusConflict, fmt.Sprintf("Invalid state change: %s to %s.", prevState, state))
-		}
+		resp_body, status := server.obcClient.PostMission(&mission)
+		c.Data(status, "text/plain", resp_body)
 	}
 }
 
-/*
-Returns the starting time of the current state in seconds since epoch
-*/
-func (server *Server) getStateStartTime() gin.HandlerFunc {
+func (server *Server) postAirdropTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.String(http.StatusOK, fmt.Sprintf("%d", server.Manager.GetCurrentStateStartTime()))
+		c.String(http.StatusNotImplemented, "Not Implemented")
 	}
 }
 
-/*
-Returns the list of state changes that have occurred, with timestamps
-*/
-func (server *Server) getStateHistory() gin.HandlerFunc {
+func (server *Server) getInitialPath() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, server.Manager.HistoryJSON())
+		c.String(http.StatusNotImplemented, "Not Implemented")
 	}
 }
 
-/*
-User (person manning ground control station) will type in the ODLC info on each water bottle as well as the ordering of each bottle in the plane, and then click a button on Houston to upload it.
-
-Also note that one of the bottles should dropped on a manikin (won't have alphanumeric/color?)
-
-IDEA (to implement in the future): check to make sure the length of the bottle slice is no more than 5 (there should only be 5 bottles uploaded, but if there's some error we might want to be able to upload less).
-*/
-func (server *Server) uploadDropOrder() gin.HandlerFunc {
+func (server *Server) getInitialPathNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		bottleOrdering := airdrop.Bottles{}
-
-		err := c.BindJSON(&bottleOrdering.Bottles)
-
-		if err == nil {
-			server.Bottles = &bottleOrdering
-			c.String(http.StatusOK, "Bottles successfully uploaded!")
-		} else {
-			c.String(http.StatusBadRequest, err.Error())
-		}
-	}
-}
-
-/*
-Returns the information (drop index, which target to drop on, etc.) about each water bottle as it has been entered by the person manning the ground control station.
-*/
-func (server *Server) getDropOrder() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if server.Bottles == nil {
-			c.String(http.StatusBadRequest, "ERROR: drop order not yet initialized")
-		} else {
-			c.JSON(http.StatusOK, server.Bottles.Bottles)
-		}
-	}
-}
-
-/*
-Updates the information about a single water bottle as it was entered by the person manning the ground control station.
-
-This would be useful if there was a mistake when uploading the original drop ordering, so the information for a single bottle can be updated given an id.
-
-NOTE: this is currently not capable of updating a bottle's dropIndex in case it was entered incorrectly (because identifying the bottle to update is dependent on the dropIndex in the patch request body).
-If we want to change this, one solution would be to have an extra field in the json body for the dropIndex to update, and then in the proceeding struct the user would be able to enter a replacement dropIndex.
-
-If all bottles need to be updated at once, the user should just use the POST request (uploadDropOrder(); will clear everything and overwrite with the post body).
-*/
-func (server *Server) updateDropOrder() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		bottleToUpdate := airdrop.Bottle{}
-		err := c.BindJSON(&bottleToUpdate)
-
-		bottleUpdated := false
-
-		// loop through each of the bottles that are currently uploaded and find the one with the right id, and then overwrite its values
-		for i, bottle := range server.Bottles.Bottles {
-			if bottle.DropIndex == bottleToUpdate.DropIndex {
-				server.Bottles.Bottles[i] = bottleToUpdate
-				bottleUpdated = true
-			}
-		}
-
-		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
-			return
-		}
-
-		if bottleUpdated {
-			c.String(http.StatusOK, "Bottle %d has been updated!", bottleToUpdate.DropIndex)
-		} else {
-			c.String(http.StatusBadRequest, "ERROR: Bottle %d not found. Make sure the entire drop order has been initialized before updating individual bottles!", bottleToUpdate.DropIndex)
-		}
-	}
-}
-
-/*
-Returns the slice of Coordinates representing the mission boundaries stored in server,
-or an error if it has not been initialized.
-*/
-func (server *Server) getFieldBounds() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if server.FlightBounds == nil {
-			c.String(http.StatusBadRequest, "ERROR: Flight bounds not yet initialized")
-		} else {
-			c.JSON(http.StatusOK, server.FlightBounds)
-		}
-	}
-}
-
-/*
-Reads in longitude and latitude coordinates for field bounds and uploads to the server
-*/
-func (server *Server) uploadFieldBounds() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		fieldBounds := []pp.Coordinate{}
-		err := c.BindJSON(&fieldBounds)
-
-		if err == nil {
-			server.FlightBounds = fieldBounds
-			body, status := server.uploadMissionIfReady()
-			if status == -1 {
-				c.String(http.StatusOK, "Field Bounds Uploaded. Still need Airdrop Bounds.")
-			} else {
-				c.String(status, fmt.Sprintf("Field Bounds uploaded: Attempt to upload mission: %s", body))
-			}
-		} else {
-			c.String(http.StatusBadRequest, err.Error())
-		}
-	}
-}
-
-func (server *Server) uploadMissionIfReady() (string, int) {
-	if server.FlightBounds != nil && server.AirDropBounds != nil {
-		mission := pp.Mission{
-			FlightBoundaries: server.FlightBounds,
-			SearchBoundaries: server.AirDropBounds,
-		}
-
-		body, status := server.obcClient.PostMission(&mission)
-		return string(body), status
-	}
-
-	return "Mission not fully uploaded yet.", -1
-}
-
-/*
-Returns the slice of coordinates representing the airdrop zone boundaries that is stored in the server,
-or an error if it has not yet been initialized.
-*/
-func (server *Server) getAirdropBounds() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if server.AirDropBounds == nil {
-			c.String(http.StatusBadRequest, "ERROR: Airdrop bound not yet initialized")
-		} else {
-			c.JSON(http.StatusOK, server.AirDropBounds)
-		}
-	}
-}
-
-/*
-Reads in longitude and latitude coordinates for airdrop bounds and uploads to the server
-*/
-func (server *Server) uploadAirDropBounds() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		airDropBounds := []pp.Coordinate{}
-		err := c.BindJSON(&airDropBounds)
-
-		if err == nil {
-			server.AirDropBounds = airDropBounds
-			body, status := server.uploadMissionIfReady()
-			if status == -1 {
-				c.String(http.StatusOK, "Airdrop Bounds Uploaded. Still need to upload Flight Boundaries.")
-			} else {
-				c.String(status, fmt.Sprintf("Airdrop Bounds uploaded: Attempt to upload mission: %s", body))
-			}
-		} else {
-			c.String(http.StatusBadRequest, err.Error())
-		}
-	}
-}
-
-/*
-CVS sends results (target coordinates, alphanumeric, shape, color) to Hub and forward target coordinates to RTPP
-*/
-func (server *Server) postCVSResults() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		cvsResults := cvs.ClassifiedODLC{}
-		err := c.BindJSON(&cvsResults)
-
-		if err == nil {
-			c.String(http.StatusOK, "Successfully received CVS results")
-			server.ClassifiedTargets = append(server.ClassifiedTargets, cvsResults)
-			//TODO: forward target coordinates to path planning when OBC2 client is finished
-		} else {
-			c.String(http.StatusBadRequest, err.Error())
-		}
-	}
-}
-
-/*
-Request target data that was posted earlier via postCVSResults
-*/
-func (server *Server) getStoredCVSResults() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if server.ClassifiedTargets == nil {
-			c.String(http.StatusBadRequest, "ERROR: CVS results have not been posted yet")
-		} else {
-			c.JSON(http.StatusOK, server.ClassifiedTargets)
-		}
-	}
-}
-
-/*
-Returns camera status object as defined in obc/camera/datatypes.go
-
-This is intended for Houston to use.
-*/
-func (server *Server) getCameraStatus() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		cameraStatus, httpStatus := server.obcClient.GetCameraStatus()
-		c.JSON(httpStatus, cameraStatus)
-	}
-}
-
-/*
-Sends request to OBC to generate a new initial Path
-*/
-func (server *Server) generateNewInitialPath() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		path, status := server.obcClient.GenerateNewInitialPath()
-		c.Data(status, "application/json", path)
-	}
-}
-
-/*
-Sends request to OBC for currently uploaded initial path
-*/
-func (server *Server) getCurrentInitialPath() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		path, status := server.obcClient.GetCurrentInitialPath()
-		c.Data(status, "application/json", path)
-	}
-}
-
-/*
-Sends Post request to OBC to upload initial path
-*/
-func (server *Server) postInitialPath() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		path := []pp.Waypoint{}
-		err := c.BindJSON(&path)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Error with json binding %s", err.Error())
-		}
-
-		resp, status := server.obcClient.PostInitialPath(path)
-		c.String(status, string(resp))
-	}
-}
-
-/*
-Sends Post request to OBC with the competition waypoints we have to hit (in the initial path)
-*/
-func (server *Server) handleInitialWaypoints() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		wpts := []pp.Waypoint{}
-		err := c.BindJSON(&wpts)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Error with json binding %s", err.Error())
-		}
-
-		resp, status := server.obcClient.PostInitialWaypoint(&wpts)
-		c.String(status, string(resp))
-	}
-}
-
-/*
-Gets the initial waypoints that have already been uploaded to the OBC
-*/
-func (server *Server) getInitialWaypoints() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.GetInitialWaypoints()
-		c.Data(status, "application/json", resp)
-	}
-}
-
-/*
-Sends Post request to the OBC to signify that we want to start the autonomous mission
-*/
-func (server *Server) startMission() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.StartMission()
-		c.String(status, string(resp))
-	}
-}
-
-/*
-In case the images were not classified correctly, Houston may need to update the values manually.
-
-This function currently just overwrites the values in server.ClassfiedTargets; we might want to change this to update specific values later.
-*/
-func (server *Server) updateCVSResults() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		updatedResults := []cvs.ClassifiedODLC{}
-		err := c.BindJSON(&updatedResults)
-
-		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
-		} else {
-			server.ClassifiedTargets = updatedResults
-			c.String(http.StatusOK, "Successfully updated CVS results!")
-		}
-	}
-}
-
-func (server *Server) manualBottleDrop() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.ManualBottleDrop()
-		c.String(status, string(resp))
-	}
-}
-
-func (server *Server) manualBottleSwap() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		bottleSwap := airdrop.BottleSwap{}
-		err := c.BindJSON(&bottleSwap)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Bad JSON formatting: %s", err.Error())
-		}
-		resp, status := server.obcClient.ManualBottleSwap(bottleSwap)
-		c.String(status, string(resp))
-	}
-}
-
-func (server *Server) getJetsonMavStatus() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.GetMavlinkStatus()
-		c.String(status, string(resp))
-	}
-}
-
-func (server *Server) connectJetsonMav() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		mavConn := pp.JetsonMavConn{}
-		err := c.BindJSON(&mavConn)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
-		}
-		resp, status := server.obcClient.ConnectMavlink(mavConn)
-		c.String(status, string(resp))
-	}
-}
-
-func (server *Server) getCameraConfig() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.GetCameraConfig()
-		c.String(status, string(resp))
-	}
-}
-
-func (server *Server) postCameraConfig() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		cameraConfig := camera.Config{}
-		err := c.BindJSON(&cameraConfig)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Bad JSON formatting %s", err.Error())
-		}
-		resp, status := server.obcClient.PostCameraConfig(cameraConfig)
-		c.String(status, string(resp))
-	}
-}
-
-func (server *Server) startCameraStream() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.StartCamera()
-		c.String(status, resp)
-	}
-}
-
-func (server *Server) stopCameraStream() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		resp, status := server.obcClient.StopCamera()
-		c.String(status, resp)
-	}
-}
-
-func (server *Server) getCameraCapture() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		imgData, status := server.obcClient.GetCameraCapture()
-		c.Data(status, "image/jpeg", imgData)
-	}
-}
-
-func (server *Server) postRawImage() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		img, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Bad image data %s", err.Error())
-		}
-		currentTime := time.Now().Unix()
-		server.newestRawImage = camera.RawImage{Data: img, Timestamp: currentTime}
-	}
-}
-
-/*
-getRawImage handles get requests asking for the most recent raw image received from the camera. This request is
-intended to originate from Houston. If the timestamp query parameter is provided, the server will only return the
-most recent image if its timestamp is more recent than the given timestamp (in seconds since epoch).
-
-If it sends down the image, it will also send down the timestamp of the image in the "Timestamp" header
-*/
-func (server *Server) getRawImage() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		givenTimestamp, err := strconv.ParseInt(c.DefaultQuery("timestamp", "0"), 10, 64)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Bad timestamp %s", err.Error())
-		}
-		if givenTimestamp < server.newestRawImage.Timestamp {
-			c.Writer.Header().Set("Timestamp", fmt.Sprintf("%d", server.newestRawImage.Timestamp))
-			c.Data(http.StatusOK, "image/jpeg", server.newestRawImage.Data)
-		} else {
-			c.String(http.StatusNotFound, "No new image")
-		}
+		c.String(http.StatusNotImplemented, "Not Implemented")
 	}
 }
