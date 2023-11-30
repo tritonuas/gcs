@@ -12,7 +12,7 @@
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.75) inset;
 }
 
-.map {
+.controls-page .map {
     flex: 70%;
     width: 100%;
     height: 100%;
@@ -21,7 +21,7 @@
     margin: 50px;
 }
 
-.flight-telemetry-container {
+.controls-page .flight-telemetry-container {
     display: flex;
     flex-direction: column;
     flex: 15%;
@@ -33,7 +33,7 @@
     box-shadow: 0px 0px 25px 0px rgba(0,0,0,0.75);
 }
 
-.flight-telemetry {
+.controls-page .flight-telemetry {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -47,7 +47,7 @@
     user-select: none
 }
 
-.data {
+.controls-page .data {
     flex: 2;
     font-family: 'Courier New';
     font-size: 45px;
@@ -56,14 +56,14 @@
     margin: auto;
 }
 
-.heading {
+.controls-page .heading {
     flex: 1;
     font-size: 1.2dvw;
     margin: auto;
     margin-top: 1.5dvh;
 }
 
-.unit-indicator {
+.controls-page .unit-indicator {
     display: flex;
     align-self: center;
     align-items: center;
@@ -73,7 +73,7 @@
     margin-bottom: 1dvw;
 }
 
-.unit {
+.controls-page .unit {
     overflow: hidden;
     display: flex;
     flex: 1;
@@ -83,13 +83,32 @@
     font-weight: bold;
     padding: 0.5dvw;
     height: 1dvh;
-    background-color: var(--highlight);
     border-top-left-radius: 3dvh;
     border-bottom-left-radius: 3dvh;
-    user-select: none
+    user-select: none;
+    cursor: pointer;
+
+
+    transition: all var(--std-transition);
 }
 
-.unit:last-child {
+.controls-page .unit:first-child {
+    background: linear-gradient(to left, var(--highlight) 50%, var(--grey-out-bg) 50%) right;
+    background-size: 200% 100%;
+}
+
+.controls-page .unit.unit-selected:first-child {
+    background-position: right;
+}
+
+.controls-page .unit.unit-not-selected:first-child {
+    background-position: left;
+}
+
+.controls-page .unit:last-child {
+    background: linear-gradient(to left, var(--grey-out-bg) 50%, var(--highlight) 50%) right;
+    background-size: 200% 100%;
+
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
     border-top-right-radius: 3dvh;
@@ -97,7 +116,15 @@
     border-left: 2px solid black;
 }
 
-#compass {
+.controls-page .unit.unit-selected:last-child {
+    background-position: left;
+}
+
+.controls-page .unit.unit-not-selected:last-child {
+    background-position: right;
+}
+
+.controls-page #compass {
     background-color: var(--highlight);
 }
 
@@ -109,30 +136,30 @@
         padding-right: 50px;
     }
 
-    .flight-telemetry-container {
+    .controls-page .flight-telemetry-container {
         flex-direction: row;
         padding-left: 0px;
         margin: 0px;
         width: 100%;
     }
 
-    .flight-telemetry {
+    .controls-page .flight-telemetry {
         margin-left: 20px;
         height: auto;
     }
 
-    .map {
+    .controls-page .map {
         margin: 20px;
     }
 
-    .heading {
+    .controls-page .heading {
         flex: 1;
         font-size: 2dvw;
         margin: auto;
         margin-top: 1.5dvh;
     }
 
-    .data {
+    .controls-page .data {
         flex: 2;
         font-family: 'Courier New';
         font-size: 45px;

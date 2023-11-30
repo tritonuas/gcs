@@ -25,11 +25,13 @@ code {
 	--dark-bg: #00204a;
   --med-bg: #2667ff;
   --light-bg: #3f8efc;
+  --grey-out-bg: #808080;
 
 	--highlight: #fdb44b; 
 
   --dark-text: #111111; 
   --light-text: #DDDDDD;
+
 
   --success-text: #33AA66; 
   --failure-text: #AA3344;

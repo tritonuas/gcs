@@ -116,23 +116,21 @@ interface TelemetryProps {
  * @returns the telemetry component
  */
 function TelemetryGenerator({ key, heading, color, value, units, unit, onClick }: TelemetryProps) {
-    let unit0_color = { backgroundColor: '#808080' };
-    let unit1_color = { backgroundColor: 'var(--secondary-text)' };
     if (units[0] !== units[1]) {
-        if (unit === units[0]) {
-            unit0_color = { backgroundColor: 'var(--highlight)' };
-            unit1_color = { backgroundColor: '#808080' };
-        } else {
-            unit0_color = { backgroundColor: '#808080' };
-            unit1_color = { backgroundColor: 'var(--highlight)' };
+        let unit0_class = 'unit-selected';
+        let unit1_class = 'unit-not-selected';
+
+        if (unit !== units[0]) {
+            [unit0_class, unit1_class] = [unit1_class, unit0_class]; // swap
         }
+
         return (
             <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
                 <h1 className='heading'>{heading}</h1>
                 <p className='data'>{value} {unit}</p>
                 <div className='unit-indicator'>
-                    <p className='unit' style={unit0_color}>{units[0]}</p>
-                    <p className='unit' style={unit1_color}>{units[1]}</p>
+                    <p className={`unit ${unit0_class}`} >{units[0]}</p>
+                    <p className={`unit ${unit1_class}`} >{units[1]}</p>
                 </div>
             </div>
         );
