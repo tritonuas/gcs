@@ -1,10 +1,11 @@
-import { SetStateAction, useState, FormEvent } from 'react';
+import { SetStateAction, useState, useEffect, FormEvent } from 'react';
 
 import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 
 import './Input.css';
 import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
+import { Bottle, BottleDropIndex, ODLCColor, ODLCShape } from '../protos/obc.pb';
 
 enum MapMode {
     FlightBound,
@@ -237,27 +238,45 @@ function MapInputForm(
  * on the plane for the mission
  * @returns Bottle Input Form
  */
-function BottleInputForm() {
-    const bottleXInput = (x: string) => {
+function BottleInputForm(
+    {bottleAssignments, setBottleAssignments}:
+    {bottleAssignments: Bottle[], setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>}
+) {
+    const mapColorsToOptions = (currentColor: ODLCColor) =>
+        (Object.keys(ODLCColor) as unknown as Array<ODLCColor>)
+            .filter((color) => {
+                return (color != ODLCColor.UNRECOGNIZED)
+            })
+            .map((color) =>
+                <>
+                    <option selected={currentColor == color} key={color} value={color}>{color}</option>
+                </>
+            )
+
+    /*
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>
+                    <option value="green">Green</option>
+                    <option value="purple">Purple</option>
+                    <option value="brown">Brown</option>
+                    <option value="orange">Orange</option>
+    */
+
+    const bottleInput = (bottle: Bottle) => {
         return (
             <>
-                <fieldset>
-                    <legend>Bottle {x}</legend>
+                <fieldset key={bottle.Index}>
+                    <legend>Bottle {bottle.Index.toString()}</legend>
                     <label>
                         Alphanumeric: 
-                        <input maxLength={1} id=""/>
+                        <input maxLength={1} value={bottle.Alphanumeric}/>
                     </label>
                     <label>
                         Alphanumeric Color:
                         <select>
-                            <option value="white">White</option>
-                            <option value="black">Black</option>
-                            <option value="red">Red</option>
-                            <option value="blue">Blue</option>
-                            <option value="green">Green</option>
-                            <option value="purple">Purple</option>
-                            <option value="brown">Brown</option>
-                            <option value="orange">Orange</option>
+                            {mapColorsToOptions(bottle.AlphanumericColor)}
                         </select>
                     </label>
                     <label>
@@ -276,21 +295,33 @@ function BottleInputForm() {
                     <label>
                         Shape Color: 
                         <select>
-                            <option value="white">White</option>
-                            <option value="black">Black</option>
-                            <option value="red">Red</option>
-                            <option value="blue">Blue</option>
-                            <option value="green">Green</option>
-                            <option value="purple">Purple</option>
-                            <option value="brown">Brown</option>
-                            <option value="orange">Orange</option>
+                            {mapColorsToOptions(bottle.ShapeColor)}
                         </select>
                     </label>
                 </fieldset>
             </>
         );
     }
-    
+
+    useEffect(() => {
+        let bottles = [];
+        for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
+            let bottle = {
+                Alphanumeric: "A",
+                AlphanumericColor: ODLCColor.Black,
+                Shape: ODLCShape.Circle,
+                ShapeColor: ODLCColor.Black,
+                Index: i,
+                IsMannikin: false
+            } as Bottle;
+            bottles.push(bottle);
+        }
+        setBottleAssignments(bottles);
+    }, []);
+
+    function submitForm(_e: FormEvent) {
+
+    }
 
     return (
         <>
@@ -298,11 +329,7 @@ function BottleInputForm() {
                 <fieldset>
                     <legend>Bottle Input</legend>
                     <div className="bottle-form-container">
-                        {bottleXInput("A")}
-                        {bottleXInput("B")}
-                        {bottleXInput("C")}
-                        {bottleXInput("D")}
-                        {bottleXInput("E")}
+                        {bottleAssignments.map((bottle) => bottleInput(bottle))}
                     </div>
                 </fieldset>
             </form>
@@ -407,6 +434,7 @@ function MapIllustrator(
 function Input() {
     const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
     const [mapData, setMapData] = useState<Map<MapMode,number[][]>>(new Map());
+    const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
 
     return (
         <>
@@ -422,7 +450,10 @@ function Input() {
                         mapData={mapData}
                         setMapData={setMapData}
                         />
-                    <BottleInputForm />
+                    <BottleInputForm 
+                        bottleAssignments={bottleAssignments} 
+                        setBottleAssignments={setBottleAssignments}
+                        />
                 </div>
             </main>
         </>
