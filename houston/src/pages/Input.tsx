@@ -1,11 +1,11 @@
-import { SetStateAction, useState, useEffect, FormEvent } from 'react';
+import { SetStateAction, useState, useEffect, FormEvent, ChangeEvent } from 'react';
 
 import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 
 import './Input.css';
 import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
-import { Bottle, BottleDropIndex, ODLCColor, ODLCShape } from '../protos/obc.pb';
+import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from '../protos/obc.pb';
 
 enum MapMode {
     FlightBound,
@@ -69,7 +69,7 @@ function FormTable(
 ) {
     // add extra left column for the X button
     headings = ["---"].concat(headings);
-    
+
     return (
         <>
             <table>
@@ -242,27 +242,28 @@ function BottleInputForm(
     {bottleAssignments, setBottleAssignments}:
     {bottleAssignments: Bottle[], setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>}
 ) {
-    const mapColorsToOptions = (currentColor: ODLCColor) =>
-        (Object.keys(ODLCColor) as unknown as Array<ODLCColor>)
+    function mapColorsToOptions() {
+        return (Object.keys(ODLCColor) as unknown as Array<ODLCColor>)
             .filter((color) => {
-                return (color != ODLCColor.UNRECOGNIZED)
+                return isNaN(Number(color));
             })
-            .map((color) =>
-                <>
-                    <option selected={currentColor == color} key={color} value={color}>{color}</option>
-                </>
-            )
-
-    /*
-                    <option value="white">White</option>
-                    <option value="black">Black</option>
-                    <option value="red">Red</option>
-                    <option value="blue">Blue</option>
-                    <option value="green">Green</option>
-                    <option value="purple">Purple</option>
-                    <option value="brown">Brown</option>
-                    <option value="orange">Orange</option>
-    */
+            .map((color) => {
+                return (<>
+                    <option key={color} value={color}>{color}</option>
+                </>);
+            });
+    }
+    function mapShapesToOptions() {
+        return (Object.keys(ODLCShape) as unknown as Array<ODLCShape>)
+            .filter((shape) => {
+                return isNaN(Number(shape));
+            })
+            .map((shape) => {
+                return (<>
+                    <option key={shape} value={shape}>{shape}</option>
+                </>);
+            });
+    }
 
     const bottleInput = (bottle: Bottle) => {
         return (
@@ -271,31 +272,36 @@ function BottleInputForm(
                     <legend>Bottle {bottle.Index.toString()}</legend>
                     <label>
                         Alphanumeric: 
-                        <input maxLength={1} value={bottle.Alphanumeric}/>
+                        <input 
+                            maxLength={1} 
+                            defaultValue={bottle.Alphanumeric}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                bottle.Alphanumeric = e.currentTarget.value;
+                            }}
+                            />
                     </label>
                     <label>
                         Alphanumeric Color:
-                        <select>
-                            {mapColorsToOptions(bottle.AlphanumericColor)}
+                        <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            bottle.AlphanumericColor = e.currentTarget.value as unknown as ODLCColor;
+                        }}>
+                            {mapColorsToOptions()}
                         </select>
                     </label>
                     <label>
                         Shape: 
-                        <select>
-                            <option value="circle">Circle</option>
-                            <option value="semicircle">Semicircle</option>
-                            <option value="quartercircle">Quarter Circle</option>
-                            <option value="triangle">Triangle</option>
-                            <option value="rectangle">Rectangle</option>
-                            <option value="pentagon">Pentagon</option>
-                            <option value="star">Star</option>
-                            <option value="cross">Cross</option>
+                        <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            bottle.Shape = e.currentTarget.value as unknown as ODLCShape;
+                        }}>
+                            {mapShapesToOptions()}
                         </select>
                     </label>
                     <label>
                         Shape Color: 
-                        <select>
-                            {mapColorsToOptions(bottle.ShapeColor)}
+                        <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            bottle.ShapeColor = e.currentTarget.value as unknown as ODLCColor;
+                        }}>
+                            {mapColorsToOptions()}
                         </select>
                     </label>
                 </fieldset>
@@ -307,10 +313,10 @@ function BottleInputForm(
         let bottles = [];
         for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
             let bottle = {
-                Alphanumeric: "A",
-                AlphanumericColor: ODLCColor.Black,
-                Shape: ODLCShape.Circle,
-                ShapeColor: ODLCColor.Black,
+                Alphanumeric: "",
+                AlphanumericColor: ODLCColor.UnspecifiedColor,
+                Shape: ODLCShape.UnspecifiedShape,
+                ShapeColor: ODLCColor.UnspecifiedColor,
                 Index: i,
                 IsMannikin: false
             } as Bottle;
@@ -319,13 +325,9 @@ function BottleInputForm(
         setBottleAssignments(bottles);
     }, []);
 
-    function submitForm(_e: FormEvent) {
-
-    }
-
     return (
         <>
-            <form className="tuas-form" onSubmit={submitForm}>
+            <form className="tuas-form" >
                 <fieldset>
                     <legend>Bottle Input</legend>
                     <div className="bottle-form-container">
@@ -432,9 +434,34 @@ function MapIllustrator(
  * @returns Input page
  */
 function Input() {
+    // TODO: simplify all of these state variables into one mission state variable
+    // so instead of number[][] its actually storing them as GPS Coords...
     const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
     const [mapData, setMapData] = useState<Map<MapMode,number[][]>>(new Map());
     const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
+
+    function submitMission() {
+        const mapDataToGpsCoords = (mode: MapMode) => {
+            let config = getModeConfig(mode);
+                    
+            return mapData.get(mode)?.map((row) => {
+                return ({
+                    Latitude: row[config.headings.indexOf("Latitude")],
+                    Longitude: row[config.headings.indexOf("Longitude")],
+                    Altitude: row[config.headings.indexOf("Altitude")],
+                } as GPSCoord);
+            }) || [];
+        };
+
+        let mission: Mission = {
+            BottleAssignments: bottleAssignments,
+            FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
+            AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
+            Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
+        };
+
+        console.log(mission);
+    }
 
     return (
         <>
@@ -454,6 +481,9 @@ function Input() {
                         bottleAssignments={bottleAssignments} 
                         setBottleAssignments={setBottleAssignments}
                         />
+                    <form className="tuas-form">
+                        <input type="button" onClick={submitMission} value="Submit"></input>
+                    </form>
                 </div>
             </main>
         </>
