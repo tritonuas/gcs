@@ -12,6 +12,10 @@
     "prepare": "cd .. && husky install houston/.husky"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/material": "^5.14.19",
+    "@mui/material-next": "^6.0.0-alpha.111",
     "@types/react-image-gallery": "^1.2.2",
     "@types/react-modal": "^3.16.2",
     "@uiball/loaders": "^1.3.0",

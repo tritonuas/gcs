@@ -11,7 +11,7 @@
     user-select: none;
 }
 
-.left-container {
+.report-page .left-container {
     display: flex;
     flex: 19;
     flex-direction: row;
@@ -24,7 +24,7 @@
     align-content: center;
 }
 
-.checkbox-container {
+.report-page .checkbox-container {
     display: flex;
     flex-direction: row;
     flex: 1;
@@ -40,14 +40,14 @@
     justify-self: center;
 }
 
-.checkbox {
+.report-page .checkbox {
     display: flex;
     flex: 50%;
     font-size: 1.5dvh;
     justify-content: center;
 }
 
-.checkbox-text {
+.report-page .checkbox-text {
     background-color: var(--highlight);
     border-radius: 20px;
     box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.75);
@@ -55,7 +55,7 @@
     width: 22dvh;
 }
 
-.gallery-container {
+.report-page .gallery-container {
     display: flex;
     flex: 1;
     border-radius: 20px;
@@ -66,7 +66,7 @@
     align-content: center;
 }
 
-.unmatched-gallery {
+.report-page .unmatched-gallery {
     display: flex;
     padding: 10px;
     justify-content: center;
@@ -86,7 +86,7 @@
     display: none;
 }
 
-.matched-gallery {
+.report-page .matched-gallery {
     padding: 10px;
     display: flex;
     justify-content: center;
@@ -101,7 +101,7 @@
     overflow-y: scroll;
 }
 
-.report-page-map {
+.report-page .report-page-map {
     display: flex;
     flex: 1;
     width: 100%;
@@ -111,12 +111,12 @@
     margin-left: 25px;
 }
 
-.image-container {
+.report-page .image-container {
     display: flex;
     flex-direction: column;
     flex: 1;
     border-radius: 15px;
-    background-color: darkgrey;
+    background-color: var(--grey-out-bg);
     margin: 5px;
     min-width: 18.25dvh;
     max-width: 18.25dvh;
@@ -125,7 +125,7 @@
     box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.75);
 }
 
-.image {
+.report-page .image {
     align-self: center;
     margin: 5px;
     flex: 40%;
@@ -136,10 +136,10 @@
     overflow: hidden;
 }
 
-.image-data {
+.report-page .image-data {
     margin: 0px;
     flex: 15%;
-    font-size: 1.4dvh;
+    font-size: 1.35dvh;
     width: 18dvh;
     max-height: 4dvh;
     margin-left: 5px;
@@ -149,12 +149,25 @@
     user-select: none;
 }
 
-.leaflet-popup {
-    background-color: gray;
+.report-page .image-data-lat-long {
+    text-align: center;
+    margin: 0px;
+    flex: 15%;
+    font-size: 1.35dvh;
+    width: 18dvh;
+    max-height: 4dvh;
+    margin-left: 5px;
+    margin-right: 5px;
+    text-overflow: hidden;
+    text-wrap: wrap;
+    user-select: none;
 }
 
-.AredCircleblue{
-    background-color: red;
+.report-page .button {
+    max-width: fit-content;
+    align-self: center;
+    margin-bottom: 10px;
+    font-size: 1.2dvh;
 }
 
 @media (max-width: 1500px) {
@@ -165,12 +178,12 @@
         padding-right: 50px;
     }
 
-    .left-container {
+    .report-page .left-container {
         flex-direction: column;
         flex: 95%;
     }
 
-    .checkbox-container {
+    .report-page .checkbox-container {
         flex: 5%;
         max-height: 25dvh;
         margin-left: 5px;
@@ -178,19 +191,19 @@
         margin: 0px;
     }
 
-    .report-page-map {
+    .report-page .report-page-map {
         flex: 75%;
         margin: 0px;
     }
 
-    .gallery-container {
+    .report-page .gallery-container {
         flex-direction: row;
         flex: 25%;
         margin: 10px;
         width: 100%;
     }
 
-    .unmatched-gallery {
+    .report-page .unmatched-gallery {
         flex: 45%;
         max-height: 25dvh;
         margin: 0px;
@@ -198,7 +211,7 @@
         margin-right: 5px;
     }
 
-    .matched-gallery {
+    .report-page .matched-gallery {
         flex: 45%;
         max-height: 25dvh;
         margin-left: 5px;
