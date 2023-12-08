@@ -146,6 +146,8 @@ function Report() {
         new Item(0, 1.3467, 103.9326, img5, "null",  "A", "purple", "Square", "purple", "")
     ]);
 
+    const [itemArray, setitemArray] = React.useState([itemA, itemB, itemC, itemD, itemE]);
+
     const updateItem = (index: number, newId: number) => {
         const newItems = foundItemArray.map((item, i) => {
             if (i === index) {
@@ -156,12 +158,8 @@ function Report() {
                 return item;
         });
         setfoundItemArray(newItems);
+        setitemArray([itemA, itemB, itemC, itemD, itemE]);
       };
-      
-
-    const [itemArray, setitemArray] = React.useState([itemA, itemB, itemC, itemD, itemE]);
-
-    setitemArray([itemA, itemB, itemC, itemD, itemE]);
 
     const matchedItems = foundItemArray.filter(itemTwo => 
         itemArray.some(itemOne => itemOne.id === itemTwo.id)
