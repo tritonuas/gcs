@@ -218,8 +218,6 @@ func (server *Server) testConnections() gin.HandlerFunc {
 			"plane_obc":       true,
 			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
 			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker()})
-
-		server.influxDBClient.GetAll()
 	}
 }
 
@@ -997,6 +995,10 @@ Calls GetAll function in influxDB client to dump influx data into csv files.
 */
 func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		server.influxDBClient.GetAll()
+		_, err := server.influxDBClient.GetAll()
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 }

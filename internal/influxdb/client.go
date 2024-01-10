@@ -242,166 +242,101 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 // TODO: Will dump entire DB to a JSON or CSV format
 func (c *Client) GetAll() (string, error) {
 
+	const fileWriterErrMsg = "File writer fail to write"
+
 	endTime := time.Now().Format(time.RFC3339)
 	timeStamp := time.Now().Format("2006-01-02 15:04:05")
 
-	ID30, err30 := c.QueryMsgIDAndTimeRange(uint32(30), &endTime)
-	ID147, err147 := c.QueryMsgIDAndTimeRange(uint32(147), &endTime)
-	ID33, err33 := c.QueryMsgIDAndTimeRange(uint32(33), &endTime)
-	ID0, err0 := c.QueryMsgIDAndTimeRange(uint32(0), &endTime)
-	ID74, err74 := c.QueryMsgIDAndTimeRange(uint32(74), &endTime)
+	attitude, attitudeError := c.QueryMsgIDAndTimeRange(uint32(30), &endTime)
+	battery, batteryError := c.QueryMsgIDAndTimeRange(uint32(147), &endTime)
+	globalPosition, globalPositionError := c.QueryMsgIDAndTimeRange(uint32(33), &endTime)
+	heartbeat, heartbeatError := c.QueryMsgIDAndTimeRange(uint32(0), &endTime)
+	vfr_hud, vfr_hudError := c.QueryMsgIDAndTimeRange(uint32(74), &endTime)
 
-	os.Mkdir("/CSV/"+timeStamp, 0700)
+	fields := make([]map[string]interface{}, 0)
 
-	/*Attitude*/
-	file, err := os.Create("/CSV/" + timeStamp + "/ATTITUDE.csv")
-	if err != nil {
-		file.Close()
-		return "File writer fail to open", err
+	fields = append(fields, (map[string]interface{}{
+		"query": attitude, // Replace with the appropriate value
+		"name":  "ATTITUDE",
+		"error": attitudeError,
+	}))
+
+	fields = append(fields, (map[string]interface{}{
+		"query": battery,
+		"name":  "BATTERY_STATUS",
+		"error": batteryError,
+	}))
+
+	fields = append(fields, (map[string]interface{}{
+		"query": globalPosition,
+		"name":  "GLOBAL_POSITION_INT",
+		"error": globalPositionError,
+	}))
+
+	fields = append(fields, (map[string]interface{}{
+		"query": heartbeat,
+		"name":  "HEARTBEAT",
+		"error": heartbeatError,
+	}))
+
+	fields = append(fields, (map[string]interface{}{
+		"query": vfr_hud,
+		"name":  "VFR_HUD",
+		"error": vfr_hudError,
+	}))
+
+	mkDirErr := os.Mkdir("/CSV/"+timeStamp, 0700)
+
+	if mkDirErr != nil {
+		return "Error in making directory", mkDirErr
 	}
-	if err30 != nil {
-		file.WriteString("Query for ID30 not working")
-		return "Query for ID30 not working", err30
-	}
 
-	titleArray := []string{}
+	for x := 0; x < len(fields); x++ {
+		queryMap := fields[x]["query"].([]map[string]interface{})
+		name := fields[x]["name"].(string)
+		queryErr := fields[x]["error"]
 
-	for key := range ID30[0] {
-		titleArray = append(titleArray, key)
-	}
+		file, err := os.Create("/CSV/" + timeStamp + "/" + name + ".csv")
 
-	sort.Strings(titleArray)
-	file.WriteString(strings.Join(titleArray, ","))
-
-	for x := 0; x < len(ID30); x++ {
-		temp := "\n"
-		for y := 0; y < len(ID30[x]); y++ {
-			temp += fmt.Sprintf("%v,", ID30[x][titleArray[y]])
+		if err != nil {
+			file.Close()
+			return "Fail to create new CSV file", err
 		}
-		temp = temp[:len(temp)-1]
-		file.WriteString(temp)
-	}
-	file.Close()
 
-	/*Battery stauts*/
-	file, err = os.Create("/CSV/" + timeStamp + "/BATTERY_STATUS.csv")
-	if err != nil {
-		file.Close()
-		return "File writer fail to open", err
-	}
-	if err147 != nil {
-		file.WriteString("Query for ID147 not working")
-		return "Query for ID147 not working", err147
-	}
-
-	titleArray = []string{}
-
-	for key := range ID147[0] {
-		titleArray = append(titleArray, key)
-	}
-
-	sort.Strings(titleArray)
-	file.WriteString(strings.Join(titleArray, ","))
-
-	for x := 0; x < len(ID147); x++ {
-		temp := "\n"
-		for y := 0; y < len(ID147[x]); y++ {
-			temp += fmt.Sprintf("%v,", ID147[x][titleArray[y]])
+		if queryErr != nil {
+			_, err = file.WriteString("Query for " + name + " not working")
+			if err != nil {
+				return fileWriterErrMsg, err
+			}
+			return "Query for " + name + " not working", queryErr.(error)
 		}
-		temp = temp[:len(temp)-1]
-		file.WriteString(temp)
-	}
-	file.Close()
 
-	/*Global position*/
-	file, err = os.Create("/CSV/" + timeStamp + "/GLOBAL_POSITION_INT.csv")
-	if err != nil {
-		file.Close()
-		return "File writer fail to open", err
-	}
-	if err33 != nil {
-		file.WriteString("Query for ID33 not working")
-		return "Query for ID33 not working", err33
-	}
+		titleArray := []string{}
 
-	titleArray = []string{}
-
-	for key := range ID33[0] {
-		titleArray = append(titleArray, key)
-	}
-
-	sort.Strings(titleArray)
-	file.WriteString(strings.Join(titleArray, ","))
-
-	for x := 0; x < len(ID33); x++ {
-		temp := "\n"
-		for y := 0; y < len(ID33[x]); y++ {
-			temp += fmt.Sprintf("%v,", ID33[x][titleArray[y]])
+		for key := range queryMap[0] {
+			titleArray = append(titleArray, key)
 		}
-		temp = temp[:len(temp)-1]
-		file.WriteString(temp)
-	}
-	file.Close()
 
-	/*Heartbeat*/
-	file, err = os.Create("/CSV/" + timeStamp + "/HEARTBEAT.csv")
-	if err != nil {
-		file.Close()
-		return "File writer fail to open", err
-	}
-	if err0 != nil {
-		file.WriteString("Query for ID0 not working")
-		return "Query for ID0 not working", err33
-	}
+		sort.Strings(titleArray)
 
-	titleArray = []string{}
-
-	for key := range ID0[0] {
-		titleArray = append(titleArray, key)
-	}
-
-	sort.Strings(titleArray)
-	file.WriteString(strings.Join(titleArray, ","))
-
-	for x := 0; x < len(ID0); x++ {
-		temp := "\n"
-		for y := 0; y < len(ID0[x]); y++ {
-			temp += fmt.Sprintf("%v,", ID0[x][titleArray[y]])
+		_, err = file.WriteString(strings.Join(titleArray, ","))
+		if err != nil {
+			return fileWriterErrMsg, err
 		}
-		temp = temp[:len(temp)-1]
-		file.WriteString(temp)
-	}
-	file.Close()
 
-	/*VFR HUD*/
-	file, err = os.Create("/CSV/" + timeStamp + "/VFR_HUD.csv")
-	if err != nil {
-		file.Close()
-		return "File writer fail to open", err
-	}
-	if err74 != nil {
-		file.WriteString("Query for ID74 not working")
-		return "Query for ID74 not working", err33
-	}
-
-	titleArray = []string{}
-
-	for key := range ID74[0] {
-		titleArray = append(titleArray, key)
-	}
-
-	sort.Strings(titleArray)
-	file.WriteString(strings.Join(titleArray, ","))
-
-	for x := 0; x < len(ID74); x++ {
-		temp := "\n"
-		for y := 0; y < len(ID74[x]); y++ {
-			temp += fmt.Sprintf("%v,", ID74[x][titleArray[y]])
+		for x := 0; x < len(queryMap); x++ {
+			rowEntry := "\n"
+			for y := 0; y < len(queryMap[x]); y++ {
+				rowEntry += fmt.Sprintf("%v,", queryMap[x][titleArray[y]])
+			}
+			rowEntry = rowEntry[:len(rowEntry)-1]
+			_, err = file.WriteString(rowEntry)
+			if err != nil {
+				return fileWriterErrMsg, err
+			}
 		}
-		temp = temp[:len(temp)-1]
-		file.WriteString(temp)
+		file.Close()
 	}
-	file.Close()
 
 	return "Data dump succesful", nil
 }
