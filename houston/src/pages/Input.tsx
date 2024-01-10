@@ -1,4 +1,4 @@
-import { SetStateAction, useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { SetStateAction, useState, useEffect, ChangeEvent } from 'react';
 
 import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 
@@ -236,12 +236,19 @@ function MapInputForm(
 /**
  * Form that handles all the input for entering bottle loading information
  * on the plane for the mission
+ * @param props props
+ * @param props.bottleAssignments The list of current entered bottle assignments
+ * @param props.setBottleAssignments State setter for props.bottleAssignments
  * @returns Bottle Input Form
  */
 function BottleInputForm(
     {bottleAssignments, setBottleAssignments}:
     {bottleAssignments: Bottle[], setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>}
 ) {
+    /**
+     * @returns Every possible ODLC Color represented as an <option> HTML element, to be 
+     * placed inside of a <select> element.
+     */
     function mapColorsToOptions() {
         return (Object.keys(ODLCColor) as unknown as Array<ODLCColor>)
             .filter((color) => {
@@ -253,6 +260,10 @@ function BottleInputForm(
                 </>);
             });
     }
+    /**
+     * @returns Every possible ODLC Shape represented as an <option> HTML element, to be 
+     * placed inside of a <select> element.
+     */
     function mapShapesToOptions() {
         return (Object.keys(ODLCShape) as unknown as Array<ODLCShape>)
             .filter((shape) => {
@@ -271,10 +282,23 @@ function BottleInputForm(
                 <fieldset key={bottle.Index}>
                     <legend>Bottle {bottle.Index.toString()}</legend>
                     <label>
+                       Mannequin 
+                        <input
+                            type="checkbox"
+                            defaultChecked={bottle.IsMannikin}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                bottle.IsMannikin = e.currentTarget.checked;
+                                // force state change so inputs below get rerendered as disabled
+                                setBottleAssignments(bottleAssignments.map(e => e));    
+                            }}
+                            />
+                    </label>
+                    <label>
                         Alphanumeric: 
                         <input 
                             maxLength={1} 
                             defaultValue={bottle.Alphanumeric}
+                            disabled={bottle.IsMannikin}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => {
                                 bottle.Alphanumeric = e.currentTarget.value;
                             }}
@@ -284,7 +308,9 @@ function BottleInputForm(
                         Alphanumeric Color:
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.AlphanumericColor = e.currentTarget.value as unknown as ODLCColor;
-                        }}>
+                        }}
+                            disabled={bottle.IsMannikin}
+                            >
                             {mapColorsToOptions()}
                         </select>
                     </label>
@@ -292,7 +318,9 @@ function BottleInputForm(
                         Shape: 
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.Shape = e.currentTarget.value as unknown as ODLCShape;
-                        }}>
+                        }} 
+                            disabled={bottle.IsMannikin}
+                            >
                             {mapShapesToOptions()}
                         </select>
                     </label>
@@ -300,7 +328,9 @@ function BottleInputForm(
                         Shape Color: 
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.ShapeColor = e.currentTarget.value as unknown as ODLCColor;
-                        }}>
+                        }}
+                            disabled={bottle.IsMannikin}
+                            >
                             {mapColorsToOptions()}
                         </select>
                     </label>
@@ -310,9 +340,9 @@ function BottleInputForm(
     }
 
     useEffect(() => {
-        let bottles = [];
+        const bottles = [];
         for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
-            let bottle = {
+            const bottle = {
                 Alphanumeric: "",
                 AlphanumericColor: ODLCColor.UnspecifiedColor,
                 Shape: ODLCShape.UnspecifiedShape,
@@ -323,7 +353,7 @@ function BottleInputForm(
             bottles.push(bottle);
         }
         setBottleAssignments(bottles);
-    }, []);
+    }, [setBottleAssignments]);
 
     return (
         <>
@@ -440,9 +470,12 @@ function Input() {
     const [mapData, setMapData] = useState<Map<MapMode,number[][]>>(new Map());
     const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
 
+    /**
+     * Takes the current state of all the inputs and posts to Hub
+     */
     function submitMission() {
         const mapDataToGpsCoords = (mode: MapMode) => {
-            let config = getModeConfig(mode);
+            const config = getModeConfig(mode);
                     
             return mapData.get(mode)?.map((row) => {
                 return ({
@@ -453,12 +486,13 @@ function Input() {
             }) || [];
         };
 
-        let mission: Mission = {
+        const mission: Mission = {
             BottleAssignments: bottleAssignments,
             FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
             AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
+
 
         console.log(mission);
     }
