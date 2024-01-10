@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"sort"
+	"strings"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -238,11 +241,200 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 
 // TODO: Will dump entire DB to a JSON or CSV format
 func (c *Client) GetAll() (string, error) {
-	if !c.IsConnected() {
-		return "", errInluxDBNotConnected
+
+	endTime := time.Now().Format(time.RFC3339)
+	timeStamp := time.Now().Format("2006-01-02 15:04:05")
+
+	ID30, err30 := c.QueryMsgIDAndTimeRange(uint32(30), &endTime)
+	ID147, err147 := c.QueryMsgIDAndTimeRange(uint32(147), &endTime)
+	ID33, err33 := c.QueryMsgIDAndTimeRange(uint32(33), &endTime)
+	ID0, err0 := c.QueryMsgIDAndTimeRange(uint32(0), &endTime)
+	ID74, err74 := c.QueryMsgIDAndTimeRange(uint32(74), &endTime)
+
+	os.Mkdir("/CSV/"+timeStamp, 0700)
+
+	/*Attitude*/
+	file, err := os.Create("/CSV/" + timeStamp + "/ATTITUDE.csv")
+	if err != nil {
+		file.Close()
+		return "File writer fail to open", err
+	}
+	if err30 != nil {
+		file.WriteString("Query for ID30 not working")
+		return "Query for ID30 not working", err30
 	}
 
-	return "", nil
+	titleArray := []string{}
+
+	for key := range ID30[0] {
+		titleArray = append(titleArray, key)
+	}
+
+	sort.Strings(titleArray)
+	file.WriteString(strings.Join(titleArray, ","))
+
+	for x := 0; x < len(ID30); x++ {
+		temp := "\n"
+		for y := 0; y < len(ID30[x]); y++ {
+			temp += fmt.Sprintf("%v,", ID30[x][titleArray[y]])
+		}
+		temp = temp[:len(temp)-1]
+		file.WriteString(temp)
+	}
+	file.Close()
+
+	/*Battery stauts*/
+	file, err = os.Create("/CSV/" + timeStamp + "/BATTERY_STATUS.csv")
+	if err != nil {
+		file.Close()
+		return "File writer fail to open", err
+	}
+	if err147 != nil {
+		file.WriteString("Query for ID147 not working")
+		return "Query for ID147 not working", err147
+	}
+
+	titleArray = []string{}
+
+	for key := range ID147[0] {
+		titleArray = append(titleArray, key)
+	}
+
+	sort.Strings(titleArray)
+	file.WriteString(strings.Join(titleArray, ","))
+
+	for x := 0; x < len(ID147); x++ {
+		temp := "\n"
+		for y := 0; y < len(ID147[x]); y++ {
+			temp += fmt.Sprintf("%v,", ID147[x][titleArray[y]])
+		}
+		temp = temp[:len(temp)-1]
+		file.WriteString(temp)
+	}
+	file.Close()
+
+	/*Global position*/
+	file, err = os.Create("/CSV/" + timeStamp + "/GLOBAL_POSITION_INT.csv")
+	if err != nil {
+		file.Close()
+		return "File writer fail to open", err
+	}
+	if err33 != nil {
+		file.WriteString("Query for ID33 not working")
+		return "Query for ID33 not working", err33
+	}
+
+	titleArray = []string{}
+
+	for key := range ID33[0] {
+		titleArray = append(titleArray, key)
+	}
+
+	sort.Strings(titleArray)
+	file.WriteString(strings.Join(titleArray, ","))
+
+	for x := 0; x < len(ID33); x++ {
+		temp := "\n"
+		for y := 0; y < len(ID33[x]); y++ {
+			temp += fmt.Sprintf("%v,", ID33[x][titleArray[y]])
+		}
+		temp = temp[:len(temp)-1]
+		file.WriteString(temp)
+	}
+	file.Close()
+
+	/*Heartbeat*/
+	file, err = os.Create("/CSV/" + timeStamp + "/HEARTBEAT.csv")
+	if err != nil {
+		file.Close()
+		return "File writer fail to open", err
+	}
+	if err0 != nil {
+		file.WriteString("Query for ID0 not working")
+		return "Query for ID0 not working", err33
+	}
+
+	titleArray = []string{}
+
+	for key := range ID0[0] {
+		titleArray = append(titleArray, key)
+	}
+
+	sort.Strings(titleArray)
+	file.WriteString(strings.Join(titleArray, ","))
+
+	for x := 0; x < len(ID0); x++ {
+		temp := "\n"
+		for y := 0; y < len(ID0[x]); y++ {
+			temp += fmt.Sprintf("%v,", ID0[x][titleArray[y]])
+		}
+		temp = temp[:len(temp)-1]
+		file.WriteString(temp)
+	}
+	file.Close()
+
+	/*VFR HUD*/
+	file, err = os.Create("/CSV/" + timeStamp + "/VFR_HUD.csv")
+	if err != nil {
+		file.Close()
+		return "File writer fail to open", err
+	}
+	if err74 != nil {
+		file.WriteString("Query for ID74 not working")
+		return "Query for ID74 not working", err33
+	}
+
+	titleArray = []string{}
+
+	for key := range ID74[0] {
+		titleArray = append(titleArray, key)
+	}
+
+	sort.Strings(titleArray)
+	file.WriteString(strings.Join(titleArray, ","))
+
+	for x := 0; x < len(ID74); x++ {
+		temp := "\n"
+		for y := 0; y < len(ID74[x]); y++ {
+			temp += fmt.Sprintf("%v,", ID74[x][titleArray[y]])
+		}
+		temp = temp[:len(temp)-1]
+		file.WriteString(temp)
+	}
+	file.Close()
+
+	return "Data dump succesful", nil
+}
+
+func (c *Client) QueryMsgIDAndTimeRange(msgID uint32, endTime *string) ([]map[string]interface{}, error) {
+	if !c.IsConnected() {
+		return nil, errInluxDBNotConnected
+	}
+	query := fmt.Sprintf(`from(bucket:"%s") |> range(start: -duration(v: %d), stop: %s) |> filter(fn: (r) => r.ID == "%v")`, c.creds.Bucket, 12*time.Hour, *endTime, msgID)
+
+	result, err := c.querier.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make([]map[string]interface{}, 0)
+	for result.Next() {
+		// see if message with timestamp already exists
+		idx := -1
+		for i, msg := range data {
+			if time, ok := msg["_time"]; ok && time == result.Record().Time().String() {
+				idx = i
+			}
+		}
+
+		if idx == -1 {
+			data = append(data, make(map[string]interface{}))
+			idx = len(data) - 1
+		}
+		data[idx][result.Record().Field()] = result.Record().Value()
+		data[idx]["_time"] = result.Record().Time().String()
+	}
+	return data, nil
 }
 
 // verifyConnection will try to query that InluxDB has started up and

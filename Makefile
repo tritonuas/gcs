@@ -54,10 +54,10 @@ run-compose:
 stop-compose:
 	docker-compose -f deployments/docker-compose.yml down
 
-run-compose:
+run-compose-mac:
 	docker-compose -f deployments/docker-compose-mac.yml up -d
 
-stop-compose:
+stop-compose-mac:
 	docker-compose -f deployments/docker-compose-mac.yml down
 
 run-broach-compose:

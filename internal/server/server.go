@@ -81,6 +81,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 		api.GET("/connections", server.testConnections())
 
+		api.GET("/InfluxDBToCSV", server.getInfluxDBtoCSV())
+
 		targets := api.Group("/targets")
 		{
 			targets.POST("/unclassified", server.postOBCTargets())
@@ -210,11 +212,14 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		c.JSON(http.StatusOK, gin.H{
 			"cvs":             true,
 			"plane_obc":       true,
 			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
 			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker()})
+
+		server.influxDBClient.GetAll()
 	}
 }
 
@@ -984,5 +989,14 @@ func (server *Server) getRawImage() gin.HandlerFunc {
 		} else {
 			c.String(http.StatusNotFound, "No new image")
 		}
+	}
+}
+
+/*
+Calls GetAll function in influxDB client to dump influx data into csv files.
+*/
+func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		server.influxDBClient.GetAll()
 	}
 }

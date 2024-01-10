@@ -11,16 +11,17 @@ services:
       - OBC_ADDR=192.168.1.51:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
-      - MAV_DEVICE=tcp:localhost:5760
+      - MAV_DEVICE=tcp:sitl:5760
       - MAV_OUTPUT4=udp:localhost:14550
       - MAV_OUTPUT5=tcp:localhost:14551
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
-      - INFLUXDB_URI=http://localhost:8086
+      - INFLUXDB_URI=http://influxdb:8086
       - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
       - missions:/go/src/github.com/tritonuas/gcs/missions
+      - /Users/inothoe/Documents/TritonUAS/output:/CSV
     extra_hosts:
       - host.docker.internal:host-gateway
       
@@ -65,7 +66,7 @@ services:
       --token influxdbToken 
       --username tritons 
       --password tritonuas 
-      --host http://localhost:8086 
+      --host http://influxdb:8086 
       --force
     restart: on-failure:20
   sitl:
