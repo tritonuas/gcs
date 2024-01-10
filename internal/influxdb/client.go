@@ -251,7 +251,7 @@ func (c *Client) GetAll() (string, error) {
 	battery, batteryError := c.QueryMsgIDAndTimeRange(uint32(147), &endTime)
 	globalPosition, globalPositionError := c.QueryMsgIDAndTimeRange(uint32(33), &endTime)
 	heartbeat, heartbeatError := c.QueryMsgIDAndTimeRange(uint32(0), &endTime)
-	vfr_hud, vfr_hudError := c.QueryMsgIDAndTimeRange(uint32(74), &endTime)
+	vfrhud, vfrhudError := c.QueryMsgIDAndTimeRange(uint32(74), &endTime)
 
 	fields := make([]map[string]interface{}, 0)
 
@@ -280,9 +280,9 @@ func (c *Client) GetAll() (string, error) {
 	}))
 
 	fields = append(fields, (map[string]interface{}{
-		"query": vfr_hud,
+		"query": vfrhud,
 		"name":  "VFR_HUD",
-		"error": vfr_hudError,
+		"error": vfrhudError,
 	}))
 
 	mkDirErr := os.Mkdir("/CSV/"+timeStamp, 0700)
@@ -340,6 +340,27 @@ func (c *Client) GetAll() (string, error) {
 
 	return "Data dump succesful", nil
 }
+
+// QueryMsgIDAndTimeRange will request certain fields for the Mavlink message with the specified name.
+// A full list of mavlink message IDs and their fields can be found here http://mavlink.io/en/messages/common.html
+//
+// Each message has an name associated with it. For example, the message of ID #33 is named
+// "GLOBAL_POSITION_INT"
+//
+// Each message also has various fields included in it. For example, the message named "GLOBAL_POSITION_INT" has the
+// following fields: "time_boot_ms", "lat", "lon", "alt", "relative_alt", "vx", "vy", "vz".
+//
+// Parameters:
+//   - msgID:   ID number of the message ID to query
+//   - endTime: The endTime is the "stop" inside query time "range(start: , stop:)".
+//				The preset value for start -12*Time.Hour as an attemp to go as far
+//				back as possible. Note that the type is a string, so if you wanted to query
+//				up until now, you would provide time.Now().Format(time.RFC3339) as the
+//				argument.
+//
+// Return:
+//   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
+//   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
 
 func (c *Client) QueryMsgIDAndTimeRange(msgID uint32, endTime *string) ([]map[string]interface{}, error) {
 	if !c.IsConnected() {
