@@ -239,7 +239,7 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 	return data, nil
 }
 
-// TODO: Will dump entire DB to a JSON or CSV format
+// Will dump entire DB to a CSV format
 func (c *Client) GetAll() (string, error) {
 
 	const fileWriterErrMsg = "File writer fail to write"
