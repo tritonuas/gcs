@@ -50,6 +50,7 @@ main.input-page .button-container > input {
     margin-right: 1rem;
 }
 
+
 main.input-page .button-container input:nth-child(3){
     margin-right: auto;
 }
@@ -66,4 +67,8 @@ main.input-page .bottle-form-container {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+}
+
+main.input-page input[type="button"] {
+    border-radius: 8px;
 }
