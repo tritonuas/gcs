@@ -7,4 +7,4 @@ influx_token.key
 *.webm
 *.wav
 *.mp3
-output
+flight-logs

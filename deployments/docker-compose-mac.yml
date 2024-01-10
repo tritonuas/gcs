@@ -21,7 +21,7 @@ services:
       - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
       - missions:/go/src/github.com/tritonuas/gcs/missions
-      - /Users/inothoe/Documents/TritonUAS/output:/CSV
+      - ../flight-logs:/CSV
     extra_hosts:
       - host.docker.internal:host-gateway
       

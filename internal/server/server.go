@@ -81,7 +81,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 
 		api.GET("/connections", server.testConnections())
 
-		api.GET("/InfluxDBToCSV", server.getInfluxDBtoCSV())
+		api.GET("/influx", server.getInfluxDBtoCSV())
 
 		targets := api.Group("/targets")
 		{
