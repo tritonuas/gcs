@@ -21,6 +21,11 @@ Entries in bold indicate that it is a module which we implement.
 - [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
 - [golangci-lint](https://github.com/golangci/golangci-lint)
 - [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+- [protoc](https://grpc.io/docs/protoc-installation/)
+- [protoc-gen-go](https://grpc.io/docs/languages/go/quickstart/)
+    - Note: you just need to install protoc-gen-go, you don't need to install grpc using the second `go install` command.
+- [npm](https://github.com/nvm-sh/nvm#install--update-script)
+    - Note: you may already have npm installed on your system. However, if it is not a new enough version you will need to update. The linked tool will allow you to manage different versions of `npm` on your system. Follow the instructions to install the newest version of `npm`.
 
 ## First Time Setup
 
@@ -42,6 +47,26 @@ To install the formatter, run the following make command.
 make install-fmter
 ```
 
+Verify that you have `protoc` and `protoc-gen-go` installed by this point.
+
+Then, make sure you have all of the `npm` packages for the frontend installed.
+
+```sh
+cd houston
+npm install
+cd .. # go back into the root directory
+```
+
+If you receive an error, it is likely that your version of `npm` is too old. Go to the above link to install `nvm` (node version manager), to install a newer version of `npm`.
+
+Then, to make sure you have the protobufs git submodule loaded, run the following make command.
+
+```sh
+make install-protos
+```
+
+This should be all of the first time setup you need. 
+
 ## Build
 
 ``` sh
@@ -50,17 +75,12 @@ make build
 
 # Build Docker image for gcs 
 make build-docker
+
+# Update protobuf files (if needed)
+make build-protos
 ```
 
 Note that running docker commands may require sudo. 
-
-### Assets
-
-Most of the assets that Houston serves (from the static directory) are already included in the repo. However, some of the files are more larger and more... interesting, which bloat the repo size. To pull these, run the following command (with internet connection).
-
-```
-make install-assets
-```
 
 ## Run
 
