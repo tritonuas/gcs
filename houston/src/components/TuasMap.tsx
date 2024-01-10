@@ -1,6 +1,7 @@
-import {MapContainer, TileLayer } from "react-leaflet"
+import { MapContainer, Popup, TileLayer, Marker } from "react-leaflet"
 import 'leaflet/dist/leaflet.css'
-
+import { Icon } from 'leaflet';
+import { item } from "../pages/Report.tsx"
 /**
  * Wrapper component around all leaflet maps for the application. Any functionality we do with leaflet should be encased
  * within this class, so that we don't have repeated leaflet code throughout all the files.
@@ -8,9 +9,13 @@ import 'leaflet/dist/leaflet.css'
  * @param props.className class to apply to the map
  * @param props.lat starting latitude of the map
  * @param props.lng starting longitude of the map
+ * @param props.matchedArray array of matched items
+ * @param props.unmatchedArray array of unmatched items
+ * @param props.matchedIcons array of matched icons
+ * @param props.unmatchedIcons array of unmatched icons
  * @returns TuasMap wrapper component
  */
-function TuasMap({className, lat, lng}:{className: string, lat: number, lng: number}) {
+function TuasMap({className, lat, lng, matchedArray=[], unmatchedArray=[], matchedIcons=[], unmatchedIcons=[]}:{className: string, lat: number, lng: number, matchedArray?: item[], unmatchedArray?: item[], matchedIcons?: Icon[], unmatchedIcons?: Icon[]}) {
     return (
         <>
             <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
@@ -22,6 +27,16 @@ function TuasMap({className, lat, lng}:{className: string, lat: number, lng: num
                     zoomOffset={-1}
                     id= 'mapbox/satellite-v9'
                 />
+                {matchedArray.map((marker) => (
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
+                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    </Marker>
+                ))}
+                {unmatchedArray.map((marker) => (
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
+                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    </Marker>
+                ))}
             </MapContainer>
         </>
     );
