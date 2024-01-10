@@ -353,15 +353,14 @@ func (c *Client) GetAll() (string, error) {
 // Parameters:
 //   - msgID:   ID number of the message ID to query
 //   - endTime: The endTime is the "stop" inside query time "range(start: , stop:)".
-//				The preset value for start -12*Time.Hour as an attemp to go as far
-//				back as possible. Note that the type is a string, so if you wanted to query
-//				up until now, you would provide time.Now().Format(time.RFC3339) as the
-//				argument.
+//     The preset value for start -12*Time.Hour as an attemp to go as far
+//     back as possible. Note that the type is a string, so if you wanted to query
+//     up until now, you would provide time.Now().Format(time.RFC3339) as the
+//     argument.
 //
 // Return:
 //   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
 //   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-
 func (c *Client) QueryMsgIDAndTimeRange(msgID uint32, endTime *string) ([]map[string]interface{}, error) {
 	if !c.IsConnected() {
 		return nil, errInluxDBNotConnected
