@@ -66,12 +66,12 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
+		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
 		api.GET("/path/initial", server.getInitialPath())
 		api.GET("/path/initial/new", server.getInitialPathNew())
-		api.GET("/influx", server.getInfluxDBtoCSV())
 
 		plane := api.Group("/plane")
 		{
@@ -443,10 +443,11 @@ Calls GetAll function in influxDB client to dump influx data into csv files.
 */
 func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		_, err := server.influxDBClient.GetAll()
+		success, err := server.influxDBClient.GetAll()
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
-			return
+			c.JSON(http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusOK, success)
 		}
 	}
 }

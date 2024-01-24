@@ -55,3 +55,39 @@ li:has(a.active) {
 nav.topbar li:nth-child(5) {
     margin-right: auto;
 }
+
+/* Add a hover state for the pulsating effect */
+nav.topbar img.nonHoverPulse {
+    animation: pulse 1.2s infinite;
+}
+
+nav.topbar img.pulse:hover {
+    animation: pulse 1.2s infinite;
+}
+
+nav.topbar button{
+    background-color: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+nav.topbar button:is(:hover, :focus) {
+    background-color: transparent;
+    outline: none;
+    box-shadow: none;
+}
+
+@keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+}
+
+
