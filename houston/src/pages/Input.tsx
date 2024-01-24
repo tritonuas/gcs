@@ -7,6 +7,7 @@ import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
 import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from '../protos/obc.pb';
 
+
 enum MapMode {
     FlightBound,
     SearchBound,
@@ -493,8 +494,26 @@ function Input() {
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
 
-
-        console.log(mission);
+        fetch("/mission", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(mission)
+        })
+            .then(response => {
+                if (response.status == 200) {
+                    return response.text();
+                } else {
+                    throw response.text();
+                }
+            })
+            .then(succ_msg => {
+                alert(succ_msg);
+            })
+            .catch(err_msg => {
+                alert(err_msg);
+            });
     }
 
     return (
