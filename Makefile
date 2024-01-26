@@ -6,7 +6,10 @@ all: build run
 
 # Dependencies
 # --------------------------------------------------------------------
-.PHONY: install-linter
+.PHONY: install-dependencies install-linter install-protos install-fmter
+
+install-dependencies: install-linter install-protos install-fmter
+
 install-linter:
 	# TODO: might as well just move this all to an install-linter script
 	$(info Installing golangci-lint for $(OS))
@@ -18,17 +21,16 @@ install-linter:
 	fi;\
 
 install-protos:
-	git submodule init && git submodule update
+	sudo apt install protobuf-compiler
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+	echo "You will need to set your PATH variable to include go installations, if you have not already done so."
 
 install-fmter:
 	go install golang.org/x/tools/cmd/goimports@latest
 
-install-assets:
-	./scripts/pull-large-assets.sh
-
 # Build
 # --------------------------------------------------------------------
-.PHONY: pre-build build install-dependencies configure-git build-go build-react build-docker build-protos build-backend-protos build-frontend-protos
+.PHONY: pre-build build configure-git build-go build-react build-docker build-protos build-backend-protos build-frontend-protos
 pre-build: configure-git 
 
 build: build-go build-react build-protos
