@@ -9,6 +9,7 @@ all: build run
 .PHONY: install-dependencies install-linter install-protos install-fmter
 
 install-dependencies: install-linter install-protos install-fmter
+	cd houston && npm install
 
 install-linter:
 	# TODO: might as well just move this all to an install-linter script
