@@ -20,6 +20,9 @@ jobs:
       - name: Install dependencies
         run: make install-dependencies
 
+      - name: Build Protos
+        run: make build-protos
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
