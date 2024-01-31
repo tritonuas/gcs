@@ -1,20 +1,16 @@
-import {MapContainer, TileLayer } from "react-leaflet"
+import { MapContainer, TileLayer} from "react-leaflet"
 import 'leaflet/dist/leaflet.css'
-
 /**
  * Wrapper component around all leaflet maps for the application. Any functionality we do with leaflet should be encased
  * within this class, so that we don't have repeated leaflet code throughout all the files.
  * @param props Props
+ * @param props.children any children to render
  * @param props.className class to apply to the map
  * @param props.lat starting latitude of the map
  * @param props.lng starting longitude of the map
- * @param props.children children components to pass into the map
  * @returns TuasMap wrapper component
  */
-function TuasMap(
-    {className, lat, lng, children}:
-    {className: string, lat: number, lng: number, children: JSX.Element | JSX.Element[] | never[]}
-) {
+function TuasMap({className, lat, lng, children }:{className: string, lat: number, lng: number, children?: React.ReactNode}) {
     return (
         <>
             <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
