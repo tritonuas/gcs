@@ -14,7 +14,6 @@ import (
 	"github.com/tritonuas/gcs/internal/influxdb"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 	"github.com/tritonuas/gcs/internal/obc"
-	"github.com/tritonuas/gcs/internal/obc/camera"
 	"github.com/tritonuas/gcs/internal/protos"
 )
 
@@ -25,10 +24,11 @@ var Log = logrus.New()
 Stores the server state and data that the server deals with.
 */
 type Server struct {
-	influxDBClient      *influxdb.Client
-	mavlinkClient       *mav.Client
-	obcClient           *obc.Client
-	newestRawImage      camera.RawImage
+	influxDBClient *influxdb.Client
+	mavlinkClient  *mav.Client
+	obcClient      *obc.Client
+	// TODO: reintroduce once this is actually referenced in the code
+	// newestRawImage      camera.RawImage
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	MissionTime         int64
 	ClassifiedTargets   []cvs.ClassifiedODLC
@@ -66,7 +66,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
-
+		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
@@ -139,6 +139,7 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		c.JSON(http.StatusOK, gin.H{
 			"cvs":             true,
 			"plane_obc":       true,
@@ -414,8 +415,8 @@ func (server *Server) postMission() gin.HandlerFunc {
 
 		server.MissionConfig = &mission
 
-		resp_body, status := server.obcClient.PostMission(&mission)
-		c.Data(status, "text/plain", resp_body)
+		respBody, status := server.obcClient.PostMission(&mission)
+		c.Data(status, "text/plain", respBody)
 	}
 }
 
@@ -434,5 +435,19 @@ func (server *Server) getInitialPath() gin.HandlerFunc {
 func (server *Server) getInitialPathNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(http.StatusNotImplemented, "Not Implemented")
+	}
+}
+
+/*
+Calls GetAll function in influxDB client to dump influx data into csv files.
+*/
+func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		success, err := server.influxDBClient.GetAll()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusOK, success)
+		}
 	}
 }

@@ -9,3 +9,5 @@ influx_token.key
 
 **/*.pb.go
 **/*.pb.ts
+flight-logs
+

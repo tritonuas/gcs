@@ -3,21 +3,21 @@ version: "3"
 services:
   gcs:
     image: tritonuas/gcs
-    network_mode: "host"
-    # ports:
-    #   - 5000:5000
+    # network_mode: "host"
+    ports:
+      - 5000:5000
     environment:
       - DEBUG_MODE=true
-      - OBC_ADDR=localhost:5010
+      - OBC_ADDR=192.168.1.51:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
-      - MAV_DEVICE=tcp:localhost:5760
+      - MAV_DEVICE=tcp:sitl:5760
       - MAV_OUTPUT4=udp:localhost:14550
       - MAV_OUTPUT5=tcp:localhost:14551
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
-      - INFLUXDB_URI=http://localhost:8086
+      - INFLUXDB_URI=http://influxdb:8086
       - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
       - missions:/go/src/github.com/tritonuas/gcs/missions
@@ -27,16 +27,16 @@ services:
       
   influxdb:
     image: influxdb:2.0-alpine
-    network_mode: "host"
-    # ports:
-    #   - 8086:8086
+    # network_mode: "host"
+    ports:
+      - 8086:8086
     volumes:
       - influxdb_data:/var/lib/influxdb
   grafana:
     image: grafana/grafana:7.5.5
-    network_mode: "host"
-    # ports:
-    #   - 3000:3000
+    # network_mode: "host"
+    ports:
+      - 3000:3000
     depends_on:
       - gcs
     environment: 
@@ -58,7 +58,7 @@ services:
     depends_on:
       - influxdb
     image: influxdb:2.0-alpine
-    network_mode: "host"
+    # network_mode: "host"
     entrypoint: > 
       influx setup 
       --bucket mavlink 
@@ -66,14 +66,14 @@ services:
       --token influxdbToken 
       --username tritons 
       --password tritonuas 
-      --host http://localhost:8086 
+      --host http://influxdb:8086 
       --force
     restart: on-failure:20
   sitl:
     image: tritonuas/plane.rascal
-    network_mode: "host"
-    # ports:
-    #   - 5760:5760
+    # network_mode: "host"
+    ports:
+      - 5760:5760
     environment:
       - "SITL_HOME=38.31542593549111,-76.55062632801757,8,0"
       - SITL_SPEEDUP=1
