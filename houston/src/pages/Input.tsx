@@ -494,7 +494,9 @@ function Input() {
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
 
-        fetch("/mission", {
+        console.log(mission);
+
+        fetch("/api/mission", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
