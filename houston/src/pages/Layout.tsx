@@ -3,13 +3,13 @@ import "./Layout.css";
 import duck from "../assets/duck.png"
 import csvRunning from "../assets/csv-running.svg";
 import csvReady from "../assets/csv-ready.svg";
-import exit from "../assets/close.svg";
 
 import {getIconFromStatus, } from "../utilities/connection"
 import {ConnectionStatus, } from "../utilities/temp"
-import { Box, Button, Modal, Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import { useState } from "react";
-
+import MyModal from "../components/MyModal";
+import { useModal } from "../components/UseMyModal";
 
 /**
  * @param props Props
@@ -27,14 +27,13 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
     }
 
     const influxURL = "http://localhost:5000/api/influx";
-
     const [influxLoading, setLoading] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false);
     const [dataString, setDataString] = useState('');
+    const {modalVisible, openModal, closeModal} = useModal();
 
     const handleInflux = () => {
         setLoading(true);
-        setModalVisible(true);
+        openModal()
         fetch(influxURL)
         .then(response => response.json())
         .then(data => {
@@ -46,24 +45,6 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
             return () => clearTimeout(timeoutId);
         });
     }
-
-    const closeModal = () => {
-        setModalVisible(false);
-    };
-
-    const style = {
-        position: 'absolute' as const,
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 400,
-        bgcolor: '#2C6CFB',
-        border: '2px solid #000',
-        borderRadius: "7px",
-        boxShadow: 24,
-        p: 2,
-        justifyContent: "space-between",
-    };
 
     return (
         <>
@@ -89,16 +70,11 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                                 <img src={csvReady} alt="csv icon" style={{ width: "50px", height: "50px"}} className="pulse"/>
                             }
                     </Button>
-                    <Modal open={modalVisible} onClose={closeModal} aria-labelledby="modal-modal-title" aria-describedby="modal-modal-description">
-                        <Box sx={style}>
-                            <Button onClick={closeModal}>
-                                <img src={exit} />
-                            </Button>
-                            <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
-                                {influxLoading ? "Loading": dataString}
-                            </Typography>
-                        </Box>
-                    </Modal>
+                    <MyModal modalVisible={modalVisible} closeModal={closeModal} type="error" disable={influxLoading}>
+                       <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
+                            {influxLoading ? null : dataString}
+                        </Typography> 
+                    </MyModal>
                     {/* If another page is added, need to adjust the nth child rule in the css
                     so that the status icons are still right aligned */}
                     {statuses.map(getIconFromStatus)}
