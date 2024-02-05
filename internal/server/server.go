@@ -66,7 +66,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
-
+		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
@@ -139,6 +139,7 @@ TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		c.JSON(http.StatusOK, gin.H{
 			"cvs":             true,
 			"plane_obc":       true,
@@ -434,5 +435,19 @@ func (server *Server) getInitialPath() gin.HandlerFunc {
 func (server *Server) getInitialPathNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(http.StatusNotImplemented, "Not Implemented")
+	}
+}
+
+/*
+Calls GetAll function in influxDB client to dump influx data into csv files.
+*/
+func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		success, err := server.influxDBClient.GetAll()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err.Error())
+		} else {
+			c.JSON(http.StatusOK, success)
+		}
 	}
 }
