@@ -13,8 +13,8 @@ interface Props {
 
 /**
  * Selects background color given a string.
- * @param {String} type The description of the type of modal.
- * @returns {string} The hex code of the background color.
+ * @param type The description of the type of modal.
+ * @returns The hex code of the background color.
  */
 function backgroundColorPicker(type:string){
     switch(type) {
@@ -28,16 +28,17 @@ function backgroundColorPicker(type:string){
 
 /**
  * A modal component that comes with background color and an exit button.
- * @param children react components to be embedded inside MyModal.
- * @param modalVisible boolean value to represent the satus of the modal component.
- * @param closeModal function tp close the modal.
- * @param type if provided, a string value representing the type of modal, ex: "deauflt", "error"...
- * @param disable if provide, boolean value if set to true, will dispaly a loading circle animation. 
+ * @param props - The properties of the MyModal component.
+ * @param props.children - React components to be embedded inside MyModal.
+ * @param props.modalVisible - Boolean value to represent the status of the modal component.
+ * @param props.closeModal - Function to close the modal.
+ * @param props.type - If provided, a string value representing the type of modal, e.g., "default", "error"...
+ * @param props.disable - If provided, a boolean value. If set to true, will display a loading circle animation.
  * @returns MyModal component.
  */
 function MyModal({children, modalVisible, closeModal, type="default", disable=false}: Props){
        
-    let backgroundColor = backgroundColorPicker(type);
+    const backgroundColor = backgroundColorPicker(type);
     
     const style = {
         position: 'absolute' as const,
