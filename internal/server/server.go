@@ -89,6 +89,13 @@ func (server *Server) initBackend(router *gin.Engine) {
 			mavlink.GET("/endpoints", server.getMavlinkEndpoints())
 			mavlink.PUT("/endpoints", server.putMavlinkEndpoints())
 		}
+
+		targets := api.Group("/targets")
+		{
+			targets.GET("/all", server.getAllTargets())
+			targets.GET("/matched", server.getMatchedTargets())
+			targets.POST("/matched", server.postMatchedTargets())
+		}
 	}
 }
 
@@ -432,6 +439,24 @@ func (server *Server) getInitialPath() gin.HandlerFunc {
 }
 
 func (server *Server) getInitialPathNew() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusNotImplemented, "Not Implemented")
+	}
+}
+
+func (server *Server) getAllTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusNotImplemented, "Not Implemented")
+	}
+}
+
+func (server *Server) getMatchedTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusNotImplemented, "Not Implemented")
+	}
+}
+
+func (server *Server) postMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(http.StatusNotImplemented, "Not Implemented")
 	}
