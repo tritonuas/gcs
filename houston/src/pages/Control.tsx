@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TuasMap from '../components/TuasMap.tsx'
 import "./Control.css"
+import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
 
@@ -35,46 +36,6 @@ class Parameter {
         this.color = colorDeterminer(this.values, this.value, this.threshold);
         this.index = index;
     }
-}
-
-/**
- * airspeed and groundspeed randomizer function for testing
- * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
- */
-function valueRandomizer() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], parseFloat((number[1]*1.94384).toFixed(2))]);
-}
-
-/**
- * altitude randomizer function for testing
- * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
- */
-function valueRandomizer2() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], parseFloat((number[1]*0.3048).toFixed(2))]);
-}
-
-/**
- * ESC temperature randomizer function for testing
- * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
- */
-function valueRandomizer3() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], parseFloat(((number[1]-32) * (5/9)).toFixed(2))]);
-}
-
-/**
- * battery randomizer function for testing
- * @returns the middle value of the array twice to make implementation and logic easier
- */
-function valueRandomizer4() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], number[1]]);
 }
 
 /**
@@ -159,13 +120,34 @@ function Control() {
         });
     };
 
-    const airspeedVal = valueRandomizer();
-    const groundspeedVal = valueRandomizer();
-    const altitudeMSLVal = valueRandomizer2();
-    const altitudeAGLVal = valueRandomizer2();
-    const motorBatteryVal = valueRandomizer4();
-    const pixhawkBatteryVal = valueRandomizer4();
-    const ESCtemperatureVal = valueRandomizer3();
+    // airspeed 10m/s -> 20m/s -> 30m/s
+    // groundspeed 10m/s -> 20m/s -> 30m/s
+
+    const [airspeedVal, setAirspeedVal] = useState<number[]>([0,0]);
+    const [groundspeedVal, setGroundspeedVal] = useState<number[]>([0,0]);
+    const [altitudeMSLVal, setAltitudeMSLVal] = useState<number[]>([0,0]);
+    const [altitudeAGLVal, setAltitudeAGLVal] = useState<number[]>([0,0]);
+    const [motorBatteryVal, setMotorBatteryVal] = useState<number[]>([0,0]);
+    const [pixhawkBatteryVal, setPixhawkBatteryVal] = useState<number[]>([0,0]);
+    const [ESCtemperatureVal, setESCtemperatureVal] = useState<number[]>([0,0]); 
+
+    const [planeLatLng, setPlaneLatLng] = useState<number[]>([0,0]);
+
+    useEffect(() => {
+        const interval = setInterval(() => pullTelemetry(
+            setPlaneLatLng,
+            setAirspeedVal,
+            setGroundspeedVal,
+            setAltitudeMSLVal,
+            setAltitudeAGLVal,
+            setMotorBatteryVal,
+            setPixhawkBatteryVal,
+            setESCtemperatureVal
+        ));
+        return () => {
+            clearInterval(interval);
+        }
+    }, []);
 
     const airspeedThreshold = [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
     const groundspeedThreshold = [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
@@ -175,10 +157,10 @@ function Control() {
     const pixhawkBatteryThreshold = [80, 160, 80, 160];
     const ESCtemperatureThreshold = [80, 160, parseFloat(((80-32) * (5/9)).toFixed(2)), parseFloat(((160-32) * (5/9)).toFixed(2))];
 
-    const airspeed = new Parameter(airspeedVal, ['knots', 'm/s'], airspeedThreshold, index[0]);
-    const groundspeed = new Parameter(groundspeedVal, ['knots', 'm/s'], groundspeedThreshold, index[1]);
-    const altitudeMSL = new Parameter(altitudeMSLVal, ['feet', 'meters'], altitudeMSLThreshold, index[2]);
-    const altitudeAGL = new Parameter(altitudeAGLVal, ['feet', 'meters'], altitudeAGLThreshold, index[3]);
+    const airspeed = new Parameter(airspeedVal, ['m/s', 'knots'], airspeedThreshold, index[0]);
+    const groundspeed = new Parameter(groundspeedVal, ['m/s', 'knots'], groundspeedThreshold, index[1]);
+    const altitudeMSL = new Parameter(altitudeMSLVal, ['meters', 'feet'], altitudeMSLThreshold, index[2]);
+    const altitudeAGL = new Parameter(altitudeAGLVal, ['meters', 'feet'], altitudeAGLThreshold, index[3]);
     const motorBattery = new Parameter(motorBatteryVal, ['V', 'V'], motorBatteryThreshold, index[4]);
     const pixhawkBattery = new Parameter(pixhawkBatteryVal, ['V', 'V'], pixhawkBatteryThreshold, index[5]);
     const ESCtemperature = new Parameter(ESCtemperatureVal, ['°F', '°C'], ESCtemperatureThreshold, index[6]);

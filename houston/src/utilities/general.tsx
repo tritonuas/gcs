@@ -12,3 +12,7 @@ export const INFLUX_URI = "/orgs/83cf98a33ce1da25/data-explorer?bucket=mavlink";
 export function getURLBase(url: string) {
     return url.split(':').slice(0,2).join(':');
 }
+
+export function roundDecimal(val: number, places: number): number {
+    return parseFloat(val.toFixed(places));
+} 
