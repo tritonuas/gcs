@@ -1,0 +1,74 @@
+main.input-page {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+}
+
+main.input-page .input-map {
+    /* take up left 2/3 of screen */
+    flex: 2;
+}
+
+main.input-page .right-container {
+    width: 50dvw;
+}
+
+main.input-page .right-container .tuas-form {
+    padding: 1rem;
+}
+
+main.input-page .tuas-form table{
+    border-collapse: collapse;
+}
+
+main.input-page .tuas-form thead {
+    color: var(--highlight);
+    background-color: var(--dark-bg);
+}
+
+main.input-page .tuas-form tbody {
+    background-color: var(--light-text);
+    color: var(--dark-text);
+}
+
+main.input-page .tuas-form td {
+    text-align: center;
+}
+
+main.input-page .tuas-form input {
+    width: fit-content;
+}
+
+main.input-page .button-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+main.input-page .button-container > input {
+    margin-right: 1rem;
+}
+
+
+main.input-page .button-container input:nth-child(3){
+    margin-right: auto;
+}
+
+main.input-page .add-btn:hover {
+    background-color: var(--success-text) !important;
+}
+
+main.input-page .del-btn:hover {
+    background-color: var(--failure-text) !important;
+}
+
+main.input-page .bottle-form-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+main.input-page input[type="button"] {
+    border-radius: 8px;
+}

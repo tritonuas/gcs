@@ -9,6 +9,7 @@ import img5 from '../assets/report-page-images/amogus-5.png'
 import L from 'leaflet';
 import Button from '@mui/material-next/Button';
 import { red, blue, green, yellow, purple, grey } from '@mui/material/colors';
+import { Popup, Marker } from "react-leaflet"
 
 export type item = typeof itemA;
 
@@ -221,7 +222,18 @@ function Report() {
                     {itemArray.map((item, i) => <Image key={i} item={item} foundItemIndex={0} constItems={itemArray} updateItem={updateItem}/>)}
                 </div>
             </div>
-            <TuasMap className={'report-page-map'} lat={1.3467} lng={103.9326} matchedArray={matchedArray} unmatchedArray={unmatchedArray} matchedIcons={matchedIcons} unmatchedIcons={unmatchedIcons}/>
+            <TuasMap className={'report-page-map'} lat={1.3467} lng={103.9326}>
+                {matchedArray.map((marker) => (
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
+                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    </Marker>
+                ))}
+                {unmatchedArray.map((marker) => (
+                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
+                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    </Marker>
+                ))}
+            </TuasMap>
         </div>
     </main>
   )
