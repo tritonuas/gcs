@@ -3,6 +3,7 @@ import TuasMap from '../components/TuasMap.tsx'
 import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import NOOOO from "../assets/noooo.gif"
+import { SuperSecret } from '../components/SuperSecret.tsx';
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
 type Threshold = [number, number, number, number];
@@ -175,6 +176,8 @@ function Control() {
 
     const [planeLatLng, setPlaneLatLng] = useState<[number, number]>([0,0]);
 
+    const [superSecret, setSuperSecret] = useState(false);
+
     useEffect(() => {
         const interval = setInterval(() => pullTelemetry(
             setPlaneLatLng,
@@ -184,7 +187,8 @@ function Control() {
             setAltitudeAGL,
             setMotorBattery,
             setPixhawkBattery,
-            setESCtemperature
+            setESCtemperature,
+            setSuperSecret
         ), 1000);
 
         return () => {
@@ -192,13 +196,13 @@ function Control() {
         }
     }, []);
     
-    const flightMode = 'idk';
-    const flightModeColor = { backgroundColor: 'var(--highlight)' };
+    const flightMode = '';
+    const flightModeColor = { backgroundColor: 'var(--warning-text)' };
 
     const handleClick = (setter: Dispatch<SetStateAction<Parameter>>) => {
         setter(param => param.getSwappedUnit());
     };
-    
+
     return (
         <>
             <main className="controls-page">
@@ -208,7 +212,8 @@ function Control() {
                     {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
                     {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
                 </div>
-                <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}/>
+                {(superSecret) ? <SuperSecret></SuperSecret>
+                        : <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}/>}
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
                         <h1 className='heading'>Flight Mode</h1>

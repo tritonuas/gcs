@@ -11,6 +11,7 @@ export function pullTelemetry(
     setMotorBatteryVal: Dispatch<SetStateAction<Parameter>>,
     setPixhawkBatteryVal: Dispatch<SetStateAction<Parameter>>,
     setESCtemperatureVal: Dispatch<SetStateAction<Parameter>>,
+    setSuperSecret: Dispatch<SetStateAction<boolean>>,
 ) {
     fetch('/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading')
         .then(resp => resp.json())
@@ -24,6 +25,7 @@ export function pullTelemetry(
         .catch(_ => {
             setAirspeedVal((param) => param.getErrorValue());
             setGroundspeedVal((param) => param.getErrorValue());
+            setSuperSecret(true);
         })
     fetch('/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt')
         .then(resp => resp.json())

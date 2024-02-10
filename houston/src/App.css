@@ -16,6 +16,10 @@ img.svg {
     filter: var(--failure-filter);
 }
 
+.svg.white {
+    filter: invert(100%) sepia(8%) saturate(0%) hue-rotate(339deg) brightness(108%) contrast(100%);
+}
+
 /* For any form where we want the basic same style format */
 form.tuas-form {
     border: 0;
