@@ -113,7 +113,6 @@
     border-bottom-left-radius: 0px;
     border-top-right-radius: 3dvh;
     border-bottom-right-radius: 3dvh;
-    border-left: 2px solid black;
 }
 
 .controls-page .unit.unit-selected:last-child {
@@ -122,10 +121,6 @@
 
 .controls-page .unit.unit-not-selected:last-child {
     background-position: right;
-}
-
-.controls-page #compass {
-    background-color: var(--highlight);
 }
 
 @media (max-width: 1500px) {

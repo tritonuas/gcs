@@ -2,6 +2,7 @@ import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import TuasMap from '../components/TuasMap.tsx'
 import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
+import NOOOO from "../assets/noooo.gif"
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
 type Threshold = [number, number, number, number];
@@ -50,6 +51,17 @@ export class Parameter {
     }
 
     render(onClick: () => void) {
+        if (this.error) {
+            return (
+                <div style={this.color} className='flight-telemetry' onClick={onClick}>
+                    <h1 className='heading'>{this.label}</h1>
+                    <p className='data'> <img className="error-icon" width={80} height={80} src={NOOOO}/></p>
+                    <div className='unit-indicator'>
+                    </div>
+                </div>
+            );
+        }
+
         if (this.units[0] !== this.units[1]) {
             let unit0_class = 'unit-selected';
             let unit1_class = 'unit-not-selected';
@@ -191,9 +203,6 @@ function Control() {
         <>
             <main className="controls-page">
                 <div className="flight-telemetry-container">
-                    <div className='flight-telemetry' id='compass'>
-                        <h1 className='heading'>*insert compass*</h1>
-                    </div>
                     {airspeed.render(() => handleClick(setAirspeed))}
                     {groundspeed.render(() => handleClick(setGroundspeed))}
                     {altitudeMSL.render(() => handleClick(setAltitudeMSL))}

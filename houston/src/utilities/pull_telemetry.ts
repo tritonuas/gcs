@@ -1,11 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
-import { roundDecimal } from "./general";
 import type { Parameter } from "../pages/Control";
-
-const DECIMAL_PLACES = 1;
-const METERS_PER_SECOND_TO_KNOTS = (meters: number) => meters * 1.944;
-const METERS_TO_FEET = (meters: number) => meters * 3.281;
-const FAHRENHEIT_TO_CELSIUS = (F: number) => (5.0/9.0) * (F-32);
+import { MM_TO_METERS, FAHRENHEIT_TO_CELSIUS, METERS_PER_SECOND_TO_KNOTS, METERS_TO_FEET } from "./general";
 
 export function pullTelemetry(
     setPlaneLatLng: Dispatch<SetStateAction<[number, number]>>,
@@ -20,8 +15,8 @@ export function pullTelemetry(
     fetch('/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading')
         .then(resp => resp.json())
         .then(json => {
-            const airspeed = roundDecimal(json['airspeed'], DECIMAL_PLACES);
-            const groundspeed = roundDecimal(json['groundspeed'], DECIMAL_PLACES);
+            const airspeed = json['airspeed'];
+            const groundspeed = json['groundspeed'];
             setAirspeedVal((param) => param.getUpdatedValue(airspeed, METERS_PER_SECOND_TO_KNOTS));
             setGroundspeedVal((param) => param.getUpdatedValue(groundspeed, METERS_PER_SECOND_TO_KNOTS));
             // todo set heading
@@ -33,8 +28,8 @@ export function pullTelemetry(
     fetch('/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt')
         .then(resp => resp.json())
         .then(json => {
-            const altitude = roundDecimal(json["alt"], DECIMAL_PLACES);
-            const relative_altitude = roundDecimal(json["relative_alt"], DECIMAL_PLACES);
+            const altitude = MM_TO_METERS(json["alt"]);
+            const relative_altitude = MM_TO_METERS(json["relative_alt"]);
             const lat = parseFloat(json["lat"]);
             const lng = parseFloat(json["lng"]);
             setPlaneLatLng([lat, lng]);
@@ -50,7 +45,7 @@ export function pullTelemetry(
     fetch('/api/plane/telemetry?id=251&field=value')
         .then(resp => resp.json())
         .then(json => {
-            const esc_temp = roundDecimal(json["value"], DECIMAL_PLACES);
+            const esc_temp = json["value"];
             setESCtemperatureVal(param => param.getUpdatedValue(esc_temp, FAHRENHEIT_TO_CELSIUS));
         })
         .catch(_ => {
@@ -59,11 +54,14 @@ export function pullTelemetry(
     fetch('/api/plane/voltage')
         .then(resp => resp.json())
         .then(json => {
-            let pixhawkV = roundDecimal(json["0"]/1000,DECIMAL_PLACES);
-            let motorV = roundDecimal(json["1"]/1000,DECIMAL_PLACES);
+            let pixhawkV = json["0"]/1000;
+            let motorV = json["1"]/1000;
 
-            setPixhawkBatteryVal(param => param.getUpdatedValue(pixhawkV, (x) => x));
-            setMotorBatteryVal(param => param.getUpdatedValue(motorV, (x) => x));
+            const PIXHAWK_CELLS = 4;
+            const MOTOR_CELLS = 8; // TODO: allow a config option to set this, and new motor will be 12S!
+
+            setPixhawkBatteryVal(param => param.getUpdatedValue(pixhawkV, (x) => x / PIXHAWK_CELLS));
+            setMotorBatteryVal(param => param.getUpdatedValue(motorV, (x) => x / MOTOR_CELLS));
         })
         .catch(_ => {
             setPixhawkBatteryVal(param => param.getErrorValue());

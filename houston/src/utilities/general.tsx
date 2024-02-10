@@ -13,6 +13,12 @@ export function getURLBase(url: string) {
     return url.split(':').slice(0,2).join(':');
 }
 
-export function roundDecimal(val: number, places: number): number {
-    return parseFloat(val.toFixed(places));
+export function roundDecimal(val: number): number {
+    return parseFloat(val.toFixed(1));
 } 
+
+export const MM_TO_METERS = (millimeters: number) => millimeters / 1000;
+export const METERS_PER_SECOND_TO_KNOTS = (meters: number) => meters * 1.944;
+export const FEET_TO_METERS = (feet: number) => feet / 3.281;
+export const METERS_TO_FEET = (meters: number) => meters * 3.281;
+export const FAHRENHEIT_TO_CELSIUS = (F: number) => (5.0/9.0) * (F-32);
