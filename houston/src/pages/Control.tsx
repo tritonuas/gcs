@@ -6,7 +6,7 @@ import NOOOO from "../assets/noooo.gif"
 import { SuperSecret } from '../components/SuperSecret.tsx';
 import { roundDecimal } from '../utilities/general.tsx';
 
-type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
+type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
 type Threshold = [number, number, number, number];
 
 export class Parameter {
@@ -169,9 +169,9 @@ function Control() {
     const [altitudeAGL, setAltitudeAGL] =
         useState<Parameter>(new Parameter('Altitude AGL', [0,0], ['meters', 'feet'], altitudeAGLThreshold, 0));
     const [motorBattery, setMotorBattery] =
-        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V', 'V'], motorBatteryThreshold, 0));
+        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V', 'V/c'], motorBatteryThreshold, 0));
     const [pixhawkBattery, setPixhawkBattery] =
-        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V', 'V'], pixhawkBatteryThreshold, 0));
+        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V', 'V/c'], pixhawkBatteryThreshold, 0));
     const [ESCtemperature, setESCtemperature] =
         useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°F', '°C'], ESCtemperatureThreshold, 0)); 
 
