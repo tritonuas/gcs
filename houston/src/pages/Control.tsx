@@ -4,6 +4,7 @@ import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import NOOOO from "../assets/noooo.gif"
 import { SuperSecret } from '../components/SuperSecret.tsx';
+import { roundDecimal } from '../utilities/general.tsx';
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
 type Threshold = [number, number, number, number];
@@ -74,7 +75,7 @@ export class Parameter {
             return (
                 <div style={this.color} className='flight-telemetry' onClick={onClick}>
                     <h1 className='heading'>{this.label}</h1>
-                    <p className='data'>{this.value} {this.unit}</p>
+                    <p className='data'>{roundDecimal(this.value)} {this.unit}</p>
                     <div className='unit-indicator'>
                         <p className={`unit ${unit0_class}`} >{this.units[0]}</p>
                         <p className={`unit ${unit1_class}`} >{this.units[1]}</p>
@@ -85,7 +86,7 @@ export class Parameter {
             return (
                 <div style={this.color} className='flight-telemetry' onClick={onClick}>
                     <h1 className='heading'>{this.label}</h1>
-                    <p className='data'>{this.value} {this.unit}</p>
+                    <p className='data'>{roundDecimal(this.value)} {this.unit}</p>
                 </div>
             );
         }
