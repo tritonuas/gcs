@@ -102,8 +102,7 @@ export function SuperSecret() {
                             start={roundDecimal(prevReceiptCount)}
                             end={roundDecimal(receiptCount)}
                             duration={0.8}
-                            >
-                        </CountUp> 
+                            /> 
                     </div> 
                         :
                     <h1 className={'title'}>
