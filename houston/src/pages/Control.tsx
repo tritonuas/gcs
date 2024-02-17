@@ -167,6 +167,7 @@ function Control({settings}:{settings: SettingsConfig}) {
         FEET_TO_METERS(settings.minAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
         FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
     ];
+    console.log(altitudeMSLThreshold);
 
     const motorBatteryThreshold: Threshold = [
         settings.minVoltsPerCell,

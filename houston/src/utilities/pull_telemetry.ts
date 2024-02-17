@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import type { Parameter } from "../pages/Control";
-import { MM_TO_METERS, FAHRENHEIT_TO_CELSIUS, METERS_PER_SECOND_TO_KNOTS, METERS_TO_FEET } from "./general";
+import { MM_TO_METERS, FAHRENHEIT_TO_CELSIUS, METERS_PER_SECOND_TO_KNOTS, METERS_TO_FEET, FEET_TO_METERS } from "./general";
 import { SettingsConfig } from "./settings";
 
 /**
@@ -45,13 +45,13 @@ export function pullTelemetry(
     fetch('/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt')
         .then(resp => resp.json())
         .then(json => {
-            const altitude = MM_TO_METERS(json["alt"]);
-            const relative_altitude = MM_TO_METERS(json["relative_alt"]);
+            const altitude = METERS_TO_FEET(MM_TO_METERS(json["alt"]));
+            const relative_altitude = METERS_TO_FEET(MM_TO_METERS(json["relative_alt"]));
             const lat = parseFloat(json["lat"]);
             const lng = parseFloat(json["lng"]);
             setPlaneLatLng([lat, lng]);
-            setAltitudeMSLVal(param => param.getUpdatedValue(altitude, METERS_TO_FEET));
-            setAltitudeAGLVal(param => param.getUpdatedValue(relative_altitude, METERS_TO_FEET));
+            setAltitudeMSLVal(param => param.getUpdatedValue(altitude, FEET_TO_METERS));
+            setAltitudeAGLVal(param => param.getUpdatedValue(relative_altitude, FEET_TO_METERS));
 
         })
         .catch(_ => {
@@ -76,8 +76,8 @@ export function pullTelemetry(
 
             const PIXHAWK_CELLS = settings.pixhawkBatteryCells;
             const MOTOR_CELLS = settings.motorBatteryCells;
-            setPixhawkBatteryVal(param => param.getUpdatedValue(pixhawkV, (x) => x / PIXHAWK_CELLS));
-            setMotorBatteryVal(param => param.getUpdatedValue(motorV, (x) => x / MOTOR_CELLS));
+            setPixhawkBatteryVal(param => param.getUpdatedValue(pixhawkV / PIXHAWK_CELLS, (x) => x * PIXHAWK_CELLS));
+            setMotorBatteryVal(param => param.getUpdatedValue(motorV / PIXHAWK_CELLS, (x) => x * MOTOR_CELLS));
         })
         .catch(_ => {
             setPixhawkBatteryVal(param => param.getErrorValue());
