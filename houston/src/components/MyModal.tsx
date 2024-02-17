@@ -63,9 +63,6 @@ function MyModal({children, modalVisible, closeModal, type="default", disable=fa
         disableEscapeKeyDown={disable}
         >
             <Box sx={style}>
-                <Button onClick={closeModal} disabled={disable}>
-                    <img src={exit} />
-                </Button>
                 <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
                     {disable ? <div className="lds-dual-ring"></div> : null}
                 </Typography> 

@@ -11,6 +11,7 @@ import Input from './pages/Input';
 import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
+import Settings, {SettingsConfig, loadSettings} from './pages/Settings'
 
 
 import { ConnectionType, ConnectionStatus } from "./utilities/temp";
@@ -31,6 +32,8 @@ function App() {
         {name: "Radio Mavlink", isActive: flipCoin(), type: ConnectionType.Radio} as ConnectionStatus,
     ]);
 
+    const [config, setConfig] = useState<SettingsConfig>(loadSettings());
+
     return (
         <BrowserRouter>
             <Routes>
@@ -39,9 +42,10 @@ function App() {
                     <Route path="antennatracker" element={<AntennaTracker/>} />
                     <Route path="onboardcomputer" element={<OnboardComputer/>} />
                     <Route path="radiomavlink" element={<RadioMavlink/>} />
-                    <Route path="control" element={<Control />} />
+                    <Route path="control" element={<Control settings={config}/>} />
                     <Route path="input" element={<Input />} />
                     <Route path="report" element={<Report />} />
+                    <Route path="settings" element={<Settings settings={config} setSettings={setConfig}/>} />
 
                     <Route path="*" element={<NoPage />} />
                 </Route>

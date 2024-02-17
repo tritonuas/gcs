@@ -4,10 +4,11 @@ import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import NOOOO from "../assets/noooo.gif"
 import { SuperSecret } from '../components/SuperSecret.tsx';
-import { roundDecimal } from '../utilities/general.tsx';
+import { CELSIUS_TO_FAHRENHEIT, FAHRENHEIT_TO_CELSIUS, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
+import { SettingsConfig} from "./Settings.tsx";
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
-type Threshold = [number, number, number, number];
+export type Threshold = [number, number, number, number];
 
 export class Parameter {
     label: String;
@@ -140,40 +141,66 @@ export class Parameter {
  * control page
  * @returns the control page
  */ 
-function Control() {
+function Control({settings}:{settings: SettingsConfig}) {
+    const airspeedThreshold: Threshold = [
+        settings.minAirspeed_m_s,
+        settings.maxAirspeed_m_s, 
+        METERS_PER_SECOND_TO_KNOTS(settings.minAirspeed_m_s), 
+        METERS_PER_SECOND_TO_KNOTS(settings.maxAirspeed_m_s)
+    ];
 
-    // airspeed 10m/s -> 20m/s -> 30m/s
-    // groundspeed 10m/s -> 20m/s -> 30m/s
+    const groundspeedThreshold = airspeedThreshold;
 
-    const airspeedThreshold: Threshold =
-        [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
-    const groundspeedThreshold: Threshold =
-        [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
-    const altitudeMSLThreshold: Threshold =
-        [80, 160, parseFloat((80*0.3048).toFixed(2)), parseFloat((160*0.3048).toFixed(2))];
-    const altitudeAGLThreshold: Threshold =
-        [80, 160, parseFloat((80*0.3048).toFixed(2)), parseFloat((160*0.3048).toFixed(2))];
-    const motorBatteryThreshold: Threshold =
-        [80, 160, 80, 160];
-    const pixhawkBatteryThreshold: Threshold = 
-        [80, 160, 80, 160];
-    const ESCtemperatureThreshold: Threshold = 
-        [80, 160, parseFloat(((80-32) * (5/9)).toFixed(2)), parseFloat(((160-32) * (5/9)).toFixed(2))];
+    //todo figure out way to deteect starting altitude so this has a valid range too
+    const altitudeAGLThreshold: Threshold = [
+        settings.minAltitudeAGL_feet,
+        settings.maxAltitudeAGL_feet,
+        FEET_TO_METERS(settings.minAltitudeAGL_feet),
+        FEET_TO_METERS(settings.maxAltitudeAGL_feet), 
+    ];
+
+    const altitudeMSLThreshold: Threshold = [
+        settings.minAltitudeAGL_feet + settings.groundAltitude_feet,
+        settings.maxAltitudeAGL_feet + settings.groundAltitude_feet,
+        FEET_TO_METERS(settings.minAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
+        FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
+    ];
+
+    const motorBatteryThreshold: Threshold = [
+        settings.minVoltsPerCell,
+        settings.maxVoltsPerCell,
+        settings.minVoltsPerCell * settings.motorBatteryCells,
+        settings.maxVoltsPerCell * settings.motorBatteryCells
+    ];
+
+    const pixhawkBatteryThreshold: Threshold = [
+        settings.minVoltsPerCell,
+        settings.maxVoltsPerCell,
+        settings.minVoltsPerCell * settings.pixhawkBatteryCells,
+        settings.maxVoltsPerCell * settings.pixhawkBatteryCells
+    ];
+
+    const ESCtemperatureThreshold: Threshold = [
+        settings.minESCTemperature_c,
+        settings.maxESCTemperature_c,
+        CELSIUS_TO_FAHRENHEIT(settings.minESCTemperature_c),
+        CELSIUS_TO_FAHRENHEIT(settings.maxESCTemperature_c)
+    ];
 
     const [airspeed, setAirspeed] =
         useState<Parameter>(new Parameter('Airspeed', [0,0], ['m/s', 'knots'], airspeedThreshold, 0));
     const [groundspeed, setGroundspeed] =
         useState<Parameter>(new Parameter('Groundspeed', [0,0], ['m/s', 'knots'], groundspeedThreshold, 0));
     const [altitudeMSL, setAltitudeMSL] =
-        useState<Parameter>(new Parameter('Altitude MSL',[0,0], ['meters', 'feet'], altitudeMSLThreshold, 0));
+        useState<Parameter>(new Parameter('Altitude MSL',[0,0], ['feet', 'meters'], altitudeMSLThreshold, 0));
     const [altitudeAGL, setAltitudeAGL] =
-        useState<Parameter>(new Parameter('Altitude AGL', [0,0], ['meters', 'feet'], altitudeAGLThreshold, 0));
+        useState<Parameter>(new Parameter('Altitude AGL', [0,0], ['feet', 'meters'], altitudeAGLThreshold, 0));
     const [motorBattery, setMotorBattery] =
-        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V', 'V/c'], motorBatteryThreshold, 0));
+        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V/c', 'V'], motorBatteryThreshold, 0));
     const [pixhawkBattery, setPixhawkBattery] =
-        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V', 'V/c'], pixhawkBatteryThreshold, 0));
+        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V/c', 'V'], pixhawkBatteryThreshold, 0));
     const [ESCtemperature, setESCtemperature] =
-        useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°F', '°C'], ESCtemperatureThreshold, 0)); 
+        useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°C', '°F'], ESCtemperatureThreshold, 0)); 
 
     const [planeLatLng, setPlaneLatLng] = useState<[number, number]>([0,0]);
 
@@ -181,6 +208,7 @@ function Control() {
 
     useEffect(() => {
         const interval = setInterval(() => pullTelemetry(
+            settings,
             setPlaneLatLng,
             setAirspeed,
             setGroundspeed,

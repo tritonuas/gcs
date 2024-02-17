@@ -1,8 +1,10 @@
 import { Dispatch, SetStateAction } from "react";
 import type { Parameter } from "../pages/Control";
 import { MM_TO_METERS, FAHRENHEIT_TO_CELSIUS, METERS_PER_SECOND_TO_KNOTS, METERS_TO_FEET } from "./general";
+import { SettingsConfig } from "../pages/Settings";
 
 export function pullTelemetry(
+    settings: SettingsConfig,
     setPlaneLatLng: Dispatch<SetStateAction<[number, number]>>,
     setAirspeedVal: Dispatch<SetStateAction<Parameter>>,
     setGroundspeedVal: Dispatch<SetStateAction<Parameter>>,
@@ -56,11 +58,11 @@ export function pullTelemetry(
     fetch('/api/plane/voltage')
         .then(resp => resp.json())
         .then(json => {
-            let pixhawkV = json["0"]/1000;
+            let pixhawkV = json["0"]/1000; //kV -> V
             let motorV = json["1"]/1000;
 
-            const PIXHAWK_CELLS = 4;
-            const MOTOR_CELLS = 8; // TODO: allow a config option to set this, and new motor will be 12S!
+            const PIXHAWK_CELLS = settings.pixhawkBatteryCells;
+            const MOTOR_CELLS = settings.motorBatteryCells;
 
             setPixhawkBatteryVal(param => param.getUpdatedValue(pixhawkV, (x) => x / PIXHAWK_CELLS));
             setMotorBatteryVal(param => param.getUpdatedValue(motorV, (x) => x / MOTOR_CELLS));
