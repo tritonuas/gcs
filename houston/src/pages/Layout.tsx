@@ -28,9 +28,7 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
         }
     }
 
-    function openSettings() {
-        navigate("/settings"); 
-    }
+    const openSettings = () => navigate("/settings"); 
 
     const [influxLoading, setLoading] = useState(false);
     const [dataString, setDataString] = useState('');

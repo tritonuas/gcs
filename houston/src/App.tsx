@@ -11,10 +11,11 @@ import Input from './pages/Input';
 import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
-import Settings, {SettingsConfig, loadSettings} from './pages/Settings'
+import Settings from './pages/Settings'
 
 
 import { ConnectionType, ConnectionStatus } from "./utilities/temp";
+import { SettingsConfig, loadSettings } from "./utilities/settings";
 
 /**
  * Main React function

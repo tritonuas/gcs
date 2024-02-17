@@ -15,11 +15,24 @@ export function getURLBase(url: string) {
     return url.split(':').slice(0,2).join(':');
 }
 
+/**
+ * Rounds numbers to one decimal point
+ * @param val number to round
+ * @returns val rounded to one decimal point
+ */
 export function roundDecimal(val: number): number {
     return parseFloat(val.toFixed(1));
 } 
 
-//https://stackoverflow.com/questions/53024496/state-not-updating-when-using-react-state-hook-within-setinterval
+
+
+/**
+ * Helper function to help with scenario described here
+ * https://stackoverflow.com/questions/53024496/state-not-updating-when-using-react-state-hook-within-setinterval
+ * @param callback callback function to run at the interval
+ * @param delay interval delay in ms
+ * @returns reference to the interval in case you want to clear it manually
+ */
 export function useInterval(callback: () => void, delay:number) {
     const intervalRef = React.useRef<number>();
     const callbackRef = React.useRef(callback);

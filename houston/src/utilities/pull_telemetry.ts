@@ -1,8 +1,21 @@
 import { Dispatch, SetStateAction } from "react";
 import type { Parameter } from "../pages/Control";
 import { MM_TO_METERS, FAHRENHEIT_TO_CELSIUS, METERS_PER_SECOND_TO_KNOTS, METERS_TO_FEET } from "./general";
-import { SettingsConfig } from "../pages/Settings";
+import { SettingsConfig } from "./settings";
 
+/**
+ * Helper function to get all of the necessary telemetry information from the backend
+ * @param settings Settings, for battery cell amounts
+ * @param setPlaneLatLng state setter
+ * @param setAirspeedVal state setter
+ * @param setGroundspeedVal state setter
+ * @param setAltitudeMSLVal state setter
+ * @param setAltitudeAGLVal state setter
+ * @param setMotorBatteryVal state setter
+ * @param setPixhawkBatteryVal state setter
+ * @param setESCtemperatureVal state setter
+ * @param setSuperSecret state setter
+ */
 export function pullTelemetry(
     settings: SettingsConfig,
     setPlaneLatLng: Dispatch<SetStateAction<[number, number]>>,
@@ -58,12 +71,11 @@ export function pullTelemetry(
     fetch('/api/plane/voltage')
         .then(resp => resp.json())
         .then(json => {
-            let pixhawkV = json["0"]/1000; //kV -> V
-            let motorV = json["1"]/1000;
+            const pixhawkV = json["0"]/1000; //kV -> V
+            const motorV = json["1"]/1000;
 
             const PIXHAWK_CELLS = settings.pixhawkBatteryCells;
             const MOTOR_CELLS = settings.motorBatteryCells;
-
             setPixhawkBatteryVal(param => param.getUpdatedValue(pixhawkV, (x) => x / PIXHAWK_CELLS));
             setMotorBatteryVal(param => param.getUpdatedValue(motorV, (x) => x / MOTOR_CELLS));
         })

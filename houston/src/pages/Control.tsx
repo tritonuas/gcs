@@ -4,14 +4,14 @@ import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import NOOOO from "../assets/noooo.gif"
 import { SuperSecret } from '../components/SuperSecret.tsx';
-import { CELSIUS_TO_FAHRENHEIT, FAHRENHEIT_TO_CELSIUS, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
-import { SettingsConfig} from "./Settings.tsx";
+import { CELSIUS_TO_FAHRENHEIT, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
+import { SettingsConfig } from '../utilities/settings.ts';
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
 export type Threshold = [number, number, number, number];
 
 export class Parameter {
-    label: String;
+    label: string;
     values: [number, number];
     value: number;
     units: [Unit, Unit];
@@ -28,7 +28,7 @@ export class Parameter {
     //      - if the current value is within the threshold, the color is green. if not, the color is red.
     threshold: Threshold;
 
-    constructor(label: String, values: [number, number], units: [Unit, Unit], threshold: Threshold, index: 0 | 1, error: boolean = false) {
+    constructor(label: string, values: [number, number], units: [Unit, Unit], threshold: Threshold, index: 0 | 1, error: boolean = false) {
         this.label = label;
         this.values = values;
         this.units = units;
@@ -139,6 +139,8 @@ export class Parameter {
 
 /**
  * control page
+ * @param props props
+ * @param props.settings Settings to determine thresholds and battery info
  * @returns the control page
  */ 
 function Control({settings}:{settings: SettingsConfig}) {
@@ -223,7 +225,7 @@ function Control({settings}:{settings: SettingsConfig}) {
         return () => {
             clearInterval(interval);
         }
-    }, []);
+    }, [settings]);
     
     const flightMode = '';
     const flightModeColor = { backgroundColor: 'var(--warning-text)' };

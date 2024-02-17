@@ -1,3 +1,5 @@
+/* eslint jsdoc/require-jsdoc: 0 */  // turn eslint off for this monstrosity
+
 import { CSSProperties, MouseEvent, useState } from "react";
 import "./SuperSecret.css";
 import receipt from "../assets/receipt.svg"
@@ -164,8 +166,10 @@ export function SuperSecret() {
                     </div>
             }
             {
-                sillyIcons.map((src) =>
-                    <img src={src[0]} 
+                sillyIcons.map((src, i) =>
+                    <img 
+                         key={i}
+                         src={src[0]} 
                          style={{left: `${src[1]}px`}} 
                          height={ICON_WIDTH} 
                          className="silly-icon"

@@ -1,6 +1,5 @@
 import "./MyModal.css"
-import exit from "../assets/close.svg";
-import { Box, Button, Modal, Typography} from "@mui/material";
+import { Box, Modal, Typography} from "@mui/material";
 import { ReactNode } from "react";
 
 interface Props {
