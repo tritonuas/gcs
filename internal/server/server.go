@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/base64"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +35,9 @@ type Server struct {
 	MissionTime         int64
 	ClassifiedTargets   []cvs.ClassifiedODLC
 
-	MissionConfig *protos.Mission
+	MissionConfig    *protos.Mission
+	IdentifiedTarget []*protos.IdentifiedTarget
+	MatchedTarget    []*protos.MatchedTarget
 }
 
 /*
@@ -445,14 +449,103 @@ func (server *Server) getInitialPathNew() gin.HandlerFunc {
 }
 
 func (server *Server) getAllTargets() gin.HandlerFunc {
+	data, err := os.ReadFile("../../houston/src/assets/report-page-images/amogus-1.png")
+	var base64Data string
+	if err != nil {
+		base64Data = err.Error()
+	} else {
+		base64Data = base64.StdEncoding.EncodeToString(data)
+	}
+	server.IdentifiedTarget = append(server.IdentifiedTarget, &protos.IdentifiedTarget{
+		Id:      1,
+		Picture: base64Data,
+		Coordinate: &protos.GPSCoord{
+			Latitude:  1.3915,
+			Longitude: 103.8894,
+			Altitude:  0,
+		},
+		Alphanumeric:      "A",
+		AlphanumericColor: protos.ODLCColor_Red,
+		Shape:             protos.ODLCShape_Circle,
+		ShapeColor:        protos.ODLCColor_Orange,
+		IsMannikin:        false,
+	})
+	server.IdentifiedTarget = append(server.IdentifiedTarget, &protos.IdentifiedTarget{
+		Id:      2,
+		Picture: base64Data,
+		Coordinate: &protos.GPSCoord{
+			Latitude:  1.3915,
+			Longitude: 103.8894,
+			Altitude:  0,
+		},
+		AlphanumericColor: protos.ODLCColor_Blue,
+		Alphanumeric:      "B",
+		Shape:             protos.ODLCShape_Circle,
+		ShapeColor:        protos.ODLCColor_Green,
+		IsMannikin:        false,
+	})
+	server.IdentifiedTarget = append(server.IdentifiedTarget, &protos.IdentifiedTarget{
+		Id:      3,
+		Picture: base64Data,
+		Coordinate: &protos.GPSCoord{
+			Latitude:  1.3915,
+			Longitude: 103.8894,
+			Altitude:  0,
+		},
+		AlphanumericColor: protos.ODLCColor_Green,
+		Alphanumeric:      "C",
+		Shape:             protos.ODLCShape_Circle,
+		ShapeColor:        protos.ODLCColor_Purple,
+		IsMannikin:        false,
+	})
+	server.IdentifiedTarget = append(server.IdentifiedTarget, &protos.IdentifiedTarget{
+		Id:      4,
+		Picture: base64Data,
+		Coordinate: &protos.GPSCoord{
+			Latitude:  1.3915,
+			Longitude: 103.8894,
+			Altitude:  0,
+		},
+		AlphanumericColor: protos.ODLCColor_Purple,
+		Alphanumeric:      "D",
+		Shape:             protos.ODLCShape_Circle,
+		ShapeColor:        protos.ODLCColor_Red,
+		IsMannikin:        false,
+	})
+	server.IdentifiedTarget = append(server.IdentifiedTarget, &protos.IdentifiedTarget{
+		Id:      5,
+		Picture: base64Data,
+		Coordinate: &protos.GPSCoord{
+			Latitude:  1.3915,
+			Longitude: 103.8894,
+			Altitude:  0,
+		},
+		AlphanumericColor: protos.ODLCColor_Orange,
+		Alphanumeric:      "E",
+		Shape:             protos.ODLCShape_Circle,
+		ShapeColor:        protos.ODLCColor_Blue,
+		IsMannikin:        false,
+	})
+
 	return func(c *gin.Context) {
-		c.String(http.StatusNotImplemented, "Not Implemented")
+		c.JSON(http.StatusOK, server.IdentifiedTarget)
 	}
 }
 
 func (server *Server) getMatchedTargets() gin.HandlerFunc {
+	server.MatchedTarget = append(server.MatchedTarget, &protos.MatchedTarget{
+		Bottle: &protos.Bottle{
+			Alphanumeric:      "A",
+			AlphanumericColor: protos.ODLCColor_Red,
+			Shape:             protos.ODLCShape_Circle,
+			ShapeColor:        protos.ODLCColor_Orange,
+			Index:             protos.BottleDropIndex_A,
+			IsMannikin:        false,
+		},
+		Target: server.IdentifiedTarget[0],
+	})
 	return func(c *gin.Context) {
-		c.String(http.StatusNotImplemented, "Not Implemented")
+		c.JSON(http.StatusOK, server.MatchedTarget)
 	}
 }
 

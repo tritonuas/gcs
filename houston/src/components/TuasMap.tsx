@@ -1,7 +1,8 @@
 import { MapContainer, Popup, TileLayer, Marker } from "react-leaflet"
 import 'leaflet/dist/leaflet.css'
 import { Icon } from 'leaflet';
-import { item } from "../pages/Report.tsx"
+// import { item } from "../pages/Report.tsx"
+import { IdentifiedTarget } from "../protos/obc.pb";
 /**
  * Wrapper component around all leaflet maps for the application. Any functionality we do with leaflet should be encased
  * within this class, so that we don't have repeated leaflet code throughout all the files.
@@ -15,7 +16,7 @@ import { item } from "../pages/Report.tsx"
  * @param props.unmatchedIcons array of unmatched icons
  * @returns TuasMap wrapper component
  */
-function TuasMap({className, lat, lng, matchedArray=[], unmatchedArray=[], matchedIcons=[], unmatchedIcons=[]}:{className: string, lat: number, lng: number, matchedArray?: item[], unmatchedArray?: item[], matchedIcons?: Icon[], unmatchedIcons?: Icon[]}) {
+function TuasMap({className, lat, lng, matchedArray=[], unmatchedArray=[], matchedIcons=[], unmatchedIcons=[]}:{className: string, lat: number, lng: number, matchedArray?: IdentifiedTarget[], unmatchedArray?: IdentifiedTarget[], matchedIcons?: Icon[], unmatchedIcons?: Icon[]}) {
     return (
         <>
             <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
@@ -28,13 +29,13 @@ function TuasMap({className, lat, lng, matchedArray=[], unmatchedArray=[], match
                     id= 'mapbox/satellite-v9'
                 />
                 {matchedArray.map((marker) => (
-                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
-                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    <Marker key={marker.coordinate?.Altitude} position={[marker.coordinate?.Latitude || lat, marker.coordinate?.Longitude || lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
+                        <Popup>{marker.AlphanumericColor} {marker.Alphanumeric} {marker.ShapeColor} {marker.Shape}</Popup>
                     </Marker>
                 ))}
                 {unmatchedArray.map((marker) => (
-                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
-                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    <Marker key={marker.coordinate?.Altitude} position={[marker.coordinate?.Latitude || lat, marker.coordinate?.Longitude || lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
+                        <Popup>{marker.AlphanumericColor} {marker.Alphanumeric} {marker.ShapeColor} {marker.Shape}</Popup>
                     </Marker>
                 ))}
             </MapContainer>
