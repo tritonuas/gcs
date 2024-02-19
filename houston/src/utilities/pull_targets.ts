@@ -1,5 +1,10 @@
 import { IdentifiedTarget, MatchedTarget } from '../protos/obc.pb';
 
+/**
+ * 
+ * @param setFoundItemArray set state for found items
+ * @param setMatchedItemArray set state for matched items
+ */
 export function pull_targets(setFoundItemArray: React.Dispatch<React.SetStateAction<IdentifiedTarget[]>>, setMatchedItemArray: React.Dispatch<React.SetStateAction<MatchedTarget[]>>) {
     fetch('/api/targets/all')
     .then(response => response.json())
