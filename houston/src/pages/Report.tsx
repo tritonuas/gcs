@@ -13,10 +13,7 @@ interface ImageProps {
     item: IdentifiedTarget;
     matchedItems: MatchedTarget[];
     foundItemIndex: number;
-    matched?: boolean;
     updateMatched: UpdateItemFunction;
-    setFoundItemArray?: React.Dispatch<React.SetStateAction<IdentifiedTarget[]>>;
-    setItemArray?: React.Dispatch<React.SetStateAction<MatchedTarget[]>>;
 }
 
 interface BottleProps {
@@ -30,9 +27,13 @@ const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]
  * @param props props
  * @param props.item image to be displayed
  * @param props.matchedItems array of items that we are comparing against
+ * @param props.updateMatched function to update matched items
  * @returns image container
  */
 function Image({item, matchedItems, updateMatched}: ImageProps) {
+    /**
+     * @returns reassigns the target to a different bottle
+     */
     async function reassignHandler() {
         const value = prompt('Enter new Bottle ID');
         let bottleIndex = "null";
@@ -108,6 +109,12 @@ function Image({item, matchedItems, updateMatched}: ImageProps) {
         </div>
 }
 
+/**
+ * @param props props
+ * @param props.item bottle to be displayed
+ * @param props.matchedItems array of items that we are comparing against
+ * @returns bottle container
+ */
 function BottleImage({item, matchedItems} : BottleProps) {
     const matchIndex = matchedItems.findIndex((itemX) => itemX.Bottle ? itemX.Bottle.Index === item.Index : null);
     let backgroundColor = {backgroundColor: "grey"};
@@ -221,7 +228,7 @@ function Report() {
         <div className="left-container">
             <div className="gallery-container">
                 <div className="unmatched-gallery">
-                    {foundItemArray.map((item, i) => <Image key={i} item={item} matchedItems={itemArray} foundItemIndex={foundItemArray.indexOf(item)} setFoundItemArray={setfoundItemArray} setItemArray={setItemArray} updateMatched={updateMatched}/>)}
+                    {foundItemArray.map((item, i) => <Image key={i} item={item} matchedItems={itemArray} foundItemIndex={foundItemArray.indexOf(item)} updateMatched={updateMatched}/>)}
                 </div>
                 <div className="matched-gallery">
                     {itemArray.map((item, i) => item.Bottle ? <BottleImage key={i} item={item.Bottle} matchedItems={itemArray}/> : null)}
