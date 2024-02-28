@@ -1,19 +1,15 @@
-import { MapContainer, Popup, TileLayer, Marker } from "react-leaflet"
+import { MapContainer, TileLayer} from "react-leaflet"
 import 'leaflet/dist/leaflet.css'
 import { Icon } from 'leaflet';
-// import { item } from "../pages/Report.tsx"
 import { IdentifiedTarget, MatchedTarget, oDLCColorToJSON, oDLCShapeToJSON } from "../protos/obc.pb";
 /**
  * Wrapper component around all leaflet maps for the application. Any functionality we do with leaflet should be encased
  * within this class, so that we don't have repeated leaflet code throughout all the files.
  * @param props Props
+ * @param props.children any children to render
  * @param props.className class to apply to the map
  * @param props.lat starting latitude of the map
  * @param props.lng starting longitude of the map
- * @param props.matchedArray array of matched items
- * @param props.unmatchedArray array of unmatched items
- * @param props.matchedIcons array of matched icons
- * @param props.unmatchedIcons array of unmatched icons
  * @returns TuasMap wrapper component
  */
 function TuasMap({className, lat, lng, matchedArray=[], unmatchedArray=[], matchedIcons=[], unmatchedIcons=[]}:{className: string, lat: number, lng: number, matchedArray?: MatchedTarget[], unmatchedArray?: IdentifiedTarget[], matchedIcons?: Icon[], unmatchedIcons?: Icon[]}) {

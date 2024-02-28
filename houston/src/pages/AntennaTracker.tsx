@@ -31,7 +31,7 @@ function AntennaTracker() {
     return (
         <>
             <main className="atracker-page">
-                <TuasMap className="atracker-map" lat={51} lng={10}/>
+                <TuasMap className="atracker-map" lat={51} lng={10} />
                 <div className="atracker-terminal">
                     {
                         terminalText.map((str, i) => <p key={i}>{str}</p>)
