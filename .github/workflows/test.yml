@@ -25,15 +25,10 @@ jobs:
       - name: Install dependencies
         run: make install-dependencies
 
-      - name: Build Protos
-        run: make build-protos
-
       - name: Test
         run: |
           go test -race ./...
 
-  # TODO: include protobuf installation and compilation steps here, once we actually start
-  # writing tests that need to run on the frontend.
   Jest:
     name: Test Frontend
     runs-on: ubuntu-latest

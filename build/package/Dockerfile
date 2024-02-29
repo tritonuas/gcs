@@ -26,7 +26,6 @@ RUN --mount=target=. \
 
 COPY ./houston/dist/ /build/houston/
 
-RUN mkdir /CSV
 # go build mounts code read-only without copying to container,
 # so you have to put binary in another folder
 CMD ["/output/gcs"]

@@ -44,3 +44,40 @@ main.obc-page ul.status-list figcaption {
     transform: translate(-50%, -50%);
     outline: 0;
 }
+
+.obc-camera-form-modal form {
+    border: 0;
+}
+
+/* Put all the field items going down in a nice column */
+.obc-camera-form-modal fieldset {
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    background-color: var(--light-bg);
+    margin: 0;
+    padding: 0;
+    font-family: 'Jetbrains Mono', sans-serif;
+}
+
+.obc-camera-form-modal legend {
+    color: var(--highlight);
+    background-color: var(--dark-bg);
+    border: 1px solid var(--dark-text);
+}
+
+.obc-camera-form-modal input[type="submit"] {
+    border: none;
+}
+
+.obc-camera-form-modal input[type="submit"]:is(:hover, :focus) {
+    background-color: var(--dark-bg);
+    color: var(--highlight);
+    border: none;
+}
+
+.obc-camera-form-modal fieldset > * {
+    margin: 0.3rem;
+}

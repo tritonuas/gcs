@@ -22,7 +22,6 @@ services:
       - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
       - missions:/go/src/github.com/tritonuas/gcs/missions
-      - ../flight-logs:/CSV
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     extra_hosts:

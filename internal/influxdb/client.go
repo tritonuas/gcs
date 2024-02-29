@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"sort"
-	"strings"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -239,157 +236,13 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 	return data, nil
 }
 
-// Will dump entire DB to a CSV format
+// TODO: Will dump entire DB to a JSON or CSV format
 func (c *Client) GetAll() (string, error) {
-
 	if !c.IsConnected() {
-		return errInluxDBNotConnected.Error(), errInluxDBNotConnected
+		return "", errInluxDBNotConnected
 	}
 
-	const fileWriterErrMsg = "File writer fail to write"
-
-	endTime := time.Now().Format(time.RFC3339)
-	timeStamp := time.Now().Format("2006-01-02 15:04:05")
-
-	attitude, attitudeError := c.QueryMsgIDAndTimeRange(uint32(30), &endTime)
-	battery, batteryError := c.QueryMsgIDAndTimeRange(uint32(147), &endTime)
-	globalPosition, globalPositionError := c.QueryMsgIDAndTimeRange(uint32(33), &endTime)
-	heartbeat, heartbeatError := c.QueryMsgIDAndTimeRange(uint32(0), &endTime)
-	vfrhud, vfrhudError := c.QueryMsgIDAndTimeRange(uint32(74), &endTime)
-
-	fields := make([]map[string]interface{}, 0)
-
-	fields = append(fields, (map[string]interface{}{
-		"query": attitude, // Replace with the appropriate value
-		"name":  "ATTITUDE",
-		"error": attitudeError,
-	}))
-
-	fields = append(fields, (map[string]interface{}{
-		"query": battery,
-		"name":  "BATTERY_STATUS",
-		"error": batteryError,
-	}))
-
-	fields = append(fields, (map[string]interface{}{
-		"query": globalPosition,
-		"name":  "GLOBAL_POSITION_INT",
-		"error": globalPositionError,
-	}))
-
-	fields = append(fields, (map[string]interface{}{
-		"query": heartbeat,
-		"name":  "HEARTBEAT",
-		"error": heartbeatError,
-	}))
-
-	fields = append(fields, (map[string]interface{}{
-		"query": vfrhud,
-		"name":  "VFR_HUD",
-		"error": vfrhudError,
-	}))
-
-	mkDirErr := os.Mkdir("/CSV/"+timeStamp, 0700)
-
-	if mkDirErr != nil {
-		return "Error in making directory", mkDirErr
-	}
-
-	for x := 0; x < len(fields); x++ {
-		queryMap := fields[x]["query"].([]map[string]interface{})
-		name := fields[x]["name"].(string)
-		queryErr := fields[x]["error"]
-
-		if queryErr != nil {
-			return "Query for " + name + " not working", queryErr.(error)
-		}
-
-		file, err := os.Create("/CSV/" + timeStamp + "/" + name + ".csv")
-
-		if err != nil {
-			file.Close()
-			return "Fail to create new CSV file", err
-		}
-
-		titleArray := []string{}
-
-		for key := range queryMap[0] {
-			titleArray = append(titleArray, key)
-		}
-
-		sort.Strings(titleArray)
-
-		_, err = file.WriteString(strings.Join(titleArray, ","))
-		if err != nil {
-			return fileWriterErrMsg, err
-		}
-
-		for x := 0; x < len(queryMap); x++ {
-			rowEntry := "\n"
-			for y := 0; y < len(queryMap[x]); y++ {
-				rowEntry += fmt.Sprintf("%v,", queryMap[x][titleArray[y]])
-			}
-			rowEntry = rowEntry[:len(rowEntry)-1]
-			_, err = file.WriteString(rowEntry)
-			if err != nil {
-				return fileWriterErrMsg, err
-			}
-		}
-		file.Close()
-	}
-
-	return "Data dump succesful", nil
-}
-
-// QueryMsgIDAndTimeRange will request certain fields for the Mavlink message with the specified name.
-// A full list of mavlink message IDs and their fields can be found here http://mavlink.io/en/messages/common.html
-//
-// Each message has an name associated with it. For example, the message of ID #33 is named
-// "GLOBAL_POSITION_INT"
-//
-// Each message also has various fields included in it. For example, the message named "GLOBAL_POSITION_INT" has the
-// following fields: "time_boot_ms", "lat", "lon", "alt", "relative_alt", "vx", "vy", "vz".
-//
-// Parameters:
-//   - msgID:   ID number of the message ID to query
-//   - endTime: The endTime is the "stop" inside query time "range(start: , stop:)".
-//     The preset value for start -12*Time.Hour as an attemp to go as far
-//     back as possible. Note that the type is a string, so if you wanted to query
-//     up until now, you would provide time.Now().Format(time.RFC3339) as the
-//     argument.
-//
-// Return:
-//   - []map[string]interface{}: list of maps. each map has keys as field names and values are the values associated with the keys
-//   - error: Could relate to InfluxDB connection, Requested msgID being invalid, etc.
-func (c *Client) QueryMsgIDAndTimeRange(msgID uint32, endTime *string) ([]map[string]interface{}, error) {
-	if !c.IsConnected() {
-		return nil, errInluxDBNotConnected
-	}
-	query := fmt.Sprintf(`from(bucket:"%s") |> range(start: -duration(v: %d), stop: %s) |> filter(fn: (r) => r.ID == "%v")`, c.creds.Bucket, 12*time.Hour, *endTime, msgID)
-
-	result, err := c.querier.Query(context.Background(), query)
-	if err != nil {
-		return nil, err
-	}
-
-	data := make([]map[string]interface{}, 0)
-	for result.Next() {
-		// see if message with timestamp already exists
-		idx := -1
-		for i, msg := range data {
-			if time, ok := msg["_time"]; ok && time == result.Record().Time().String() {
-				idx = i
-			}
-		}
-
-		if idx == -1 {
-			data = append(data, make(map[string]interface{}))
-			idx = len(data) - 1
-		}
-		data[idx][result.Record().Field()] = result.Record().Value()
-		data[idx]["_time"] = result.Record().Time().String()
-	}
-	return data, nil
+	return "", nil
 }
 
 // verifyConnection will try to query that InluxDB has started up and

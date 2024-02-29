@@ -8,7 +8,7 @@ services:
        - 5000:5000
     environment:
       - DEBUG_MODE=true
-      - OBC_ADDR=localhost:5010
+      - OBC_ADDR=192.168.1.51:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
       - MAV_DEVICE=tcp:localhost:5760
@@ -21,7 +21,6 @@ services:
       - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
       - missions:/go/src/github.com/tritonuas/gcs/missions
-      - ../flight-logs:/CSV
     extra_hosts:
       - host.docker.internal:host-gateway
       
