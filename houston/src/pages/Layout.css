@@ -89,6 +89,24 @@ nav.topbar button:is(:hover, :focus) {
       transform: scale(1);
     }
 }
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
   
+.rotate {
+    animation-name: rotate;
+    animation-play-state: paused;
+    animation-duration: 2s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
 
-
+.rotate:hover {
+    animation-play-state: running;
+}

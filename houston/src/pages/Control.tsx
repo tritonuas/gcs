@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import TuasMap from '../components/TuasMap.tsx'
 import "./Control.css"
+import { pullTelemetry } from '../utilities/pull_telemetry.ts';
+import NOOOO from "../assets/noooo.gif"
+import { SuperSecret } from '../components/SuperSecret.tsx';
+import { CELSIUS_TO_FAHRENHEIT, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
+import { SettingsConfig } from '../utilities/settings.ts';
 
-type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
+type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
+export type Threshold = [number, number, number, number];
 
-class Parameter {
-    values: number[];
+export class Parameter {
+    label: string;
+    values: [number, number];
     value: number;
-    units: Unit[];
+    units: [Unit, Unit];
     unit: Unit;
     color: React.CSSProperties;
+    index: 0 | 1;
+    error: boolean;
 
     // threshold: 
     // - length = 4
@@ -17,196 +26,234 @@ class Parameter {
     // - use: 
     //      - to determine the color of the telemetry based on the current and threshold values. 
     //      - if the current value is within the threshold, the color is green. if not, the color is red.
-    threshold: number[]; 
+    threshold: Threshold;
 
-    // index:
-    // - use: -
-    //      - to determine which unit to display.
-    //      - if the index is 0, display the value in unit[0]. if the index is 1, display the value in unit[1].
-    //      - value of index is toggled when the telemetry is clicked, which is handled by the handleClick function.
-    index: number;
-
-    constructor(values: number[], units: Unit[], threshold: number[], index: number) {
+    constructor(label: string, values: [number, number], units: [Unit, Unit], threshold: Threshold, index: 0 | 1, error: boolean = false) {
+        this.label = label;
         this.values = values;
         this.units = units;
         this.value = values[index];
-        this.unit = this.units[values.indexOf(this.value)];
-        this.threshold = threshold;
-        this.color = colorDeterminer(this.values, this.value, this.threshold);
+        this.unit = units[index];
         this.index = index;
+        this.error = error;
+
+        this.threshold = threshold;
+
+        // figure out color 
+        // todo refactor
+        if (this.error) {
+            this.color = { backgroundColor: 'var(--failure-text)' };
+        } else {
+            if (this.value >= threshold[(values.indexOf(this.value)) * 2] && this.value <= threshold[(values.indexOf(this.value)) * 2 + 1]) {
+                this.color = { backgroundColor: 'var(--success-text)' };
+            }
+            else {
+                this.color = { backgroundColor: 'var(--warning-text)' };
+            }
+        }
     }
-}
 
-/**
- * airspeed and groundspeed randomizer function for testing
- * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
- */
-function valueRandomizer() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], parseFloat((number[1]*1.94384).toFixed(2))]);
-}
-
-/**
- * altitude randomizer function for testing
- * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
- */
-function valueRandomizer2() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], parseFloat((number[1]*0.3048).toFixed(2))]);
-}
-
-/**
- * ESC temperature randomizer function for testing
- * @returns the middle value of the array and its unit converted to the corresponding unit as a tuple
- */
-function valueRandomizer3() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], parseFloat(((number[1]-32) * (5/9)).toFixed(2))]);
-}
-
-/**
- * battery randomizer function for testing
- * @returns the middle value of the array twice to make implementation and logic easier
- */
-function valueRandomizer4() { 
-    const number = [60, 120, 240];
-    // const randomIndex = Math.floor(Math.random() * number.length);
-    return ([number[1], number[1]]);
-}
-
-/**
- * color determiner function for testing
- * @param values - the tuple of values
- * @param value - the value of the telemetry
- * @param threshold - the tuple of threshold values
- * @returns - the color of the telemetry based on the current and threshold values
- */
-function colorDeterminer(values : number[], value : number, threshold : number[]) {
-    if (value >= threshold[(values.indexOf(value)) * 2] && value <= threshold[(values.indexOf(value)) * 2 + 1]) {
-        return { backgroundColor: 'var(--success-text)' };
-    }
-    else {
-        return { backgroundColor: 'var(--failure-text)' };
-    }
-}
-
-interface TelemetryProps {
-    key: number;
-    heading: string;
-    color: React.CSSProperties;
-    value: number;
-    units: Unit[];
-    unit: Unit;
-    onClick: () => void;
-}
-
-/**
- * Telemetry component
- * @param props - the props of the telemetry
- * @param props.key - the key of the telemetry
- * @param props.heading - the heading of the telemetry
- * @param props.color - the color of the telemetry
- * @param props.value - the value of the telemetry
- * @param props.units - the units of the telemetry
- * @param props.unit - the current unit of the telemetry
- * @param props.onClick - the onClick function of the telemetry
- * @returns the telemetry component
- */
-function TelemetryGenerator({ key, heading, color, value, units, unit, onClick }: TelemetryProps) {
-    if (units[0] !== units[1]) {
-        let unit0_class = 'unit-selected';
-        let unit1_class = 'unit-not-selected';
-
-        if (unit !== units[0]) {
-            [unit0_class, unit1_class] = [unit1_class, unit0_class]; // swap
+    render(onClick: () => void) {
+        if (this.error) {
+            return (
+                <div style={this.color} className='flight-telemetry' onClick={onClick}>
+                    <h1 className='heading'>{this.label}</h1>
+                    <p className='data'> <img className="error-icon" width={80} height={80} src={NOOOO}/></p>
+                    <div className='unit-indicator'>
+                    </div>
+                </div>
+            );
         }
 
-        return (
-            <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
-                <h1 className='heading'>{heading}</h1>
-                <p className='data'>{value} {unit}</p>
-                <div className='unit-indicator'>
-                    <p className={`unit ${unit0_class}`} >{units[0]}</p>
-                    <p className={`unit ${unit1_class}`} >{units[1]}</p>
+        if (this.units[0] !== this.units[1]) {
+            let unit0_class = 'unit-selected';
+            let unit1_class = 'unit-not-selected';
+
+            if (this.unit !== this.units[0]) {
+                [unit0_class, unit1_class] = [unit1_class, unit0_class]; // swap
+            }
+
+            return (
+                <div style={this.color} className='flight-telemetry' onClick={onClick}>
+                    <h1 className='heading'>{this.label}</h1>
+                    <p className='data'>{roundDecimal(this.value)} {this.unit}</p>
+                    <div className='unit-indicator'>
+                        <p className={`unit ${unit0_class}`} >{this.units[0]}</p>
+                        <p className={`unit ${unit1_class}`} >{this.units[1]}</p>
+                    </div>
                 </div>
-            </div>
+            );
+        } else {
+            return (
+                <div style={this.color} className='flight-telemetry' onClick={onClick}>
+                    <h1 className='heading'>{this.label}</h1>
+                    <p className='data'>{roundDecimal(this.value)} {this.unit}</p>
+                </div>
+            );
+        }
+    }
+
+    // Swaps the unit, but keeps all else constant
+    // Returns new Parameter for use in react setState
+    // does not mutate this Parameter
+    getSwappedUnit(): Parameter {
+        return new Parameter(
+            this.label,
+            this.values,
+            this.units,
+            this.threshold,
+            this.index === 0 ? 1 : 0,
+            this.error,
         );
-    } else {
-        return (
-            <div key={key} style={color} className='flight-telemetry' onClick={onClick}>
-                <h1 className='heading'>{heading}</h1>
-                <p className='data'>{value} {unit}</p>
-            </div>
+    }
+
+    // Updates the values, but keeps all else constant
+    // Returns new Parameter for use in react setState
+    // does not mutate this Parameter
+    // Also wipes any error state
+    getUpdatedValue(new_val: number, convert: (arg0: number) => number): Parameter {
+        return new Parameter(
+            this.label,
+            [new_val, convert(new_val)],
+            this.units,
+            this.threshold,
+            this.index,
+            false
+        );
+    }
+
+    // Returns a parameter in the error state version of this Parameter
+    // currently overrides the values to be 0,0 but maybe in the future
+    // we will want to have it specified another way
+    getErrorValue(): Parameter {
+        return new Parameter(
+            this.label,
+            [0, 0],
+            this.units,
+            this.threshold,
+            this.index,
+            true
         );
     }
 }
 
 /**
  * control page
+ * @param props props
+ * @param props.settings Settings to determine thresholds and battery info
  * @returns the control page
  */ 
-function Control() {
-    const [index, setIndex] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+function Control({settings}:{settings: SettingsConfig}) {
+    const airspeedThreshold: Threshold = [
+        settings.minAirspeed_m_s,
+        settings.maxAirspeed_m_s, 
+        METERS_PER_SECOND_TO_KNOTS(settings.minAirspeed_m_s), 
+        METERS_PER_SECOND_TO_KNOTS(settings.maxAirspeed_m_s)
+    ];
 
-    const handleClick = (key : number) => {
-        setIndex(prevIndices => {
-            const newIndices = [...prevIndices];
-            newIndices[key] = newIndices[key] === 0 ? 1 : 0;
-            return newIndices;
-        });
+    const groundspeedThreshold = airspeedThreshold;
+
+    //todo figure out way to deteect starting altitude so this has a valid range too
+    const altitudeAGLThreshold: Threshold = [
+        settings.minAltitudeAGL_feet,
+        settings.maxAltitudeAGL_feet,
+        FEET_TO_METERS(settings.minAltitudeAGL_feet),
+        FEET_TO_METERS(settings.maxAltitudeAGL_feet), 
+    ];
+
+    const altitudeMSLThreshold: Threshold = [
+        settings.minAltitudeAGL_feet + settings.groundAltitude_feet,
+        settings.maxAltitudeAGL_feet + settings.groundAltitude_feet,
+        FEET_TO_METERS(settings.minAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
+        FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
+    ];
+    console.log(altitudeMSLThreshold);
+
+    const motorBatteryThreshold: Threshold = [
+        settings.minVoltsPerCell,
+        settings.maxVoltsPerCell,
+        settings.minVoltsPerCell * settings.motorBatteryCells,
+        settings.maxVoltsPerCell * settings.motorBatteryCells
+    ];
+
+    const pixhawkBatteryThreshold: Threshold = [
+        settings.minVoltsPerCell,
+        settings.maxVoltsPerCell,
+        settings.minVoltsPerCell * settings.pixhawkBatteryCells,
+        settings.maxVoltsPerCell * settings.pixhawkBatteryCells
+    ];
+
+    const ESCtemperatureThreshold: Threshold = [
+        settings.minESCTemperature_c,
+        settings.maxESCTemperature_c,
+        CELSIUS_TO_FAHRENHEIT(settings.minESCTemperature_c),
+        CELSIUS_TO_FAHRENHEIT(settings.maxESCTemperature_c)
+    ];
+
+    const [airspeed, setAirspeed] =
+        useState<Parameter>(new Parameter('Airspeed', [0,0], ['m/s', 'knots'], airspeedThreshold, 0));
+    const [groundspeed, setGroundspeed] =
+        useState<Parameter>(new Parameter('Groundspeed', [0,0], ['m/s', 'knots'], groundspeedThreshold, 0));
+    const [altitudeMSL, setAltitudeMSL] =
+        useState<Parameter>(new Parameter('Altitude MSL',[0,0], ['feet', 'meters'], altitudeMSLThreshold, 0));
+    const [altitudeAGL, setAltitudeAGL] =
+        useState<Parameter>(new Parameter('Altitude AGL', [0,0], ['feet', 'meters'], altitudeAGLThreshold, 0));
+    const [motorBattery, setMotorBattery] =
+        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V/c', 'V'], motorBatteryThreshold, 0));
+    const [pixhawkBattery, setPixhawkBattery] =
+        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V/c', 'V'], pixhawkBatteryThreshold, 0));
+    const [ESCtemperature, setESCtemperature] =
+        useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°C', '°F'], ESCtemperatureThreshold, 0)); 
+
+    const [planeLatLng, setPlaneLatLng] = useState<[number, number]>([0,0]);
+
+    const [superSecret, setSuperSecret] = useState(false);
+
+    useEffect(() => {
+        const interval = setInterval(() => pullTelemetry(
+            settings,
+            setPlaneLatLng,
+            setAirspeed,
+            setGroundspeed,
+            setAltitudeMSL,
+            setAltitudeAGL,
+            setMotorBattery,
+            setPixhawkBattery,
+            setESCtemperature,
+            setSuperSecret
+        ), 1000);
+
+        return () => {
+            clearInterval(interval);
+        }
+    }, [settings]);
+    
+    const flightMode = '';
+    const flightModeColor = { backgroundColor: 'var(--warning-text)' };
+
+    const handleClick = (setter: Dispatch<SetStateAction<Parameter>>) => {
+        setter(param => param.getSwappedUnit());
     };
 
-    const airspeedVal = valueRandomizer();
-    const groundspeedVal = valueRandomizer();
-    const altitudeMSLVal = valueRandomizer2();
-    const altitudeAGLVal = valueRandomizer2();
-    const motorBatteryVal = valueRandomizer4();
-    const pixhawkBatteryVal = valueRandomizer4();
-    const ESCtemperatureVal = valueRandomizer3();
-
-    const airspeedThreshold = [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
-    const groundspeedThreshold = [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
-    const altitudeMSLThreshold = [80, 160, parseFloat((80*0.3048).toFixed(2)), parseFloat((160*0.3048).toFixed(2))];
-    const altitudeAGLThreshold = [80, 160, parseFloat((80*0.3048).toFixed(2)), parseFloat((160*0.3048).toFixed(2))];
-    const motorBatteryThreshold = [80, 160, 80, 160];
-    const pixhawkBatteryThreshold = [80, 160, 80, 160];
-    const ESCtemperatureThreshold = [80, 160, parseFloat(((80-32) * (5/9)).toFixed(2)), parseFloat(((160-32) * (5/9)).toFixed(2))];
-
-    const airspeed = new Parameter(airspeedVal, ['knots', 'm/s'], airspeedThreshold, index[0]);
-    const groundspeed = new Parameter(groundspeedVal, ['knots', 'm/s'], groundspeedThreshold, index[1]);
-    const altitudeMSL = new Parameter(altitudeMSLVal, ['feet', 'meters'], altitudeMSLThreshold, index[2]);
-    const altitudeAGL = new Parameter(altitudeAGLVal, ['feet', 'meters'], altitudeAGLThreshold, index[3]);
-    const motorBattery = new Parameter(motorBatteryVal, ['V', 'V'], motorBatteryThreshold, index[4]);
-    const pixhawkBattery = new Parameter(pixhawkBatteryVal, ['V', 'V'], pixhawkBatteryThreshold, index[5]);
-    const ESCtemperature = new Parameter(ESCtemperatureVal, ['°F', '°C'], ESCtemperatureThreshold, index[6]);
-    
-    const flightMode = 'idk';
-    const flightModeColor = { backgroundColor: 'var(--highlight)' };
-    
     return (
         <>
             <main className="controls-page">
                 <div className="flight-telemetry-container">
-                    <div className='flight-telemetry' id='compass'>
-                        <h1 className='heading'>*insert compass*</h1>
-                    </div>
-                    <TelemetryGenerator key={0} heading='Airspeed' color={airspeed.color} value={airspeed.value} units={airspeed.units} unit={airspeed.unit} onClick={() => handleClick(0)}/>
-                    <TelemetryGenerator key={1} heading='Groundspeed' color={groundspeed.color} value={groundspeed.value} units={groundspeed.units} unit={groundspeed.unit} onClick={() => handleClick(1)}/>
-                    <TelemetryGenerator key={2} heading='Altitude MSL' color={altitudeMSL.color} value={altitudeMSL.value} units={altitudeMSL.units} unit={altitudeMSL.unit} onClick={() => handleClick(2)}/>
-                    <TelemetryGenerator key={3} heading='Altitude AGL' color={altitudeAGL.color} value={altitudeAGL.value} units={altitudeAGL.units} unit={altitudeAGL.unit} onClick={() => handleClick(3)}/>
+                    {airspeed.render(() => handleClick(setAirspeed))}
+                    {groundspeed.render(() => handleClick(setGroundspeed))}
+                    {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
+                    {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
                 </div>
-                <TuasMap className={'map'} lat={1.3467} lng={103.9326}/>
+                {(superSecret) ? <SuperSecret></SuperSecret>
+                        : <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}/>}
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
                         <h1 className='heading'>Flight Mode</h1>
                         <p className='data'>{flightMode}</p>
                     </div>
-                    <TelemetryGenerator key={4} heading='Motor Battery' color={motorBattery.color} value={motorBattery.value} units={motorBattery.units} unit={motorBattery.unit} onClick={() => handleClick(4)}/>
-                    <TelemetryGenerator key={5} heading='Pixhawk Battery' color={pixhawkBattery.color} value={pixhawkBattery.value} units={pixhawkBattery.units} unit={pixhawkBattery.unit} onClick={() => handleClick(5)}/>
-                    <TelemetryGenerator key={6} heading='ESC Temperature' color={ESCtemperature.color} value={ESCtemperature.value} units={ESCtemperature.units} unit={ESCtemperature.unit} onClick={() => handleClick(6)}/>
+                    {motorBattery.render(() => handleClick(setMotorBattery))}
+                    {pixhawkBattery.render(() => handleClick(setPixhawkBattery))}
+                    {ESCtemperature.render(() => handleClick(setESCtemperature))}
                 </div>
             </main>
         </>

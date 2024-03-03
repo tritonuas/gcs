@@ -1,6 +1,5 @@
 import "./MyModal.css"
-import exit from "../assets/close.svg";
-import { Box, Button, Modal, Typography} from "@mui/material";
+import { Box, Modal, Typography} from "@mui/material";
 import { ReactNode } from "react";
 
 interface Props {
@@ -63,9 +62,6 @@ function MyModal({children, modalVisible, closeModal, type="default", disable=fa
         disableEscapeKeyDown={disable}
         >
             <Box sx={style}>
-                <Button onClick={closeModal} disabled={disable}>
-                    <img src={exit} />
-                </Button>
                 <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
                     {disable ? <div className="lds-dual-ring"></div> : null}
                 </Typography> 
