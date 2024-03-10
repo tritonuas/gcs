@@ -11,7 +11,8 @@ import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from
 enum MapMode {
     FlightBound,
     SearchBound,
-    Waypoint
+    Waypoint,
+    InitialPath
 }
 
 enum ShapeType {
@@ -23,6 +24,7 @@ interface MapModeConfig {
     color: string,
     headings: string[],
     type: ShapeType,
+    editable: boolean,
 }
 
 const getModeConfig = (mapMode: MapMode) => {
@@ -31,19 +33,29 @@ const getModeConfig = (mapMode: MapMode) => {
             return {
                 color: "red",
                 headings: ["Latitude", "Longitude"],
-                type: ShapeType.Polygon
+                type: ShapeType.Polygon,
+                editable: true,
             } as MapModeConfig;
         case MapMode.SearchBound:
             return {
                 color: "blue",
                 headings: ["Latitude", "Longitude"],
-                type: ShapeType.Polygon
+                type: ShapeType.Polygon,
+                editable: true,
             } as MapModeConfig;
         case MapMode.Waypoint:
             return {
                 color: "yellow",
                 headings: ["Latitude", "Longitude", "Altitude"],
-                type: ShapeType.Line
+                type: ShapeType.Line,
+                editable: true,
+            } as MapModeConfig;
+        case MapMode.InitialPath:
+            return {
+                color: "lightgreen",
+                headings: ["Latitude", "Longitude", "Altitude"],
+                type: ShapeType.Line,
+                editable: false,
             } as MapModeConfig;
     }
 }
@@ -91,6 +103,9 @@ function FormTable(
                                             value="X"
                                             onClick={() => {
                                                 const data = mapData.get(mapMode);
+                                                if (!getModeConfig(mapMode).editable) {
+                                                    return;
+                                                }
 
                                                 setMapData(mapData => {
                                                     if (data !== undefined) {
@@ -172,10 +187,11 @@ function MapInputForm(
                         {
                             Object.keys(MapMode).filter((v => isNaN(Number(v)))).map((v, i) => {
                                 return (
-                                    <input 
+                                    <input
                                         key={i} 
                                         data-selected={mapMode == MapMode[v as keyof typeof MapMode]}
                                         type="button" 
+                                        readOnly={!getModeConfig(mapMode).editable}
                                         value={v} 
                                         onClick={() => {
                                             setMapMode(MapMode[v as keyof typeof MapMode]);
@@ -189,6 +205,9 @@ function MapInputForm(
                             value="+"
                             className="add-btn"
                             onClick={() => {
+                                if (!getModeConfig(mapMode).editable) {
+                                    return;
+                                }
                                 const data = mapData.get(mapMode);
                                 const headingLength = getModeConfig(mapMode).headings.length;
                                 const newRow = new Array(headingLength).fill(0);
@@ -210,6 +229,9 @@ function MapInputForm(
                             className="del-btn"
                             onClick={() => {
                                  const data = mapData.get(mapMode);
+                                if (!getModeConfig(mapMode).editable) {
+                                    return;
+                                }
 
                                  setMapData(mapData => {
                                     if (data !== undefined && data.length > 0) {
@@ -224,8 +246,8 @@ function MapInputForm(
                     </div>
                     <FormTable 
                         headings={getModeConfig(mapMode).headings} 
-                        mapMode={mapMode} 
-                        mapData={mapData} 
+                        mapMode={mapMode}
+                        mapData={mapData}
                         setMapData={setMapData}
                         />
                 </fieldset>
@@ -392,6 +414,9 @@ function MapClickHandler(
     useMapEvents({
         click(e) {
             const config = getModeConfig(mapMode);
+            if (!config.editable) {
+                return;
+            }
 
             // Update the data state variable
             let data = mapData.get(mapMode);
@@ -518,6 +543,52 @@ function Input() {
             });
     }
 
+    /**
+     * Helper function to request the initial path from the OBC
+     */
+    function requestPath() {
+        fetch("/api/path/initial")
+            .then(resp => {
+                if (resp.status == 200) {
+                    return resp.json();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then(path => {
+                const pathJson = path as {"Latitude": number, "Longitude": number, "Altitude": number}[];
+                const data = pathJson.map(obj => [obj.Latitude, obj.Longitude, obj.Altitude])
+
+                setMapData(mapData => {
+                    return new Map(
+                        mapData.set(MapMode.InitialPath, data)
+                    );
+                });
+            })
+            .catch(err => {
+                alert(err);
+            })
+    }
+
+
+    /**
+     * Helper function to validate the initial path from the OBC
+     */
+    function validatePath() {
+        fetch("/api/path/initial/validate", {method: "POST"})
+            .then(resp => resp.text())
+            .then(resp => alert(resp))
+    }
+
+    /**
+     * Helper function to generate a new path from the OBC
+     */
+    function generateNewPath() {
+        fetch("/api/path/initial/new")
+            .then(resp => resp.text())
+            .then(resp => alert(resp))
+    }
+
     return (
         <>
             <main className="input-page">
@@ -536,8 +607,11 @@ function Input() {
                         bottleAssignments={bottleAssignments} 
                         setBottleAssignments={setBottleAssignments}
                         />
-                    <form className="tuas-form">
+                    <form className="tuas-form input-controls">
                         <input type="button" onClick={submitMission} value="Submit"></input>
+                        <input type="button" onClick={requestPath} value="Get Generated Path"></input>
+                        <input type="button" onClick={validatePath} value="Validate Path"></input>
+                        <input type="button" onClick={generateNewPath} value="Generate New Path"></input>
                     </form>
                 </div>
             </main>

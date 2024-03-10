@@ -50,6 +50,14 @@ func (client *Client) GetCurrentInitialPath() ([]byte, int) {
 }
 
 /*
+Validates the currently generated initial path on the OBC
+*/
+func (client *Client) ValidateInitialPath() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/path/initial/validate", nil)
+	return body, httpErr.Status
+}
+
+/*
 Sends Mission data (boundaries) to the OBC via POST request.
 
 Returns potential errors and returned status code
