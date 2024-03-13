@@ -6,7 +6,7 @@ import './Input.css';
 import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
 import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from '../protos/obc.pb';
-
+import MyModal from '../components/MyModal';
 
 enum MapMode {
     FlightBound,
@@ -496,6 +496,22 @@ function Input() {
     const [mapData, setMapData] = useState<Map<MapMode,number[][]>>(new Map());
     const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
 
+    const [modalType, setModalType] = useState<"default" | "error">("default");
+    const [modalMsg, setModalMsg] = useState("");
+    const [msgModalVisible, setMsgModalVisible] = useState(false);
+
+    function displayError(msg: string) {
+        setModalType("error");
+        setModalMsg(msg);
+        setMsgModalVisible(true);
+    }
+
+    function displayMsg(msg: string) {
+        setModalType("default");
+        setModalMsg(msg);
+        setMsgModalVisible(true);
+    }
+
     /**
      * Takes the current state of all the inputs and posts to Hub
      */
@@ -536,10 +552,11 @@ function Input() {
                 }
             })
             .then(succ_msg => {
-                alert(succ_msg);
+                displayMsg(succ_msg);
             })
             .catch(err_msg => {
-                alert(err_msg);
+                console.error(err_msg);
+                displayError("An error occured while uploading the mission. See the console for more info.");
             });
     }
 
@@ -566,7 +583,8 @@ function Input() {
                 });
             })
             .catch(err => {
-                alert(err);
+                console.error(err);
+                displayError("An error occured while uploading the mission. See the console for more info.");
             })
     }
 
@@ -576,8 +594,18 @@ function Input() {
      */
     function validatePath() {
         fetch("/api/path/initial/validate", {method: "POST"})
-            .then(resp => resp.text())
-            .then(resp => alert(resp))
+            .then(resp => {
+                if (resp.status == 200) {
+                    return resp.text();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then(resp => displayMsg(resp))
+            .catch(err => {
+                console.error(err);
+                displayError("An error occured while uploading the mission. See the console for more info.");
+            })
     }
 
     /**
@@ -585,8 +613,18 @@ function Input() {
      */
     function generateNewPath() {
         fetch("/api/path/initial/new")
-            .then(resp => resp.text())
-            .then(resp => alert(resp))
+            .then(resp => {
+                if (resp.status == 200) {
+                    return resp.text();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then(resp => displayMsg(resp))
+            .catch(err => {
+                console.error(err);
+                displayError("An error occured while uploading the mission. See the console for more info.");
+            })
     }
 
     return (
@@ -614,6 +652,9 @@ function Input() {
                         <input type="button" onClick={generateNewPath} value="Generate New Path"></input>
                     </form>
                 </div>
+                <MyModal modalVisible={msgModalVisible} closeModal={() => setMsgModalVisible(false)} type={modalType}>
+                    {modalMsg}
+                </MyModal>
             </main>
         </>
     );
