@@ -64,7 +64,7 @@ function MyModal({children, modalVisible, closeModal, type="default", disable=fa
             <Box sx={style}>
                 <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
                     {disable ? <div className="lds-dual-ring"></div> : null}
-                </Typography> 
+                </Typography>
                 {children}
             </Box>
         </Modal>

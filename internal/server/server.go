@@ -73,8 +73,13 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
-		api.GET("/path/initial", server.getInitialPath())
-		api.GET("/path/initial/new", server.getInitialPathNew())
+
+		path := api.Group("/path")
+		{
+			path.GET("/initial", server.getInitialPath())
+			path.GET("/initial/new", server.getInitialPathNew())
+			path.POST("/initial/validate", server.validateInitialPath())
+		}
 
 		plane := api.Group("/plane")
 		{
@@ -438,13 +443,37 @@ func (server *Server) postAirdropTargets() gin.HandlerFunc {
 
 func (server *Server) getInitialPath() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.String(http.StatusNotImplemented, "Not Implemented")
+		body, httpStatus := server.obcClient.GetCurrentInitialPath()
+		if httpStatus != http.StatusOK {
+			c.String(httpStatus, "Error getting current initial path: %s", body)
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
 	}
 }
 
 func (server *Server) getInitialPathNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.String(http.StatusNotImplemented, "Not Implemented")
+		body, httpStatus := server.obcClient.GenerateNewInitialPath()
+		if httpStatus != http.StatusOK {
+			c.String(httpStatus, "Error generating new initial path: %s", body)
+			return
+		}
+
+		c.Data(http.StatusOK, "text/plain", body)
+	}
+}
+
+func (server *Server) validateInitialPath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, httpStatus := server.obcClient.ValidateInitialPath()
+		if httpStatus != http.StatusOK {
+			c.String(httpStatus, "Error validating new path: %s", body)
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
 	}
 }
 

@@ -50,8 +50,15 @@ main.input-page .button-container > input {
     margin-right: 1rem;
 }
 
+main.input-page .container > input {
+    margin-right: 1rem;
+}
 
-main.input-page .button-container input:nth-child(3){
+main.input-page .input-controls > input {
+    margin-right: 1rem;
+}
+
+main.input-page .button-container input:nth-child(4){
     margin-right: auto;
 }
 
