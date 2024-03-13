@@ -500,12 +500,20 @@ function Input() {
     const [modalMsg, setModalMsg] = useState("");
     const [msgModalVisible, setMsgModalVisible] = useState(false);
 
+    /**
+     * 
+     * @param msg Message to display in the modal as an error
+     */
     function displayError(msg: string) {
         setModalType("error");
         setModalMsg(msg);
         setMsgModalVisible(true);
     }
 
+    /**
+     * 
+     * @param msg Message to display in the modal as normal text
+     */
     function displayMsg(msg: string) {
         setModalType("default");
         setModalMsg(msg);
