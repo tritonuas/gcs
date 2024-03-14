@@ -35,12 +35,11 @@ export function pullTelemetry(
         .then(json => {
             const altitude = roundDecimal(json["alt"], DECIMAL_PLACES);
             const relative_altitude = roundDecimal(json["relative_alt"], DECIMAL_PLACES);
-            const lat = parseFloat(json["lat"]);
-            const lng = parseFloat(json["lng"]);
+            const lat = parseInt(json["lat"])/10e6;
+            const lng = parseInt(json["lon"])/10e6;
             setPlaneLatLng([lat, lng]);
             setAltitudeMSLVal(param => param.getUpdatedValue(altitude, METERS_TO_FEET));
             setAltitudeAGLVal(param => param.getUpdatedValue(relative_altitude, METERS_TO_FEET));
-
         })
         .catch(_ => {
             setAltitudeMSLVal(param => param.getErrorValue());

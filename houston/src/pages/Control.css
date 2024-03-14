@@ -168,3 +168,40 @@
         margin: auto;
     }
 }
+
+.controls-page .marker-pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    background: yellow;
+    position: absolute;
+    transform: rotate(-45deg);
+    left: 50%;
+    top: 50%;
+    margin: -15px 0 0 -15px;
+  }
+
+  .controls-page .marker-pin::after {
+    content: attr(data-content);
+    text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: large;
+    width: 24px;
+    height: 24px;
+    margin: 3px 0 0 3px;
+    background: #fff;
+    position: absolute;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    
+ }
+
+ .controls-page .custom-div-icon i {
+    position: absolute;
+    width: 22px;
+    font-size: 22px;
+    left: 0;
+    right: 0;
+    margin: 10px auto;
+    text-align: center;
+ }

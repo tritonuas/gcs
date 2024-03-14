@@ -1,15 +1,17 @@
 import { Outlet, NavLink } from "react-router-dom";
 import "./Layout.css";
-import duck from "../assets/duck.png"
 import csvRunning from "../assets/csv-running.svg";
 import csvReady from "../assets/csv-ready.svg";
+
+import duck from '../assets/duck.png';
 
 import {getIconFromStatus, } from "../utilities/connection"
 import {ConnectionStatus, } from "../utilities/temp"
 import { Button, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MyModal from "../components/MyModal";
 import { useModal } from "../components/UseMyModal";
+import PlanePicker from "../components/PlanePicker";
 
 /**
  * @param props Props
@@ -17,6 +19,16 @@ import { useModal } from "../components/UseMyModal";
  * @returns Layout for the entire page, including the navbar and active page.
  */
 function Layout({statuses}:{statuses:ConnectionStatus[]}) {
+
+    const influxURL = "/api/influx";
+    const [influxLoading, setLoading] = useState(false);
+    const [influxReturnValue, setInfluxReturnValue] = useState('');
+    const {modalVisible, openModal, closeModal} = useModal();
+    const {modalVisible: planePickerModalVisible, openModal: planePickerOpenModal, closeModal: planePickerCloseModal} = useModal();
+    const handlePlanePickerModal = () => {
+        planePickerModalVisible ? planePickerCloseModal() : planePickerOpenModal();
+    }
+    const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
 
     const checkForActive = ({isActive}:{isActive:boolean}) => {
         if (isActive) {
@@ -26,31 +38,34 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
         }
     }
 
-    const influxURL = "http://localhost:5000/api/influx";
-    const [influxLoading, setLoading] = useState(false);
-    const [dataString, setDataString] = useState('');
-    const {modalVisible, openModal, closeModal} = useModal();
-
     const handleInflux = () => {
         setLoading(true);
-        openModal()
+        openModal();
         fetch(influxURL)
         .then(response => response.json())
         .then(data => {
-            setDataString(JSON.stringify(data));
+            setInfluxReturnValue(JSON.stringify(data));
         })
-        .catch(error => alert(error))
+        .catch(error => {
+            console.error("Fetch error:", error);
+        })
         .finally(() => {
             const timeoutId = setTimeout(() => {setLoading(false);}, 700);
             return () => clearTimeout(timeoutId);
         });
     }
 
+    useEffect(() => {
+        const data = localStorage.getItem("icon");
+        data ? setIcon(data) : setIcon(duck);
+    }, [localStorage.getItem("icon")]);
+
     return (
         <>
             <nav className="topbar">
                 <ul>
-                    <img src={duck} alt={""}/>
+                    <img src={icon} alt={""} onClick={handlePlanePickerModal} width={"65px"} height={"50px"} style={{ cursor: 'pointer' }}/>
+                    <PlanePicker modalVisible={planePickerModalVisible} closeModal={planePickerCloseModal}></PlanePicker>
                     <li>
                         <NavLink to="/" className={checkForActive}>Connection</NavLink>
                     </li>
@@ -70,9 +85,9 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                                 <img src={csvReady} alt="csv icon" style={{ width: "50px", height: "50px"}} className="pulse"/>
                             }
                     </Button>
-                    <MyModal modalVisible={modalVisible} closeModal={closeModal} type="error" disable={influxLoading}>
+                    <MyModal modalVisible={modalVisible} closeModal={closeModal} loading={influxLoading}>
                        <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
-                            {influxLoading ? null : dataString}
+                            {influxLoading ? null : influxReturnValue}
                         </Typography> 
                     </MyModal>
                     {/* If another page is added, need to adjust the nth child rule in the css
