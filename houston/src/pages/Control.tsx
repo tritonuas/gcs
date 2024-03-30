@@ -150,6 +150,46 @@ function updateCoordinate(setCoordinates: React.Dispatch<React.SetStateAction<La
 }
 
 /**
+ * A helpe functions that extracts out the get request and updates of flight bounds.
+ * @param setFlightBound React state setter for Flight Bound variable.
+ * @param setSearchBound React state setter for Search Bound variable.
+ * @param setWayPoint React state setter for Way Point variable.
+ */
+function pullFlightBounds(setFlightBound: React.Dispatch<React.SetStateAction<LatLng[]>>, setSearchBound: React.Dispatch<React.SetStateAction<LatLng[]>>, setWayPoint: React.Dispatch<React.SetStateAction<LatLng[]>>){
+    fetch("/api/mission", {
+        method: "GET",
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Connecting");
+        }
+        else{
+            return response.json();
+        }
+    })
+    .then( (data) => {
+        if(Object.prototype.hasOwnProperty.call(data, "FlightBoundary")){
+            data["FlightBoundary"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
+                updateCoordinate(setFlightBound, [coordinates["Latitude"], coordinates["Longitude"]]);
+            })
+        }
+        if(Object.prototype.hasOwnProperty.call(data, "AirdropBoundary")){
+            data["AirdropBoundary"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
+                updateCoordinate(setSearchBound, [coordinates["Latitude"], coordinates["Longitude"]]);
+            })
+        }
+        if(Object.prototype.hasOwnProperty.call(data, "Waypoints")){
+            data["Waypoints"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
+                updateCoordinate(setWayPoint, [coordinates["Latitude"], coordinates["Longitude"]]);
+            })
+        }
+    })
+    .catch(error => {
+        console.error("Fetch error:", error);
+    })   
+}
+
+/**
  * control page
  * @param props props
  * @param props.settings Settings to determine thresholds and battery info
@@ -278,37 +318,7 @@ function Control({settings}:{settings: SettingsConfig}) {
     });
 
     useEffect(() => {
-        fetch("/api/mission", {
-                method: "GET",
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Connecting");
-            }
-            else{
-                return response.json();
-            }
-        })
-        .then( (data) => {
-            if(Object.prototype.hasOwnProperty.call(data, "FlightBoundary")){
-                data["FlightBoundary"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
-                    updateCoordinate(setFlightBound, [coordinates["Latitude"], coordinates["Longitude"]]);
-                })
-            }
-            if(Object.prototype.hasOwnProperty.call(data, "AirdropBoundary")){
-                data["AirdropBoundary"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
-                    updateCoordinate(setSearchBound, [coordinates["Latitude"], coordinates["Longitude"]]);
-                })
-            }
-            if(Object.prototype.hasOwnProperty.call(data, "Waypoints")){
-                data["Waypoints"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
-                    updateCoordinate(setWayPoint, [coordinates["Latitude"], coordinates["Longitude"]]);
-                })
-            }
-        })
-        .catch(error => {
-            console.error("Fetch error:", error);
-        })
+        pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);
     }, []);
 
     return (
