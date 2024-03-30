@@ -5,13 +5,16 @@ import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import { Marker, Polygon, Polyline } from 'react-leaflet';
 import L, { LatLng } from 'leaflet'; 
+import NOOOO from "../assets/noooo.gif"
+import { SuperSecret } from '../components/SuperSecret.tsx';
+import { CELSIUS_TO_FAHRENHEIT, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
+import { SettingsConfig } from '../utilities/settings.ts';
 
-
-type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | '°F' | '°C' | '';
-type Threshold = [number, number, number, number];
+type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
+export type Threshold = [number, number, number, number];
 
 export class Parameter {
-    label: String;
+    label: string;
     values: [number, number];
     value: number;
     units: [Unit, Unit];
@@ -28,7 +31,7 @@ export class Parameter {
     //      - if the current value is within the threshold, the color is green. if not, the color is red.
     threshold: Threshold;
 
-    constructor(label: String, values: [number, number], units: [Unit, Unit], threshold: Threshold, index: 0 | 1, error: boolean = false) {
+    constructor(label: string, values: [number, number], units: [Unit, Unit], threshold: Threshold, index: 0 | 1, error: boolean = false) {
         this.label = label;
         this.values = values;
         this.units = units;
@@ -54,6 +57,17 @@ export class Parameter {
     }
 
     render(onClick: () => void) {
+        if (this.error) {
+            return (
+                <div style={this.color} className='flight-telemetry' onClick={onClick}>
+                    <h1 className='heading'>{this.label}</h1>
+                    <p className='data'> <img className="error-icon" width={80} height={80} src={NOOOO}/></p>
+                    <div className='unit-indicator'>
+                    </div>
+                </div>
+            );
+        }
+
         if (this.units[0] !== this.units[1]) {
             let unit0_class = 'unit-selected';
             let unit1_class = 'unit-not-selected';
@@ -65,7 +79,7 @@ export class Parameter {
             return (
                 <div style={this.color} className='flight-telemetry' onClick={onClick}>
                     <h1 className='heading'>{this.label}</h1>
-                    <p className='data'>{this.value} {this.unit}</p>
+                    <p className='data'>{roundDecimal(this.value)} {this.unit}</p>
                     <div className='unit-indicator'>
                         <p className={`unit ${unit0_class}`} >{this.units[0]}</p>
                         <p className={`unit ${unit1_class}`} >{this.units[1]}</p>
@@ -76,7 +90,7 @@ export class Parameter {
             return (
                 <div style={this.color} className='flight-telemetry' onClick={onClick}>
                     <h1 className='heading'>{this.label}</h1>
-                    <p className='data'>{this.value} {this.unit}</p>
+                    <p className='data'>{roundDecimal(this.value)} {this.unit}</p>
                 </div>
             );
         }
@@ -137,45 +151,73 @@ function updateCoordinate(setCoordinates: React.Dispatch<React.SetStateAction<La
 
 /**
  * control page
+ * @param props props
+ * @param props.settings Settings to determine thresholds and battery info
  * @returns the control page
  */ 
-function Control() {
+function Control({settings}:{settings: SettingsConfig}) {
+    const airspeedThreshold: Threshold = [
+        settings.minAirspeed_m_s,
+        settings.maxAirspeed_m_s, 
+        METERS_PER_SECOND_TO_KNOTS(settings.minAirspeed_m_s), 
+        METERS_PER_SECOND_TO_KNOTS(settings.maxAirspeed_m_s)
+    ];
 
-    // airspeed 10m/s -> 20m/s -> 30m/s
-    // groundspeed 10m/s -> 20m/s -> 30m/s
+    const groundspeedThreshold = airspeedThreshold;
 
-    const airspeedThreshold: Threshold =
-        [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
-    const groundspeedThreshold: Threshold =
-        [80, 160, parseFloat((80*1.94384).toFixed(2)), parseFloat((160*1.94384).toFixed(2))];
-    const altitudeMSLThreshold: Threshold =
-        [80, 160, parseFloat((80*0.3048).toFixed(2)), parseFloat((160*0.3048).toFixed(2))];
-    const altitudeAGLThreshold: Threshold =
-        [80, 160, parseFloat((80*0.3048).toFixed(2)), parseFloat((160*0.3048).toFixed(2))];
-    const motorBatteryThreshold: Threshold =
-        [80, 160, 80, 160];
-    const pixhawkBatteryThreshold: Threshold = 
-        [80, 160, 80, 160];
-    const ESCtemperatureThreshold: Threshold = 
-        [80, 160, parseFloat(((80-32) * (5/9)).toFixed(2)), parseFloat(((160-32) * (5/9)).toFixed(2))];
+    //todo figure out way to deteect starting altitude so this has a valid range too
+    const altitudeAGLThreshold: Threshold = [
+        settings.minAltitudeAGL_feet,
+        settings.maxAltitudeAGL_feet,
+        FEET_TO_METERS(settings.minAltitudeAGL_feet),
+        FEET_TO_METERS(settings.maxAltitudeAGL_feet), 
+    ];
+
+    const altitudeMSLThreshold: Threshold = [
+        settings.minAltitudeAGL_feet + settings.groundAltitude_feet,
+        settings.maxAltitudeAGL_feet + settings.groundAltitude_feet,
+        FEET_TO_METERS(settings.minAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
+        FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
+    ];
+    console.log(altitudeMSLThreshold);
+
+    const motorBatteryThreshold: Threshold = [
+        settings.minVoltsPerCell,
+        settings.maxVoltsPerCell,
+        settings.minVoltsPerCell * settings.motorBatteryCells,
+        settings.maxVoltsPerCell * settings.motorBatteryCells
+    ];
+
+    const pixhawkBatteryThreshold: Threshold = [
+        settings.minVoltsPerCell,
+        settings.maxVoltsPerCell,
+        settings.minVoltsPerCell * settings.pixhawkBatteryCells,
+        settings.maxVoltsPerCell * settings.pixhawkBatteryCells
+    ];
+
+    const ESCtemperatureThreshold: Threshold = [
+        settings.minESCTemperature_c,
+        settings.maxESCTemperature_c,
+        CELSIUS_TO_FAHRENHEIT(settings.minESCTemperature_c),
+        CELSIUS_TO_FAHRENHEIT(settings.maxESCTemperature_c)
+    ];
 
     const [airspeed, setAirspeed] =
         useState<Parameter>(new Parameter('Airspeed', [0,0], ['m/s', 'knots'], airspeedThreshold, 0));
     const [groundspeed, setGroundspeed] =
         useState<Parameter>(new Parameter('Groundspeed', [0,0], ['m/s', 'knots'], groundspeedThreshold, 0));
     const [altitudeMSL, setAltitudeMSL] =
-        useState<Parameter>(new Parameter('Altitude MSL',[0,0], ['meters', 'feet'], altitudeMSLThreshold, 0));
+        useState<Parameter>(new Parameter('Altitude MSL',[0,0], ['feet', 'meters'], altitudeMSLThreshold, 0));
     const [altitudeAGL, setAltitudeAGL] =
-        useState<Parameter>(new Parameter('Altitude AGL', [0,0], ['meters', 'feet'], altitudeAGLThreshold, 0));
+        useState<Parameter>(new Parameter('Altitude AGL', [0,0], ['feet', 'meters'], altitudeAGLThreshold, 0));
     const [motorBattery, setMotorBattery] =
-        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V', 'V'], motorBatteryThreshold, 0));
+        useState<Parameter>(new Parameter('Motor Battery', [0,0], ['V/c', 'V'], motorBatteryThreshold, 0));
     const [pixhawkBattery, setPixhawkBattery] =
-        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V', 'V'], pixhawkBatteryThreshold, 0));
+        useState<Parameter>(new Parameter('Pixhawk Battery', [0,0], ['V/c', 'V'], pixhawkBatteryThreshold, 0));
     const [ESCtemperature, setESCtemperature] =
-        useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°F', '°C'], ESCtemperatureThreshold, 0)); 
+        useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°C', '°F'], ESCtemperatureThreshold, 0)); 
 
     const [planeLatLng, setPlaneLatLng] = useState<[number, number]>([0,0]);
-
     const [coordinate, setCoordinate] = useState<LatLng[]>([]);
     const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
     const [flightBound, setFlightBound] = useState<LatLng[]>([]);
@@ -187,8 +229,11 @@ function Control() {
         iconAnchor: [32, 25]
     });
     
+    const [superSecret, setSuperSecret] = useState(false);
+
     useEffect(() => {
         const interval = setInterval(() => pullTelemetry(
+            settings,
             setPlaneLatLng,
             setAirspeed,
             setGroundspeed,
@@ -197,16 +242,16 @@ function Control() {
             setMotorBattery,
             setPixhawkBattery,
             setESCtemperature,
-        )
-        , 1000);
+            setSuperSecret
+        ), 1000);
 
         return () => {
             clearInterval(interval);
         }
-    }, []);
+    }, [settings]);
     
-    const flightMode = 'idk';
-    const flightModeColor = { backgroundColor: 'var(--highlight)' };
+    const flightMode = '';
+    const flightModeColor = { backgroundColor: 'var(--warning-text)' };
 
     const handleClick = (setter: Dispatch<SetStateAction<Parameter>>) => {
         setter(param => param.getSwappedUnit());
@@ -219,9 +264,18 @@ function Control() {
     }, [planeLatLng]);
 
     useEffect(() => {
-        const data = localStorage.getItem("icon");
-        data ? setIcon(data) : setIcon(duck);
-    }, [localStorage.getItem("icon")]);
+        window.addEventListener("storage", () => {
+            const data = localStorage.getItem("icon");
+            data ? setIcon(data) : setIcon(duck);
+        })
+
+        window.dispatchEvent(new Event("storage"))
+
+        return () => {window.removeEventListener("storage", () => {
+            const data = localStorage.getItem("icon");
+            data ? setIcon(data) : setIcon(duck); 
+        })}
+    });
 
     useEffect(() => {
         fetch("/api/mission", {
@@ -261,33 +315,32 @@ function Control() {
         <>
             <main className="controls-page">
                 <div className="flight-telemetry-container">
-                    <div className='flight-telemetry' id='compass'>
-                        <h1 className='heading'>*insert compass*</h1>
-                    </div>
                     {airspeed.render(() => handleClick(setAirspeed))}
                     {groundspeed.render(() => handleClick(setGroundspeed))}
                     {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
                     {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
                 </div>              
-                <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}>
-                    <Marker position={[planeLatLng[0], planeLatLng[1]]} icon={markerIcon}/>
-                    <Polyline color='lime' positions={coordinate}/>
-                    <Polygon color='red' positions={flightBound}/>
-                    <Polygon color='blue' positions={searchBound}/>
-                    {wayPoint.map((latlng, index) => {
-                        return (
-                            <Marker key={index} position={latlng} icon={
-                                            new L.DivIcon({
-                                                className: 'custom-div-icon',
-                                                html: "<div style='background-color:yellow;' class='marker-pin' data-content='" + (index+1) +"'></div>",
-                                                iconSize: [30, 42],
-                                                iconAnchor: [15, 42]
-                                            })
-                                        }
-                            />
-                        )
-                    })}
-                </TuasMap>
+                {(superSecret) ? <SuperSecret></SuperSecret>:
+                       <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}>
+                            <Marker position={planeLatLng} icon={markerIcon}/>
+                                <Polyline color='lime' positions={coordinate}/>
+                                <Polygon color='red' positions={flightBound}/>
+                                <Polygon color='blue' positions={searchBound}/>
+                                {wayPoint.map((latlng, index) => {
+                                    return (
+                                        <Marker key={index} position={latlng} icon={
+                                                        new L.DivIcon({
+                                                            className: 'custom-div-icon',
+                                                            html: "<div style='background-color:yellow;' class='marker-pin' data-content='" + (index+1) +"'></div>",
+                                                            iconSize: [30, 42],
+                                                            iconAnchor: [15, 42]
+                                                        })
+                                                    }
+                                        />
+                                    )
+                                })}
+                        </TuasMap>
+                }
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
                         <h1 className='heading'>Flight Mode</h1>

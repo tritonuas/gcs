@@ -4,10 +4,8 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border: 1px solid black;
     padding: 40px;
     overflow-y: hidden;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.75) inset;
     user-select: none;
 }
 

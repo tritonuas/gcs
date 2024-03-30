@@ -1,17 +1,16 @@
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import "./Layout.css";
-import csvRunning from "../assets/csv-running.svg";
-import csvReady from "../assets/csv-ready.svg";
-
-import duck from '../assets/duck.png';
-
+import csv from "../assets/csv.svg";
+import duck from "../assets/duck.png"
+import settingsIcon from "../assets/settings.svg"
 import {getIconFromStatus, } from "../utilities/connection"
 import {ConnectionStatus, } from "../utilities/temp"
 import { Button, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import MyModal from "../components/MyModal";
-import { useModal } from "../components/UseMyModal";
+import { useMyModal } from "../components/useMyModal";
 import PlanePicker from "../components/PlanePicker";
+
 
 /**
  * @param props Props
@@ -19,12 +18,12 @@ import PlanePicker from "../components/PlanePicker";
  * @returns Layout for the entire page, including the navbar and active page.
  */
 function Layout({statuses}:{statuses:ConnectionStatus[]}) {
-
-    const influxURL = "/api/influx";
+    const navigate = useNavigate();
+    const openSettings = () => navigate("/settings"); 
     const [influxLoading, setLoading] = useState(false);
     const [influxReturnValue, setInfluxReturnValue] = useState('');
-    const {modalVisible, openModal, closeModal} = useModal();
-    const {modalVisible: planePickerModalVisible, openModal: planePickerOpenModal, closeModal: planePickerCloseModal} = useModal();
+    const {modalVisible, openModal, closeModal} = useMyModal();
+    const {modalVisible: planePickerModalVisible, openModal: planePickerOpenModal, closeModal: planePickerCloseModal} = useMyModal();
     const handlePlanePickerModal = () => {
         planePickerModalVisible ? planePickerCloseModal() : planePickerOpenModal();
     }
@@ -38,27 +37,34 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
         }
     }
 
+    useEffect(() => {
+        window.addEventListener("storage", () => {
+            const data = localStorage.getItem("icon");
+            data ? setIcon(data) : setIcon(duck);
+        })
+
+        window.dispatchEvent(new Event("storage"))
+
+        return () => {window.removeEventListener("storage", () => {
+            const data = localStorage.getItem("icon");
+            data ? setIcon(data) : setIcon(duck); 
+        })}
+    });
+
     const handleInflux = () => {
         setLoading(true);
-        openModal();
-        fetch(influxURL)
-        .then(response => response.json())
-        .then(data => {
-            setInfluxReturnValue(JSON.stringify(data));
-        })
-        .catch(error => {
-            console.error("Fetch error:", error);
-        })
-        .finally(() => {
-            const timeoutId = setTimeout(() => {setLoading(false);}, 700);
-            return () => clearTimeout(timeoutId);
-        });
+        openModal()
+        fetch("/api/influx")
+            .then(response => response.json())
+            .then(data => {
+                setInfluxReturnValue(JSON.stringify(data));
+            })
+            .catch(error => alert(error))
+            .finally(() => {
+                const timeoutId = setTimeout(() => {setLoading(false);}, 700);
+                return () => clearTimeout(timeoutId);
+            });
     }
-
-    useEffect(() => {
-        const data = localStorage.getItem("icon");
-        data ? setIcon(data) : setIcon(duck);
-    }, [localStorage.getItem("icon")]);
 
     return (
         <>
@@ -78,12 +84,16 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     <li>
                         <NavLink to="/report" className={checkForActive}>Report</NavLink>
                     </li>
+                    <Button onClick={openSettings}> 
+                        <img 
+                            src={settingsIcon} 
+                            alt="settings" 
+                            className="svg white rotate" 
+                            style={{ width: "50px", height: "50px", display: "inline-block"}} 
+                            />
+                    </Button>
                     <Button onClick={handleInflux} disabled={influxLoading}> 
-                            {
-                                influxLoading ?
-                                <img src={csvRunning} alt="csv icon" style={{ width: "50px", height: "50px"}} className="nonHoverPulse"/>:
-                                <img src={csvReady} alt="csv icon" style={{ width: "50px", height: "50px"}} className="pulse"/>
-                            }
+                                <img src={csv} alt="csv" style={{ width: "50px", height: "50px"}} className="pulse svg white"/>:
                     </Button>
                     <MyModal modalVisible={modalVisible} closeModal={closeModal} loading={influxLoading}>
                        <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>

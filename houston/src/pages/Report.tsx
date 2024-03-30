@@ -1,25 +1,25 @@
 import React from "react"
 import TuasMap from '../components/TuasMap.tsx'
+import { Marker, Popup } from "react-leaflet";
 import "./Report.css"
-import img1 from '../assets/report-page-images/amogus-1.png'
-import img2 from '../assets/report-page-images/amogus-2.png'
-import img3 from '../assets/report-page-images/amogus-3.png'
-import img4 from '../assets/report-page-images/amogus-4.png'
-import img5 from '../assets/report-page-images/amogus-5.png'
 import L from 'leaflet';
 import Button from '@mui/material-next/Button';
 import { red, blue, green, yellow, purple, grey } from '@mui/material/colors';
-import { Popup, Marker } from "react-leaflet"
+import { post_targets, pull_targets } from "../utilities/pull_targets.ts";
+import { MatchedTarget, IdentifiedTarget, Bottle, ODLCColor, ODLCShape, GPSCoord, oDLCShapeToJSON, oDLCColorToJSON, BottleDropIndex, bottleDropIndexToJSON } from '../protos/obc.pb';
 
-export type item = typeof itemA;
-
-type UpdateItemFunction = (index: number, newId: number) => void;
+type UpdateItemFunction = () => void;
 
 interface ImageProps {
-    item: item;
-    constItems: item[];
+    item: IdentifiedTarget;
+    matchedItems: MatchedTarget[];
     foundItemIndex: number;
-    updateItem: UpdateItemFunction;
+    updateMatched: UpdateItemFunction;
+}
+
+interface BottleProps {
+    item: Bottle;
+    matchedItems: MatchedTarget[];
 }
 
 const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]];
@@ -27,148 +27,150 @@ const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]
 /**
  * @param props props
  * @param props.item image to be displayed
- * @param props.constItems array of items that we are comparing against
- * @param props.foundItemIndex index of the item in the foundItemArray
- * @param props.updateItem function to update the item
+ * @param props.matchedItems array of items that we are comparing against
+ * @param props.updateMatched function to update matched items
  * @returns image container
  */
-function Image({item, constItems, foundItemIndex, updateItem}: ImageProps) {
-    const reassignHandler = () => {
+function Image({item, matchedItems, updateMatched}: ImageProps) {
+    /**
+     * @returns reassigns the target to a different bottle
+     */
+    async function reassignHandler() {
         const value = prompt('Enter new Bottle ID');
-        let id = item.id;
+        let bottleIndex = "null";
         if (value !== null) {
-            id = parseInt(value);
+            bottleIndex = value;
         }
-        updateItem(foundItemIndex, id);
+        
+        const tempMatched = matchedItems;
+
+        const removeItemIndex = matchedItems.findIndex((itemX) => itemX.Target?.id === item.id);
+
+        const updateTargetIndex = matchedItems.findIndex((itemX) => itemX.Bottle?.Index ? bottleDropIndexToJSON(itemX.Bottle.Index) === bottleIndex : null);
+
+        if (updateTargetIndex != removeItemIndex) {
+            console.log("updateTargetIndex", updateTargetIndex);
+            console.log("tempMatched2", tempMatched);
+            const temp = tempMatched[updateTargetIndex].Target;
+            tempMatched[updateTargetIndex].Target = item;
+
+            // console.log("tempMatched1", tempMatched[removeItemIndex].Target);
+            console.log("tempMatched", tempMatched[updateTargetIndex]);
+            if (removeItemIndex !== -1){
+                tempMatched[removeItemIndex].Target = temp;
+            }
+        }
+
+        const res = await post_targets(tempMatched);
+        
+        if (res) {
+            updateMatched();
+        }
     }
-    const match = constItems.find((itemX) => itemX.id === item.id);
-    const matchColor = constItems.find((itemX) => itemX.id === item.id)?.boxColor;
-    const matchIndex = constItems.findIndex((itemX) => itemX.id === item.id);
-    const backgroundColor = {backgroundColor: matchColor};
+
+    const match = matchedItems.find((itemX) => itemX.Target?.id === item.id);
+    const matchIndex = matchedItems.findIndex((itemX) => itemX.Target?.id === item.id);
+
+    let backgroundColor = {backgroundColor: "grey"};
+    if (match) {
+        backgroundColor = {backgroundColor: button_colors[matchIndex]};
+    }
     return match ? (
         <div className="image-container" style={backgroundColor}>
-            <img className="image" src={item.image} alt={"sus"} />
-            <p className="image-data-lat-long">[{item.lat}, {item.lng}]</p>
-            {item.bottleLetter !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.bottleLetter}</p> : null}
-            <p className="image-data"><b>Alphanumeric:</b> {item.alphanumericColor} {item.alphanumeric}</p>
-            <p className="image-data"><b>Shape:</b> {item.shapeColor} {item.shape}</p>
-            {item.bottleLetter == "null" ?
-                <Button 
-                    className='button' 
-                    size="small" 
-                    variant="filledTonal" 
-                    sx={{ backgroundColor: button_colors[matchIndex]}} 
-                    onClick={reassignHandler}>
-                    Reassign
-                </Button> 
-            : null}
-        </div>
-    )
-    : 
-    <div className="image-container">
-        <img className="image" src={item.image} alt={"sus"} />
-        <p className="image-data-lat-long">[{item.lat}, {item.lng}]</p>
-        {item.bottleLetter !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.bottleLetter}</p> : null}
-        <p className="image-data"><b>Alphanumeric:</b> {item.alphanumericColor} {item.alphanumeric}</p>
-        <p className="image-data"><b>Shape:</b> {item.shapeColor} {item.shape}</p>
-        {item.bottleLetter == "null" ?
+            <img src={item.Picture} alt="target" className="image" />
+            <p className="image-data-lat-long">[{item.coordinate?.Latitude}, {item.coordinate?.Longitude}]</p>
+            {item.Alphanumeric !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.Alphanumeric}</p> : null}
+            <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
+            <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
             <Button 
                 className='button' 
                 size="small" 
                 variant="filledTonal" 
-                sx={{ backgroundColor: grey[500]}} 
+                sx={{ backgroundColor: button_colors[matchIndex]}} 
                 onClick={reassignHandler}>
                 Reassign
             </Button> 
-        : null}
-    </div>;
+        </div>
+    )
+    : 
+        <div className="image-container">
+            <img src={item.Picture} alt="target" className="image" />
+            <p className="image-data-lat-long">[{item.coordinate?.Latitude}, {item.coordinate?.Longitude}]</p>
+            {item.Alphanumeric !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.Alphanumeric}</p> : null}
+            <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
+            <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
+            <Button 
+                className='button' 
+                size="small" 
+                variant="filledTonal"
+                sx={{ backgroundColor: grey[500]}}
+                onClick={reassignHandler}>
+                Reassign
+            </Button> 
+        </div>
 }
 
-class Item {
-    id: number;
-    lat: number;
-    lng: number;
-    image: string;
-    bottleLetter: string;
-    alphanumeric: string;
-    alphanumericColor: string;
-    shape: string;
-    shapeColor: string;
-    boxColor: string;
-
-    constructor(id: number, lat: number, lng: number, image: string, bottleLetter: string, alphanumeric: string, alphanumericColor: string, shape: string, shapeColor: string, boxColor: string) {
-        this.id = id;
-        this.lat = lat;
-        this.lng = lng;
-        this.image = image;
-        this.bottleLetter = bottleLetter;
-        this.alphanumeric = alphanumeric;
-        this.alphanumericColor = alphanumericColor;
-        this.shape = shape;
-        this.shapeColor = shapeColor;
-        this.boxColor = boxColor;
+/**
+ * @param props props
+ * @param props.item bottle to be displayed
+ * @param props.matchedItems array of items that we are comparing against
+ * @returns bottle container
+ */
+function BottleImage({item, matchedItems} : BottleProps) {
+    const matchIndex = matchedItems.findIndex((itemX) => itemX.Bottle ? itemX.Bottle.Index === item.Index : null);
+    let backgroundColor = {backgroundColor: "grey"};
+    if (matchIndex !== -1) {
+        backgroundColor = {backgroundColor: button_colors[matchIndex]};
     }
+    return (
+        <div className="image-container" style={backgroundColor}>
+            <p className="image-data"><b>Bottle Letter:</b> {bottleDropIndexToJSON(item.Index)}</p>
+            <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
+            <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
+            <p className="image-data"><b>Is Mannikin:</b> {item.IsMannikin ? "Yes" : "No"}</p>
+            <p className="image-data"><b>Target ID:</b> {matchedItems[matchIndex].Target?.id}</p>
+        </div>
+    )
+
 }
 
-const itemA = new Item(1, 1.3467, 103.9326, img1, "A",  "A", "red", "Circle", "blue", "lightsalmon");
-const itemB = new Item(2, 1.3467, 103.9326, img2, "B",  "B", "blue", "Square", "red", "lightblue");
-const itemC = new Item(3, 1.3467, 103.9326, img3, "C",  "C", "green", "Triangle", "yellow" , "lightgreen");
-const itemD = new Item(4, 1.3467, 103.9326, img4, "D",  "D", "yellow", "Circle", "green", "khaki");
-const itemE = new Item(5, 1.3467, 103.9326, img5, "E",  "E", "purple", "Square", "purple", "plum");
+const dummyItem : IdentifiedTarget = {
+    id : 0,
+    Picture: "test.jpg",
+    coordinate: GPSCoord.fromJSON({
+        Latitude:  1.3915,
+        Longitude: 103.8894,
+        Altitude:  0,
+    }),
+    AlphanumericColor: ODLCColor.Blue,
+    Alphanumeric:      "A",
+    Shape:             ODLCShape.Circle,
+    ShapeColor:        ODLCColor.Red,
+    IsMannikin:        false,
+};
+
+const dummyItem1: MatchedTarget = {
+    Bottle: Bottle.fromJSON({
+        Alphanumeric: "A",
+        AlphanumericColor: ODLCColor.Blue,
+        Shape: ODLCShape.Circle,
+        ShapeColor: ODLCColor.Red,
+        Index: BottleDropIndex.A,
+        IsMannikin: false,
+    }),
+    Target: dummyItem,
+};
 
 
 /**
  * @returns report page
  */
 function Report() {
-    const [foundItemArray, setfoundItemArray] = React.useState([
-        new Item(1, 1.3915, 103.8894, img1, "null",  "A", "red", "Circle", "blue", ""),
-        new Item(0, 1.3542, 103.8838, img2, "null",  "A", "blue", "Square", "red", ""),
-        new Item(0, 1.3485, 103.6357, img3, "null",  "B", "green", "Triangle", "yellow", ""),
-        new Item(0, 1.3467, 103.9326, img4, "null",  "C", "yellow", "Circle", "green", ""),
-        new Item(5, 1.3581, 103.9326, img5, "null",  "D", "purple", "Square", "purple", ""),
-
-        new Item(0, 1.3467, 103.9326, img1, "null",  "B", "red", "Circle", "blue", ""),
-        new Item(2, 1.3467, 103.9326, img2, "null",  "B", "blue", "Square", "red", ""),
-        new Item(0, 1.3467, 103.9326, img3, "null",  "A", "green", "Triangle", "yellow", ""),
-        new Item(0, 1.3467, 103.9326, img4, "null",  "C", "yellow", "Circle", "green", ""),
-        new Item(0, 1.3467, 103.9326, img5, "null",  "E", "purple", "Square", "purple", ""),
-
-        new Item(0, 1.3467, 103.9326, img1, "null",  "E", "red", "Circle", "blue", ""),
-        new Item(0, 1.3467, 103.9326, img2, "null",  "D", "blue", "Square", "red", ""),
-        new Item(3, 1.3467, 103.9326, img3, "null",  "C", "green", "Triangle", "yellow", ""),
-        new Item(0, 1.3467, 103.9326, img4, "null",  "B", "yellow", "Circle", "green", ""),
-        new Item(0, 1.3467, 103.9326, img5, "null",  "A", "purple", "Square", "purple", ""),
-
-        new Item(0, 1.3467, 103.9326, img1, "null",  "E", "red", "Circle", "blue", ""),
-        new Item(0, 1.3467, 103.9326, img2, "null",  "D", "blue", "Square", "red", ""),
-        new Item(0, 1.3467, 103.9326, img3, "null",  "B", "green", "Triangle", "yellow", ""),
-        new Item(4, 1.3467, 103.9326, img4, "null",  "D", "yellow", "Circle", "green", ""),
-        new Item(0, 1.3467, 103.9326, img5, "null",  "A", "purple", "Square", "purple", "")
-    ]);
-
-    const [itemArray, setitemArray] = React.useState([itemA, itemB, itemC, itemD, itemE]);
-
-    const updateItem = (index: number, newId: number) => {
-        const newItems = foundItemArray.map((item, i) => {
-            if (i === index) {
-                return new Item(newId, item.lat, item.lng, item.image, item.bottleLetter, item.alphanumeric, item.alphanumericColor, item.shape, item.shapeColor, item.boxColor);
-            } else if (item.id === newId) {
-                return new Item(0, item.lat, item.lng, item.image, item.bottleLetter, item.alphanumeric, item.alphanumericColor, item.shape, item.shapeColor, item.boxColor);
-            } else
-                return item;
-        });
-        setfoundItemArray(newItems);
-        setitemArray([itemA, itemB, itemC, itemD, itemE]);
-      };
-
-    const matchedItems = foundItemArray.filter(itemTwo => 
-        itemArray.some(itemOne => itemOne.id === itemTwo.id)
-    );
-    
-    const unmatchedItems = foundItemArray.filter(itemTwo => 
-        !itemArray.some(itemOne => itemOne.id === itemTwo.id)
-    );
+    const [foundItemArray, setfoundItemArray] = React.useState([dummyItem]);
+    const [itemArray, setItemArray] = React.useState([dummyItem1]);
+    React.useEffect(() => {
+        pull_targets(setfoundItemArray, setItemArray);
+    }, []);
     
     const [matched, setMatched] = React.useState(true);
     const [unmatched, setUnmatched] = React.useState(true);
@@ -176,33 +178,44 @@ function Report() {
     const matchedStyle = matched ? {backgroundColor: "var(--highlight)"} : {backgroundColor: "#808080", boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.75) inset"};
     const unmatchedStyle = unmatched ? {backgroundColor: "var(--highlight)"} : {backgroundColor: "#808080", boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.75) inset"};
 
-    const matchedArray = matched ? matchedItems : [];
-    const unmatchedArray = unmatched ? unmatchedItems : [];
-
-    const matchedIcons = matched ? matchedArray.map(item =>
-        L.icon({
-            iconUrl: item.image,
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-        })
-    ) : [];
-
-    const unmatchedIcons = unmatched ? unmatchedArray.map(item =>
-        L.icon({
-            iconUrl: item.image,
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-        })
-    ) : [];
-
     const handleMatched = () => {
         setMatched(prevMatched => !prevMatched);
+        console.log("matched", matched);
     }
     
     const handleUnmatched = () => {
         setUnmatched(prevUnmatched => !prevUnmatched);
+        console.log("unmatched", unmatched);
     }
-    
+
+    const matchedIcons = matched ? itemArray.map(item =>
+        L.icon({
+            iconUrl: item.Target!.Picture,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+        })
+    ) : [];
+
+    const matchedArray = matched ? itemArray : [];
+    const unmatchedArray = unmatched ? foundItemArray.filter(item => (!(itemArray.find(matchedItem => matchedItem.Target?.id === item.id)))
+    ) : [];
+
+    const unmatchedIcons = unmatched ? unmatchedArray.map(item =>
+        L.icon({
+            iconUrl: item.Picture,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+        })
+    ) : [];
+
+    const updateMatched = () => {
+        pull_targets(setfoundItemArray, setItemArray);
+        setItemArray([...itemArray]);
+        setfoundItemArray([...foundItemArray]);
+    }
+
+    const lat = 1.39;
+    const lng = 103.8;
   return (
     <main className="report-page">
         <div className="checkbox-container">
@@ -216,21 +229,21 @@ function Report() {
         <div className="left-container">
             <div className="gallery-container">
                 <div className="unmatched-gallery">
-                    {foundItemArray.map((item, i) => <Image key={i} item={item} foundItemIndex={foundItemArray.indexOf(item)} constItems={itemArray} updateItem={updateItem}/>)}
+                    {foundItemArray.map((item, i) => <Image key={i} item={item} matchedItems={itemArray} foundItemIndex={foundItemArray.indexOf(item)} updateMatched={updateMatched}/>)}
                 </div>
                 <div className="matched-gallery">
-                    {itemArray.map((item, i) => <Image key={i} item={item} foundItemIndex={0} constItems={itemArray} updateItem={updateItem}/>)}
+                    {itemArray.map((item, i) => item.Bottle ? <BottleImage key={i} item={item.Bottle} matchedItems={itemArray}/> : null)}
                 </div>
             </div>
-            <TuasMap className={'report-page-map'} lat={1.3467} lng={103.9326}>
+            <TuasMap className={'report-page-map'} lat={lat} lng={lng}>
                 {matchedArray.map((marker) => (
-                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
-                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    <Marker key={marker.Target!.id} position={[marker.Target!.coordinate?.Latitude || lat, marker.Target!.coordinate?.Longitude || lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
+                        <Popup>{oDLCColorToJSON(marker.Target!.AlphanumericColor)} {marker.Target!.Alphanumeric} {oDLCColorToJSON(marker.Target!.ShapeColor)} {oDLCShapeToJSON(marker.Target!.Shape)}</Popup>
                     </Marker>
                 ))}
                 {unmatchedArray.map((marker) => (
-                    <Marker key={marker.id} position={[marker.lat, marker.lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
-                        <Popup>{marker.alphanumericColor} {marker.alphanumeric} {marker.shapeColor} {marker.shape}</Popup>
+                    <Marker key={marker.id} position={[marker.coordinate?.Latitude || lat, marker.coordinate?.Longitude || lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
+                        <Popup>{oDLCColorToJSON(marker.AlphanumericColor)} {marker.Alphanumeric} {oDLCColorToJSON(marker.ShapeColor)} {oDLCShapeToJSON(marker.Shape)}</Popup>
                     </Marker>
                 ))}
             </TuasMap>
