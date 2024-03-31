@@ -1,13 +1,14 @@
 import "./MyModal.css"
-import { Box, Modal, Typography} from "@mui/material";
+import { Box, Button, Modal, Typography} from "@mui/material";
 import { ReactNode } from "react";
+import exit from "../assets/close.svg";
 
 interface Props {
     children?: ReactNode;
     modalVisible: boolean;
     closeModal: () => void;
     type?:string;
-    disable?:boolean;
+    loading?:boolean;
 }
 
 /**
@@ -24,7 +25,6 @@ function backgroundColorPicker(type:string){
     }
 } 
 
-
 /**
  * A modal component that comes with background color and an exit button.
  * @param props - The properties of the MyModal component.
@@ -32,10 +32,10 @@ function backgroundColorPicker(type:string){
  * @param props.modalVisible - Boolean value to represent the status of the modal component.
  * @param props.closeModal - Function to close the modal.
  * @param props.type - If provided, a string value representing the type of modal, e.g., "default", "error"...
- * @param props.disable - If provided, a boolean value. If set to true, will display a loading circle animation.
+ * @param props.loading - If provided, a boolean value. If set to true, will display a loading circle animation.
  * @returns MyModal component.
  */
-function MyModal({children, modalVisible, closeModal, type="default", disable=false}: Props){
+function MyModal({children, modalVisible, closeModal, type="default", loading=false}: Props){
        
     const backgroundColor = backgroundColorPicker(type);
     
@@ -59,17 +59,19 @@ function MyModal({children, modalVisible, closeModal, type="default", disable=fa
         onClose={closeModal} 
         aria-labelledby="modal-modal-title" 
         aria-describedby="modal-modal-description"
-        disableEscapeKeyDown={disable}
+        disableEscapeKeyDown={loading}
         >
             <Box sx={style}>
+                <Button onClick={closeModal} disabled={loading}>
+                    <img src={exit} />
+                </Button>
                 <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
-                    {disable ? <div className="lds-dual-ring"></div> : null}
-                </Typography>
+                    {loading ? <div className="lds-dual-ring"></div> : null}
+                </Typography> 
                 {children}
             </Box>
         </Modal>
     )
 }
-
 
 export default MyModal;

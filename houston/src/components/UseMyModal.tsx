@@ -6,7 +6,7 @@ import { useState } from "react";
  * OpenModal. The function to turn the state of modalVisible to true.
  * CloseModal. The function to turn the state of modalVisible to false.
  */
-export function useModal() {
+export function useMyModal() {
     const [modalVisible, setModalVisible] = useState(false);
   
     const openModal = () => {

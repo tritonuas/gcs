@@ -57,10 +57,6 @@ nav.topbar li:nth-child(5) {
 }
 
 /* Add a hover state for the pulsating effect */
-nav.topbar img.nonHoverPulse {
-    animation: pulse 1.2s infinite;
-}
-
 nav.topbar img.pulse:hover {
     animation: pulse 1.2s infinite;
 }

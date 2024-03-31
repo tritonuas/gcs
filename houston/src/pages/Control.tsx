@@ -1,7 +1,10 @@
 import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import TuasMap from '../components/TuasMap.tsx'
+import duck from '../assets/duck.png';
 import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
+import { Marker, Polygon, Polyline } from 'react-leaflet';
+import L, { LatLng } from 'leaflet'; 
 import NOOOO from "../assets/noooo.gif"
 import { SuperSecret } from '../components/SuperSecret.tsx';
 import { CELSIUS_TO_FAHRENHEIT, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
@@ -138,6 +141,55 @@ export class Parameter {
 }
 
 /**
+ * A helper function to help with pushing an elemet to the end of an array of LatLng values.
+ * @param setCoordinates React state setter for coordinates array.
+ * @param planeLatLng A pair of LatLng coordiantes.
+ */
+function updateCoordinate(setCoordinates: React.Dispatch<React.SetStateAction<LatLng[]>>, planeLatLng: [number, number]) {
+        setCoordinates(coordinates => [...coordinates, new LatLng(planeLatLng[0], planeLatLng[1])]);
+}
+
+/**
+ * A helpe functions that extracts out the get request and updates of flight bounds.
+ * @param setFlightBound React state setter for Flight Bound variable.
+ * @param setSearchBound React state setter for Search Bound variable.
+ * @param setWayPoint React state setter for Way Point variable.
+ */
+function pullFlightBounds(setFlightBound: React.Dispatch<React.SetStateAction<LatLng[]>>, setSearchBound: React.Dispatch<React.SetStateAction<LatLng[]>>, setWayPoint: React.Dispatch<React.SetStateAction<LatLng[]>>){
+    fetch("/api/mission", {
+        method: "GET",
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Connecting");
+        }
+        else{
+            return response.json();
+        }
+    })
+    .then( (data) => {
+        if(Object.prototype.hasOwnProperty.call(data, "FlightBoundary")){
+            data["FlightBoundary"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
+                updateCoordinate(setFlightBound, [coordinates["Latitude"], coordinates["Longitude"]]);
+            })
+        }
+        if(Object.prototype.hasOwnProperty.call(data, "AirdropBoundary")){
+            data["AirdropBoundary"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
+                updateCoordinate(setSearchBound, [coordinates["Latitude"], coordinates["Longitude"]]);
+            })
+        }
+        if(Object.prototype.hasOwnProperty.call(data, "Waypoints")){
+            data["Waypoints"].map( (coordinates:{"Latitude":number, "Longitude":number}) => {
+                updateCoordinate(setWayPoint, [coordinates["Latitude"], coordinates["Longitude"]]);
+            })
+        }
+    })
+    .catch(error => {
+        console.error("Fetch error:", error);
+    })   
+}
+
+/**
  * control page
  * @param props props
  * @param props.settings Settings to determine thresholds and battery info
@@ -206,7 +258,17 @@ function Control({settings}:{settings: SettingsConfig}) {
         useState<Parameter>(new Parameter('ESC Temp', [0,0], ['°C', '°F'], ESCtemperatureThreshold, 0)); 
 
     const [planeLatLng, setPlaneLatLng] = useState<[number, number]>([0,0]);
-
+    const [coordinate, setCoordinate] = useState<LatLng[]>([]);
+    const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
+    const [flightBound, setFlightBound] = useState<LatLng[]>([]);
+    const [searchBound, setSearchBound] = useState<LatLng[]>([]);
+    const [wayPoint, setWayPoint] = useState<LatLng[]>([]);
+    const markerIcon = L.icon({
+        iconUrl: icon,
+        iconSize: [65, 50],
+        iconAnchor: [32, 25]
+    });
+    
     const [superSecret, setSuperSecret] = useState(false);
 
     useEffect(() => {
@@ -235,6 +297,30 @@ function Control({settings}:{settings: SettingsConfig}) {
         setter(param => param.getSwappedUnit());
     };
 
+    useEffect(() => {
+        if(!(planeLatLng[0] == 0 && planeLatLng[1] == 0)){
+            updateCoordinate(setCoordinate, planeLatLng);
+        }
+    }, [planeLatLng]);
+
+    useEffect(() => {
+        window.addEventListener("storage", () => {
+            const data = localStorage.getItem("icon");
+            data ? setIcon(data) : setIcon(duck);
+        })
+
+        window.dispatchEvent(new Event("storage"))
+
+        return () => {window.removeEventListener("storage", () => {
+            const data = localStorage.getItem("icon");
+            data ? setIcon(data) : setIcon(duck); 
+        })}
+    });
+
+    useEffect(() => {
+        pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);
+    }, []);
+
     return (
         <>
             <main className="controls-page">
@@ -243,9 +329,28 @@ function Control({settings}:{settings: SettingsConfig}) {
                     {groundspeed.render(() => handleClick(setGroundspeed))}
                     {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
                     {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
-                </div>
-                {(superSecret) ? <SuperSecret></SuperSecret>
-                        : <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}/>}
+                </div>              
+                {(superSecret) ? <SuperSecret></SuperSecret>:
+                       <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}>
+                            <Marker position={planeLatLng} icon={markerIcon}/>
+                                <Polyline color='lime' positions={coordinate}/>
+                                <Polygon color='red' positions={flightBound}/>
+                                <Polygon color='blue' positions={searchBound}/>
+                                {wayPoint.map((latlng, index) => {
+                                    return (
+                                        <Marker key={index} position={latlng} icon={
+                                                        new L.DivIcon({
+                                                            className: 'custom-div-icon',
+                                                            html: "<div style='background-color:yellow;' class='marker-pin' data-content='" + (index+1) +"'></div>",
+                                                            iconSize: [30, 42],
+                                                            iconAnchor: [15, 42]
+                                                        })
+                                                    }
+                                        />
+                                    )
+                                })}
+                        </TuasMap>
+                }
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
                         <h1 className='heading'>Flight Mode</h1>

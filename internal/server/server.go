@@ -416,7 +416,11 @@ func (server *Server) putMavlinkEndpoints() gin.HandlerFunc {
 
 func (server *Server) getMission() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.String(http.StatusNotImplemented, "Not Implemented")
+		if server.MissionConfig == nil {
+			c.String(http.StatusBadRequest, "Mission not found")
+		}
+
+		c.JSON(http.StatusOK, server.MissionConfig)
 	}
 }
 
