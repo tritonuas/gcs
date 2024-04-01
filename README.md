@@ -9,7 +9,7 @@
 Entries in bold indicate that it is a module which we implement.
 
 - **[Hub](/internal/README.md): A back-end (written in Go) that facilitates the communication between all the different components of the entire TUAS ecosystem. This includes the [OBC](), [CVS](https://github.com/tritonuas/computer-vision-server), [Antenna Tracker](https://github.com/tritonuas/antenna-tracker). It also serves as the central node between all of The Skeld's internal parts, which are listed below.**
-- **[Houston](/static/README.md): A front-end (written in vanilla HTML/CSS/JavaScript). This provides the user interface to interact with Hub.**
+- **[Houston](/static/README.md): A front-end (written in React). This provides the user interface to interact with Hub.**
 - InfluxDB: A database to which Hub saves plane telemetry data.
 - Grafana: A third-party front-end interface we use to display dashboards for data stored in InfluxDB. While Houston does include a dashboard for the most important information, Grafana is much more flexible to view any arbitrary telemetry data.
 - SITL: A simulation for the plane so we can test the system with fake telemetry data.
