@@ -242,6 +242,10 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 // Will dump entire DB to a CSV format
 func (c *Client) GetAll() (string, error) {
 
+	if !c.IsConnected() {
+		return errInluxDBNotConnected.Error(), errInluxDBNotConnected
+	}
+
 	const fileWriterErrMsg = "File writer fail to write"
 
 	endTime := time.Now().Format(time.RFC3339)
@@ -296,19 +300,15 @@ func (c *Client) GetAll() (string, error) {
 		name := fields[x]["name"].(string)
 		queryErr := fields[x]["error"]
 
+		if queryErr != nil {
+			return "Query for " + name + " not working", queryErr.(error)
+		}
+
 		file, err := os.Create("/CSV/" + timeStamp + "/" + name + ".csv")
 
 		if err != nil {
 			file.Close()
 			return "Fail to create new CSV file", err
-		}
-
-		if queryErr != nil {
-			_, err = file.WriteString("Query for " + name + " not working")
-			if err != nil {
-				return fileWriterErrMsg, err
-			}
-			return "Query for " + name + " not working", queryErr.(error)
 		}
 
 		titleArray := []string{}

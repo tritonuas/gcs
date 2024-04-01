@@ -1,0 +1,200 @@
+.controls-page {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 50px;
+    padding-left: 100px;
+    padding-right: 100px;
+    overflow-y: hidden;
+}
+
+.controls-page .map {
+    flex: 70%;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    box-shadow: 0px 0px 25px 0px rgba(0,0,0,0.75);
+    margin: 50px;
+}
+
+.controls-page .flight-telemetry-container {
+    display: flex;
+    flex-direction: column;
+    flex: 15%;
+    height: 100%;
+    border-radius: 20px;
+    background-color: var(--light-bg);
+    padding: 20px;
+    padding-bottom: 0px;
+    box-shadow: 0px 0px 25px 0px rgba(0,0,0,0.75);
+}
+
+.controls-page .flight-telemetry {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: var(--main-bg-color);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.75) inset;
+    overflow: hidden;
+    user-select: none
+}
+
+.controls-page .data {
+    flex: 2;
+    font-family: 'Courier New';
+    font-size: 45px;
+    font-size: 1.5dvw;
+    font-weight: bold;
+    margin: auto;
+}
+
+.controls-page .heading {
+    flex: 1;
+    font-size: 1.2dvw;
+    margin: auto;
+    margin-top: 1.5dvh;
+}
+
+.controls-page .unit-indicator {
+    display: flex;
+    align-self: center;
+    align-items: center;
+    width: auto;
+    height: 3dvh;
+    border-radius: 3dvh;
+    margin-bottom: 1dvw;
+}
+
+.controls-page .unit {
+    overflow: hidden;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    font-size: 1dvw;
+    font-weight: bold;
+    padding: 0.5dvw;
+    height: 1dvh;
+    border-top-left-radius: 3dvh;
+    border-bottom-left-radius: 3dvh;
+    user-select: none;
+    cursor: pointer;
+
+
+    transition: all var(--std-transition);
+}
+
+.controls-page .unit:first-child {
+    background: linear-gradient(to left, var(--highlight) 50%, var(--grey-out-bg) 50%) right;
+    background-size: 200% 100%;
+}
+
+.controls-page .unit.unit-selected:first-child {
+    background-position: right;
+}
+
+.controls-page .unit.unit-not-selected:first-child {
+    background-position: left;
+}
+
+.controls-page .unit:last-child {
+    background: linear-gradient(to left, var(--grey-out-bg) 50%, var(--highlight) 50%) right;
+    background-size: 200% 100%;
+
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 3dvh;
+    border-bottom-right-radius: 3dvh;
+}
+
+.controls-page .unit.unit-selected:last-child {
+    background-position: left;
+}
+
+.controls-page .unit.unit-not-selected:last-child {
+    background-position: right;
+}
+
+@media (max-width: 1500px) {
+    .controls-page {
+        flex-direction: column;
+        padding: 25px;
+        padding-left: 50px;
+        padding-right: 50px;
+    }
+
+    .controls-page .flight-telemetry-container {
+        flex-direction: row;
+        padding-left: 0px;
+        margin: 0px;
+        width: 100%;
+    }
+
+    .controls-page .flight-telemetry {
+        margin-left: 20px;
+        height: auto;
+    }
+
+    .controls-page .map {
+        margin: 20px;
+    }
+
+    .controls-page .heading {
+        flex: 1;
+        font-size: 2dvw;
+        margin: auto;
+        margin-top: 1.5dvh;
+    }
+
+    .controls-page .data {
+        flex: 2;
+        font-family: 'Courier New';
+        font-size: 45px;
+        font-size: 1.8dvw;
+        font-weight: bold;
+        margin: auto;
+    }
+}
+
+.controls-page .marker-pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    background: yellow;
+    position: absolute;
+    transform: rotate(-45deg);
+    left: 50%;
+    top: 50%;
+    margin: -15px 0 0 -15px;
+  }
+
+  .controls-page .marker-pin::after {
+    content: attr(data-content);
+    text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: large;
+    width: 24px;
+    height: 24px;
+    margin: 3px 0 0 3px;
+    background: #fff;
+    position: absolute;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    
+ }
+
+ .controls-page .custom-div-icon i {
+    position: absolute;
+    width: 22px;
+    font-size: 22px;
+    left: 0;
+    right: 0;
+    margin: 10px auto;
+    text-align: center;
+ }

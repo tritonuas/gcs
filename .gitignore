@@ -1,10 +1,13 @@
 gcs
 *.env
-**/*.pb.go
 .vscode
 influx_token.key
 *.mp4
 *.webm
 *.wav
 *.mp3
+
+**/*.pb.go
+**/*.pb.ts
 flight-logs
+

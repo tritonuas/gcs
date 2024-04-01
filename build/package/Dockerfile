@@ -24,7 +24,7 @@ RUN --mount=target=. \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
 
-COPY ./static/ /build/static
+COPY ./houston/dist/ /build/houston/
 
 RUN mkdir /CSV
 # go build mounts code read-only without copying to container,

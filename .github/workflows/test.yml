@@ -2,14 +2,12 @@ name: Tests
 
 on:
   push:
-    branches:
-      - master
   pull_request:
 
 jobs:
   # go tests
   gotest:
-    name: Go tests
+    name: Test Backend
     runs-on: ubuntu-latest
 
     steps:
@@ -27,5 +25,22 @@ jobs:
       - name: Install dependencies
         run: make install-dependencies
 
+      - name: Build Protos
+        run: make build-protos
+
       - name: Test
-        run: make test
+        run: |
+          go test -race ./...
+
+  # TODO: include protobuf installation and compilation steps here, once we actually start
+  # writing tests that need to run on the frontend.
+  Jest:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run Tests
+        run: |
+          cd houston
+          npm install 
+          npm test

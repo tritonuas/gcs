@@ -1,0 +1,108 @@
+nav.topbar {
+    background-color: var(--dark-bg);
+    font-size: 2rem;
+}
+
+nav.topbar img {
+    margin: 0 0.5rem;
+}
+
+nav.topbar ul {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    list-style: none;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+nav.topbar li {
+    background: linear-gradient(to bottom, var(--dark-bg) 50%, var(--med-bg) 50%) top;
+    background-size: 100% 200%;
+    transition: background-position .1s ease-in;
+}
+
+nav.topbar a {
+    text-decoration: none;
+    color: var(--highlight);
+    transition: color 0.1s ease-in;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+nav.topbar a:is(:hover, :focus), a.active {
+    color: var(--light-text);
+}
+
+nav.topbar li:has(a:is(:hover, :focus)), li:has(a.active) {
+    background-position: bottom;
+}
+
+/* 
+    For the current active tab, just override the background so its a simple background
+    color. Helpful for extra styling / color changes we do in the Connection page.
+*/
+li:has(a.active) {
+    background: none;
+    background-color: var(--med-bg);
+    transition: background-color var(--std-transition);
+}
+
+nav.topbar li:nth-child(5) {
+    margin-right: auto;
+}
+
+/* Add a hover state for the pulsating effect */
+nav.topbar img.pulse:hover {
+    animation: pulse 1.2s infinite;
+}
+
+nav.topbar button{
+    background-color: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+nav.topbar button:is(:hover, :focus) {
+    background-color: transparent;
+    outline: none;
+    box-shadow: none;
+}
+
+@keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+  
+.rotate {
+    animation-name: rotate;
+    animation-play-state: paused;
+    animation-duration: 2s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+.rotate:hover {
+    animation-play-state: running;
+}

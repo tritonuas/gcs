@@ -2,6 +2,7 @@
 name: Linting
 
 on:
+  push:
   pull_request:
 
 permissions:
@@ -9,15 +10,39 @@ permissions:
 
 jobs:
   golangci:
-    name: lint
+    name: Lint Backend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - name: Install Go
+        uses: actions/setup-go@v2
         with:
           go-version: 1.19
-      - uses: actions/checkout@v3
+
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          token: ${{ secrets.SSH_TOKEN }}
+
+      - name: Install dependencies
+        run: make install-dependencies
+
+      - name: Build Protos
+        run: make build-protos
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: v1.50
+
+  eslint:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run Frontend Linter
+        run: |
+          cd houston
+          npm install
+          npm run lint

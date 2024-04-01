@@ -1,0 +1,14 @@
+.settings-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-page input {
+    caret-color: black;
+}
+
+.settings-page form {
+    display: flex;
+    flex-direction: column;
+}

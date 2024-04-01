@@ -1,0 +1,46 @@
+@font-face {
+  font-family: 'Jetbrains Mono';
+  font-display: swap;
+  src: url("./assets/JetBrainsMono-Regular.ttf");
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'Jetbrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  caret-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--med-bg);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+:root { 
+	--dark-bg: #00204a;
+  --med-bg: #2667ff;
+  --light-bg: #3f8efc;
+  --grey-out-bg: #808080;
+
+	--highlight: #fdb44b; 
+
+  --dark-text: #111111; 
+  --light-text: #DDDDDD;
+
+
+  --success-text: #33AA66; 
+  --warning-text: #eed202;
+  --failure-text: #AA3344;
+  --success-filter: invert(50%) sepia(71%) saturate(411%) hue-rotate(93deg) brightness(96%) contrast(86%);
+  --failure-filter: invert(23%) sepia(22%) saturate(4213%) hue-rotate(321deg) brightness(108%) contrast(91%);
+
+  --std-transition: 0.3s ease-in;
+
+
+  --main-height: 92dvh;
+}
