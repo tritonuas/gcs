@@ -6,9 +6,12 @@ import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import { Marker, Polygon, Polyline } from 'react-leaflet';
 import L, { LatLng } from 'leaflet'; 
 import NOOOO from "../assets/noooo.gif"
-import { SuperSecret } from '../components/SuperSecret.tsx';
+//import { SuperSecret } from '../components/SuperSecret.tsx';
 import { CELSIUS_TO_FAHRENHEIT, FEET_TO_METERS, METERS_PER_SECOND_TO_KNOTS, roundDecimal } from '../utilities/general.tsx';
 import { SettingsConfig } from '../utilities/settings.ts';
+import UpdateMapCenter from '../components/UpdateMapCenter.tsx';
+import CustomControl from 'react-leaflet-custom-control'
+import { SuperSecret } from '../components/SuperSecret.tsx';
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
 export type Threshold = [number, number, number, number];
@@ -268,6 +271,7 @@ function Control({settings}:{settings: SettingsConfig}) {
         iconSize: [65, 50],
         iconAnchor: [32, 25]
     });
+    const [centerMap, setCenterMap] = useState(true);
     
     const [superSecret, setSuperSecret] = useState(false);
 
@@ -320,7 +324,7 @@ function Control({settings}:{settings: SettingsConfig}) {
     useEffect(() => {
         pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);
     }, []);
-
+    
     return (
         <>
             <main className="controls-page">
@@ -331,25 +335,35 @@ function Control({settings}:{settings: SettingsConfig}) {
                     {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
                 </div>              
                 {(superSecret) ? <SuperSecret></SuperSecret>:
-                       <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}>
-                            <Marker position={planeLatLng} icon={markerIcon}/>
-                                <Polyline color='lime' positions={coordinate}/>
-                                <Polygon color='red' positions={flightBound}/>
-                                <Polygon color='blue' positions={searchBound}/>
-                                {wayPoint.map((latlng, index) => {
-                                    return (
-                                        <Marker key={index} position={latlng} icon={
-                                                        new L.DivIcon({
-                                                            className: 'custom-div-icon',
-                                                            html: "<div style='background-color:yellow;' class='marker-pin' data-content='" + (index+1) +"'></div>",
-                                                            iconSize: [30, 42],
-                                                            iconAnchor: [15, 42]
-                                                        })
-                                                    }
-                                        />
-                                    )
-                                })}
-                        </TuasMap>
+                    <TuasMap className={'map'} lat={planeLatLng[0]} lng={planeLatLng[1]}>
+                        <CustomControl prepend position="topright">
+                            <div className="checkbox-wrapper">
+                                <label className="control control--checkbox">
+                                   Center
+                                   <input type="checkbox" id="centerMapCheckBox" checked={centerMap} onClick={()=>setCenterMap(!centerMap)}/>
+                                   <div className="control__indicator"></div>
+                                </label>
+                            </div>
+                        </CustomControl>
+                        {centerMap ? <UpdateMapCenter planeLatLng={planeLatLng}/> : null}
+                        <Marker position={planeLatLng} icon={markerIcon}/>
+                        <Polyline color='lime' positions={coordinate}/>
+                        <Polygon color='red' positions={flightBound}/>
+                        <Polygon color='blue' positions={searchBound}/>
+                        {wayPoint.map((latlng, index) => {
+                            return (
+                                <Marker key={index} position={latlng} icon={
+                                                new L.DivIcon({
+                                                    className: 'custom-div-icon',
+                                                    html: "<div style='background-color:yellow;' class='marker-pin' data-content='" + (index+1) +"'></div>",
+                                                    iconSize: [30, 42],
+                                                    iconAnchor: [15, 42]
+                                                })
+                                            }
+                                />
+                            )
+                        })}
+                    </TuasMap>
                 }
                 <div className="flight-telemetry-container">
                     <div style={flightModeColor} className='flight-telemetry' id='flight-mode'>
