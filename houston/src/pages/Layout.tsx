@@ -37,18 +37,15 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
         }
     }
 
+    const handleStorageChange = () => {
+        const data = localStorage.getItem("icon");
+        data ? setIcon(data) : setIcon(duck);
+    };
+
     useEffect(() => {
-        window.addEventListener("storage", () => {
-            const data = localStorage.getItem("icon");
-            data ? setIcon(data) : setIcon(duck);
-        })
-
+        window.addEventListener("storage", () => {handleStorageChange})
         window.dispatchEvent(new Event("storage"))
-
-        return () => {window.removeEventListener("storage", () => {
-            const data = localStorage.getItem("icon");
-            data ? setIcon(data) : setIcon(duck); 
-        })}
+        return () => {window.removeEventListener("storage", () => {handleStorageChange})}
     });
 
     const handleInflux = () => {

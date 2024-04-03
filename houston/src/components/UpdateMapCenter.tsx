@@ -1,12 +1,17 @@
 import { useEffect } from "react";
 import { useMap } from "react-leaflet";
 
-function UpdateMapCenter({planeLatLng}:{planeLatLng: [number, number]}){
+/**
+ * @param props props
+ * @param props.position the coordiantes to center the map on
+ * @returns UpdateMapCenter component
+ */
+function UpdateMapCenter({position}:{position: [number, number]}){
     const map = useMap();
 
     useEffect(() => {
-        map.setView(planeLatLng);
-    }, [planeLatLng, map]);
+        map.setView(position);
+    }, [position, map]);
 
     return null;
 }
