@@ -8,7 +8,7 @@ import {ConnectionStatus, } from "../utilities/temp"
 import { Button, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import MyModal from "../components/MyModal";
-import { useMyModal } from "../components/useMyModal";
+import { useMyModal } from "../components/UseMyModal";
 import PlanePicker from "../components/PlanePicker";
 
 
