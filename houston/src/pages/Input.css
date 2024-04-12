@@ -83,3 +83,18 @@ main.input-page input[type="button"] {
 main.input-page #default-locations {
     height: 30px;
 }
+
+fieldset{
+    justify-content: center;
+}
+
+label{
+    display: block;
+    font-size: large;
+    padding: 15px;
+}
+
+legend{
+    font-size: large;
+}
+

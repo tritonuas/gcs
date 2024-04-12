@@ -11,6 +11,7 @@ function UpdateMapCenter({position}:{position: [number, number]}){
 
     useEffect(() => {
         map.setView(position);
+        map.setZoom(16);
     }, [position, map]);
 
     return null;

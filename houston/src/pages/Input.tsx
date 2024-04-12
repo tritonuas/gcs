@@ -7,8 +7,8 @@ import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
 import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from '../protos/obc.pb';
 import MyModal from '../components/MyModal';
-import Control from 'react-leaflet-custom-control';
 import UpdateMapCenter from '../components/UpdateMapCenter';
+import { useMyModal } from '../components/UseMyModal';
 
 enum MapMode {
     FlightBound,
@@ -502,6 +502,7 @@ function Input() {
     const [modalMsg, setModalMsg] = useState("");
     const [msgModalVisible, setMsgModalVisible] = useState(false);
     const [defaultView, setDefaultView] = useState<[number, number]>([51,10]);
+    const {modalVisible, openModal, closeModal} = useMyModal();
 
     /**
      * 
@@ -642,16 +643,15 @@ function Input() {
      * Heper function that sets variable (defaultView) to either 
      * black mountain coordinates or competition coordinates.
      * @param selected The location selected.
-     * @param setDeaultView State Variable that stores a location.
      */
-    function changingDeafultView(selected: string,  setDeaultView: React.Dispatch<React.SetStateAction<[number, number]>>){
+    function changingDeafultView(selected: string){
         if(selected == 'Black_Mountain'){
-            setDeaultView([32.990781135309724, -117.12830536731832]);
+            setDefaultView([32.990781135309724, -117.12830536731832]);
             setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
             setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
         }
         else if(selected == 'Competition'){
-            setDeaultView([38.314666970000744, -76.54975138401012]);
+            setDefaultView([38.314666970000744, -76.54975138401012]);
             setMapData(new Map(mapData.set(MapMode.FlightBound, [
                 [38.31729702009844, -76.55617670782419], 
                 [38.31594832826572, -76.55657341657302], 
@@ -682,19 +682,29 @@ function Input() {
         }
     }
 
+    useEffect(() => {
+        openModal();
+    })
+
     return (
         <>
             <main className="input-page">
                 <TuasMap className="input-map" lat={51} lng={10}>
                     <MapClickHandler mapMode={mapMode} mapData={mapData} setMapData={setMapData}/>
                     <MapIllustrator mapData={mapData}/>
-                    <Control prepend position='topright'>
-                        <select name='dafault-locations' id='default-locations' onChange={e => changingDeafultView(e.target.value, setDefaultView)}>
-                            <option value='None'>None</option>
-                            <option value='Black_Mountain' >Black Mountain</option>
-                            <option value='Competition'>Competition</option>
-                        </select>
-                    </Control>
+                    <MyModal modalVisible={modalVisible} closeModal={closeModal}>
+                        <fieldset>
+                            <legend>Default Location</legend>
+                            <label>
+                                <input type="radio" name="default_location" value="Black_Mountain" onClick={() => changingDeafultView("Black_Mountain")}/>
+                                Black Mountain
+                            </label>
+                            <label>
+                                <input type="radio" name="default_location" value="Competition" onClick={() => changingDeafultView("Competition")}/>
+                                Competition
+                            </label>
+                        </fieldset>
+                    </MyModal>
                     <UpdateMapCenter position={defaultView}/>
                 </TuasMap>
                 <div className="right-container">
