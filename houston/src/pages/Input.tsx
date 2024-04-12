@@ -7,6 +7,8 @@ import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
 import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from '../protos/obc.pb';
 import MyModal from '../components/MyModal';
+import Control from 'react-leaflet-custom-control';
+import UpdateMapCenter from '../components/UpdateMapCenter';
 
 enum MapMode {
     FlightBound,
@@ -499,6 +501,7 @@ function Input() {
     const [modalType, setModalType] = useState<"default" | "error">("default");
     const [modalMsg, setModalMsg] = useState("");
     const [msgModalVisible, setMsgModalVisible] = useState(false);
+    const [defaultView, setDefaultView] = useState<[number, number]>([51,10]);
 
     /**
      * 
@@ -635,12 +638,64 @@ function Input() {
             })
     }
 
+    /**
+     * Heper function that sets variable (defaultView) to either 
+     * black mountain coordinates or competition coordinates.
+     * @param selected The location selected.
+     * @param setDeaultView State Variable that stores a location.
+     */
+    function changingDeafultView(selected: string,  setDeaultView: React.Dispatch<React.SetStateAction<[number, number]>>){
+        if(selected == 'Black_Mountain'){
+            setDeaultView([32.990781135309724, -117.12830536731832]);
+            setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
+            setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
+        }
+        else if(selected == 'Competition'){
+            setDeaultView([38.314666970000744, -76.54975138401012]);
+            setMapData(new Map(mapData.set(MapMode.FlightBound, [
+                [38.31729702009844, -76.55617670782419], 
+                [38.31594832826572, -76.55657341657302], 
+                [38.31546739500083, -76.55376201277696],
+                [38.31470980862425, -76.54936361414539],
+                [38.31424154692598, -76.54662761646904],
+                [38.31369801280048, -76.54342380058223],
+                [38.31331079191371, -76.54109648475954],
+                [38.31529941346197, -76.54052104837133],
+                [38.31587643291039, -76.54361305817427],
+                [38.31861642463319, -76.54538594175376],
+                [38.31862683616554, -76.55206138505936],
+                [38.31703471119464, -76.55244787859773],
+                [38.31674255749409, -76.55294546866578],
+                [38.31729702009844, -76.55617670782419]
+            ])));
+            setMapData(new Map(mapData.set(MapMode.SearchBound, [
+                [38.31442311312976, -76.54522971451763], 
+                [38.31421041772561, -76.54400246436776],
+                [38.31440703962630, -76.54394394383165],
+                [38.31461622313521, -76.54516993186949],
+                [38.31442311312976, -76.54522971451763]
+            ])));
+        }
+        else{
+            setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
+            setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
+        }
+    }
+
     return (
         <>
             <main className="input-page">
                 <TuasMap className="input-map" lat={51} lng={10}>
                     <MapClickHandler mapMode={mapMode} mapData={mapData} setMapData={setMapData}/>
                     <MapIllustrator mapData={mapData}/>
+                    <Control prepend position='topright'>
+                        <select name='dafault-locations' id='default-locations' onChange={e => changingDeafultView(e.target.value, setDefaultView)}>
+                            <option value='None'>None</option>
+                            <option value='Black_Mountain' >Black Mountain</option>
+                            <option value='Competition'>Competition</option>
+                        </select>
+                    </Control>
+                    <UpdateMapCenter position={defaultView}/>
                 </TuasMap>
                 <div className="right-container">
                     <MapInputForm 

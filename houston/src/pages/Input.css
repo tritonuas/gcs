@@ -79,3 +79,7 @@ main.input-page .bottle-form-container {
 main.input-page input[type="button"] {
     border-radius: 8px;
 }
+
+main.input-page #default-locations {
+    height: 30px;
+}
