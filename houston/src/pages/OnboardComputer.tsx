@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import ImageGallery from 'react-image-gallery'
 import Modal from 'react-modal'
 
@@ -11,15 +11,10 @@ import cameraIcon from '../assets/camera.svg'
 import PageOpenPopup from '../components/PageOpenPopup';
 import { UBIQUITI_URL } from '../utilities/general';
 
+import { OBCConnInfo } from '../protos/obc.pb';
+
 // testing
 import duckPic from '../assets/duck.png';
-
-// TODO: move to protobuf
-interface OBCConnection {
-    cameraConnected: boolean,
-    images: string[], // URLs
-    mavHeartbeat: number | null
-}
 
 /**
  * @returns Page for the Onboard computer connection status.
@@ -27,12 +22,13 @@ interface OBCConnection {
 function OnboardComputer() {
     const [showCameraForm, setShowCameraForm] = useState(false);
 
-    // TODO: eventuallly replace to prop that is passed through...
-    const [obcConn, _setOBCConn] = useState<OBCConnection>({
-        cameraConnected: true,
-        images: [],
-        mavHeartbeat: .5112312312,
-    });
+    const [connInfo, setConnInfo] = useState<OBCConnInfo>(OBCConnInfo.fromJSON({}));
+
+    useEffect(() => {
+        setInterval(() => {
+            
+        }, 1500);
+    }, []);
 
     // TODO: testing... eventually load these from the fetch requests from backend
     const images = [
