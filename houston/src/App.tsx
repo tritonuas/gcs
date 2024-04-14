@@ -17,6 +17,7 @@ import Settings from './pages/Settings'
 import { ConnectionType, ConnectionStatus } from "./utilities/temp";
 import { SettingsConfig, loadSettings } from "./utilities/settings";
 import { LatLng } from "leaflet";
+import { OBCConnInfo } from "./protos/obc.pb";
 
 /**
  * Main React function
@@ -28,10 +29,10 @@ function App() {
         return (Math.random() > 0.5);
     }
 
-    const [statuses, _setStatuses] = useState<ConnectionStatus[]>([
-        {name: "Antenna Tracker", isActive: flipCoin(), type: ConnectionType.Ethernet} as ConnectionStatus,
-        {name: "Onboard Computer", isActive: flipCoin(), type: ConnectionType.Wifi} as ConnectionStatus,
-        {name: "Radio Mavlink", isActive: flipCoin(), type: ConnectionType.Radio} as ConnectionStatus,
+    const [statuses, setStatuses] = useState<ConnectionStatus[]>([
+        {name: "Antenna Tracker", isActive: false, type: ConnectionType.Ethernet} as ConnectionStatus,
+        {name: "Onboard Computer", isActive: false, type: ConnectionType.Wifi} as ConnectionStatus,
+        {name: "Radio Mavlink", isActive: false, type: ConnectionType.Radio} as ConnectionStatus,
     ]);
 
     const [config, setConfig] = useState<SettingsConfig>(loadSettings());
@@ -39,14 +40,54 @@ function App() {
     const [coordinate, setCoordinate] = useState<LatLng[]>([]);
 
     useEffect(() => {
-        const interval = setInterval(() => 
+        const interval = setInterval(() => {
             fetch('/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt')
-            .then(resp => resp.json())
-            .then(json => {
-                const lat = parseFloat(json["lat"]) / 10e6;
-                const lng = parseFloat(json["lon"]) / 10e6;
-                setPlaneLatLng([lat, lng]);
-            }), 1000);
+                .then(resp => resp.json())
+                .then(json => {
+                    const lat = parseFloat(json["lat"]) / 10e6;
+                    const lng = parseFloat(json["lon"]) / 10e6;
+                    setPlaneLatLng([lat, lng]);
+                });
+            // I hate this but don't feel motivated to refactor it, sorry ~Tyler 4/13/24
+            fetch('/api/connections')
+                .then(resp => resp.json())
+                .then(json => {
+                    // these keys are defined in the /connections route of the backend
+                    const obc = json["plane_obc"] as OBCConnInfo;
+                    let obc_is_good;
+                    if (obc.cameraGood === undefined) {
+                        // if one is undefined then the whole struct is missing, meaning that it is not connect
+                        obc_is_good = false;
+                    } else {
+                        obc_is_good = true;
+                    }
+
+                    localStorage.setItem("obc_conn_status", JSON.stringify(obc));
+
+                    setStatuses(old => 
+                        old.map((status: ConnectionStatus) => {
+                            switch (status.name) {
+                                case "Antenna Tracker": return {
+                                    isActive: json["antenna_tracker"],
+                                    type: status.type,
+                                    name: status.name,
+                                } as ConnectionStatus;
+                                case "Onboard Computer": return {
+                                    isActive: obc_is_good,
+                                    type: status.type,
+                                    name: status.name,
+                                } as ConnectionStatus;
+                                case "Radio Mavlink": return {
+                                    isActive: json["radio_mavlink"],
+                                    type: status.type,
+                                    name: status.name,
+                                } as ConnectionStatus;
+                                default: return {} as ConnectionStatus;
+                            }
+                        })
+                    );
+                });
+            }, 500);
 
         return () => {
             clearInterval(interval);

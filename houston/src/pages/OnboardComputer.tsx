@@ -11,8 +11,6 @@ import cameraIcon from '../assets/camera.svg'
 import PageOpenPopup from '../components/PageOpenPopup';
 import { UBIQUITI_URL } from '../utilities/general';
 
-import { OBCConnInfo } from '../protos/obc.pb';
-
 // testing
 import duckPic from '../assets/duck.png';
 
@@ -22,13 +20,18 @@ import duckPic from '../assets/duck.png';
 function OnboardComputer() {
     const [showCameraForm, setShowCameraForm] = useState(false);
 
-    const [connInfo, setConnInfo] = useState<OBCConnInfo>(OBCConnInfo.fromJSON({}));
+    const [obcStatus, setOBCStatus] = useState({});
+
+    const handleStorageChange = () => {
+        const data = localStorage.getItem("obc_status");
+        data ? setIcon(data) : setIcon(duck);
+    };
 
     useEffect(() => {
-        setInterval(() => {
-            
-        }, 1500);
-    }, []);
+        window.addEventListener("storage", () => {handleStorageChange})
+        window.dispatchEvent(new Event("storage"))
+        return () => {window.removeEventListener("storage", () => {handleStorageChange})}
+    });
 
     // TODO: testing... eventually load these from the fetch requests from backend
     const images = [
