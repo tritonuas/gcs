@@ -19,6 +19,13 @@ function OnboardComputer() {
 
     const [obcStatus, setOBCStatus] = useState<OBCConnInfo>(JSON.parse(localStorage.getItem("obc_conn_status") || "{}") as OBCConnInfo);
 
+    /**
+     * Note: the way protobuf serialization works is that if things are null values (false, 0.0) then they
+     * wont show up in the serialization, as that can be "implied" to be a zero value by it not being there.
+     * (At least this is my understanding). Therefore, if some of the expected values in the struct aren't there
+     * it is because they are false/0.0 or some other 0-like value.
+     */
+
     useEffect(() => {
         setInterval(() => {
             const data = localStorage.getItem("obc_conn_status") || "{}";
