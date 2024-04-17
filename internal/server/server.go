@@ -171,11 +171,11 @@ TODO: Actually test the connections instead of just returning True.
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		obc_connected, _ := server.obcClient.IsConnected()
+		obcConnected, _ := server.obcClient.IsConnected()
 
 		c.JSON(http.StatusOK, gin.H{
 			"radio_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
-			"plane_obc":       obc_connected,
+			"plane_obc":       obcConnected,
 			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker()})
 	}
 }
