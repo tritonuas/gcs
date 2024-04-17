@@ -69,6 +69,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
+		api.GET("/obc_connection", server.testOBCConnection())
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
@@ -148,24 +149,33 @@ func (server *Server) Start() {
 	}
 }
 
+func (server *Server) testOBCConnection() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var obcStatusBytes []byte
+
+		resp, status := server.obcClient.GetConnectionInfo()
+		if status != http.StatusOK {
+			obcStatusBytes = []byte("{}")
+		} else {
+			obcStatusBytes = resp
+		}
+
+		c.Data(http.StatusOK, "application/json", obcStatusBytes)
+	}
+}
+
 /*
 User testing all of hubs connections. Returns JSON of all the connection statuses.
 TODO: Actually test the connections instead of just returning True.
 */
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var obc_status []byte
 
-		resp, status := server.obcClient.GetConnectionInfo()
-		if status != http.StatusOK {
-			obc_status = []byte("{}")
-		} else {
-			obc_status = resp
-		}
+		obc_connected, _ := server.obcClient.IsConnected()
 
 		c.JSON(http.StatusOK, gin.H{
-			"plane_obc":       obc_status,
 			"radio_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
+			"plane_obc":       obc_connected,
 			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker()})
 	}
 }

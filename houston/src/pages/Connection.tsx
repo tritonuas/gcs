@@ -2,7 +2,6 @@ import "./Connection.css"
 import {statusToLink} from "../utilities/connection"
 
 import { ConnectionStatus } from "../utilities/temp";
-import { OBCConnInfo } from "../protos/obc.pb";
 
 // TODO: allow clicking on each connection status item
 // in order to see a more in depth description of that

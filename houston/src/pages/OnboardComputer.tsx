@@ -1,18 +1,15 @@
 import {useEffect, useState} from 'react'
-import ImageGallery from 'react-image-gallery'
 import Modal from 'react-modal'
 
 import './OnboardComputer.css'
 import "react-image-gallery/styles/css/image-gallery.css";
 
-import heartbeatIcon from '../assets/heartbeat.svg'
-import cameraIcon from '../assets/camera.svg'
 
 import PageOpenPopup from '../components/PageOpenPopup';
 import { UBIQUITI_URL } from '../utilities/general';
 
 // testing
-import duckPic from '../assets/duck.png';
+import { OBCConnInfo } from '../protos/obc.pb';
 
 /**
  * @returns Page for the Onboard computer connection status.
@@ -20,31 +17,15 @@ import duckPic from '../assets/duck.png';
 function OnboardComputer() {
     const [showCameraForm, setShowCameraForm] = useState(false);
 
-    const [obcStatus, setOBCStatus] = useState({});
-
-    const handleStorageChange = () => {
-        const data = localStorage.getItem("obc_status");
-        data ? setIcon(data) : setIcon(duck);
-    };
+    const [obcStatus, setOBCStatus] = useState<OBCConnInfo>(JSON.parse(localStorage.getItem("obc_conn_status") || "{}") as OBCConnInfo);
 
     useEffect(() => {
-        window.addEventListener("storage", () => {handleStorageChange})
-        window.dispatchEvent(new Event("storage"))
-        return () => {window.removeEventListener("storage", () => {handleStorageChange})}
-    });
+        setInterval(() => {
+            const data = localStorage.getItem("obc_conn_status") || "{}";
+            setOBCStatus(JSON.parse(data));
+        }, 1000);
+    }, []);
 
-    // TODO: testing... eventually load these from the fetch requests from backend
-    const images = [
-        {
-            original: duckPic,
-        },
-        {
-            original: duckPic,
-        },
-        {
-            original: duckPic,
-        }
-    ]
 
     return (
         <>
@@ -116,27 +97,34 @@ function OnboardComputer() {
                 </form>
             </Modal>
             <main className="obc-page">
-                <div className="left-container">
-                    <ImageGallery items={images}/>
-                </div>
                 <ul className="status-list">
                     <li>
-                        <figure>
-                            <img src={cameraIcon} 
-                                id="camera-icon"
-                                className={(obcConn.cameraConnected ? "svg active" : "svg inactive")}
-                                onClick={() => {
-                                    setShowCameraForm(true);
-                                }}/>
-                        </figure>
+                        mavRcGood: {(obcStatus.mavRcGood) ? "true" : "false"}
                     </li>
                     <li>
-                        <figure>
-                            <img src={heartbeatIcon}
-                                className={(obcConn.mavHeartbeat != null) ? "svg active" : "svg inactive"}/>
-                            <figcaption>{obcConn.mavHeartbeat?.toFixed(4)}</figcaption>
-                        </figure>
+                        mavRcStrength: {obcStatus.mavRcStrength}
                     </li>
+                    <li>
+                        cameraGood: {(obcStatus.cameraGood) ? "true" : "false"}
+                    </li>
+                    <table>
+                        <tr>
+                            <th>Bottle Idx</th>
+                            <th>MS Since HB</th>
+                        </tr>
+                        {obcStatus.droppedBottleIdx.map((_, i) => {
+                            return(
+                                <tr key={i}>
+                                    <td>
+                                        {obcStatus.droppedBottleIdx[i]}
+                                    </td>
+                                    <td>
+                                        {obcStatus.msSinceAdHeartbeat[i]}
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </table>
                 </ul>
             </main>
         </>

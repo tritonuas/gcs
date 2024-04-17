@@ -17,18 +17,12 @@ import Settings from './pages/Settings'
 import { ConnectionType, ConnectionStatus } from "./utilities/temp";
 import { SettingsConfig, loadSettings } from "./utilities/settings";
 import { LatLng } from "leaflet";
-import { OBCConnInfo } from "./protos/obc.pb";
 
 /**
  * Main React function
  * @returns App
  */
 function App() {
-    // for testing purposes
-    const flipCoin = () => {
-        return (Math.random() > 0.5);
-    }
-
     const [statuses, setStatuses] = useState<ConnectionStatus[]>([
         {name: "Antenna Tracker", isActive: false, type: ConnectionType.Ethernet} as ConnectionStatus,
         {name: "Onboard Computer", isActive: false, type: ConnectionType.Wifi} as ConnectionStatus,
@@ -48,22 +42,13 @@ function App() {
                     const lng = parseFloat(json["lon"]) / 10e6;
                     setPlaneLatLng([lat, lng]);
                 });
+            }, 500);
+
+        const interval_long = setInterval(() => {
             // I hate this but don't feel motivated to refactor it, sorry ~Tyler 4/13/24
             fetch('/api/connections')
                 .then(resp => resp.json())
                 .then(json => {
-                    // these keys are defined in the /connections route of the backend
-                    const obc = json["plane_obc"] as OBCConnInfo;
-                    let obc_is_good;
-                    if (obc.cameraGood === undefined) {
-                        // if one is undefined then the whole struct is missing, meaning that it is not connect
-                        obc_is_good = false;
-                    } else {
-                        obc_is_good = true;
-                    }
-
-                    localStorage.setItem("obc_conn_status", JSON.stringify(obc));
-
                     setStatuses(old => 
                         old.map((status: ConnectionStatus) => {
                             switch (status.name) {
@@ -73,7 +58,7 @@ function App() {
                                     name: status.name,
                                 } as ConnectionStatus;
                                 case "Onboard Computer": return {
-                                    isActive: obc_is_good,
+                                    isActive: json["plane_obc"],
                                     type: status.type,
                                     name: status.name,
                                 } as ConnectionStatus;
@@ -87,10 +72,17 @@ function App() {
                         })
                     );
                 });
-            }, 500);
+            fetch('/api/obc_connection')
+                .then(resp => resp.json())
+                .then(json => {
+                    // these keys are defined in the /connections route of the backend
+                    localStorage.setItem("obc_conn_status", JSON.stringify(json));
+                })
+            }, 2000);
 
         return () => {
             clearInterval(interval);
+            clearInterval(interval_long);
         }
     }, []);
 
