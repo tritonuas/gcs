@@ -5,35 +5,13 @@ main.obc-page {
     flex-direction: row;
 }    
 
-/* container which holds the image gallery */
-main.obc-page .left-container {
-    flex: 1; /* take up as much available space */
-}
-
 /* list of all the status icons on the right side */
 main.obc-page ul.status-list {
     display: flex;
     flex-direction: column;
     list-style-type: none;
-    background-color: var(--dark-bg);
     margin: 0;
     padding: 0;
-}
-
-/* This icon is specifically clickable, so make this more obvious */
-main.obc-page #camera-icon {
-    border-bottom: 1px solid black;
-    cursor: pointer;
-    transition: var(--std-transition);
-}
-main.obc-page #camera-icon:is(:hover, :focus) {
-    transform: translateY(-0.5rem);
-}
-
-/* Some icons have captions underneath them, so make sure they are all nice and aligned */
-main.obc-page ul.status-list figcaption {
-    text-align: center;
-    color: var(--light-text);
 }
 
 /* Position the camera config form within the center of the screen when the modal opens */

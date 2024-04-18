@@ -32,6 +32,16 @@ func NewClient(urlBase string, timeout int) *Client {
 }
 
 /*
+Requests the obc connection info from the OBC via GET request
+
+Returns the info in json form
+*/
+func (client *Client) GetConnectionInfo() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/connections")
+	return body, httpErr.Status
+}
+
+/*
 Requests a newly generated Initial Path from the OBC via GET request
 
 Returns the initial path in JSON form

@@ -1,8 +1,9 @@
-// This file is holding TEMPORARY definitions which will eventually be removed
-// TODO: implement protobufs and remove these defs
+// Houston interface for displaying connection status
+// Originally these were going to be temporary and a protobuf
+// was going to hold the data being sent directly in the 
+// /connections route, but I am lazy and we're time crunched
+// and this will just work
 
-// TODO: standardize connection status data structure
-// and make it a protobuf
 export interface ConnectionStatus {
     name: string,
     isActive: boolean
