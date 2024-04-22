@@ -11,4 +11,72 @@
 .settings-page form {
     display: flex;
     flex-direction: column;
+    border-radius: 10px;
+    background-color: var(--light-bg);
+    box-shadow: 0px 0px 20px 0px rgba(0,0,0,0.75);
+    margin: 25px;
+    padding: 20px;
+    padding-bottom: 0px;
+    user-select: none;
+}
+
+.settings-page legend {
+    border-radius: 10px;
+    background-color: var(--highlight);
+    text-align: center;
+    font-size: 2em;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,1) inset;
+    margin: 25px;
+    margin-top: 0px;
+    padding: 10px;
+    user-select: none;
+    font-weight: bold;
+}
+
+.settings-page label {
+    border-radius: 10px;
+    background-color: #66CDAA;
+    text-align: center;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,1) inset;
+    margin: 10px;
+    margin-top: 0px;
+    padding: 10px;
+    user-select: none;
+    font-weight: bold;
+    padding-left: 0px;
+    padding-right: 0px;
+    font-size: 1.2em;
+}
+
+.settings-page input {
+    border-radius: 10px;
+    background-color: #66BDCD;
+    text-align: center;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,1);
+    border: black;
+    margin: 5px;
+    margin-left: 25px;
+    margin-right: 0px;
+    padding: 5px;
+    user-select: none;
+    font-weight: bold;
+    width: 30%;
+    align-self: end;
+    text-align: center;
+}
+
+.settings-page #reset {
+    border-radius: 10px;
+    background-color: var(--grey-out-bg);
+    text-align: center;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,1);
+    border: black;
+    margin: 5px;
+    margin-bottom: 15px;
+    padding: 5px;
+    user-select: none;
+    font-weight: bold;
+    width: 30%;
+    text-align: center;
+    align-self: center;
 }
