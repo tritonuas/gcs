@@ -6,9 +6,9 @@ all: build run
 
 # Dependencies
 # --------------------------------------------------------------------
-.PHONY: install-dependencies install-linter install-protos install-fmter
+.PHONY: install-dependencies install-linter install-protoc install-fmter
 
-install-dependencies: install-linter install-protos install-fmter
+install-dependencies: install-linter install-protoc pull-protos install-fmter
 	cd houston && npm install
 
 install-linter:
@@ -21,10 +21,13 @@ install-linter:
 		./scripts/install-linter-linux.sh ;\
 	fi;\
 
-install-protos:
+install-protoc:
 	sudo apt install protobuf-compiler
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 	echo "You will need to set your PATH variable to include go installations, if you have not already done so."
+
+pull-protos:
+	git submodule update --init --recursive
 
 install-fmter:
 	go install golang.org/x/tools/cmd/goimports@latest
@@ -45,7 +48,7 @@ build-go:
 build-react:
 	npm run --prefix ./houston build
 
-build-docker: build-react build-protos
+build-docker:
 	DOCKER_BUILDKIT=1 docker build -t tritonuas/gcs -f build/package/Dockerfile .
 
 build-protos: build-backend-protos build-frontend-protos
