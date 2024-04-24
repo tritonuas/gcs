@@ -91,6 +91,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 			plane.GET("/position", server.getPosition())
 
 			plane.GET("/voltage", server.getBatteryVoltages())
+
+			plane.POST("/dodropnow", server.doAirdropNow())
 		}
 
 		mavlink := api.Group("/mavlink")
@@ -689,5 +691,18 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 
 		// Return a success response
 		c.JSON(http.StatusCreated, gin.H{"message": "MatchedTargets added successfully"})
+	}
+}
+
+func (server *Server) doAirdropNow() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var bottle protos.BottleSwap
+		err := c.BindJSON(&bottle)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Malformed bottle index")
+		}
+
+		body, status := server.obcClient.DoDropNow(&bottle)
+		c.Data(status, "text/plain", body)
 	}
 }
