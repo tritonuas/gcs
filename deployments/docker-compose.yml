@@ -1,6 +1,23 @@
 # TODO: setup env variables https://docs.docker.com/compose/environment-variables/
 version: "3"
 services:
+  mavproxy:
+    image: tritonuas/mavproxy
+    environment:
+      - MASTER0=--master=tcp:127.0.0.1:5760
+      - MASTER1=
+      - OUT0=
+      # obc 
+      - OUT1=--out=tcpin:127.0.0.1:14552
+      # gcs
+      - OUT2=--out=tcpin:127.0.0.1:14551
+      - OUT3=
+      - OUT4=
+      - OUT5=
+      - OUT6=
+      - OUT7=
+    network_mode: "host"
+    restart: always
   gcs:
     image: tritonuas/gcs
     network_mode: "host"
@@ -11,9 +28,9 @@ services:
       - OBC_ADDR=localhost:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
-      - MAV_DEVICE=tcp:localhost:5760
-      - MAV_OUTPUT4=udp:localhost:14550
-      - MAV_OUTPUT5=tcp:localhost:14551
+      - MAV_DEVICE=tcp:127.0.0.1:14551
+      # - MAV_OUTPUT4=udp:localhost:14558
+      # - MAV_OUTPUT5=tcp:localhost:14559
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
