@@ -684,27 +684,27 @@ function Input() {
 
     useEffect(() => {
         openModal();
-    })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <>
+            <MyModal modalVisible={modalVisible} closeModal={closeModal}>
+                <fieldset>
+                    <legend>Default Location</legend>
+                    <label>
+                        <input type="radio" name="default_location" value="Black_Mountain" onClick={() => changingDeafultView("Black_Mountain")}/>
+                        Black Mountain
+                    </label>
+                    <label>
+                        <input type="radio" name="default_location" value="Competition" onClick={() => changingDeafultView("Competition")}/>
+                        Competition
+                    </label>
+                </fieldset>
+            </MyModal>
             <main className="input-page">
                 <TuasMap className="input-map" lat={51} lng={10}>
                     <MapClickHandler mapMode={mapMode} mapData={mapData} setMapData={setMapData}/>
                     <MapIllustrator mapData={mapData}/>
-                    <MyModal modalVisible={modalVisible} closeModal={closeModal}>
-                        <fieldset>
-                            <legend>Default Location</legend>
-                            <label>
-                                <input type="radio" name="default_location" value="Black_Mountain" onClick={() => changingDeafultView("Black_Mountain")}/>
-                                Black Mountain
-                            </label>
-                            <label>
-                                <input type="radio" name="default_location" value="Competition" onClick={() => changingDeafultView("Competition")}/>
-                                Competition
-                            </label>
-                        </fieldset>
-                    </MyModal>
                     <UpdateMapCenter position={defaultView}/>
                 </TuasMap>
                 <div className="right-container">
