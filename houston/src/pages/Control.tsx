@@ -311,9 +311,9 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
     };
 
     useEffect(() => {
-        window.addEventListener("storage", () => {handleStorageChange})
+        window.addEventListener("storage", () => {handleStorageChange()})
         window.dispatchEvent(new Event("storage"))
-        return () => {window.removeEventListener("storage", () => {handleStorageChange})}
+        return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
     });
 
     useEffect(() => {

@@ -43,9 +43,9 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
     };
 
     useEffect(() => {
-        window.addEventListener("storage", () => {handleStorageChange})
+        window.addEventListener("storage", () => {handleStorageChange()})
         window.dispatchEvent(new Event("storage"))
-        return () => {window.removeEventListener("storage", () => {handleStorageChange})}
+        return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
     });
 
     const handleInflux = () => {

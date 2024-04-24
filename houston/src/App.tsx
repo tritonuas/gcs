@@ -97,7 +97,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<Layout statuses={statuses}/>}>
                     <Route index element={<Connection statuses={statuses}/>} />
-                    <Route path="antennatracker" element={<AntennaTracker/>} />
+                    <Route path="antennatracker" element={<AntennaTracker planeLatLng={planeLatLng}/>} />
                     <Route path="onboardcomputer" element={<OnboardComputer/>} />
                     <Route path="radiomavlink" element={<RadioMavlink/>} />
                     <Route path="control" element={<Control settings={config} planeCoordinates={coordinate}/>} />
