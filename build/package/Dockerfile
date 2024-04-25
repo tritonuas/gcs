@@ -33,7 +33,8 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 
 # Move to working directory /build
-WORKDIR /build
+ARG BUILD_DIR=/gcs_build
+WORKDIR ${BUILD_DIR}
 
 # disable some optimizations that don't work everywhere
 # ENV CGO_ENABLED=0
@@ -51,9 +52,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # Build gcs
 COPY . .
-WORKDIR /build/houston
+WORKDIR ${BUILD_DIR}/houston
 RUN npm install
-WORKDIR /build
+WORKDIR ${BUILD_DIR}
 RUN make build-protos
 
 # RUN go build
@@ -62,7 +63,8 @@ RUN --mount=target=. \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
 
-RUN npm run --prefix ./houston build
+RUN make build-react 
+RUN mkdir -p /build/houston && cp -r ./houston/dist/* /build/houston
 # COPY ./houston/dist/ /build/houston/
 
 RUN mkdir /CSV
