@@ -81,6 +81,9 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     <li>
                         <NavLink to="/report" className={checkForActive}>Report</NavLink>
                     </li>
+                    <li>
+                        <NavLink to="/drop" className={checkForActive}>Drop</NavLink>
+                    </li>
                     <Button onClick={openSettings}> 
                         <img 
                             src={settingsIcon} 

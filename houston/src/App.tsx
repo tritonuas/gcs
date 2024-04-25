@@ -17,6 +17,7 @@ import Settings from './pages/Settings'
 import { ConnectionType, ConnectionStatus } from "./utilities/temp";
 import { SettingsConfig, loadSettings } from "./utilities/settings";
 import { LatLng } from "leaflet";
+import Drop from "./pages/Drop";
 
 /**
  * Main React function
@@ -104,6 +105,7 @@ function App() {
                     <Route path="input" element={<Input />} />
                     <Route path="report" element={<Report />} />
                     <Route path="settings" element={<Settings settings={config} setSettings={setConfig}/>} />
+                    <Route path="drop" element={<Drop/>}/>
 
                     <Route path="*" element={<NoPage />} />
                 </Route>
