@@ -227,7 +227,6 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
         FEET_TO_METERS(settings.minAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
         FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
     ];
-    console.log(altitudeMSLThreshold);
 
     const motorBatteryThreshold: Threshold = [
         settings.minVoltsPerCell,
@@ -279,6 +278,8 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
     
     const [superSecret, setSuperSecret] = useState(false);
 
+    const [flightMode, setFlightMode] = useState("???");
+
     useEffect(() => {
         const interval = setInterval(() => pullTelemetry(
             settings,
@@ -290,7 +291,8 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
             setMotorBattery,
             setPixhawkBattery,
             setESCtemperature,
-            setSuperSecret
+            setSuperSecret,
+            setFlightMode
         ), 1000);
 
         return () => {
@@ -298,7 +300,6 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
         }
     }, [settings]);
     
-    const flightMode = '';
     const flightModeColor = { backgroundColor: 'var(--warning-text)' };
 
     const handleClick = (setter: Dispatch<SetStateAction<Parameter>>) => {
