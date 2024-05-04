@@ -7,11 +7,11 @@ services:
     #ports:
     #  - 5000:5000
     environment:
-      - OBC_ADDR=localhost:5010
+      - OBC_ADDR=192.168.1.51:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
       - MAV_DEVICE=serial:/dev/ttyUSB0
-      - MAV_OUTPUT1=udp:192.168.1.2:14551
+      - MAV_OUTPUT1=udp:192.168.1.3:14551
       - MAV_OUTPUT2=udp:192.168.1.7:14551
       - MAV_OUTPUT3="tcp:localhost:14551"
       - MAV_OUTPUT4=""
@@ -19,7 +19,7 @@ services:
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
-      - INFLUXDB_URI=http://influxdb:8086
+      - INFLUXDB_URI=http://localhost:8086
       - HUB_PATH=/go/src/github.com/tritonuas/gcs
     volumes:
       - missions:/go/src/github.com/tritonuas/gcs/missions
@@ -31,12 +31,14 @@ services:
       
   influxdb:
     image: influxdb:2.0-alpine
+    network_mode: "host"
     ports:
       - 8086:8086
     volumes:
       - influxdb_data:/var/lib/influxdb
   grafana:
     image: grafana/grafana:7.5.5
+    network_mode: "host"
     ports:
       - 3000:3000
     environment: 
@@ -57,6 +59,7 @@ services:
     depends_on:
       - influxdb
     image: influxdb:2.0-alpine
+    network_mode: "host"
     entrypoint: > 
       influx setup 
       --bucket mavlink 
@@ -64,7 +67,7 @@ services:
       --token influxdbToken 
       --username tritons 
       --password tritonuas 
-      --host http://influxdb:8086 
+      --host http://localhost:8086 
       --force
     restart: on-failure:20
   dozzle:

@@ -112,7 +112,6 @@ function FormTable(
                                                 setMapData(mapData => {
                                                     if (data !== undefined) {
                                                         const temp = (data.slice(0, i).concat(data.slice(i+1)));
-                                                        console.log(temp);
                                                         return new Map(mapData.set(mapMode, temp));
                                                     } else {
                                                         return mapData; // should never happen
@@ -546,8 +545,6 @@ function Input() {
             AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
-
-        console.log(mission);
 
         fetch("/api/mission", {
             method: "POST",

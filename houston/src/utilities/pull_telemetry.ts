@@ -15,6 +15,7 @@ import { SettingsConfig } from "./settings";
  * @param setPixhawkBatteryVal state setter
  * @param setESCtemperatureVal state setter
  * @param setSuperSecret state setter
+ * @param setFlightMode state setter
  */
 export function pullTelemetry(
     settings: SettingsConfig,
@@ -27,6 +28,7 @@ export function pullTelemetry(
     setPixhawkBatteryVal: Dispatch<SetStateAction<Parameter>>,
     setESCtemperatureVal: Dispatch<SetStateAction<Parameter>>,
     setSuperSecret: Dispatch<SetStateAction<boolean>>,
+    setFlightMode: Dispatch<SetStateAction<string>>,
 ) {
     fetch('/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading')
         .then(resp => resp.json())
@@ -66,6 +68,47 @@ export function pullTelemetry(
         })
         .catch(_ => {
             setESCtemperatureVal(param => param.getErrorValue());
+        })
+    fetch('/api/plane/telemetry?id=0')
+        .then(resp => resp.json())
+        .then(json => {
+            // some respectable individual can come in later on and refactor this into
+            // its own function if they so desire...
+            // reference: https://mavlink.io/en/messages/common.html#MAV_MODE_FLAG
+            const SAFETY_ARMED: number = 128;
+            const MANUAL_INPUT_ENABLED: number = 64;
+            const HIL_ENABLED: number = 32;
+            const STABILIZE_ENABLED: number = 16;
+            const GUIDED_ENABLED: number = 8;
+            const AUTO_ENABLED: number = 4;
+            // MAV_MODE_FLAG_TEST_ENABLED = 2
+            // MAV_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
+
+            const base_mode = Number(json["base_mode"])
+            if ((base_mode & SAFETY_ARMED) != SAFETY_ARMED) {
+                setFlightMode("Unarmed");
+            } else {
+                // we know the system is armed
+
+                // i dont really know how all of these options combine together.
+                // i.e. is stablize / HIL also on while we are in auto?
+                // so i have ordered them from in an order I feel makes sense, reporting
+                // the most important bits first (manual, auto) then the other ones
+                // im less sure about how they will be set exactly
+                if ((base_mode & MANUAL_INPUT_ENABLED) == MANUAL_INPUT_ENABLED) {
+                    setFlightMode("Manual");
+                } else if ((base_mode & AUTO_ENABLED) == AUTO_ENABLED) {
+                    setFlightMode("Auto");
+                } else if ((base_mode & STABILIZE_ENABLED) == STABILIZE_ENABLED) {
+                    setFlightMode("Stablize");
+                } else if ((base_mode & HIL_ENABLED) == HIL_ENABLED) {
+                    setFlightMode("HIL");
+                } else if ((base_mode & GUIDED_ENABLED) == GUIDED_ENABLED) {
+                    setFlightMode("Guided"); // i think this will always be on if we are in auto?
+                } else {
+                    setFlightMode("Armed"); // idk if this ever actually happens
+                }
+            }
         })
     fetch('/api/plane/voltage')
         .then(resp => resp.json())
