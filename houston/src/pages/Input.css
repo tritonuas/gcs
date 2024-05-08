@@ -2,6 +2,7 @@ main.input-page {
     display: flex;
     flex-direction: row;
     flex: 1;
+    max-height: 93%;
 }
 
 main.input-page .input-map {
@@ -11,6 +12,7 @@ main.input-page .input-map {
 
 main.input-page .right-container {
     width: 50dvw;
+    overflow-y: scroll;
 }
 
 main.input-page .right-container .tuas-form {
@@ -84,17 +86,17 @@ main.input-page #default-locations {
     height: 30px;
 }
 
-fieldset{
+main.input-page fieldset{
     justify-content: center;
 }
 
-label{
+main.input-page label{
     display: block;
     font-size: large;
-    padding: 15px;
+    padding: 5px;
 }
 
-legend{
+main.input-page legend{
     font-size: large;
 }
 
