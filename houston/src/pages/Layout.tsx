@@ -94,7 +94,7 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     </Button>
                     <MyModal modalVisible={modalVisible} closeModal={closeModal} loading={influxLoading}>
                        <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
-                            {influxLoading ? null : influxReturnValue}
+                            {influxReturnValue}
                         </Typography> 
                     </MyModal>
                     {/* If another page is added, need to adjust the nth child rule in the css
