@@ -46,7 +46,7 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
         window.addEventListener("storage", () => {handleStorageChange})
         window.dispatchEvent(new Event("storage"))
         return () => {window.removeEventListener("storage", () => {handleStorageChange})}
-    });
+    }, []);
 
     const handleInflux = () => {
         setLoading(true);

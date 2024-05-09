@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import TuasMap from '../components/TuasMap.tsx'
 import duck from '../assets/duck.png';
+import emergency_button from '../assets/emergency_button.webp'
 import "./Control.css"
 import { pullTelemetry } from '../utilities/pull_telemetry.ts';
 import NOOOO from "../assets/noooo.gif"
@@ -12,6 +13,8 @@ import UpdateMapCenter from '../components/UpdateMapCenter.tsx';
 import CustomControl from 'react-leaflet-custom-control'
 import { Marker, Polygon, Polyline } from 'react-leaflet';
 import L, { LatLng } from 'leaflet'; 
+import { useMyModal } from '../components/UseMyModal.tsx';
+import TakeoffSelector from '../components/TakeoffSelector.tsx';
 
 type Unit = 'knots' | 'm/s' | 'feet' | 'meters' | 'V' | 'V/c' | '°F' | '°C' | '';
 export type Threshold = [number, number, number, number];
@@ -276,6 +279,7 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
         iconAnchor: [32, 25]
     });
     const [centerMap, setCenterMap] = useState(true);
+    const {modalVisible, openModal, closeModal} = useMyModal();
     
     const [superSecret, setSuperSecret] = useState(false);
 
@@ -310,11 +314,15 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
         data ? setIcon(data) : setIcon(duck);
     };
 
+    const handleEmergencyButton = () => {
+        openModal();
+    }
+
     useEffect(() => {
         window.addEventListener("storage", () => {handleStorageChange})
         window.dispatchEvent(new Event("storage"))
         return () => {window.removeEventListener("storage", () => {handleStorageChange})}
-    });
+    }, []);
 
     useEffect(() => {
         pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);
@@ -339,6 +347,10 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
                                    <div className="control__indicator"></div>
                                 </label>
                             </div>
+                        </CustomControl>
+                        <CustomControl prepend position='bottomright'>
+                            <img src={emergency_button} alt='emergency button' width={'72px'} height={'72px'} style={{cursor: 'pointer'}} onClick={handleEmergencyButton}/>
+                            <TakeoffSelector modalVisible={modalVisible} closeModal={closeModal}/>
                         </CustomControl>
                         {centerMap ? <UpdateMapCenter position={planeLatLng}/> : null}
                         <Marker position={planeLatLng} icon={markerIcon}/>
