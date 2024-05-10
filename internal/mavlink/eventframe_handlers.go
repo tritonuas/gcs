@@ -103,7 +103,7 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Nod
 
 		data["type"] = msg.Type
 		data["autopilot"] = msg.Autopilot
-		data["base_mode"] = msg.BaseMode
+		data["base_mode"] = (uint32)(msg.BaseMode)
 		data["custom_mode"] = msg.CustomMode
 		data["system_status"] = msg.SystemStatus
 		data["mavlink_version"] = msg.MavlinkVersion

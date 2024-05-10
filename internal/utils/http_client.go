@@ -21,9 +21,9 @@ type Client struct {
 	timeout int
 }
 
-// IsConnected checks if the client has successfully connected to the specified url via a TRACE request
+// IsConnected checks if the client has successfully connected to the specified url via a GET request
 func (c *Client) IsConnected() (bool, string) {
-	traceRequest, err := http.NewRequest(http.MethodTrace, c.urlBase+"/", nil)
+	traceRequest, err := http.NewRequest(http.MethodGet, c.urlBase+"/", nil)
 	if err != nil {
 		return false, err.Error()
 	}

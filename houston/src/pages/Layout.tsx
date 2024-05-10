@@ -43,9 +43,9 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
     };
 
     useEffect(() => {
-        window.addEventListener("storage", () => {handleStorageChange})
+        window.addEventListener("storage", () => {handleStorageChange()})
         window.dispatchEvent(new Event("storage"))
-        return () => {window.removeEventListener("storage", () => {handleStorageChange})}
+        return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
     }, []);
 
     const handleInflux = () => {
@@ -80,6 +80,9 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     </li>
                     <li>
                         <NavLink to="/report" className={checkForActive}>Report</NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/drop" className={checkForActive}>Drop</NavLink>
                     </li>
                     <Button onClick={openSettings}> 
                         <img 

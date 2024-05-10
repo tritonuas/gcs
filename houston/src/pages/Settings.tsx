@@ -46,7 +46,7 @@ export function Settings(
                             </Fragment>
                     )}
 
-                    <input type="button" value="Reset to Default" onClick={resetConfig}/>
+                    <input id='reset' type="button" value="Reset to Default" onClick={resetConfig}/>
                 </form>
             </main>
         </>

@@ -31,6 +31,26 @@ func NewClient(urlBase string, timeout int) *Client {
 	return client
 }
 
+func (client *Client) DoAutonomousTakeoff() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/takeoff/autonomous", nil)
+	return body, httpErr.Status
+}
+
+func (client *Client) DoManualTakeoff() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/takeoff/manual", nil)
+	return body, httpErr.Status
+}
+
+/*
+Requests the obc connection info from the OBC via GET request
+
+Returns the info in json form
+*/
+func (client *Client) GetConnectionInfo() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/connections")
+	return body, httpErr.Status
+}
+
 /*
 Requests a newly generated Initial Path from the OBC via GET request
 
@@ -174,4 +194,16 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 		return camera.Status{}, http.StatusBadRequest
 	}
 	return cameraStatus, httpErr.Status
+}
+
+// Tell the OBC to do an airdrop NOW
+func (client *Client) DoDropNow(bottle *protos.BottleSwap) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(bottle)
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/dodropnow", &buf)
+	return body, httpErr.Status
 }

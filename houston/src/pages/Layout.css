@@ -52,7 +52,7 @@ li:has(a.active) {
     transition: background-color var(--std-transition);
 }
 
-nav.topbar li:nth-child(5) {
+nav.topbar li:nth-child(6) {
     margin-right: auto;
 }
 

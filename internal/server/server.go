@@ -69,10 +69,17 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
+		api.GET("/obc_connection", server.testOBCConnection())
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
+
+		takeoff := api.Group("/takeoff")
+		{
+			takeoff.POST("/autonomous", server.doAutonomousTakeoff())
+			takeoff.POST("/manual", server.doManualTakeoff())
+		}
 
 		path := api.Group("/path")
 		{
@@ -90,6 +97,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 			plane.GET("/position", server.getPosition())
 
 			plane.GET("/voltage", server.getBatteryVoltages())
+
+			plane.POST("/dodropnow", server.doAirdropNow())
 		}
 
 		mavlink := api.Group("/mavlink")
@@ -148,6 +157,21 @@ func (server *Server) Start() {
 	}
 }
 
+func (server *Server) testOBCConnection() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var obcStatusBytes []byte
+
+		resp, status := server.obcClient.GetConnectionInfo()
+		if status != http.StatusOK {
+			obcStatusBytes = []byte("{}")
+		} else {
+			obcStatusBytes = resp
+		}
+
+		c.Data(http.StatusOK, "application/json", obcStatusBytes)
+	}
+}
+
 /*
 User testing all of hubs connections. Returns JSON of all the connection statuses.
 TODO: Actually test the connections instead of just returning True.
@@ -155,10 +179,11 @@ TODO: Actually test the connections instead of just returning True.
 func (server *Server) testConnections() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+		obcConnected, _ := server.obcClient.IsConnected()
+
 		c.JSON(http.StatusOK, gin.H{
-			"cvs":             true,
-			"plane_obc":       true,
-			"plane_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
+			"radio_mavlink":   server.mavlinkClient.IsConnectedToPlane(),
+			"plane_obc":       obcConnected,
 			"antenna_tracker": server.mavlinkClient.IsConnectedToAntennaTracker()})
 	}
 }
@@ -672,5 +697,32 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 
 		// Return a success response
 		c.JSON(http.StatusCreated, gin.H{"message": "MatchedTargets added successfully"})
+	}
+}
+
+func (server *Server) doAirdropNow() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var bottle protos.BottleSwap
+		err := c.BindJSON(&bottle)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Malformed bottle index")
+		}
+
+		body, status := server.obcClient.DoDropNow(&bottle)
+		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doAutonomousTakeoff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoAutonomousTakeoff()
+		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doManualTakeoff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoManualTakeoff()
+		c.Data(status, "text/plain", body)
 	}
 }

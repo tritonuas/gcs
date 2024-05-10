@@ -1,25 +1,15 @@
-import {useState} from 'react'
-import ImageGallery from 'react-image-gallery'
+import {useEffect, useState} from 'react'
 import Modal from 'react-modal'
 
 import './OnboardComputer.css'
 import "react-image-gallery/styles/css/image-gallery.css";
 
-import heartbeatIcon from '../assets/heartbeat.svg'
-import cameraIcon from '../assets/camera.svg'
 
 import PageOpenPopup from '../components/PageOpenPopup';
 import { UBIQUITI_URL } from '../utilities/general';
 
 // testing
-import duckPic from '../assets/duck.png';
-
-// TODO: move to protobuf
-interface OBCConnection {
-    cameraConnected: boolean,
-    images: string[], // URLs
-    mavHeartbeat: number | null
-}
+import { OBCConnInfo } from '../protos/obc.pb';
 
 /**
  * @returns Page for the Onboard computer connection status.
@@ -27,25 +17,22 @@ interface OBCConnection {
 function OnboardComputer() {
     const [showCameraForm, setShowCameraForm] = useState(false);
 
-    // TODO: eventuallly replace to prop that is passed through...
-    const [obcConn, _setOBCConn] = useState<OBCConnection>({
-        cameraConnected: true,
-        images: [],
-        mavHeartbeat: .5112312312,
-    });
+    const [obcStatus, setOBCStatus] = useState<OBCConnInfo>(JSON.parse(localStorage.getItem("obc_conn_status") || "{}") as OBCConnInfo);
 
-    // TODO: testing... eventually load these from the fetch requests from backend
-    const images = [
-        {
-            original: duckPic,
-        },
-        {
-            original: duckPic,
-        },
-        {
-            original: duckPic,
-        }
-    ]
+    /**
+     * Note: the way protobuf serialization works is that if things are null values (false, 0.0) then they
+     * wont show up in the serialization, as that can be "implied" to be a zero value by it not being there.
+     * (At least this is my understanding). Therefore, if some of the expected values in the struct aren't there
+     * it is because they are false/0.0 or some other 0-like value.
+     */
+
+    useEffect(() => {
+        setInterval(() => {
+            const data = localStorage.getItem("obc_conn_status") || "{}";
+            setOBCStatus(JSON.parse(data));
+        }, 1000);
+    }, []);
+
 
     return (
         <>
@@ -117,27 +104,34 @@ function OnboardComputer() {
                 </form>
             </Modal>
             <main className="obc-page">
-                <div className="left-container">
-                    <ImageGallery items={images}/>
-                </div>
                 <ul className="status-list">
                     <li>
-                        <figure>
-                            <img src={cameraIcon} 
-                                id="camera-icon"
-                                className={(obcConn.cameraConnected ? "svg active" : "svg inactive")}
-                                onClick={() => {
-                                    setShowCameraForm(true);
-                                }}/>
-                        </figure>
+                        mavRcGood: {(obcStatus.mavRcGood) ? "true" : "false"}
                     </li>
                     <li>
-                        <figure>
-                            <img src={heartbeatIcon}
-                                className={(obcConn.mavHeartbeat != null) ? "svg active" : "svg inactive"}/>
-                            <figcaption>{obcConn.mavHeartbeat?.toFixed(4)}</figcaption>
-                        </figure>
+                        mavRcStrength: {obcStatus.mavRcStrength}
                     </li>
+                    <li>
+                        cameraGood: {(obcStatus.cameraGood) ? "true" : "false"}
+                    </li>
+                    <table>
+                        <tr>
+                            <th>Bottle Idx</th>
+                            <th>MS Since HB</th>
+                        </tr>
+                        {obcStatus.droppedBottleIdx.map((_, i) => {
+                            return(
+                                <tr key={i}>
+                                    <td>
+                                        {obcStatus.droppedBottleIdx[i]}
+                                    </td>
+                                    <td>
+                                        {obcStatus.msSinceAdHeartbeat[i]}
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </table>
                 </ul>
             </main>
         </>
