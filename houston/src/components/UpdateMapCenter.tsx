@@ -11,8 +11,7 @@ function UpdateMapCenter({position}:{position: [number, number]}){
 
     useEffect(() => {
         map.setView(position);
-        map.setZoom(16);
-    }, [position, map]);
+    }, [position]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return null;
 }

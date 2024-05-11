@@ -75,6 +75,12 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
 
+		takeoff := api.Group("/takeoff")
+		{
+			takeoff.POST("/autonomous", server.doAutonomousTakeoff())
+			takeoff.POST("/manual", server.doManualTakeoff())
+		}
+
 		path := api.Group("/path")
 		{
 			path.GET("/initial", server.getInitialPath())
@@ -703,6 +709,20 @@ func (server *Server) doAirdropNow() gin.HandlerFunc {
 		}
 
 		body, status := server.obcClient.DoDropNow(&bottle)
+		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doAutonomousTakeoff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoAutonomousTakeoff()
+		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doManualTakeoff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoManualTakeoff()
 		c.Data(status, "text/plain", body)
 	}
 }

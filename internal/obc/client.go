@@ -32,6 +32,22 @@ func NewClient(urlBase string, timeout int) *Client {
 }
 
 /*
+Send a request to the obc to set the status of WaitForTakeoffTick to be autonomous.
+*/
+func (client *Client) DoAutonomousTakeoff() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/takeoff/autonomous", nil)
+	return body, httpErr.Status
+}
+
+/*
+Send a request to the obc to set the status of WaitForTakeoffTick to be manual.
+*/
+func (client *Client) DoManualTakeoff() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/takeoff/manual", nil)
+	return body, httpErr.Status
+}
+
+/*
 Requests the obc connection info from the OBC via GET request
 
 Returns the info in json form
