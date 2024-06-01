@@ -26,6 +26,10 @@ function TakeoffSelector({modalVisible, closeModal}:props){
     const [fetchLog, setFetchLog] = useState('default');
     const [isLoadingFetch, setIsLoadingFetch] = useState(true);
 
+    const [confirmInput, setConfirmInput] = useState("");
+
+    const {modalVisible: confirmModalVisible, openModal: openConfirmModal, closeModal: closeConfirmModal} = useMyModal();
+
     /**
      * Helper function that sends a post request to obc
      * to set the takeoff option and opens a modal to display
@@ -77,13 +81,39 @@ function TakeoffSelector({modalVisible, closeModal}:props){
                             submitTakeoffOption("manual");
                         }
                         if(selectedTakeoff === 2){
-                            submitTakeoffOption("autonomous");
+                            openConfirmModal();
                         }
                     }}
                 >
                     submit
                 </button>
             </div>
+            <MyModal modalVisible={confirmModalVisible} closeModal={closeConfirmModal}>
+                <h1>⚠️ WARNING ⚠️</h1>
+                <p>You are about to ARM the plane and initiate an autonomous takeoff.</p>
+                <p>
+                    CONFIRM that all appropriate preflight checks have been performed, and that the plane is in a position from 
+                    which it is safe to take off.
+                </p>
+                <p>
+                    Once you have done all of this, type &quot;ITS TUASING TIME&quot; into the text box to initiate the autonomous takeoff.
+                </p>
+                <input type="text" onChange={(txt) => setConfirmInput(txt.target.value)}value={confirmInput}/>
+                <button className='emergency_button_submit_button'
+                        onClick={() => {
+                            // check 3 times, for 3 times the resistance against cosmic bit flips
+                            if (confirmInput === "ITS TUASING TIME") {
+                                if (confirmInput === "ITS TUASING TIME") {
+                                    if (confirmInput === "ITS TUASING TIME") {
+                                        submitTakeoffOption("autonomous");
+                                    }
+                                }
+                            }
+                        }}
+                    >
+                    TAKEOFF
+                </button>
+            </MyModal>
             <MyModal modalVisible={fetchModalVisible} closeModal={fetchCloseModal} type={fetchStatus} loading={isLoadingFetch}>
                 {fetchLog}
             </MyModal>

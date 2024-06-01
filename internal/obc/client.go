@@ -32,6 +32,37 @@ func NewClient(urlBase string, timeout int) *Client {
 }
 
 /*
+Get all of the identified target information
+*/
+func (client *Client) GetIdentifiedTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/targets/all")
+	return body, httpErr.Status
+}
+
+/*
+Get all of the matched target information
+*/
+func (client *Client) GetMatchedTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/targets/matched")
+	return body, httpErr.Status
+}
+
+/*
+Do a manual override on the target matchings
+*/
+func (client *Client) PostTargetMatchOverride(data []byte) ([]byte, int) {
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(data)
+
+	if err != nil {
+		return nil, -1
+	}
+
+	body, httpErr := client.httpClient.Post("/targets/matched", &buf)
+	return body, httpErr.Status
+}
+
+/*
 Send a request to the obc to set the status of WaitForTakeoffTick to be autonomous.
 */
 func (client *Client) DoAutonomousTakeoff() ([]byte, int) {
