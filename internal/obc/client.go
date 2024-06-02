@@ -244,3 +244,8 @@ func (client *Client) DoDropNow(bottle *protos.BottleSwap) ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/dodropnow", &buf)
 	return body, httpErr.Status
 }
+
+func (client *Client) DoCameraCapture() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/camera/capture")
+	return body, httpErr.Status
+}

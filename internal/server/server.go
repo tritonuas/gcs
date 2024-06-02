@@ -72,6 +72,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
+		api.GET("/camera/capture", server.doCameraCapture())
 
 		takeoff := api.Group("/takeoff")
 		{
@@ -585,5 +586,12 @@ func (server *Server) doManualTakeoff() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.DoManualTakeoff()
 		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doCameraCapture() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoCameraCapture()
+		c.Data(status, "application/json", body)
 	}
 }
