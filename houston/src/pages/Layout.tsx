@@ -140,7 +140,7 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                         <img
                             src={bottleIcon}
                             alt="bottle connection status"
-                            style={{ width: "30px", height: "50px", display: "inline-block"}} 
+                            style={{ width: bottleIcon == fanta ? "70px" : "30px", height: "50px", display: "inline-block"}} 
                         />
                     </Button>
                     <BottleConnectionStatus modalVisible={bcsModalVisible} closeModal={bcsCloseModal}></BottleConnectionStatus>
