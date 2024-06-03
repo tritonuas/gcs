@@ -19,9 +19,11 @@ interface Props {
 function backgroundColorPicker(type:string){
     switch(type) {
         case 'error':
-          return '#AC3344';
+            return '#AC3344';
+        case 'warning':
+            return '#FFBF00';
         default:
-          return '#2C6CFB';
+            return '#2C6CFB';
     }
 } 
 
@@ -44,7 +46,8 @@ function MyModal({children, modalVisible, closeModal, type="default", loading=fa
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 400,
+        minWidth: 400,
+        maxWidth: '100%',
         bgcolor: backgroundColor,
         border: '2px solid #000',
         borderRadius: "7px",
@@ -66,9 +69,8 @@ function MyModal({children, modalVisible, closeModal, type="default", loading=fa
                     <img src={exit} />
                 </Button>
                 <Typography id="modal-modal-title" variant="h6" component="h2" textAlign={"center"}>
-                    {loading ? <div className="lds-dual-ring"></div> : null}
+                    {loading ? <div className="lds-dual-ring"></div> : children}
                 </Typography> 
-                {loading ? null : children}
             </Box>
         </Modal>
     )

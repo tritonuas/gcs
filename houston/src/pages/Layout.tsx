@@ -1,15 +1,22 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import "./Layout.css";
-import csv from "../assets/csv.svg";
-import duck from "../assets/duck.png"
-import settingsIcon from "../assets/settings.svg"
+
 import {getIconFromStatus, } from "../utilities/connection"
 import {ConnectionStatus, } from "../utilities/temp"
 import { Button, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
-import MyModal from "../components/MyModal";
 import { useMyModal } from "../components/UseMyModal";
+import { OBCConnInfo } from '../protos/obc.pb';
+import MyModal from "../components/MyModal";
 import PlanePicker from "../components/PlanePicker";
+import BottleConnectionStatus from "../components/BottleConnectionStatus";
+
+import csv from "../assets/csv.svg";
+import duck from "../assets/duck.png";
+import settingsIcon from "../assets/settings.svg"
+import sprite from "../assets/sprite.png";
+import fanta from "../assets/fanta.png";
+import coca from "../assets/coca.png";
 
 
 /**
@@ -24,11 +31,10 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
     const [influxReturnValue, setInfluxReturnValue] = useState('');
     const {modalVisible, openModal, closeModal} = useMyModal();
     const {modalVisible: planePickerModalVisible, openModal: planePickerOpenModal, closeModal: planePickerCloseModal} = useMyModal();
-    const handlePlanePickerModal = () => {
-        planePickerModalVisible ? planePickerCloseModal() : planePickerOpenModal();
-    }
+    const {modalVisible: bcsModalVisible, openModal: bcsOpenModal, closeModal:bcsCloseModal} = useMyModal();
     const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
-
+    const [obcStatus, setOBCStatus] = useState<OBCConnInfo>(JSON.parse(localStorage.getItem("obc_conn_status") || "{}") as OBCConnInfo);
+    const [bottleIcon, setBottleIcon] = useState(sprite);
     const checkForActive = ({isActive}:{isActive:boolean}) => {
         if (isActive) {
             return "active";
@@ -42,11 +48,13 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
         data ? setIcon(data) : setIcon(duck);
     };
 
-    useEffect(() => {
-        window.addEventListener("storage", () => {handleStorageChange()})
-        window.dispatchEvent(new Event("storage"))
-        return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
-    }, []);
+    const handlePlanePickerModal = () => {
+        planePickerModalVisible ? planePickerCloseModal() : planePickerOpenModal();
+    }
+
+    const handleBottleConnectionStatusModal = () => {
+        bcsModalVisible ? bcsCloseModal() : bcsOpenModal();
+    }   
 
     const handleInflux = () => {
         setLoading(true);
@@ -62,6 +70,50 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                 return () => clearTimeout(timeoutId);
             });
     }
+
+    useEffect(() => {
+        window.addEventListener("storage", () => {handleStorageChange()})
+        window.dispatchEvent(new Event("storage"))
+        return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
+    });
+
+    /**
+     * Note: the way protobuf serialization works is that if things are null values (false, 0.0) then they
+     * wont show up in the serialization, as that can be "implied" to be a zero value by it not being there.
+     * (At least this is my understanding). Therefore, if some of the expected values in the struct aren't there
+     * it is because they are false/0.0 or some other 0-like value.
+     */
+
+    useEffect(() => {
+        setInterval(() => {
+            const data = localStorage.getItem("obc_conn_status") || "{}";
+            setOBCStatus(JSON.parse(data));
+        }, 1000);
+    }, []);
+
+    useEffect(() => {
+        let droppedBottles;
+        ('droppedBottleIdx' in obcStatus)
+        ? 
+        droppedBottles = obcStatus.droppedBottleIdx.length
+        :
+        droppedBottles = 0;
+        
+        switch(droppedBottles) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                setBottleIcon(fanta);
+                break;
+            case 5:
+                setBottleIcon(coca);
+                break;
+            default:
+                setBottleIcon(sprite);
+                break;
+        }
+    },[obcStatus])
 
     return (
         <>
@@ -84,6 +136,14 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     <li>
                         <NavLink to="/drop" className={checkForActive}>Drop</NavLink>
                     </li>
+                    <Button onClick={handleBottleConnectionStatusModal}>
+                        <img
+                            src={bottleIcon}
+                            alt="bottle connection status"
+                            style={{ width: "30px", height: "50px", display: "inline-block"}} 
+                        />
+                    </Button>
+                    <BottleConnectionStatus modalVisible={bcsModalVisible} closeModal={bcsCloseModal}></BottleConnectionStatus>
                     <Button onClick={openSettings}> 
                         <img 
                             src={settingsIcon} 

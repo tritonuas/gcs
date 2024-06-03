@@ -5,9 +5,9 @@ import { useMyModal } from "./UseMyModal";
 import "./TakeoffSelector.css"
 
 
-interface props{
+interface props {
     modalVisible: boolean;
-    closeModal: ( ) => void;
+    closeModal: () => void;
 }
 
 /**
@@ -18,7 +18,7 @@ interface props{
  * @param props.closeModal - A void function to close the PlanePicker.
  * @returns A modal with two options.
  */
-function TakeoffSelector({modalVisible, closeModal}:props){
+function TakeoffSelector({modalVisible, closeModal}:props) {
 
     const {modalVisible: fetchModalVisible, openModal:fetchOpenModal, closeModal:fetchCloseModal} = useMyModal();
     const [selectedTakeoff, setSelectedTakeoff] = useState(0);
