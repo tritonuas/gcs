@@ -136,6 +136,9 @@ function Layout({statuses}:{statuses:ConnectionStatus[]}) {
                     <li>
                         <NavLink to="/drop" className={checkForActive}>Drop</NavLink>
                     </li>
+                    <li>
+                        <NavLink to="/targetmatch" className={checkForActive}>Target</NavLink>
+                    </li>
                     <Button onClick={handleBottleConnectionStatusModal}>
                         <img
                             src={bottleIcon}
