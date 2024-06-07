@@ -16,8 +16,16 @@ interface BottleData {
  * @returns Returns manual target matching page.
  */
 function TargetMatch() {
+    /**
+     * The bottles that exist.
+     */
     const bottle_list = ['A', 'B', 'C', 'D', 'E'];
 
+    /**
+     * A state variable that is an array where each element is a json object that
+     * contains the latitude, longitude, latitude setter, and longitude setter.
+     * It has 5 json because there are five bottles.
+     */
     const [lat_lng, set_lat_lng] = useState([
         { lat: '', lng: '', setLat: (value:number) => handleUpdate(0, 'lat', value), setLng: (value:number) => handleUpdate(0, 'lng', value) },
         { lat: '', lng: '', setLat: (value:number) => handleUpdate(1, 'lat', value), setLng: (value:number) => handleUpdate(1, 'lng', value) },
@@ -26,12 +34,44 @@ function TargetMatch() {
         { lat: '', lng: '', setLat: (value:number) => handleUpdate(4, 'lat', value), setLng: (value:number) => handleUpdate(4, 'lng', value) }
     ]);
 
+    /**
+     * This function handels the set_lat_lng state setter. Since lat_lng
+     * is an array, to change a specific value, we use this function to index
+     * into it.
+     * @param index The index that help you grab the specific json.
+     * @param key   This either 'lat' or 'lng'.
+     * @param value The number representing the latitude or longitude.
+     */
     const handleUpdate = (index:number, key:string, value:number) => {
         set_lat_lng(pre_lat_lng => {
         const new_lat_lng = [...pre_lat_lng];
         new_lat_lng[index] = { ...new_lat_lng[index], [key]: value };
         return new_lat_lng;
         });
+    };
+
+
+    /**
+     * This functions puts all the values in the lat_lng variable into a key:value pair
+     * @param event A form tag event.
+     * 
+     * {
+     *  bottleA: {lat:..., lng...},
+     *  bottleB: {lat:..., lng...},
+     *  ...
+     *  ...
+     * }
+     */
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault(); 
+
+        const bottle_data: BottleData = {};
+
+        bottle_list.forEach((bottle:string, index: number) => {
+            bottle_data[`bottle${bottle}`] =  {'lat': lat_lng[index].lat, 'lng': lat_lng[index].lng}
+        });
+                
+        console.log('Form Data:', bottle_data);
     };
 
     const images = [
@@ -49,18 +89,6 @@ function TargetMatch() {
         },
     ];
    
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault(); 
-
-        const bottle_data: BottleData = {};
-
-        bottle_list.forEach((bottle:string, index: number) => {
-            bottle_data[`bottle${bottle}`] =  {'lat': lat_lng[index].lat, 'lng': lat_lng[index].lng}
-        });
-                
-        console.log('Form Data:', bottle_data);
-    };
-
     return (
         <div className="flex-box">
             <div className="left-box">
