@@ -464,7 +464,14 @@ func (server *Server) postMission() gin.HandlerFunc {
 
 func (server *Server) postAirdropTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.String(http.StatusNotImplemented, "Not Implemented")
+		airdropTarget := []protos.AirdropTarget{}
+		err := c.BindJSON(&airdropTarget)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+		}
+
+		respBody, status := server.obcClient.PostAirdropTargets(&airdropTarget)
+		c.String(status, "text/plain", respBody)
 	}
 }
 

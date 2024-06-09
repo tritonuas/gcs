@@ -12,20 +12,24 @@ function TargetMatch() {
      * The bottles that exist.
      */
     const bottle_list = ['A', 'B', 'C', 'D', 'E'];
-    const [airdrop_target_list, set_airdrop_target_list] = useState<AirdropTarget[]>([]);
 
+    /**
+     * Define the initial state for lat_lng
+     */
+    const lat_lng_template = [
+        { lat: '', lng: '', setLat: (value: number) => handleUpdate(0, 'lat', value), setLng: (value: number) => handleUpdate(0, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number) => handleUpdate(1, 'lat', value), setLng: (value: number) => handleUpdate(1, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number) => handleUpdate(2, 'lat', value), setLng: (value: number) => handleUpdate(2, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number) => handleUpdate(3, 'lat', value), setLng: (value: number) => handleUpdate(3, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number) => handleUpdate(4, 'lat', value), setLng: (value: number) => handleUpdate(4, 'lng', value) }
+    ];
+    
     /**
      * A state variable that is an array where each element is a json object that
      * contains the latitude, longitude, latitude setter, and longitude setter.
      * It has 5 json because there are five bottles.
      */
-    const [lat_lng, set_lat_lng] = useState([
-        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(0, 'lat', value), setLng: (value:number) => handleUpdate(0, 'lng', value) },
-        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(1, 'lat', value), setLng: (value:number) => handleUpdate(1, 'lng', value) },
-        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(2, 'lat', value), setLng: (value:number) => handleUpdate(2, 'lng', value) },
-        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(3, 'lat', value), setLng: (value:number) => handleUpdate(3, 'lng', value) },
-        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(4, 'lat', value), setLng: (value:number) => handleUpdate(4, 'lng', value) }
-    ]);
+    const [lat_lng, set_lat_lng] = useState(lat_lng_template);
 
     /**
      * This function handels the set_lat_lng state setter. Since lat_lng
@@ -59,25 +63,42 @@ function TargetMatch() {
      */
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault(); 
-        const new_airdrop_target_list: AirdropTarget[] = [];
+        const airdrop_target_list: AirdropTarget[] = [];
         bottle_list.forEach((_, index: number) => {
-            if(!Number.isNaN(lat_lng[index].lat) && !Number.isNaN(lat_lng[index].lng)) {
+            if(lat_lng[index].lat != '' && lat_lng[index].lng != '') {
                 const coordiante: GPSCoord =  {
-                    Latitude: lat_lng[index].lat,
-                    Longitude: lat_lng[index].lng,
+                    Latitude: parseInt(lat_lng[index].lat),
+                    Longitude: parseInt(lat_lng[index].lng),
                     Altitude: 0,
                 }
                 const airdrop_target: AirdropTarget = {
                     Index: index+1,
                     Coordinate: coordiante,
                 }
-                new_airdrop_target_list.push(airdrop_target);
+                airdrop_target_list.push(airdrop_target);
             }
             
         });
-        set_airdrop_target_list(new_airdrop_target_list);     
-        console.log('Form Data:', new_airdrop_target_list);
-        console.log(airdrop_target_list);
+        set_lat_lng(lat_lng_template);
+        console.log('Form Data:', airdrop_target_list);
+        
+        fetch("/api/airdrop", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(airdrop_target_list)
+        })
+            .then(response => {
+                if (response.status == 200) {
+                    console.log(response.text());
+                } else {
+                    console.log("ERROR: " + response.text());
+                }
+            })
+            .catch(err => {
+                console.log("ERROR: " + err);
+            })
     };
 
     const images = [
