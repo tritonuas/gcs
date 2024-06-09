@@ -17,11 +17,11 @@ function TargetMatch() {
      * Define the initial state for lat_lng
      */
     const lat_lng_template = [
-        { lat: '', lng: '', setLat: (value: number) => handleUpdate(0, 'lat', value), setLng: (value: number) => handleUpdate(0, 'lng', value) },
-        { lat: '', lng: '', setLat: (value: number) => handleUpdate(1, 'lat', value), setLng: (value: number) => handleUpdate(1, 'lng', value) },
-        { lat: '', lng: '', setLat: (value: number) => handleUpdate(2, 'lat', value), setLng: (value: number) => handleUpdate(2, 'lng', value) },
-        { lat: '', lng: '', setLat: (value: number) => handleUpdate(3, 'lat', value), setLng: (value: number) => handleUpdate(3, 'lng', value) },
-        { lat: '', lng: '', setLat: (value: number) => handleUpdate(4, 'lat', value), setLng: (value: number) => handleUpdate(4, 'lng', value) }
+        { lat: '', lng: '', setLat: (value: number|string) => handleUpdate(0, 'lat', value), setLng: (value: number|string) => handleUpdate(0, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number|string) => handleUpdate(1, 'lat', value), setLng: (value: number|string) => handleUpdate(1, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number|string) => handleUpdate(2, 'lat', value), setLng: (value: number|string) => handleUpdate(2, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number|string) => handleUpdate(3, 'lat', value), setLng: (value: number|string) => handleUpdate(3, 'lng', value) },
+        { lat: '', lng: '', setLat: (value: number|string) => handleUpdate(4, 'lat', value), setLng: (value: number|string) => handleUpdate(4, 'lng', value) }
     ];
     
     /**
@@ -39,11 +39,11 @@ function TargetMatch() {
      * @param key   This either 'lat' or 'lng'.
      * @param value The number representing the latitude or longitude.
      */
-    const handleUpdate = (index:number, key:string, value:number) => {
+    const handleUpdate = (index:number, key:string, value:number|string) => {
         set_lat_lng(pre_lat_lng => {
-        const new_lat_lng = [...pre_lat_lng];
-        new_lat_lng[index] = { ...new_lat_lng[index], [key]: value };
-        return new_lat_lng;
+            const new_lat_lng = [...pre_lat_lng];
+            new_lat_lng[index] = { ...new_lat_lng[index], [key]: value };
+            return new_lat_lng;
         });
     };
 
@@ -62,7 +62,7 @@ function TargetMatch() {
      * ]
      */
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault(); 
+        event.preventDefault();
         const airdrop_target_list: AirdropTarget[] = [];
         bottle_list.forEach((_, index: number) => {
             if(lat_lng[index].lat != '' && lat_lng[index].lng != '') {
@@ -81,24 +81,26 @@ function TargetMatch() {
         });
         set_lat_lng(lat_lng_template);
         console.log('Form Data:', airdrop_target_list);
-        
-        fetch("/api/airdrop", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(airdrop_target_list)
-        })
-            .then(response => {
-                if (response.status == 200) {
-                    console.log(response.text());
-                } else {
-                    console.log("ERROR: " + response.text());
-                }
+
+        if(airdrop_target_list.length > 0) {
+            fetch("/api/airdrop", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(airdrop_target_list)
             })
-            .catch(err => {
-                console.log("ERROR: " + err);
-            })
+                .then(response => {
+                    if (response.status == 200) {
+                        console.log(response.text());
+                    } else {
+                        console.log("ERROR: " + response.text());
+                    }
+                })
+                .catch(err => {
+                    console.log("ERROR: " + err);
+                })
+        }
     };
 
     const images = [
@@ -120,14 +122,34 @@ function TargetMatch() {
         <div className="flex-box">
             <div className="left-box">
                 <div className="form-container">
-                    <form onSubmit={handleSubmit} >
+                    <form onSubmit={(e) => handleSubmit(e)} >
                         {
                             bottle_list.map((bottle, index) => {
                                 return (
                                     <div className="bottle" key={index}>
                                         <h1>Bottle {bottle}</h1>
-                                        <input className="input-field" type="number" placeholder="lat" value={lat_lng[index].lat} onChange={(e) => lat_lng[index].setLat(parseInt(e.target.value))} ></input>
-                                        <input className="input-field" type="number" placeholder="lng" value={lat_lng[index].lng} onChange={(e) => lat_lng[index].setLng(parseInt(e.target.value))} ></input>
+                                        <input className="input-field" type="number" placeholder="lat" value={lat_lng[index].lat} onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (value.trim() === '') {
+                                                    lat_lng[index].setLat('');
+                                                } else {
+                                                    const numericValue = parseInt(value);
+                                                    if (!isNaN(numericValue)) {
+                                                        lat_lng[index].setLat(numericValue);
+                                                    }
+                                                }
+                                            }} />
+                                        <input className="input-field" type="number" placeholder="lng" value={lat_lng[index].lng} onChange={(e) => {
+                                             const value = e.target.value;
+                                             if (value.trim() === '') {
+                                                 lat_lng[index].setLng('');
+                                             } else {
+                                                 const numericValue = parseInt(value);
+                                                 if (!isNaN(numericValue)) {
+                                                     lat_lng[index].setLng(numericValue);
+                                                 }
+                                             }
+                                            }} />
                                     </div>
                                 )
                             })
