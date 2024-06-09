@@ -2,15 +2,7 @@ import "./TargetMatch.css"
 
 import ReactImageGallery from "react-image-gallery";
 import { useState } from "react";
-
-interface LatLng {
-    lat: string;
-    lng: string;
-}
-  
-interface BottleData {
-    [key: string]: LatLng;
-}
+import { AirdropTarget, GPSCoord} from '../protos/obc.pb';
 
 /**
  * @returns Returns manual target matching page.
@@ -20,6 +12,7 @@ function TargetMatch() {
      * The bottles that exist.
      */
     const bottle_list = ['A', 'B', 'C', 'D', 'E'];
+    const [airdrop_target_list, set_airdrop_target_list] = useState<AirdropTarget[]>([]);
 
     /**
      * A state variable that is an array where each element is a json object that
@@ -27,11 +20,11 @@ function TargetMatch() {
      * It has 5 json because there are five bottles.
      */
     const [lat_lng, set_lat_lng] = useState([
-        { lat: '', lng: '', setLat: (value:number) => handleUpdate(0, 'lat', value), setLng: (value:number) => handleUpdate(0, 'lng', value) },
-        { lat: '', lng: '', setLat: (value:number) => handleUpdate(1, 'lat', value), setLng: (value:number) => handleUpdate(1, 'lng', value) },
-        { lat: '', lng: '', setLat: (value:number) => handleUpdate(2, 'lat', value), setLng: (value:number) => handleUpdate(2, 'lng', value) },
-        { lat: '', lng: '', setLat: (value:number) => handleUpdate(3, 'lat', value), setLng: (value:number) => handleUpdate(3, 'lng', value) },
-        { lat: '', lng: '', setLat: (value:number) => handleUpdate(4, 'lat', value), setLng: (value:number) => handleUpdate(4, 'lng', value) }
+        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(0, 'lat', value), setLng: (value:number) => handleUpdate(0, 'lng', value) },
+        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(1, 'lat', value), setLng: (value:number) => handleUpdate(1, 'lng', value) },
+        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(2, 'lat', value), setLng: (value:number) => handleUpdate(2, 'lng', value) },
+        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(3, 'lat', value), setLng: (value:number) => handleUpdate(3, 'lng', value) },
+        { lat: NaN, lng: NaN, setLat: (value:number) => handleUpdate(4, 'lat', value), setLng: (value:number) => handleUpdate(4, 'lng', value) }
     ]);
 
     /**
@@ -52,26 +45,39 @@ function TargetMatch() {
 
 
     /**
-     * This functions puts all the values in the lat_lng variable into a key:value pair
+     * This functions puts all the values in the lat_lng variable into an array
+     * consisting of the struct AirdropTarget from obc.protos.
      * @param event A form tag event.
      * 
-     * {
-     *  bottleA: {lat:..., lng...},
-     *  bottleB: {lat:..., lng...},
+     * [
+     *  {
+     *      Index: BottleDropIndex,
+     *      Coordiante: GPSCoord,
+     *  },
      *  ...
-     *  ...
-     * }
+     * ]
      */
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault(); 
-
-        const bottle_data: BottleData = {};
-
-        bottle_list.forEach((bottle:string, index: number) => {
-            bottle_data[`bottle${bottle}`] =  {'lat': lat_lng[index].lat, 'lng': lat_lng[index].lng}
+        const new_airdrop_target_list: AirdropTarget[] = [];
+        bottle_list.forEach((_, index: number) => {
+            if(!Number.isNaN(lat_lng[index].lat) && !Number.isNaN(lat_lng[index].lng)) {
+                const coordiante: GPSCoord =  {
+                    Latitude: lat_lng[index].lat,
+                    Longitude: lat_lng[index].lng,
+                    Altitude: 0,
+                }
+                const airdrop_target: AirdropTarget = {
+                    Index: index+1,
+                    Coordinate: coordiante,
+                }
+                new_airdrop_target_list.push(airdrop_target);
+            }
+            
         });
-                
-        console.log('Form Data:', bottle_data);
+        set_airdrop_target_list(new_airdrop_target_list);     
+        console.log('Form Data:', new_airdrop_target_list);
+        console.log(airdrop_target_list);
     };
 
     const images = [
