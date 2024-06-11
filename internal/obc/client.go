@@ -107,6 +107,14 @@ func (client *Client) GetCurrentInitialPath() ([]byte, int) {
 }
 
 /*
+Requests the currently uploaded initial path on the OBC
+*/
+func (client *Client) GetCoveragePath() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/path/coverage")
+	return body, httpErr.Status
+}
+
+/*
 Validates the currently generated initial path on the OBC
 */
 func (client *Client) ValidateInitialPath() ([]byte, int) {

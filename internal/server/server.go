@@ -83,6 +83,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		path := api.Group("/path")
 		{
 			path.GET("/initial", server.getInitialPath())
+			path.GET("/coverage", server.getCoveragePath())
 			path.GET("/initial/new", server.getInitialPathNew())
 			path.POST("/initial/validate", server.validateInitialPath())
 		}
@@ -474,6 +475,18 @@ func (server *Server) getInitialPath() gin.HandlerFunc {
 		body, httpStatus := server.obcClient.GetCurrentInitialPath()
 		if httpStatus != http.StatusOK {
 			c.String(httpStatus, "Error getting current initial path: %s", body)
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
+	}
+}
+
+func (server *Server) getCoveragePath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, httpStatus := server.obcClient.GetCoveragePath()
+		if httpStatus != http.StatusOK {
+			c.String(httpStatus, "Error getting current coverage path: %s", body)
 			return
 		}
 
