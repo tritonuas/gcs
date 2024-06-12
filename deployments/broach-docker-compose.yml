@@ -11,7 +11,7 @@ services:
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
       - MAV_DEVICE=serial:/dev/ttyUSB0
-      - MAV_OUTPUT1=udp:192.168.1.6:14551
+      - MAV_OUTPUT1=udp:192.168.1.4:14551
       - MAV_OUTPUT2=udp:192.168.1.12:14551
       - MAV_OUTPUT3="tcp:localhost:14551"
       - MAV_OUTPUT4=""
@@ -25,7 +25,7 @@ services:
       - missions:/go/src/github.com/tritonuas/gcs/missions
       - ../flight-logs:/CSV
     devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB0
     extra_hosts:
       - host.docker.internal:host-gateway
       

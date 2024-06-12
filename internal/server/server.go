@@ -72,6 +72,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
 		api.POST("/airdrop", server.postAirdropTargets())
+		api.GET("/camera/capture", server.doCameraCapture())
 
 		takeoff := api.Group("/takeoff")
 		{
@@ -82,6 +83,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		path := api.Group("/path")
 		{
 			path.GET("/initial", server.getInitialPath())
+			path.GET("/coverage", server.getCoveragePath())
 			path.GET("/initial/new", server.getInitialPathNew())
 			path.POST("/initial/validate", server.validateInitialPath())
 		}
@@ -487,6 +489,18 @@ func (server *Server) getInitialPath() gin.HandlerFunc {
 	}
 }
 
+func (server *Server) getCoveragePath() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, httpStatus := server.obcClient.GetCoveragePath()
+		if httpStatus != http.StatusOK {
+			c.String(httpStatus, "Error getting current coverage path: %s", body)
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", body)
+	}
+}
+
 func (server *Server) getInitialPathNew() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, httpStatus := server.obcClient.GenerateNewInitialPath()
@@ -595,5 +609,12 @@ func (server *Server) doManualTakeoff() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.DoManualTakeoff()
 		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doCameraCapture() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoCameraCapture()
+		c.Data(status, "application/json", body)
 	}
 }
