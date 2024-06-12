@@ -12,12 +12,13 @@ import Layout from './pages/Layout';
 import Report from './pages/Report';
 import NoPage from './pages/NoPage';
 import Settings from './pages/Settings'
-
+import TargetMatch from "./pages/TargetMatch";
 
 import { ConnectionType, ConnectionStatus } from "./utilities/temp";
 import { SettingsConfig, loadSettings } from "./utilities/settings";
 import { LatLng } from "leaflet";
 import Drop from "./pages/Drop";
+
 
 /**
  * Main React function
@@ -106,6 +107,7 @@ function App() {
                     <Route path="report" element={<Report />} />
                     <Route path="settings" element={<Settings settings={config} setSettings={setConfig}/>} />
                     <Route path="drop" element={<Drop/>}/>
+                    <Route path="targetmatch" element={<TargetMatch/>} />
 
                     <Route path="*" element={<NoPage />} />
                 </Route>
