@@ -564,7 +564,10 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 		}
 
 		var data []byte
-		json.Unmarshal(data, &matchedTargets)
+		err = json.Unmarshal(data, &matchedTargets)
+		if err != nil {
+			println(err.Error())
+		}
 
 		body, code := server.obcClient.PostTargetMatchOverride(data)
 		if code != http.StatusOK {

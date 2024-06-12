@@ -253,6 +253,7 @@ func (client *Client) DoDropNow(bottle *protos.BottleSwap) ([]byte, int) {
 	return body, httpErr.Status
 }
 
+// Tell the OBC to take a picture on the camera
 func (client *Client) DoCameraCapture() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/camera/capture")
 	return body, httpErr.Status

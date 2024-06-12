@@ -323,7 +323,7 @@ function Control({settings, planeCoordinates}:{settings: SettingsConfig, planeCo
         window.addEventListener("storage", () => {handleStorageChange()})
         window.dispatchEvent(new Event("storage"))
         return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
-    }, []);
+    });
 
     useEffect(() => {
         pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);

@@ -1,0 +1,19 @@
+.flex-container {
+    display: flex;
+    flex-flow: row wrap;
+    overflow-y: auto;
+    justify-content: space-evenly;
+    max-height: 150px;
+    max-width: 400px;
+    gap:10px;
+}
+
+.bottle_connection_status_title {
+    font-size: 35px;
+}
+
+.bottle_connection_status_bottle_number {
+    font-size: larger;
+    font-weight: bolder;
+    color:azure;
+}
