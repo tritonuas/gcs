@@ -1,13 +1,20 @@
 import "./TargetMatch.css"
 
-import ReactImageGallery from "react-image-gallery";
 import { useState } from "react";
 import { AirdropTarget, GPSCoord} from '../protos/obc.pb';
+import { useMyModal } from "../components/UseMyModal";
+
+import MyModal from "../components/MyModal";
 
 /**
  * @returns Returns manual target matching page.
  */
 function TargetMatch() {
+
+    const {modalVisible, openModal, closeModal} = useMyModal();
+    const [modalType, setModalType] = useState('default');
+    const [modalMessage, setModalMessage] = useState('');
+    const [modalLoading, setModalLoading] = useState(true);
     /**
      * The bottles that exist.
      */
@@ -63,6 +70,7 @@ function TargetMatch() {
      */
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setModalLoading(true);
         const airdrop_target_list: AirdropTarget[] = [];
         bottle_list.forEach((_, index: number) => {
             if(lat_lng[index].lat != '' && lat_lng[index].lng != '') {
@@ -80,7 +88,6 @@ function TargetMatch() {
             
         });
         set_lat_lng(lat_lng_template);
-        console.log('Form Data:', airdrop_target_list);
 
         if(airdrop_target_list.length > 0) {
             fetch("/api/airdrop", {
@@ -92,79 +99,70 @@ function TargetMatch() {
             })
                 .then(response => {
                     if (response.status == 200) {
-                        console.log(response.text());
+                        return response.text()
                     } else {
-                        console.log("ERROR: " + response.text());
+                        throw response.text();
                     }
+                })
+                .then(data => {
+                    setModalType('default');
+                    setModalMessage(data)
                 })
                 .catch(err => {
                     console.log("ERROR: " + err);
+                    setModalType('error');
+                    setModalMessage(err.toString());
                 })
+        } else {
+            setModalType('warning');
+            setModalMessage('Form is empty or imcomplete');
         }
+        setModalLoading(false);
     };
 
-    const images = [
-        {
-            original: "https://picsum.photos/id/1018/1000/600/",
-            thumbnail: "https://picsum.photos/id/1018/250/150/",
-        },
-        {
-            original: "https://picsum.photos/id/1015/1000/600/",
-            thumbnail: "https://picsum.photos/id/1015/250/150/",
-        },
-        {
-            original: "https://picsum.photos/id/1019/1000/600/",
-            thumbnail: "https://picsum.photos/id/1019/250/150/",
-        },
-    ];
    
     return (
         <div className="flex-box">
-            <div className="left-box">
-                <div className="form-container">
-                    <form onSubmit={(e) => handleSubmit(e)} >
-                        {
-                            bottle_list.map((bottle, index) => {
-                                return (
-                                    <div className="bottle" key={index}>
-                                        <h1>Bottle {bottle}</h1>
-                                        <input className="input-field" type="number" placeholder="lat" value={lat_lng[index].lat} onChange={(e) => {
-                                                const value = e.target.value;
-                                                if (value.trim() === '') {
-                                                    lat_lng[index].setLat('');
-                                                } else {
-                                                    const numericValue = parseInt(value);
-                                                    if (!isNaN(numericValue)) {
-                                                        lat_lng[index].setLat(numericValue);
-                                                    }
+            <div className="form-container">
+                <form onSubmit={(e) => handleSubmit(e)} >
+                    {
+                        bottle_list.map((bottle, index) => {
+                            return (
+                                <div className="bottle" key={index}>
+                                    <div style={{fontSize:'50px', fontWeight:'bold'}}>Bottle {bottle}</div>
+                                    <input className="input-field" type="number" placeholder="lat" value={lat_lng[index].lat} onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (value.trim() === '') {
+                                                lat_lng[index].setLat('');
+                                            } else {
+                                                const numericValue = parseInt(value);
+                                                if (!isNaN(numericValue)) {
+                                                    lat_lng[index].setLat(numericValue);
                                                 }
-                                            }} />
-                                        <input className="input-field" type="number" placeholder="lng" value={lat_lng[index].lng} onChange={(e) => {
-                                             const value = e.target.value;
-                                             if (value.trim() === '') {
-                                                 lat_lng[index].setLng('');
-                                             } else {
-                                                 const numericValue = parseInt(value);
-                                                 if (!isNaN(numericValue)) {
-                                                     lat_lng[index].setLng(numericValue);
-                                                 }
-                                             }
-                                            }} />
-                                    </div>
-                                )
-                            })
-                        }
-                        <input className="submit-button" type="submit" value="Submit"></input>
-                    </form>
-                </div>
+                                            }
+                                        }} />
+                                    <input className="input-field" type="number" placeholder="lng" value={lat_lng[index].lng} onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (value.trim() === '') {
+                                                lat_lng[index].setLng('');
+                                            } else {
+                                                const numericValue = parseInt(value);
+                                                if (!isNaN(numericValue)) {
+                                                    lat_lng[index].setLng(numericValue);
+                                                }
+                                            }
+                                        }} />
+                                </div>
+                            )
+                        })
+                    }
+                    <input className="submit-button" type="submit" value="Submit" onClick={openModal}></input>
+                </form>
             </div>
-            <div className="right-box">
-                <ReactImageGallery items={images} showPlayButton={false}>
-
-                </ReactImageGallery>
-            </div>
+            <MyModal modalVisible={modalVisible} closeModal={closeModal} type={modalType} loading={modalLoading}>
+                {modalMessage}
+            </MyModal>
         </div>
-        
     )
 }
 export default TargetMatch;
