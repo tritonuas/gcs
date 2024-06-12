@@ -14,12 +14,14 @@ enum MapMode {
     FlightBound,
     SearchBound,
     Waypoint,
-    InitialPath
+    InitialPath,
+    SearchPath
 }
 
 enum ShapeType {
     Line,
-    Polygon
+    Polygon,
+    Discrete
 }
 
 interface MapModeConfig {
@@ -57,6 +59,13 @@ const getModeConfig = (mapMode: MapMode) => {
                 color: "lightgreen",
                 headings: ["Latitude", "Longitude", "Altitude"],
                 type: ShapeType.Line,
+                editable: false,
+            } as MapModeConfig;
+        case MapMode.SearchPath:
+            return {
+                color: "violet",
+                headings: ["Latitude", "Longitude", "Altitude"],
+                type: ShapeType.Discrete,
                 editable: false,
             } as MapModeConfig;
     }
@@ -473,6 +482,16 @@ function MapIllustrator(
                         return (
                             <Polygon key={JSON.stringify(parsedData)} color={currConfig.color} positions={[parsedData]} />
                         );
+                    case ShapeType.Discrete:
+                        // Idk why the fuck I can't map this to <Marker> tags... so doing this stupid hack
+                        // ok on second thought this probably looks better with how many markers there would be
+                        return (
+                            <>
+                                {
+                                    parsedData.map((latlng, index) => <Polyline key={index} positions={[latlng, latlng]}></Polyline>)
+                                }
+                            </> 
+                        )
                 }
             })
         }
@@ -593,7 +612,29 @@ function Input() {
             })
             .catch(err => {
                 console.error(err);
-                displayError("An error occured while uploading the mission. See the console for more info.");
+                displayError("An error occured while requesting the initial path. See the console for more info.");
+            })
+        fetch("/api/path/coverage")
+            .then(resp => {
+                if (resp.status == 200) {
+                    return resp.json();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then(path => {
+                const pathJson = path as {"Latitude": number, "Longitude": number, "Altitude": number}[];
+                const data = pathJson.map(obj => [obj.Latitude, obj.Longitude, obj.Altitude])
+
+                setMapData(mapData => {
+                    return new Map(
+                        mapData.set(MapMode.SearchPath, data)
+                    );
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                displayError("An error occured while requesting the initial path. See the console for more info.");
             })
     }
 
@@ -670,7 +711,6 @@ function Input() {
                 [38.31421041772561, -76.54400246436776],
                 [38.31440703962630, -76.54394394383165],
                 [38.31461622313521, -76.54516993186949],
-                [38.31442311312976, -76.54522971451763]
             ])));
         }
         else{
@@ -686,6 +726,13 @@ function Input() {
     return (
         <>
             <MyModal modalVisible={modalVisible} closeModal={closeModal}>
+                <h1>IMPORTANT NOTE</h1>
+                <p>
+                    Make sure to input the search zone only with 4 coordinates and in the following order
+                </p>
+                <p>
+                    bottom left &gt; bottom right &gt; top right &gt; top left
+                </p>
                 <fieldset>
                     <legend>Default Location</legend>
                     <label>
