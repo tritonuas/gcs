@@ -60,7 +60,7 @@ internal/protos/obc.pb.go: protos/obc.proto
 
 build-frontend-protos: houston/src/protos/houston.pb.ts houston/src/protos/obc.pb.ts
 
-houston/src/protos/houston.pb.ts: protos/houston.proto
+houston/src/protos/houston.pb.ts: protos/houston.proto houston/node_modules/.bin/protoc-gen-ts_proto
 	protoc --plugin=houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/houston.proto
 
 houston/src/protos/obc.pb.ts: protos/obc.proto
@@ -70,6 +70,9 @@ protos/houston.proto:
 	git submodule update --init --recursive
 
 protos/obc.proto: protos/houston.proto
+
+houston/node_modules/.bin/protoc-gen-ts_proto:
+	cd houston && npm install
 
 # Run
 # --------------------------------------------------------------------
