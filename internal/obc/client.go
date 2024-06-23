@@ -153,7 +153,7 @@ func (client *Client) PostAirdropTargets(waypoints *[]protos.AirdropTarget) ([]b
 		return nil, -1
 	}
 
-	body, httpErr := client.httpClient.Post("/airdrop", &buf)
+	body, httpErr := client.httpClient.Post("/targets/locations", &buf)
 	return body, httpErr.Status
 }
 

@@ -1,4 +1,4 @@
-import { IdentifiedTarget, MatchedTarget } from '../protos/obc.pb';
+import { BottleDropIndex, IdentifiedTarget, ManualTargetMatch, MatchedTarget } from '../protos/obc.pb';
 
 /**
  * 
@@ -22,12 +22,46 @@ export async function pull_targets(setFoundItemArray: React.Dispatch<React.SetSt
  */
 export async function post_targets(targets: MatchedTarget[]) {
     console.log(targets);
+
+    // should probably update function signature to already take in this format but whatever
+    // just doing quick hacks to get ready for competition
+
+    const matchings: ManualTargetMatch = {
+        bottleAId: -1,
+        bottleBId: -1,
+        bottleCId: -1,
+        bottleDId: -1,
+        bottleEId: -1,
+    };
+
+    targets.forEach((target) => {
+        switch (target.Bottle?.Index) {
+            case BottleDropIndex.A:
+                matchings.bottleAId = target.Target?.id || -1;
+                break;
+            case BottleDropIndex.B:
+                matchings.bottleBId = target.Target?.id || -1;
+                break;
+            case BottleDropIndex.C:
+                matchings.bottleCId = target.Target?.id || -1;
+                break;
+            case BottleDropIndex.D:
+                matchings.bottleDId = target.Target?.id || -1;
+                break;
+            case BottleDropIndex.E:
+                matchings.bottleEId = target.Target?.id || -1;
+                break;
+            default:
+                break;
+        }
+    });
+
     const data = await fetch('/api/targets/matched', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(targets),
+        body: JSON.stringify(matchings),
     })
     console.log('Success:', data);
     return true;

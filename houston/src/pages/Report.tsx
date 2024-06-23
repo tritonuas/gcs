@@ -77,7 +77,7 @@ function Image({item, matchedItems, updateMatched}: ImageProps) {
     }
     return match ? (
         <div className="image-container" style={backgroundColor}>
-            <img src={item.Picture} alt="target" className="image" />
+            <img src={`data:image/png;base64,${item.Picture}`} alt="target" className="image" />
             <p className="image-data-lat-long">[{item.coordinate?.Latitude}, {item.coordinate?.Longitude}]</p>
             {item.Alphanumeric !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.Alphanumeric}</p> : null}
             <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
@@ -94,7 +94,7 @@ function Image({item, matchedItems, updateMatched}: ImageProps) {
     )
     : 
         <div className="image-container">
-            <img src={item.Picture} alt="target" className="image" />
+            <img src={`data:image/png;base64,${item.Picture}`} alt="target" className="image" />
             <p className="image-data-lat-long">[{item.coordinate?.Latitude}, {item.coordinate?.Longitude}]</p>
             {item.Alphanumeric !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.Alphanumeric}</p> : null}
             <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
@@ -190,7 +190,7 @@ function Report() {
 
     const matchedIcons = matched ? itemArray.map(item =>
         L.icon({
-            iconUrl: item.Target!.Picture,
+            iconUrl: `data:image/png;base64,${item.Target!.Picture}`,
             iconSize: [40, 40],
             iconAnchor: [20, 20],
         })
@@ -202,7 +202,7 @@ function Report() {
 
     const unmatchedIcons = unmatched ? unmatchedArray.map(item =>
         L.icon({
-            iconUrl: item.Picture,
+            iconUrl: `data:image/png;base64,${item.Picture}`,
             iconSize: [40, 40],
             iconAnchor: [20, 20],
         })

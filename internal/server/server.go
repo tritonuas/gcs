@@ -71,7 +71,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
-		api.POST("/airdrop", server.postAirdropTargets())
+
 		api.GET("/camera/capture", server.doCameraCapture())
 
 		takeoff := api.Group("/takeoff")
@@ -112,6 +112,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.GET("/all", server.getAllTargets())
 			targets.GET("/matched", server.getMatchedTargets())
 			targets.POST("/matched", server.postMatchedTargets())
+
+			targets.POST("/locations", server.postAirdropTargets())
 		}
 	}
 }
@@ -545,7 +547,7 @@ func (server *Server) getAllTargets() gin.HandlerFunc {
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
-			c.JSON(http.StatusOK, data)
+			c.Data(http.StatusOK, "application/json", data)
 		}
 	}
 }
@@ -556,7 +558,7 @@ func (server *Server) getMatchedTargets() gin.HandlerFunc {
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
-			c.JSON(http.StatusOK, data)
+			c.Data(http.StatusOK, "application/json", data)
 		}
 	}
 }

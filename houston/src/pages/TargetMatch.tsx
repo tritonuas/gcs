@@ -90,7 +90,7 @@ function TargetMatch() {
         set_lat_lng(lat_lng_template);
 
         if(airdrop_target_list.length > 0) {
-            fetch("/api/airdrop", {
+            fetch("/api/targets/locations", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
