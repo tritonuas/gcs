@@ -1,4 +1,4 @@
-import { BottleDropIndex, IdentifiedTarget, ManualTargetMatch, MatchedTarget } from '../protos/obc.pb';
+import { IdentifiedTarget, ManualTargetMatch, MatchedTarget } from '../protos/obc.pb';
 
 /**
  * 
@@ -54,26 +54,38 @@ export async function post_targets(targets: MatchedTarget[]) {
     };
 
     targets.forEach((target) => {
-        switch (target.Bottle?.Index) {
-            case BottleDropIndex.A:
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        switch (target.Bottle?.Index as any) {
+            // hack because these are strings instead of num values for some reason
+            case "A":
                 matchings.bottleAId = target.Target?.id || -1;
                 break;
-            case BottleDropIndex.B:
+            case "B":
                 matchings.bottleBId = target.Target?.id || -1;
                 break;
-            case BottleDropIndex.C:
+            case "C":
                 matchings.bottleCId = target.Target?.id || -1;
                 break;
-            case BottleDropIndex.D:
+            case "D":
                 matchings.bottleDId = target.Target?.id || -1;
                 break;
-            case BottleDropIndex.E:
+            case "E":
                 matchings.bottleEId = target.Target?.id || -1;
                 break;
             default:
                 break;
         }
     });
+
+    // -1 value gets set to 0 because 0 is the null value, but 0 is a real value we want to
+    // send, so we artificially increment by 1.
+    // that way when the OBC sees 1 it knows it is actually referring to target 0, and if it
+    // sees 0 then it knows that it was referring to a target you aren't rematching
+    matchings.bottleAId++;
+    matchings.bottleBId++;
+    matchings.bottleCId++;
+    matchings.bottleDId++;
+    matchings.bottleEId++;
 
     const data = await fetch('/api/targets/matched', {
         method: 'POST',

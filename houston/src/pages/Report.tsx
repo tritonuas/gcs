@@ -6,7 +6,7 @@ import L from 'leaflet';
 import Button from '@mui/material-next/Button';
 import { red, blue, green, yellow, purple, grey } from '@mui/material/colors';
 import { post_targets, pull_targets } from "../utilities/pull_targets.ts";
-import { MatchedTarget, IdentifiedTarget, Bottle, ODLCColor, ODLCShape, GPSCoord, oDLCShapeToJSON, oDLCColorToJSON, BottleDropIndex, bottleDropIndexToJSON } from '../protos/obc.pb';
+import { MatchedTarget, IdentifiedTarget, Bottle, ODLCColor, ODLCShape, GPSCoord, oDLCShapeToJSON, oDLCColorToJSON, BottleDropIndex } from '../protos/obc.pb';
 
 type UpdateItemFunction = () => void;
 
@@ -41,25 +41,63 @@ function Image({item, matchedItems, updateMatched}: ImageProps) {
         if (value !== null) {
             bottleIndex = value;
         }
+
+        console.log('start bottleIndex', bottleIndex);
         
         const tempMatched = matchedItems;
 
+        console.log('start tempMatched', tempMatched)
+
         const removeItemIndex = matchedItems.findIndex((itemX) => itemX.Target?.id === item.id);
 
-        const updateTargetIndex = matchedItems.findIndex((itemX) => itemX.Bottle?.Index ? bottleDropIndexToJSON(itemX.Bottle.Index) === bottleIndex : null);
+        console.log('start removeItemIndex', removeItemIndex)
 
-        if (updateTargetIndex != removeItemIndex) {
-            console.log("updateTargetIndex", updateTargetIndex);
-            console.log("tempMatched2", tempMatched);
-            const temp = tempMatched[updateTargetIndex].Target;
-            tempMatched[updateTargetIndex].Target = item;
+        const updateTargetIndex = matchedItems.findIndex((itemX) => {
+            if (itemX.Bottle === undefined) {
+                return false;
+            }
 
-            // console.log("tempMatched1", tempMatched[removeItemIndex].Target);
-            console.log("tempMatched", tempMatched[updateTargetIndex]);
-            if (removeItemIndex !== -1){
-                tempMatched[removeItemIndex].Target = temp;
+            console.log("itemX", itemX.Bottle.Index);
+
+            // hack because for some reason the indices are being sent as letters as they are in the enum
+            // instead of the 1-5 values
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return ((itemX.Bottle.Index as any) == bottleIndex);
+        });
+
+        console.log('start updateTargetIndex', updateTargetIndex);
+
+        // this mess is so bad but at every point it made sense to add a tiny little hack
+        // so it would just work
+        if (updateTargetIndex == -1) {
+            if (bottleIndex >= 'A' && bottleIndex <= 'F') {
+                const target = {
+                    "Bottle": {
+                        "Index": bottleIndex
+                    }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any; // love typescript
+                tempMatched.push(target as MatchedTarget);
+            } else {
+                alert("cannot find a bottle with that index");
+                return;
+            }
+        } else {
+            if (updateTargetIndex != removeItemIndex) {
+                console.log("updateTargetIndex", updateTargetIndex);
+                console.log("tempMatched2", tempMatched);
+                const temp = tempMatched[updateTargetIndex].Target;
+                tempMatched[updateTargetIndex].Target = item;
+
+                // console.log("tempMatched1", tempMatched[removeItemIndex].Target);
+                console.log("tempMatched", tempMatched[updateTargetIndex]);
+                if (removeItemIndex !== -1){
+                    tempMatched[removeItemIndex].Target = temp;
+                }
             }
         }
+
 
         const res = await post_targets(tempMatched);
         
