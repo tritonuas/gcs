@@ -7,11 +7,30 @@ import { BottleDropIndex, IdentifiedTarget, ManualTargetMatch, MatchedTarget } f
  */
 export async function pull_targets(setFoundItemArray: React.Dispatch<React.SetStateAction<IdentifiedTarget[]>>, setMatchedItemArray: React.Dispatch<React.SetStateAction<MatchedTarget[]>>) {
     const response = await fetch('/api/targets/all')
-    const data = await response.json();
+    const data = await response.json() as IdentifiedTarget[];
+    data.forEach( d => {
+        if (!('id' in d)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (d as any).id = 0; // stupid hack because protobuf doesn't serialize 0 values
+            console.log("fix id 0 in list of all targets");
+        }
+    });
     setFoundItemArray([...data]);
 
     const response1 = await fetch('/api/targets/matched')
-    const data1 = await response1.json();
+    const data1 = await response1.json() as MatchedTarget[];
+    data1.forEach( d => {
+        if (d.Target == undefined) {
+            return;
+        }
+
+        if (!('id' in d.Target)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (d.Target as any).id = 0; // stupid hack because protobuf doesn't serialize 0 values
+            console.log("fix id 0 in list of matched targets");
+        }
+    });
+    setFoundItemArray([...data]);
     setMatchedItemArray([...data1]);
 }
 

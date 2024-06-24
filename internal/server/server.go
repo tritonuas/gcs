@@ -114,6 +114,9 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.POST("/matched", server.postMatchedTargets())
 
 			targets.POST("/locations", server.postAirdropTargets())
+
+			targets.POST("/validate", server.validateTargets())
+			targets.POST("/reject", server.rejectTargets())
 		}
 	}
 }
@@ -565,7 +568,7 @@ func (server *Server) getMatchedTargets() gin.HandlerFunc {
 
 func (server *Server) postMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var matchedTargets []*protos.MatchedTarget
+		var matchedTargets *protos.ManualTargetMatch
 		err := c.BindJSON(&matchedTargets)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
@@ -617,6 +620,20 @@ func (server *Server) doManualTakeoff() gin.HandlerFunc {
 func (server *Server) doCameraCapture() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.DoCameraCapture()
+		c.Data(status, "application/json", body)
+	}
+}
+
+func (server *Server) validateTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.ValidateTargets()
+		c.Data(status, "application/json", body)
+	}
+}
+
+func (server *Server) rejectTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.RejectTargets()
 		c.Data(status, "application/json", body)
 	}
 }

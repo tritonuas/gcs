@@ -124,7 +124,8 @@ function BottleImage({item, matchedItems} : BottleProps) {
     }
     return (
         <div className="image-container" style={backgroundColor}>
-            <p className="image-data"><b>Bottle Letter:</b> {bottleDropIndexToJSON(item.Index)}</p>
+            <p className="image-data"><b>Bottle Letter:</b> {item.Index}</p>
+            {/* not using function to parse item.Index cause that is being passed down as a string not the bespoke enum */}
             <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
             <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
             <p className="image-data"><b>Is Mannikin:</b> {item.IsMannikin ? "Yes" : "No"}</p>
@@ -214,10 +215,26 @@ function Report() {
         setfoundItemArray([...foundItemArray]);
     }
 
-    const lat = 1.39;
-    const lng = 103.8;
+    const lat = 38.31442311312976;
+    const lng = -76.54522971451763;
   return (
     <main className="report-page">
+        <div className="button-container">
+            <button onClick={() => {
+                fetch('/api/targets/validate', {
+                    method: "POST"
+                })
+                    .then(() => alert("good"))
+                    .catch(() => alert("bad"))
+            }}>Validate</button>
+            <button onClick={() => {
+                fetch('/api/targets/reject', {
+                    method: "POST"
+                })
+                    .then(() => alert("good"))
+                    .catch(() => alert("bad"))
+            }}>Reject</button>
+        </div>
         <div className="checkbox-container">
                 <div className="checkbox">
                     <p className="checkbox-text" style={unmatchedStyle} onClick={handleUnmatched}>Unmatched Targets</p>

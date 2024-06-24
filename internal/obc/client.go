@@ -258,3 +258,13 @@ func (client *Client) DoCameraCapture() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/camera/capture")
 	return body, httpErr.Status
 }
+
+func (client *Client) ValidateTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/targets/validate", nil)
+	return body, httpErr.Status
+}
+
+func (client *Client) RejectTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/targets/reject", nil)
+	return body, httpErr.Status
+}
