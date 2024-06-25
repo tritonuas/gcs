@@ -31,7 +31,7 @@ const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]
  * @param props.updateMatched function to update matched items
  * @returns image container
  */
-function Image({item, matchedItems, updateMatched}: ImageProps) {
+function Image({item, matchedItems}: ImageProps) {
     /**
      * @returns reassigns the target to a different bottle
      */
@@ -42,67 +42,15 @@ function Image({item, matchedItems, updateMatched}: ImageProps) {
             bottleIndex = value;
         }
 
-        console.log('start bottleIndex', bottleIndex);
-        
-        const tempMatched = matchedItems;
+        // not using protobuf cause that shit is NOT working...
+        let json = {} as any;
+        json[`${bottleIndex}`] = item.id;
 
-        console.log('start tempMatched', tempMatched)
-
-        const removeItemIndex = matchedItems.findIndex((itemX) => itemX.Target?.id === item.id);
-
-        console.log('start removeItemIndex', removeItemIndex)
-
-        const updateTargetIndex = matchedItems.findIndex((itemX) => {
-            if (itemX.Bottle === undefined) {
-                return false;
-            }
-
-            console.log("itemX", itemX.Bottle.Index);
-
-            // hack because for some reason the indices are being sent as letters as they are in the enum
-            // instead of the 1-5 values
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return ((itemX.Bottle.Index as any) == bottleIndex);
-        });
-
-        console.log('start updateTargetIndex', updateTargetIndex);
-
-        // this mess is so bad but at every point it made sense to add a tiny little hack
-        // so it would just work
-        if (updateTargetIndex == -1) {
-            if (bottleIndex >= 'A' && bottleIndex <= 'F') {
-                const target = {
-                    "Bottle": {
-                        "Index": bottleIndex
-                    }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any; // love typescript
-                tempMatched.push(target as MatchedTarget);
-            } else {
-                alert("cannot find a bottle with that index");
-                return;
-            }
-        } else {
-            if (updateTargetIndex != removeItemIndex) {
-                console.log("updateTargetIndex", updateTargetIndex);
-                console.log("tempMatched2", tempMatched);
-                const temp = tempMatched[updateTargetIndex].Target;
-                tempMatched[updateTargetIndex].Target = item;
-
-                // console.log("tempMatched1", tempMatched[removeItemIndex].Target);
-                console.log("tempMatched", tempMatched[updateTargetIndex]);
-                if (removeItemIndex !== -1){
-                    tempMatched[removeItemIndex].Target = temp;
-                }
-            }
-        }
-
-
-        const res = await post_targets(tempMatched);
-        
+        const res = await post_targets(json);
         if (res) {
-            updateMatched();
+            alert("worked: refresh to update");
+        } else {
+            alert("didnt work");
         }
     }
 

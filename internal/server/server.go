@@ -1,7 +1,8 @@
 package server
 
 import (
-	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -568,20 +569,18 @@ func (server *Server) getMatchedTargets() gin.HandlerFunc {
 
 func (server *Server) postMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var matchedTargets *protos.ManualTargetMatch
-		err := c.BindJSON(&matchedTargets)
+
+		jsonData, err := io.ReadAll(c.Request.Body)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+			c.String(http.StatusBadRequest, "cant read body")
 			return
 		}
 
-		var data []byte
-		err = json.Unmarshal(data, &matchedTargets)
-		if err != nil {
-			println(err.Error())
-		}
+		str := string(jsonData)
+		fmt.Println("JSON IS")
+		fmt.Println(str)
 
-		body, code := server.obcClient.PostTargetMatchOverride(data)
+		body, code := server.obcClient.PostTargetMatchOverride(jsonData)
 		if code != http.StatusOK {
 			c.Data(code, "text/plain", body)
 		} else {

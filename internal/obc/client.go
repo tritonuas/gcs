@@ -51,14 +51,7 @@ func (client *Client) GetMatchedTargets() ([]byte, int) {
 Do a manual override on the target matchings
 */
 func (client *Client) PostTargetMatchOverride(data []byte) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(data)
-
-	if err != nil {
-		return nil, -1
-	}
-
-	body, httpErr := client.httpClient.Post("/targets/matched", &buf)
+	body, httpErr := client.httpClient.Post("/targets/matched", bytes.NewReader(data))
 	return body, httpErr.Status
 }
 
