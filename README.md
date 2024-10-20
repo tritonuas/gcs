@@ -65,6 +65,12 @@ Then, to make sure you have the protobufs git submodule loaded, run the followin
 make install-protos
 ```
 
+Lastly, we want to make sure we pull our protos submodule.
+```sh
+git submodule update --init --recursive // First time only
+git submodule update --recursive --remote
+```
+
 This should be all of the first time setup you need. 
 
 ## Build
