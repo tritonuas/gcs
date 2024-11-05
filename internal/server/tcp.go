@@ -71,6 +71,9 @@ func (s *TCPServer) readLoop(conn net.Conn) {
 			from:    conn.RemoteAddr().String(),
 			payload: buf[:n],
 		}
+
+		conn.Write([]byte("Message Recieved"))
+
 	}
 
 }
