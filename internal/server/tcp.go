@@ -6,16 +6,23 @@ import (
 	"net"
 )
 
+type Message struct {
+	from    string
+	payload []byte
+}
+
 type TCPServer struct {
 	listenAddr string
 	ln         net.Listener
 	quitch     chan struct{}
+	msgch      chan Message
 }
 
 func initTCP(listenAddr string) *TCPServer {
 	return &TCPServer{
 		listenAddr: listenAddr,
 		quitch:     make(chan struct{}),
+		msgch:      make(chan Message, 10),
 	}
 }
 
@@ -31,6 +38,7 @@ func (s *TCPServer) start() error {
 	go s.handleConnection()
 
 	<-s.quitch
+	close(s.msgch)
 
 	return nil
 }
@@ -58,13 +66,23 @@ func (s *TCPServer) readLoop(conn net.Conn) {
 			fmt.Println("read error", err)
 			continue
 		}
-		msg := buf[:n]
-		fmt.Println(string(msg))
+
+		s.msgch <- Message{
+			from:    conn.RemoteAddr().String(),
+			payload: buf[:n],
+		}
 	}
 
 }
 
 func main() {
 	testserver := initTCP(":4345")
+
+	go func() {
+		for msg := range testserver.msgch {
+			fmt.Printf("recived message (%s):%s\n", msg.from, string(msg.payload))
+		}
+	}()
+
 	log.Fatal(testserver.start())
 }
