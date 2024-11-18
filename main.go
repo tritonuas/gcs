@@ -100,4 +100,15 @@ func main() {
 	// Set up GIN HTTP Server
 	server := server.New(influxClient, mavlinkClient, obcClient)
 	server.Start()
+
+	// Test if it can start with system
+	testserver := initTCP(":4345")
+
+	go func() {
+		for msg := range testserver.msgch {
+			fmt.Printf("recived message (%s):%s\n", msg.from, string(msg.payload))
+		}
+	}()
+
+	log.Fatal(testserver.start())
 }
