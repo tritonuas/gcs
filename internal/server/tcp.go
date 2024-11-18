@@ -78,6 +78,9 @@ func (s *TCPServer) readLoop(conn net.Conn) {
 
 }
 
+/*
+File currently only works in local env.
+*/
 func main() {
 	testserver := initTCP(":4345")
 
