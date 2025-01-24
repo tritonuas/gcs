@@ -23,7 +23,7 @@ install-linter:
 
 install-protos:
 	sudo apt install protobuf-compiler
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	echo "You will need to set your PATH variable to include go installations, if you have not already done so."
 
 install-fmter:
