@@ -278,36 +278,14 @@ function BottleInputForm(
     {bottleAssignments, setBottleAssignments}:
     {bottleAssignments: Bottle[], setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>}
 ) {
-    /**
-     * @returns Every possible ODLC Color represented as an <option> HTML element, to be 
-     * placed inside of a <select> element.
-     */
-    function mapColorsToOptions() {
-        return (Object.keys(ODLCColor) as unknown as Array<ODLCColor>)
-            .filter((color) => {
-                return isNaN(Number(color));
-            })
-            .map((color) => {
-                return (<>
-                    <option key={color} value={color}>{color}</option>
-                </>);
-            });
-    }
-    /**
-     * @returns Every possible ODLC Shape represented as an <option> HTML element, to be 
-     * placed inside of a <select> element.
-     */
-    function mapShapesToOptions() {
-        return (Object.keys(ODLCShape) as unknown as Array<ODLCShape>)
-            .filter((shape) => {
-                return isNaN(Number(shape));
-            })
-            .map((shape) => {
-                return (<>
-                    <option key={shape} value={shape}>{shape}</option>
-                </>);
-            });
-    }
+
+    //function mapObjectsToOptions() {
+        //return Object.keys(Objects).map((object) => (
+            //<option key={object} value={object}>
+            //    {object}
+           // </option>
+        //));
+    //}
 
     const bottleInput = (bottle: Bottle) => {
         return (
@@ -315,56 +293,12 @@ function BottleInputForm(
                 <fieldset key={bottle.Index}>
                     <legend>Bottle {bottle.Index.toString()}</legend>
                     <label>
-                       Mannequin 
-                        <input
-                            type="checkbox"
-                            defaultChecked={bottle.IsMannikin}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                                bottle.IsMannikin = e.currentTarget.checked;
-                                // force state change so inputs below get rerendered as disabled
-                                setBottleAssignments(bottleAssignments.map(e => e));    
-                            }}
-                            />
-                    </label>
-                    <label>
-                        Alphanumeric: 
-                        <input 
-                            maxLength={1} 
-                            defaultValue={bottle.Alphanumeric}
-                            disabled={bottle.IsMannikin}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                                bottle.Alphanumeric = e.currentTarget.value;
-                            }}
-                            />
-                    </label>
-                    <label>
-                        Alphanumeric Color:
-                        <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                            bottle.AlphanumericColor = e.currentTarget.value as unknown as ODLCColor;
-                        }}
-                            disabled={bottle.IsMannikin}
-                            >
-                            {mapColorsToOptions()}
-                        </select>
-                    </label>
-                    <label>
-                        Shape: 
-                        <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                            bottle.Shape = e.currentTarget.value as unknown as ODLCShape;
-                        }} 
-                            disabled={bottle.IsMannikin}
-                            >
-                            {mapShapesToOptions()}
-                        </select>
-                    </label>
-                    <label>
-                        Shape Color: 
+                        Object: 
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.ShapeColor = e.currentTarget.value as unknown as ODLCColor;
                         }}
                             disabled={bottle.IsMannikin}
                             >
-                            {mapColorsToOptions()}
                         </select>
                     </label>
                 </fieldset>
@@ -376,12 +310,7 @@ function BottleInputForm(
         const bottles = [];
         for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
             const bottle = {
-                Alphanumeric: "",
-                AlphanumericColor: ODLCColor.UnspecifiedColor,
-                Shape: ODLCShape.UnspecifiedShape,
-                ShapeColor: ODLCColor.UnspecifiedColor,
                 Index: i,
-                IsMannikin: false
             } as Bottle;
             bottles.push(bottle);
         }
@@ -778,3 +707,4 @@ function Input() {
 }
 
 export default Input;
+
