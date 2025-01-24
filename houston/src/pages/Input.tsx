@@ -5,7 +5,7 @@ import {useMapEvents, Polygon, Polyline} from "react-leaflet"
 import './Input.css';
 import TuasMap from '../components/TuasMap';
 import { LatLng } from 'leaflet';
-import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from '../protos/obc.pb';
+import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCObjects} from '../protos/obc.pb';
 import MyModal from '../components/MyModal';
 import UpdateMapCenter from '../components/UpdateMapCenter';
 import { useMyModal } from '../components/UseMyModal';
@@ -279,13 +279,24 @@ function BottleInputForm(
     {bottleAssignments: Bottle[], setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>}
 ) {
 
-    //function mapObjectsToOptions() {
-        //return Object.keys(Objects).map((object) => (
-            //<option key={object} value={object}>
-            //    {object}
-           // </option>
-        //));
-    //}
+/**
+ * Maps the keys of the `ODLCObjects` object to an array of JSX `<option>` elements.
+ * Filters out numeric keys before mapping.
+ * @returns An array of JSX `<option>` elements.
+ */
+function mapObjectsToOptions() {
+    return (Object.keys(ODLCObjects) as unknown as Array<ODLCObjects>)
+        .filter((object) => {
+            return isNaN(Number(object)); // Filters out numeric keys
+        })
+        .map((object) => {
+            return (
+                <>
+                    <option key={object} value={object}>{object}</option>
+                </>
+            );
+        });
+}
 
     const bottleInput = (bottle: Bottle) => {
         return (
@@ -295,10 +306,11 @@ function BottleInputForm(
                     <label>
                         Object: 
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                            bottle.ShapeColor = e.currentTarget.value as unknown as ODLCColor;
+                            bottle.Object = e.currentTarget.value as unknown as ODLCObjects;
                         }}
                             disabled={bottle.IsMannikin}
                             >
+                            {mapObjectsToOptions()}
                         </select>
                     </label>
                 </fieldset>
