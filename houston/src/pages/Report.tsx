@@ -28,7 +28,7 @@ const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]
  * @param props props
  * @param props.item image to be displayed
  * @param props.matchedItems array of items that we are comparing against
- * @param props.updateMatched function to update matched items
+ * param props.updateMatched function to update matched items
  * @returns image container
  */
 function Image({item, matchedItems}: ImageProps) {
@@ -43,7 +43,7 @@ function Image({item, matchedItems}: ImageProps) {
         }
 
         // not using protobuf cause that shit is NOT working...
-        let json = {} as any;
+        const json: { [key: string]: typeof item.id } = {};
         json[`${bottleIndex}`] = item.id;
 
         const res = await post_targets(json);
