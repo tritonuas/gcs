@@ -28,7 +28,11 @@ const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]
  * @param props props
  * @param props.item image to be displayed
  * @param props.matchedItems array of items that we are comparing against
+<<<<<<< HEAD
  * param props.updateMatched function to update matched items
+=======
+ * param props.updateMatched function to update matched item
+>>>>>>> e72a5ee (mapping bound prototype)
  * @returns image container
  */
 function Image({item, matchedItems}: ImageProps) {

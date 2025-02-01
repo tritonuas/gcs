@@ -16,6 +16,7 @@ import { useMyModal } from '../components/UseMyModal';
 enum MapMode {
     FlightBound,
     SearchBound,
+    MappingBound,
     Waypoint,
     InitialPath,
     SearchPath
@@ -49,6 +50,13 @@ const getModeConfig = (mapMode: MapMode) => {
         case MapMode.SearchBound:
             return {
                 color: "blue",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Polygon,
+                editable: true,
+            } as MapModeConfig;
+        case MapMode.MappingBound:
+            return {
+                color: "orange",
                 headings: ["Latitude", "Longitude"],
                 type: ShapeType.Polygon,
                 editable: true,
@@ -594,6 +602,7 @@ function Input() {
             BottleAssignments: bottleAssignments,
             FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
             AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
+            MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
 
@@ -727,6 +736,7 @@ function Input() {
             setDefaultView([32.990781135309724, -117.12830536731832]);
             setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
             setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
+            setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
         }
         else if(selected == 'Competition_Left'){
             setDefaultView([38.314666970000744, -76.54975138401012]);
@@ -776,6 +786,12 @@ function Input() {
                 [38.314731, -76.545792],
                 [38.314441, -76.544081],
                 [38.314228, -76.544156],
+            ])));
+            setMapData(new Map(mapData.set(MapMode.MappingBound, [
+                [38.31442311312976, -76.54522971451763], 
+                [38.31421041772561, -76.54400246436776],
+                [38.31440703962630, -76.54394394383165],
+                [38.31461622313521, -76.54516993186949],
             ])));
         }
         else{
