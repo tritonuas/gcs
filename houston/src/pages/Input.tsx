@@ -1,6 +1,8 @@
 import { SetStateAction, useState, useEffect, ChangeEvent } from 'react';
 
+
 import {useMapEvents, Polygon, Polyline} from "react-leaflet"
+
 
 import './Input.css';
 import TuasMap from '../components/TuasMap';
@@ -9,6 +11,7 @@ import { Bottle, BottleDropIndex, GPSCoord, Mission, ODLCColor, ODLCShape } from
 import MyModal from '../components/MyModal';
 import UpdateMapCenter from '../components/UpdateMapCenter';
 import { useMyModal } from '../components/UseMyModal';
+
 
 enum MapMode {
     FlightBound,
@@ -19,11 +22,13 @@ enum MapMode {
     SearchPath
 }
 
+
 enum ShapeType {
     Line,
     Polygon,
     Discrete
 }
+
 
 interface MapModeConfig {
     color: string,
@@ -31,6 +36,7 @@ interface MapModeConfig {
     type: ShapeType,
     editable: boolean,
 }
+
 
 const getModeConfig = (mapMode: MapMode) => {
     switch (mapMode) {
@@ -79,6 +85,7 @@ const getModeConfig = (mapMode: MapMode) => {
     }
 }
 
+
 /**
  * Component which takes in all the state for the current map mode and data,
  * and renders the table containing all of the values for the current mode.
@@ -93,14 +100,15 @@ const getModeConfig = (mapMode: MapMode) => {
 function FormTable(
     {headings, mapMode, mapData, setMapData}:
     {
-        headings: string[], 
+        headings: string[],
         mapMode: MapMode,
-        mapData: Map<MapMode, number[][]>, 
+        mapData: Map<MapMode, number[][]>,
         setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
     }
 ) {
     // add extra left column for the X button
     headings = ["---"].concat(headings);
+
 
     return (
         <>
@@ -126,6 +134,7 @@ function FormTable(
                                                     return;
                                                 }
 
+
                                                 setMapData(mapData => {
                                                     if (data !== undefined) {
                                                         const temp = (data.slice(0, i).concat(data.slice(i+1)));
@@ -142,10 +151,10 @@ function FormTable(
                                         return (
                                             <td key={j}>
                                                 <input
-                                                    type="number" 
+                                                    type="number"
                                                     key={mapMode.toString() + (mapData.get(mapMode)?.at(i)?.at(j))}
-                                                    step="any" 
-                                                    defaultValue={num} 
+                                                    step="any"
+                                                    defaultValue={num}
                                                     onChange={(e) => {
                                                         const newArr = mapData.get(mapMode);
                                                         if (newArr == undefined) {
@@ -160,7 +169,7 @@ function FormTable(
                                     })
                                 }
                                 </tr>  
-                            ) 
+                            )
                         })
                     }
                 </tbody>
@@ -169,11 +178,13 @@ function FormTable(
     )
 }
 
+
 /**
  * Form that contains all of the controls for entering flight boundary, search boundary,
  * and waypoint data for the mission
  * @returns Map Input Form
  */
+
 
 /**
  * Component which renders all of the form input relating to the map.
@@ -189,12 +200,13 @@ function FormTable(
 function MapInputForm(
     {mapMode, setMapMode, mapData, setMapData}:
     {
-        mapMode:MapMode, 
-        setMapMode: React.Dispatch<SetStateAction<MapMode>>, 
-        mapData: Map<MapMode, number[][]>, 
+        mapMode:MapMode,
+        setMapMode: React.Dispatch<SetStateAction<MapMode>>,
+        mapData: Map<MapMode, number[][]>,
         setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
     }
 ) {
+
 
     return (
         <>
@@ -206,11 +218,11 @@ function MapInputForm(
                             Object.keys(MapMode).filter((v => isNaN(Number(v)))).map((v, i) => {
                                 return (
                                     <input
-                                        key={i} 
+                                        key={i}
                                         data-selected={mapMode == MapMode[v as keyof typeof MapMode]}
-                                        type="button" 
+                                        type="button"
                                         readOnly={!getModeConfig(mapMode).editable}
-                                        value={v} 
+                                        value={v}
                                         onClick={() => {
                                             setMapMode(MapMode[v as keyof typeof MapMode]);
                                         }}
@@ -229,6 +241,7 @@ function MapInputForm(
                                 const data = mapData.get(mapMode);
                                 const headingLength = getModeConfig(mapMode).headings.length;
                                 const newRow = new Array(headingLength).fill(0);
+
 
                                 setMapData(mapData => {
                                     if (data !== undefined) {
@@ -251,6 +264,7 @@ function MapInputForm(
                                     return;
                                 }
 
+
                                  setMapData(mapData => {
                                     if (data !== undefined && data.length > 0) {
                                         return new Map(mapData.set(mapMode, data.slice(0, -1)));
@@ -262,8 +276,8 @@ function MapInputForm(
                             }}
                             />
                     </div>
-                    <FormTable 
-                        headings={getModeConfig(mapMode).headings} 
+                    <FormTable
+                        headings={getModeConfig(mapMode).headings}
                         mapMode={mapMode}
                         mapData={mapData}
                         setMapData={setMapData}
@@ -273,6 +287,7 @@ function MapInputForm(
         </>
     );
 }
+
 
 /**
  * Form that handles all the input for entering bottle loading information
@@ -287,7 +302,7 @@ function BottleInputForm(
     {bottleAssignments: Bottle[], setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>}
 ) {
     /**
-     * @returns Every possible ODLC Color represented as an <option> HTML element, to be 
+     * @returns Every possible ODLC Color represented as an <option> HTML element, to be
      * placed inside of a <select> element.
      */
     function mapColorsToOptions() {
@@ -302,7 +317,7 @@ function BottleInputForm(
             });
     }
     /**
-     * @returns Every possible ODLC Shape represented as an <option> HTML element, to be 
+     * @returns Every possible ODLC Shape represented as an <option> HTML element, to be
      * placed inside of a <select> element.
      */
     function mapShapesToOptions() {
@@ -317,13 +332,14 @@ function BottleInputForm(
             });
     }
 
+
     const bottleInput = (bottle: Bottle) => {
         return (
             <>
                 <fieldset key={bottle.Index}>
                     <legend>Bottle {bottle.Index.toString()}</legend>
                     <label>
-                       Mannequin 
+                       Mannequin
                         <input
                             type="checkbox"
                             defaultChecked={bottle.IsMannikin}
@@ -335,9 +351,9 @@ function BottleInputForm(
                             />
                     </label>
                     <label>
-                        Alphanumeric: 
-                        <input 
-                            maxLength={1} 
+                        Alphanumeric:
+                        <input
+                            maxLength={1}
                             defaultValue={bottle.Alphanumeric}
                             disabled={bottle.IsMannikin}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -356,17 +372,17 @@ function BottleInputForm(
                         </select>
                     </label>
                     <label>
-                        Shape: 
+                        Shape:
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.Shape = e.currentTarget.value as unknown as ODLCShape;
-                        }} 
+                        }}
                             disabled={bottle.IsMannikin}
                             >
                             {mapShapesToOptions()}
                         </select>
                     </label>
                     <label>
-                        Shape Color: 
+                        Shape Color:
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.ShapeColor = e.currentTarget.value as unknown as ODLCColor;
                         }}
@@ -379,6 +395,7 @@ function BottleInputForm(
             </>
         );
     }
+
 
     useEffect(() => {
         const bottles = [];
@@ -396,6 +413,7 @@ function BottleInputForm(
         setBottleAssignments(bottles);
     }, [setBottleAssignments]);
 
+
     return (
         <>
             <form className="tuas-form" >
@@ -409,12 +427,14 @@ function BottleInputForm(
         </>
     );
 
+
 }
+
 
 /**
  * Component which gets placed inside of the leaflet map and listens for click events
  * on the map and then adjusts the relevant mapData state variable.
- * @param props Props 
+ * @param props Props
  * @param props.mapMode current mode of the map
  * @param props.mapData current data of the map
  * @param props.setMapData setter for the map data, used when the user
@@ -425,7 +445,7 @@ function MapClickHandler(
     {mapMode, mapData, setMapData}:
     {
         mapMode: MapMode
-        mapData: Map<MapMode, number[][]>, 
+        mapData: Map<MapMode, number[][]>,
         setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>,
     }
 ) {
@@ -436,23 +456,27 @@ function MapClickHandler(
                 return;
             }
 
+
             // Update the data state variable
             let data = mapData.get(mapMode);
             if (data == undefined) {
                 data = [];
             }
 
+
             const newData = (() => {
                 if (config.headings.length == 2) {
                     return [...data, [e.latlng.lat, e.latlng.lng]];
                 } else {
-                    return [...data, [e.latlng.lat, e.latlng.lng, 75]];// fill in 75 for default alt 
+                    return [...data, [e.latlng.lat, e.latlng.lng, 75]];// fill in 75 for default alt
                 }
             })();
 
+
             setMapData(new Map(mapData.set(mapMode, newData)));
         }
-    }) 
+    })
+
 
     return (
         <>
@@ -460,6 +484,7 @@ function MapClickHandler(
         </>
     );
 }
+
 
 /**
  * Component that is placed inside of the leaflet map and renders the relevant
@@ -481,6 +506,7 @@ function MapIllustrator(
                 const currConfig = getModeConfig(mode);
                 const parsedData = currData.map((latlng) => new LatLng(latlng[0], latlng[1]));
 
+
                 switch (currConfig.type) {
                     case ShapeType.Line:
                         return (
@@ -498,7 +524,7 @@ function MapIllustrator(
                                 {
                                     parsedData.map((latlng, index) => <Polyline key={index} positions={[latlng, latlng]}></Polyline>)
                                 }
-                            </> 
+                            </>
                         )
                 }
             })
@@ -506,6 +532,7 @@ function MapIllustrator(
         </>
     );
 }
+
 
 /**
  * Component for the entire input page, which lets the user input all of the
@@ -524,14 +551,16 @@ function Input() {
     const [mapData, setMapData] = useState<Map<MapMode,number[][]>>(new Map());
     const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
 
+
     const [modalType, setModalType] = useState<"default" | "error">("default");
     const [modalMsg, setModalMsg] = useState("");
     const [msgModalVisible, setMsgModalVisible] = useState(false);
     const [defaultView, setDefaultView] = useState<[number, number]>([51,10]);
     const {modalVisible, openModal, closeModal} = useMyModal();
 
+
     /**
-     * 
+     *
      * @param msg Message to display in the modal as an error
      */
     function displayError(msg: string) {
@@ -540,8 +569,9 @@ function Input() {
         setMsgModalVisible(true);
     }
 
+
     /**
-     * 
+     *
      * @param msg Message to display in the modal as normal text
      */
     function displayMsg(msg: string) {
@@ -550,13 +580,14 @@ function Input() {
         setMsgModalVisible(true);
     }
 
+
     /**
      * Takes the current state of all the inputs and posts to Hub
      */
     function submitMission() {
         const mapDataToGpsCoords = (mode: MapMode) => {
             const config = getModeConfig(mode);
-                    
+                   
             return mapData.get(mode)?.map((row) => {
                 return ({
                     Latitude: row[config.headings.indexOf("Latitude")],
@@ -566,6 +597,7 @@ function Input() {
             }) || [];
         };
 
+
         const mission: Mission = {
             BottleAssignments: bottleAssignments,
             FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
@@ -573,6 +605,7 @@ function Input() {
             MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
+
 
         fetch("/api/mission", {
             method: "POST",
@@ -597,6 +630,7 @@ function Input() {
             });
     }
 
+
     /**
      * Helper function to request the initial path from the OBC
      */
@@ -612,6 +646,7 @@ function Input() {
             .then(path => {
                 const pathJson = path as {"Latitude": number, "Longitude": number, "Altitude": number}[];
                 const data = pathJson.map(obj => [obj.Latitude, obj.Longitude, obj.Altitude])
+
 
                 setMapData(mapData => {
                     return new Map(
@@ -635,6 +670,7 @@ function Input() {
                 const pathJson = path as {"Latitude": number, "Longitude": number, "Altitude": number}[];
                 const data = pathJson.map(obj => [obj.Latitude, obj.Longitude, obj.Altitude])
 
+
                 setMapData(mapData => {
                     return new Map(
                         mapData.set(MapMode.SearchPath, data)
@@ -646,6 +682,8 @@ function Input() {
                 displayError("An error occured while requesting the initial path. See the console for more info.");
             })
     }
+
+
 
 
     /**
@@ -667,6 +705,7 @@ function Input() {
             })
     }
 
+
     /**
      * Helper function to generate a new path from the OBC
      */
@@ -686,8 +725,9 @@ function Input() {
             })
     }
 
+
     /**
-     * Heper function that sets variable (defaultView) to either 
+     * Heper function that sets variable (defaultView) to either
      * black mountain coordinates or competition coordinates.
      * @param selected The location selected.
      */
@@ -698,11 +738,11 @@ function Input() {
             setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
             setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
         }
-        else if(selected == 'Competition'){
+        else if(selected == 'Competition_Left'){
             setDefaultView([38.314666970000744, -76.54975138401012]);
             setMapData(new Map(mapData.set(MapMode.FlightBound, [
-                [38.31729702009844, -76.55617670782419], 
-                [38.31594832826572, -76.55657341657302], 
+                [38.31729702009844, -76.55617670782419],
+                [38.31594832826572, -76.55657341657302],
                 [38.31546739500083, -76.55376201277696],
                 [38.31470980862425, -76.54936361414539],
                 [38.31424154692598, -76.54662761646904],
@@ -717,10 +757,35 @@ function Input() {
                 [38.31729702009844, -76.55617670782419]
             ])));
             setMapData(new Map(mapData.set(MapMode.SearchBound, [
-                [38.31442311312976, -76.54522971451763], 
-                [38.31421041772561, -76.54400246436776],
-                [38.31440703962630, -76.54394394383165],
-                [38.31461622313521, -76.54516993186949],
+                [38.315386, -76.550875],
+                [38.315683, -76.552586],
+                [38.315895, -76.552519],
+                [38.315607, -76.550800],
+            ])));
+        }
+        else if(selected == 'Competition_Right'){
+            setDefaultView([38.314666970000744, -76.54975138401012]);
+            setMapData(new Map(mapData.set(MapMode.FlightBound, [
+                [38.31729702009844, -76.55617670782419],
+                [38.31594832826572, -76.55657341657302],
+                [38.31546739500083, -76.55376201277696],
+                [38.31470980862425, -76.54936361414539],
+                [38.31424154692598, -76.54662761646904],
+                [38.31369801280048, -76.54342380058223],
+                [38.31331079191371, -76.54109648475954],
+                [38.31529941346197, -76.54052104837133],
+                [38.31587643291039, -76.54361305817427],
+                [38.31861642463319, -76.54538594175376],
+                [38.31862683616554, -76.55206138505936],
+                [38.31703471119464, -76.55244787859773],
+                [38.31674255749409, -76.55294546866578],
+                [38.31729702009844, -76.55617670782419]
+            ])));
+            setMapData(new Map(mapData.set(MapMode.SearchBound, [
+                [38.314529, -76.545859],
+                [38.314731, -76.545792],
+                [38.314441, -76.544081],
+                [38.314228, -76.544156],
             ])));
             setMapData(new Map(mapData.set(MapMode.MappingBound, [
                 [38.31442311312976, -76.54522971451763], 
@@ -735,9 +800,11 @@ function Input() {
         }
     }
 
+
     useEffect(() => {
         openModal();
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
 
     return (
         <>
@@ -756,8 +823,12 @@ function Input() {
                         Black Mountain
                     </label>
                     <label>
-                        <input type="radio" name="default_location" value="Competition" onClick={() => changingDeafultView("Competition")}/>
-                        Competition
+                        <input type="radio" name="default_location" value="Competition_Left" onClick={() => changingDeafultView("Competition_Left")}/>
+                        Competition Left
+                    </label>
+                    <label>
+                        <input type="radio" name="default_location" value="Competition_Right" onClick={() => changingDeafultView("Competition_Right")}/>
+                        Competition Right
                     </label>
                 </fieldset>
             </MyModal>
@@ -768,14 +839,14 @@ function Input() {
                     <UpdateMapCenter position={defaultView}/>
                 </TuasMap>
                 <div className="right-container">
-                    <MapInputForm 
-                        mapMode={mapMode} 
+                    <MapInputForm
+                        mapMode={mapMode}
                         setMapMode={setMapMode}
                         mapData={mapData}
                         setMapData={setMapData}
                         />
-                    <BottleInputForm 
-                        bottleAssignments={bottleAssignments} 
+                    <BottleInputForm
+                        bottleAssignments={bottleAssignments}
                         setBottleAssignments={setBottleAssignments}
                         />
                     <form className="tuas-form input-controls">
@@ -792,5 +863,6 @@ function Input() {
         </>
     );
 }
+
 
 export default Input;
