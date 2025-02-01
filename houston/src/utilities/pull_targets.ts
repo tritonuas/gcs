@@ -39,7 +39,7 @@ export async function pull_targets(setFoundItemArray: React.Dispatch<React.SetSt
  * @param targets array of matched targets
  * @returns boolean
  */
-export async function post_targets(targets: any) {
+export async function post_targets(targets: { [key: string]: number}) {
     console.log(targets);
 
     // should probably update function signature to already take in this format but whatever
