@@ -762,6 +762,12 @@ function Input() {
                 [38.315895, -76.552519],
                 [38.315607, -76.550800],
             ])));
+            setMapData(new Map(mapData.set(MapMode.MappingBound, [
+                [38.314816, -76.548947], 
+                [38.315460, -76.552653],
+                [38.316639, -76.55233],
+                [38.316016, -76.54860],
+            ])));
         }
         else if(selected == 'Competition_Right'){
             setDefaultView([38.314666970000744, -76.54975138401012]);
@@ -788,15 +794,16 @@ function Input() {
                 [38.314228, -76.544156],
             ])));
             setMapData(new Map(mapData.set(MapMode.MappingBound, [
-                [38.31442311312976, -76.54522971451763], 
-                [38.31421041772561, -76.54400246436776],
-                [38.31440703962630, -76.54394394383165],
-                [38.31461622313521, -76.54516993186949],
+                [38.314669, -76.547987], 
+                [38.315873, -76.547611],
+                [38.315208, -76.54384],
+                [38.314008, -76.544237],
             ])));
         }
         else{
             setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
             setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
+            setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
         }
     }
 
