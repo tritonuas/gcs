@@ -308,7 +308,6 @@ function mapObjectsToOptions() {
                         <select onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             bottle.Object = e.currentTarget.value as unknown as ODLCObjects;
                         }}
-                            disabled={bottle.IsMannikin}
                             >
                             {mapObjectsToOptions()}
                         </select>
