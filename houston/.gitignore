@@ -6,15 +6,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+pids
+*.pid
+*.seed
+*.pid.lock
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# Editor directories and OS files
 .vscode/*
 !.vscode/extensions.json
+.vscode
 .idea
 .DS_Store
 *.suo
@@ -22,3 +23,92 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Media files
+*.mp4
+*.webm
+*.wav
+*.mp3
+
+# Environment files
+*.env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependency directories and package locks
+node_modules/
+jspm_packages/
+bower_components
+web_modules/
+
+# Yarn and pnpm
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp
+.pnp.js
+.pnp.*
+
+# Build directories and output
+dist
+dist-ssr
+build
+build/Release
+public
+.next
+.nuxt
+out
+.vuepress/dist
+**/.vitepress/dist
+**/.vitepress/cache
+.docusaurus
+
+# Testing and Coverage
+/coverage
+coverage
+*.lcov
+.nyc_output
+
+# Caches and temporary files
+.cache
+.parcel-cache
+.grunt
+.lock-wscript
+lib-cov
+*.tsbuildinfo
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.node_repl_history
+*.tgz
+
+# Go-related binaries and files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Miscellaneous
+.gcs
+influx_token.key
+flight-logs
+.temp
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vscode-test
