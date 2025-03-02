@@ -143,3 +143,9 @@ lint-frontend:
 
 lint-backend:
 	golangci-lint run
+
+
+# Just for Kimi <3 <3 uwu just for meee
+# kimi was here
+kimi:
+	git add -A ':!deployments/docker-compose-mac.yml'

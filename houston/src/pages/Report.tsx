@@ -6,7 +6,7 @@ import L from 'leaflet';
 import Button from '@mui/material-next/Button';
 import { red, blue, green, yellow, purple, grey } from '@mui/material/colors';
 import { post_targets, pull_targets } from "../utilities/pull_targets.ts";
-import { MatchedTarget, IdentifiedTarget, Bottle, ODLCColor, ODLCShape, GPSCoord, oDLCShapeToJSON, oDLCColorToJSON, BottleDropIndex } from '../protos/obc.pb';
+import { MatchedTarget, IdentifiedTarget, Bottle, GPSCoord, oDLCObjectsToJSON, BottleDropIndex, ODLCObjects } from '../protos/obc.pb';
 
 type UpdateItemFunction = () => void;
 
@@ -28,7 +28,19 @@ const button_colors = [red[300], blue[300], green[500], yellow[700], purple[300]
  * @param props props
  * @param props.item image to be displayed
  * @param props.matchedItems array of items that we are comparing against
+<<<<<<< HEAD
  * param props.updateMatched function to update matched item
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+ * param props.updateMatched function to update matched items
+=======
+ * param props.updateMatched function to update matched item
+>>>>>>> e72a5ee (mapping bound prototype)
+=======
+ * param props.updateMatched function to update matched items
+>>>>>>> origin/feat/135-targetrename
+>>>>>>> feat/merge/140/142-143
  * @returns image container
  */
 function Image({item, matchedItems}: ImageProps) {
@@ -65,9 +77,7 @@ function Image({item, matchedItems}: ImageProps) {
         <div className="image-container" style={backgroundColor}>
             <img src={`data:image/png;base64,${item.Picture}`} alt="target" className="image" />
             <p className="image-data-lat-long">[{item.coordinate?.Latitude}, {item.coordinate?.Longitude}]</p>
-            {item.Alphanumeric !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.Alphanumeric}</p> : null}
-            <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
-            <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
+            <p className="image-data"><b>Object:</b> {oDLCObjectsToJSON(item.Object)}</p>
             <Button 
                 className='button' 
                 size="small" 
@@ -82,9 +92,7 @@ function Image({item, matchedItems}: ImageProps) {
         <div className="image-container">
             <img src={`data:image/png;base64,${item.Picture}`} alt="target" className="image" />
             <p className="image-data-lat-long">[{item.coordinate?.Latitude}, {item.coordinate?.Longitude}]</p>
-            {item.Alphanumeric !== "null" ?<p className="image-data"><b>Bottle Letter:</b> {item.Alphanumeric}</p> : null}
-            <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
-            <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
+            <p className="image-data"><b>Objects:</b> {oDLCObjectsToJSON(item.Object)} </p>
             <Button 
                 className='button' 
                 size="small" 
@@ -112,9 +120,7 @@ function BottleImage({item, matchedItems} : BottleProps) {
         <div className="image-container" style={backgroundColor}>
             <p className="image-data"><b>Bottle Letter:</b> {item.Index}</p>
             {/* not using function to parse item.Index cause that is being passed down as a string not the bespoke enum */}
-            <p className="image-data"><b>Alphanumeric:</b> {oDLCColorToJSON(item.AlphanumericColor)} {item.Alphanumeric}</p>
-            <p className="image-data"><b>Shape:</b> {oDLCColorToJSON(item.ShapeColor)} {oDLCShapeToJSON(item.Shape)}</p>
-            <p className="image-data"><b>Is Mannikin:</b> {item.IsMannikin ? "Yes" : "No"}</p>
+            <p className="image-data"><b>Object:</b> {oDLCObjectsToJSON(item.Object)} </p>
             <p className="image-data"><b>Target ID:</b> {matchedItems[matchIndex].Target?.id}</p>
         </div>
     )
@@ -129,21 +135,13 @@ const dummyItem : IdentifiedTarget = {
         Longitude: 103.8894,
         Altitude:  0,
     }),
-    AlphanumericColor: ODLCColor.Blue,
-    Alphanumeric:      "A",
-    Shape:             ODLCShape.Circle,
-    ShapeColor:        ODLCColor.Red,
-    IsMannikin:        false,
+    Object: ODLCObjects.Mattress,
 };
 
 const dummyItem1: MatchedTarget = {
     Bottle: Bottle.fromJSON({
-        Alphanumeric: "A",
-        AlphanumericColor: ODLCColor.Blue,
-        Shape: ODLCShape.Circle,
-        ShapeColor: ODLCColor.Red,
         Index: BottleDropIndex.A,
-        IsMannikin: false,
+        Object: ODLCObjects.Airplane,
     }),
     Target: dummyItem,
 };
@@ -241,12 +239,12 @@ function Report() {
             <TuasMap className={'report-page-map'} lat={lat} lng={lng}>
                 {matchedArray.map((marker) => (
                     <Marker key={marker.Target!.id} position={[marker.Target!.coordinate?.Latitude || lat, marker.Target!.coordinate?.Longitude || lng]} icon={matchedIcons[matchedArray.indexOf(marker)]}>
-                        <Popup>{oDLCColorToJSON(marker.Target!.AlphanumericColor)} {marker.Target!.Alphanumeric} {oDLCColorToJSON(marker.Target!.ShapeColor)} {oDLCShapeToJSON(marker.Target!.Shape)}</Popup>
+                        <Popup> {oDLCObjectsToJSON(marker.Target!.Object)}</Popup>
                     </Marker>
                 ))}
                 {unmatchedArray.map((marker) => (
                     <Marker key={marker.id} position={[marker.coordinate?.Latitude || lat, marker.coordinate?.Longitude || lng]} icon={unmatchedIcons[unmatchedArray.indexOf(marker)]}>
-                        <Popup>{oDLCColorToJSON(marker.AlphanumericColor)} {marker.Alphanumeric} {oDLCColorToJSON(marker.ShapeColor)} {oDLCShapeToJSON(marker.Shape)}</Popup>
+                        <Popup>{oDLCObjectsToJSON(marker.Object)}</Popup>
                     </Marker>
                 ))}
             </TuasMap>
