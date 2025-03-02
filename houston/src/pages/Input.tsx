@@ -6,83 +6,83 @@ import "./Input.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
 import {
-	Bottle,
-	BottleDropIndex,
-	GPSCoord,
-	Mission,
-	ODLCObjects,
+    Bottle,
+    BottleDropIndex,
+    GPSCoord,
+    Mission,
+    ODLCObjects,
 } from "../protos/obc.pb";
 import MyModal from "../components/MyModal";
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import { useMyModal } from "../components/UseMyModal";
 
 enum MapMode {
-	FlightBound,
-	SearchBound,
-	MappingBound,
-	Waypoint,
-	InitialPath,
-	SearchPath,
+    FlightBound,
+    SearchBound,
+    MappingBound,
+    Waypoint,
+    InitialPath,
+    SearchPath,
 }
 
 enum ShapeType {
-	Line,
-	Polygon,
-	Discrete,
+    Line,
+    Polygon,
+    Discrete,
 }
 
 interface MapModeConfig {
-	color: string;
-	headings: string[];
-	type: ShapeType;
-	editable: boolean;
+    color: string;
+    headings: string[];
+    type: ShapeType;
+    editable: boolean;
 }
 
 const getModeConfig = (mapMode: MapMode) => {
-	switch (mapMode) {
-		case MapMode.FlightBound:
-			return {
-				color: "red",
-				headings: ["Latitude", "Longitude"],
-				type: ShapeType.Polygon,
-				editable: true,
-			} as MapModeConfig;
-		case MapMode.SearchBound:
-			return {
-				color: "blue",
-				headings: ["Latitude", "Longitude"],
-				type: ShapeType.Polygon,
-				editable: true,
-			} as MapModeConfig;
-		case MapMode.MappingBound:
-			return {
-				color: "orange",
-				headings: ["Latitude", "Longitude"],
-				type: ShapeType.Polygon,
-				editable: true,
-			} as MapModeConfig;
-		case MapMode.Waypoint:
-			return {
-				color: "yellow",
-				headings: ["Latitude", "Longitude", "Altitude"],
-				type: ShapeType.Line,
-				editable: true,
-			} as MapModeConfig;
-		case MapMode.InitialPath:
-			return {
-				color: "lightgreen",
-				headings: ["Latitude", "Longitude", "Altitude"],
-				type: ShapeType.Line,
-				editable: false,
-			} as MapModeConfig;
-		case MapMode.SearchPath:
-			return {
-				color: "violet",
-				headings: ["Latitude", "Longitude", "Altitude"],
-				type: ShapeType.Discrete,
-				editable: false,
-			} as MapModeConfig;
-	}
+    switch (mapMode) {
+        case MapMode.FlightBound:
+            return {
+                color: "red",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Polygon,
+                editable: true,
+            } as MapModeConfig;
+        case MapMode.SearchBound:
+            return {
+                color: "blue",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Polygon,
+                editable: true,
+            } as MapModeConfig;
+        case MapMode.MappingBound:
+            return {
+                color: "orange",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Polygon,
+                editable: true,
+            } as MapModeConfig;
+        case MapMode.Waypoint:
+            return {
+                color: "yellow",
+                headings: ["Latitude", "Longitude", "Altitude"],
+                type: ShapeType.Line,
+                editable: true,
+            } as MapModeConfig;
+        case MapMode.InitialPath:
+            return {
+                color: "lightgreen",
+                headings: ["Latitude", "Longitude", "Altitude"],
+                type: ShapeType.Line,
+                editable: false,
+            } as MapModeConfig;
+        case MapMode.SearchPath:
+            return {
+                color: "violet",
+                headings: ["Latitude", "Longitude", "Altitude"],
+                type: ShapeType.Discrete,
+                editable: false,
+            } as MapModeConfig;
+    }
 };
 
 /**
@@ -97,109 +97,109 @@ const getModeConfig = (mapMode: MapMode) => {
  * @returns FormTable
  */
 function FormTable({
-	headings,
-	mapMode,
-	mapData,
-	setMapData,
+    headings,
+    mapMode,
+    mapData,
+    setMapData,
 }: {
-	headings: string[];
-	mapMode: MapMode;
-	mapData: Map<MapMode, number[][]>;
-	setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
+    headings: string[];
+    mapMode: MapMode;
+    mapData: Map<MapMode, number[][]>;
+    setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
 }) {
-	// add extra left column for the X button
-	headings = ["---"].concat(headings);
+    // add extra left column for the X button
+    headings = ["---"].concat(headings);
 
-	return (
-		<>
-			<table>
-				<thead>
-					<tr>
-						{headings.map((str, i) => (
-							<th key={i}>{str}</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{mapData.get(mapMode)?.map((row, i) => {
-						return (
-							<tr key={i}>
-								<td>
-									<input
-										type="button"
-										className="del-btn"
-										value="X"
-										onClick={() => {
-											const data = mapData.get(mapMode);
-											if (
-												!getModeConfig(mapMode).editable
-											) {
-												return;
-											}
+    return (
+        <>
+            <table>
+                <thead>
+                    <tr>
+                        {headings.map((str, i) => (
+                            <th key={i}>{str}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {mapData.get(mapMode)?.map((row, i) => {
+                        return (
+                            <tr key={i}>
+                                <td>
+                                    <input
+                                        type="button"
+                                        className="del-btn"
+                                        value="X"
+                                        onClick={() => {
+                                            const data = mapData.get(mapMode);
+                                            if (
+                                                !getModeConfig(mapMode).editable
+                                            ) {
+                                                return;
+                                            }
 
-											setMapData((mapData) => {
-												if (data !== undefined) {
-													const temp = data
-														.slice(0, i)
-														.concat(
-															data.slice(i + 1)
-														);
-													return new Map(
-														mapData.set(
-															mapMode,
-															temp
-														)
-													);
-												} else {
-													return mapData; // should never happen
-												}
-											});
-										}}
-									/>
-								</td>
-								{row.map((num, j) => {
-									return (
-										<td key={j}>
-											<input
-												type="number"
-												key={
-													mapMode.toString() +
-													mapData
-														.get(mapMode)
-														?.at(i)
-														?.at(j)
-												}
-												step="any"
-												defaultValue={num}
-												onChange={(e) => {
-													const newArr =
-														mapData.get(mapMode);
-													if (newArr == undefined) {
-														return;
-													}
-													newArr[i][j] = Number(
-														e.target.value
-													);
-													setMapData(
-														new Map(
-															mapData.set(
-																mapMode,
-																newArr
-															)
-														)
-													);
-												}}
-											/>
-										</td>
-									);
-								})}
-							</tr>
-						);
-					})}
-				</tbody>
-			</table>
-		</>
-	);
+                                            setMapData((mapData) => {
+                                                if (data !== undefined) {
+                                                    const temp = data
+                                                        .slice(0, i)
+                                                        .concat(
+                                                            data.slice(i + 1)
+                                                        );
+                                                    return new Map(
+                                                        mapData.set(
+                                                            mapMode,
+                                                            temp
+                                                        )
+                                                    );
+                                                } else {
+                                                    return mapData; // should never happen
+                                                }
+                                            });
+                                        }}
+                                    />
+                                </td>
+                                {row.map((num, j) => {
+                                    return (
+                                        <td key={j}>
+                                            <input
+                                                type="number"
+                                                key={
+                                                    mapMode.toString() +
+                                                    mapData
+                                                        .get(mapMode)
+                                                        ?.at(i)
+                                                        ?.at(j)
+                                                }
+                                                step="any"
+                                                defaultValue={num}
+                                                onChange={(e) => {
+                                                    const newArr =
+                                                        mapData.get(mapMode);
+                                                    if (newArr == undefined) {
+                                                        return;
+                                                    }
+                                                    newArr[i][j] = Number(
+                                                        e.target.value
+                                                    );
+                                                    setMapData(
+                                                        new Map(
+                                                            mapData.set(
+                                                                mapMode,
+                                                                newArr
+                                                            )
+                                                        )
+                                                    );
+                                                }}
+                                            />
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </>
+    );
 }
 
 /**
@@ -220,112 +220,112 @@ function FormTable({
  * @returns MapInputForm
  */
 function MapInputForm({
-	mapMode,
-	setMapMode,
-	mapData,
-	setMapData,
+    mapMode,
+    setMapMode,
+    mapData,
+    setMapData,
 }: {
-	mapMode: MapMode;
-	setMapMode: React.Dispatch<SetStateAction<MapMode>>;
-	mapData: Map<MapMode, number[][]>;
-	setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
+    mapMode: MapMode;
+    setMapMode: React.Dispatch<SetStateAction<MapMode>>;
+    mapData: Map<MapMode, number[][]>;
+    setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
 }) {
-	return (
-		<>
-			<form className="tuas-form">
-				<fieldset>
-					<legend>Map Input</legend>
-					<div className="button-container">
-						{Object.keys(MapMode)
-							.filter((v) => isNaN(Number(v)))
-							.map((v, i) => {
-								return (
-									<input
-										key={i}
-										data-selected={
-											mapMode ==
-											MapMode[v as keyof typeof MapMode]
-										}
-										type="button"
-										readOnly={
-											!getModeConfig(mapMode).editable
-										}
-										value={v}
-										onClick={() => {
-											setMapMode(
-												MapMode[
-													v as keyof typeof MapMode
-												]
-											);
-										}}
-									/>
-								);
-							})}
-						<input
-							type="button"
-							value="+"
-							className="add-btn"
-							onClick={() => {
-								if (!getModeConfig(mapMode).editable) {
-									return;
-								}
-								const data = mapData.get(mapMode);
-								const headingLength =
-									getModeConfig(mapMode).headings.length;
-								const newRow = new Array(headingLength).fill(0);
+    return (
+        <>
+            <form className="tuas-form">
+                <fieldset>
+                    <legend>Map Input</legend>
+                    <div className="button-container">
+                        {Object.keys(MapMode)
+                            .filter((v) => isNaN(Number(v)))
+                            .map((v, i) => {
+                                return (
+                                    <input
+                                        key={i}
+                                        data-selected={
+                                            mapMode ==
+                                            MapMode[v as keyof typeof MapMode]
+                                        }
+                                        type="button"
+                                        readOnly={
+                                            !getModeConfig(mapMode).editable
+                                        }
+                                        value={v}
+                                        onClick={() => {
+                                            setMapMode(
+                                                MapMode[
+                                                    v as keyof typeof MapMode
+                                                ]
+                                            );
+                                        }}
+                                    />
+                                );
+                            })}
+                        <input
+                            type="button"
+                            value="+"
+                            className="add-btn"
+                            onClick={() => {
+                                if (!getModeConfig(mapMode).editable) {
+                                    return;
+                                }
+                                const data = mapData.get(mapMode);
+                                const headingLength =
+                                    getModeConfig(mapMode).headings.length;
+                                const newRow = new Array(headingLength).fill(0);
 
-								setMapData((mapData) => {
-									if (data !== undefined) {
-										return new Map(
-											mapData.set(
-												mapMode,
-												data.concat([newRow])
-											)
-										);
-									} else {
-										return new Map(
-											mapData.set(mapMode, [newRow])
-										);
-									}
-								});
-							}}
-						/>
-						<input
-							type="button"
-							value="-"
-							className="del-btn"
-							onClick={() => {
-								const data = mapData.get(mapMode);
-								if (!getModeConfig(mapMode).editable) {
-									return;
-								}
+                                setMapData((mapData) => {
+                                    if (data !== undefined) {
+                                        return new Map(
+                                            mapData.set(
+                                                mapMode,
+                                                data.concat([newRow])
+                                            )
+                                        );
+                                    } else {
+                                        return new Map(
+                                            mapData.set(mapMode, [newRow])
+                                        );
+                                    }
+                                });
+                            }}
+                        />
+                        <input
+                            type="button"
+                            value="-"
+                            className="del-btn"
+                            onClick={() => {
+                                const data = mapData.get(mapMode);
+                                if (!getModeConfig(mapMode).editable) {
+                                    return;
+                                }
 
-								setMapData((mapData) => {
-									if (data !== undefined && data.length > 0) {
-										return new Map(
-											mapData.set(
-												mapMode,
-												data.slice(0, -1)
-											)
-										);
-									} else {
-										// can't remove anything if data is undefined because there is already nothing
-										return mapData;
-									}
-								});
-							}}
-						/>
-					</div>
-					<FormTable
-						headings={getModeConfig(mapMode).headings}
-						mapMode={mapMode}
-						mapData={mapData}
-						setMapData={setMapData}
-					/>
-				</fieldset>
-			</form>
-		</>
-	);
+                                setMapData((mapData) => {
+                                    if (data !== undefined && data.length > 0) {
+                                        return new Map(
+                                            mapData.set(
+                                                mapMode,
+                                                data.slice(0, -1)
+                                            )
+                                        );
+                                    } else {
+                                        // can't remove anything if data is undefined because there is already nothing
+                                        return mapData;
+                                    }
+                                });
+                            }}
+                        />
+                    </div>
+                    <FormTable
+                        headings={getModeConfig(mapMode).headings}
+                        mapMode={mapMode}
+                        mapData={mapData}
+                        setMapData={setMapData}
+                    />
+                </fieldset>
+            </form>
+        </>
+    );
 }
 
 /**
@@ -337,77 +337,77 @@ function MapInputForm({
  * @returns Bottle Input Form
  */
 function BottleInputForm({
-	bottleAssignments,
-	setBottleAssignments,
+    bottleAssignments,
+    setBottleAssignments,
 }: {
-	bottleAssignments: Bottle[];
-	setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>;
+    bottleAssignments: Bottle[];
+    setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>;
 }) {
-	/**
-	 * Maps the keys of the `ODLCObjects` object to an array of JSX `<option>` elements.
-	 * Filters out numeric keys before mapping.
-	 * @returns An array of JSX `<option>` elements.
-	 */
-	function mapObjectsToOptions() {
-		return (Object.keys(ODLCObjects) as unknown as Array<ODLCObjects>)
-			.filter((object) => {
-				return isNaN(Number(object)); // Filters out numeric keys
-			})
-			.map((object) => {
-				return (
-					<>
-						<option key={object} value={object}>
-							{object}
-						</option>
-					</>
-				);
-			});
-	}
+    /**
+     * Maps the keys of the `ODLCObjects` object to an array of JSX `<option>` elements.
+     * Filters out numeric keys before mapping.
+     * @returns An array of JSX `<option>` elements.
+     */
+    function mapObjectsToOptions() {
+        return (Object.keys(ODLCObjects) as unknown as Array<ODLCObjects>)
+            .filter((object) => {
+                return isNaN(Number(object)); // Filters out numeric keys
+            })
+            .map((object) => {
+                return (
+                    <>
+                        <option key={object} value={object}>
+                            {object}
+                        </option>
+                    </>
+                );
+            });
+    }
 
-	const bottleInput = (bottle: Bottle) => {
-		return (
-			<>
-				<fieldset key={bottle.Index}>
-					<legend>Bottle {bottle.Index.toString()}</legend>
-					<label>
-						Object:
-						<select
-							onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-								bottle.Object = e.currentTarget
-									.value as unknown as ODLCObjects;
-							}}
-						>
-							{mapObjectsToOptions()}
-						</select>
-					</label>
-				</fieldset>
-			</>
-		);
-	};
+    const bottleInput = (bottle: Bottle) => {
+        return (
+            <>
+                <fieldset key={bottle.Index}>
+                    <legend>Bottle {bottle.Index.toString()}</legend>
+                    <label>
+                        Object:
+                        <select
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                                bottle.Object = e.currentTarget
+                                    .value as unknown as ODLCObjects;
+                            }}
+                        >
+                            {mapObjectsToOptions()}
+                        </select>
+                    </label>
+                </fieldset>
+            </>
+        );
+    };
 
-	useEffect(() => {
-		const bottles = [];
-		for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
-			const bottle = {
-				Index: i,
-			} as Bottle;
-			bottles.push(bottle);
-		}
-		setBottleAssignments(bottles);
-	}, [setBottleAssignments]);
+    useEffect(() => {
+        const bottles = [];
+        for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
+            const bottle = {
+                Index: i,
+            } as Bottle;
+            bottles.push(bottle);
+        }
+        setBottleAssignments(bottles);
+    }, [setBottleAssignments]);
 
-	return (
-		<>
-			<form className="tuas-form">
-				<fieldset>
-					<legend>Bottle Input</legend>
-					<div className="bottle-form-container">
-						{bottleAssignments.map((bottle) => bottleInput(bottle))}
-					</div>
-				</fieldset>
-			</form>
-		</>
-	);
+    return (
+        <>
+            <form className="tuas-form">
+                <fieldset>
+                    <legend>Bottle Input</legend>
+                    <div className="bottle-form-container">
+                        {bottleAssignments.map((bottle) => bottleInput(bottle))}
+                    </div>
+                </fieldset>
+            </form>
+        </>
+    );
 }
 
 /**
@@ -421,40 +421,40 @@ function BottleInputForm({
  * @returns MapClickHandler
  */
 function MapClickHandler({
-	mapMode,
-	mapData,
-	setMapData,
+    mapMode,
+    mapData,
+    setMapData,
 }: {
-	mapMode: MapMode;
-	mapData: Map<MapMode, number[][]>;
-	setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
+    mapMode: MapMode;
+    mapData: Map<MapMode, number[][]>;
+    setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
 }) {
-	useMapEvents({
-		click(e) {
-			const config = getModeConfig(mapMode);
-			if (!config.editable) {
-				return;
-			}
+    useMapEvents({
+        click(e) {
+            const config = getModeConfig(mapMode);
+            if (!config.editable) {
+                return;
+            }
 
-			// Update the data state variable
-			let data = mapData.get(mapMode);
-			if (data == undefined) {
-				data = [];
-			}
+            // Update the data state variable
+            let data = mapData.get(mapMode);
+            if (data == undefined) {
+                data = [];
+            }
 
-			const newData = (() => {
-				if (config.headings.length == 2) {
-					return [...data, [e.latlng.lat, e.latlng.lng]];
-				} else {
-					return [...data, [e.latlng.lat, e.latlng.lng, 75]]; // fill in 75 for default alt
-				}
-			})();
+            const newData = (() => {
+                if (config.headings.length == 2) {
+                    return [...data, [e.latlng.lat, e.latlng.lng]];
+                } else {
+                    return [...data, [e.latlng.lat, e.latlng.lng, 75]]; // fill in 75 for default alt
+                }
+            })();
 
-			setMapData(new Map(mapData.set(mapMode, newData)));
-		},
-	});
+            setMapData(new Map(mapData.set(mapMode, newData)));
+        },
+    });
 
-	return <>{null}</>;
+    return <>{null}</>;
 }
 
 /**
@@ -465,48 +465,48 @@ function MapClickHandler({
  * @returns MapIllustrator
  */
 function MapIllustrator({ mapData }: { mapData: Map<MapMode, number[][]> }) {
-	return (
-		<>
-			{Array.from(mapData).map(([mode, currData]) => {
-				const currConfig = getModeConfig(mode);
-				const parsedData = currData.map(
-					(latlng) => new LatLng(latlng[0], latlng[1])
-				);
+    return (
+        <>
+            {Array.from(mapData).map(([mode, currData]) => {
+                const currConfig = getModeConfig(mode);
+                const parsedData = currData.map(
+                    (latlng) => new LatLng(latlng[0], latlng[1])
+                );
 
-				switch (currConfig.type) {
-					case ShapeType.Line:
-						return (
-							<Polyline
-								key={JSON.stringify(parsedData)}
-								color={currConfig.color}
-								positions={parsedData}
-							/>
-						);
-					case ShapeType.Polygon:
-						return (
-							<Polygon
-								key={JSON.stringify(parsedData)}
-								color={currConfig.color}
-								positions={[parsedData]}
-							/>
-						);
-					case ShapeType.Discrete:
-						// Idk why the fuck I can't map this to <Marker> tags... so doing this stupid hack
-						// ok on second thought this probably looks better with how many markers there would be
-						return (
-							<>
-								{parsedData.map((latlng, index) => (
-									<Polyline
-										key={index}
-										positions={[latlng, latlng]}
-									></Polyline>
-								))}
-							</>
-						);
-				}
-			})}
-		</>
-	);
+                switch (currConfig.type) {
+                    case ShapeType.Line:
+                        return (
+                            <Polyline
+                                key={JSON.stringify(parsedData)}
+                                color={currConfig.color}
+                                positions={parsedData}
+                            />
+                        );
+                    case ShapeType.Polygon:
+                        return (
+                            <Polygon
+                                key={JSON.stringify(parsedData)}
+                                color={currConfig.color}
+                                positions={[parsedData]}
+                            />
+                        );
+                    case ShapeType.Discrete:
+                        // Idk why the fuck I can't map this to <Marker> tags... so doing this stupid hack
+                        // ok on second thought this probably looks better with how many markers there would be
+                        return (
+                            <>
+                                {parsedData.map((latlng, index) => (
+                                    <Polyline
+                                        key={index}
+                                        positions={[latlng, latlng]}
+                                    ></Polyline>
+                                ))}
+                            </>
+                        );
+                }
+            })}
+        </>
+    );
 }
 
 /**
@@ -520,405 +520,405 @@ function MapIllustrator({ mapData }: { mapData: Map<MapMode, number[][]> }) {
  * @returns Input page
  */
 function Input() {
-	// TODO: simplify all of these state variables into one mission state variable
-	// so instead of number[][] its actually storing them as GPS Coords...
-	const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
-	const [mapData, setMapData] = useState<Map<MapMode, number[][]>>(new Map());
-	const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
+    // TODO: simplify all of these state variables into one mission state variable
+    // so instead of number[][] its actually storing them as GPS Coords...
+    const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
+    const [mapData, setMapData] = useState<Map<MapMode, number[][]>>(new Map());
+    const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
 
-	const [modalType, setModalType] = useState<"default" | "error">("default");
-	const [modalMsg, setModalMsg] = useState("");
-	const [msgModalVisible, setMsgModalVisible] = useState(false);
-	const [defaultView, setDefaultView] = useState<[number, number]>([51, 10]);
-	const { modalVisible, openModal, closeModal } = useMyModal();
+    const [modalType, setModalType] = useState<"default" | "error">("default");
+    const [modalMsg, setModalMsg] = useState("");
+    const [msgModalVisible, setMsgModalVisible] = useState(false);
+    const [defaultView, setDefaultView] = useState<[number, number]>([51, 10]);
+    const { modalVisible, openModal, closeModal } = useMyModal();
 
-	/**
-	 *
-	 * @param msg Message to display in the modal as an error
-	 */
-	function displayError(msg: string) {
-		setModalType("error");
-		setModalMsg(msg);
-		setMsgModalVisible(true);
-	}
+    /**
+     *
+     * @param msg Message to display in the modal as an error
+     */
+    function displayError(msg: string) {
+        setModalType("error");
+        setModalMsg(msg);
+        setMsgModalVisible(true);
+    }
 
-	/**
-	 *
-	 * @param msg Message to display in the modal as normal text
-	 */
-	function displayMsg(msg: string) {
-		setModalType("default");
-		setModalMsg(msg);
-		setMsgModalVisible(true);
-	}
+    /**
+     *
+     * @param msg Message to display in the modal as normal text
+     */
+    function displayMsg(msg: string) {
+        setModalType("default");
+        setModalMsg(msg);
+        setMsgModalVisible(true);
+    }
 
-	/**
-	 * Takes the current state of all the inputs and posts to Hub
-	 */
-	function submitMission() {
-		const mapDataToGpsCoords = (mode: MapMode) => {
-			const config = getModeConfig(mode);
+    /**
+     * Takes the current state of all the inputs and posts to Hub
+     */
+    function submitMission() {
+        const mapDataToGpsCoords = (mode: MapMode) => {
+            const config = getModeConfig(mode);
 
-			return (
-				mapData.get(mode)?.map((row) => {
-					return {
-						Latitude: row[config.headings.indexOf("Latitude")],
-						Longitude: row[config.headings.indexOf("Longitude")],
-						Altitude: row[config.headings.indexOf("Altitude")],
-					} as GPSCoord;
-				}) || []
-			);
-		};
+            return (
+                mapData.get(mode)?.map((row) => {
+                    return {
+                        Latitude: row[config.headings.indexOf("Latitude")],
+                        Longitude: row[config.headings.indexOf("Longitude")],
+                        Altitude: row[config.headings.indexOf("Altitude")],
+                    } as GPSCoord;
+                }) || []
+            );
+        };
 
-		const mission: Mission = {
-			BottleAssignments: bottleAssignments,
-			FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
-			AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
-			MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
-			Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
-		};
+        const mission: Mission = {
+            BottleAssignments: bottleAssignments,
+            FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
+            AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
+            MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
+            Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
+        };
 
-		fetch("/api/mission", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(mission),
-		})
-			.then((response) => {
-				if (response.status == 200) {
-					return response.text();
-				} else {
-					throw response.text();
-				}
-			})
-			.then((succ_msg) => {
-				displayMsg(succ_msg);
-			})
-			.catch((err_msg) => {
-				console.error(err_msg);
-				displayError(
-					"An error occured while uploading the mission. See the console for more info."
-				);
-			});
-	}
+        fetch("/api/mission", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(mission),
+        })
+            .then((response) => {
+                if (response.status == 200) {
+                    return response.text();
+                } else {
+                    throw response.text();
+                }
+            })
+            .then((succ_msg) => {
+                displayMsg(succ_msg);
+            })
+            .catch((err_msg) => {
+                console.error(err_msg);
+                displayError(
+                    "An error occured while uploading the mission. See the console for more info."
+                );
+            });
+    }
 
-	/**
-	 * Helper function to request the initial path from the OBC
-	 */
-	function requestPath() {
-		fetch("/api/path/initial")
-			.then((resp) => {
-				if (resp.status == 200) {
-					return resp.json();
-				} else {
-					throw resp.text();
-				}
-			})
-			.then((path) => {
-				const pathJson = path as {
-					Latitude: number;
-					Longitude: number;
-					Altitude: number;
-				}[];
-				const data = pathJson.map((obj) => [
-					obj.Latitude,
-					obj.Longitude,
-					obj.Altitude,
-				]);
+    /**
+     * Helper function to request the initial path from the OBC
+     */
+    function requestPath() {
+        fetch("/api/path/initial")
+            .then((resp) => {
+                if (resp.status == 200) {
+                    return resp.json();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then((path) => {
+                const pathJson = path as {
+                    Latitude: number;
+                    Longitude: number;
+                    Altitude: number;
+                }[];
+                const data = pathJson.map((obj) => [
+                    obj.Latitude,
+                    obj.Longitude,
+                    obj.Altitude,
+                ]);
 
-				setMapData((mapData) => {
-					return new Map(mapData.set(MapMode.InitialPath, data));
-				});
-			})
-			.catch((err) => {
-				console.error(err);
-				displayError(
-					"An error occured while requesting the initial path. See the console for more info."
-				);
-			});
-		fetch("/api/path/coverage")
-			.then((resp) => {
-				if (resp.status == 200) {
-					return resp.json();
-				} else {
-					throw resp.text();
-				}
-			})
-			.then((path) => {
-				const pathJson = path as {
-					Latitude: number;
-					Longitude: number;
-					Altitude: number;
-				}[];
-				const data = pathJson.map((obj) => [
-					obj.Latitude,
-					obj.Longitude,
-					obj.Altitude,
-				]);
+                setMapData((mapData) => {
+                    return new Map(mapData.set(MapMode.InitialPath, data));
+                });
+            })
+            .catch((err) => {
+                console.error(err);
+                displayError(
+                    "An error occured while requesting the initial path. See the console for more info."
+                );
+            });
+        fetch("/api/path/coverage")
+            .then((resp) => {
+                if (resp.status == 200) {
+                    return resp.json();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then((path) => {
+                const pathJson = path as {
+                    Latitude: number;
+                    Longitude: number;
+                    Altitude: number;
+                }[];
+                const data = pathJson.map((obj) => [
+                    obj.Latitude,
+                    obj.Longitude,
+                    obj.Altitude,
+                ]);
 
-				setMapData((mapData) => {
-					return new Map(mapData.set(MapMode.SearchPath, data));
-				});
-			})
-			.catch((err) => {
-				console.error(err);
-				displayError(
-					"An error occured while requesting the initial path. See the console for more info."
-				);
-			});
-	}
+                setMapData((mapData) => {
+                    return new Map(mapData.set(MapMode.SearchPath, data));
+                });
+            })
+            .catch((err) => {
+                console.error(err);
+                displayError(
+                    "An error occured while requesting the initial path. See the console for more info."
+                );
+            });
+    }
 
-	/**
-	 * Helper function to validate the initial path from the OBC
-	 */
-	function validatePath() {
-		fetch("/api/path/initial/validate", { method: "POST" })
-			.then((resp) => {
-				if (resp.status == 200) {
-					return resp.text();
-				} else {
-					throw resp.text();
-				}
-			})
-			.then((resp) => displayMsg(resp))
-			.catch((err) => {
-				console.error(err);
-				displayError(
-					"An error occured while uploading the mission. See the console for more info."
-				);
-			});
-	}
+    /**
+     * Helper function to validate the initial path from the OBC
+     */
+    function validatePath() {
+        fetch("/api/path/initial/validate", { method: "POST" })
+            .then((resp) => {
+                if (resp.status == 200) {
+                    return resp.text();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then((resp) => displayMsg(resp))
+            .catch((err) => {
+                console.error(err);
+                displayError(
+                    "An error occured while uploading the mission. See the console for more info."
+                );
+            });
+    }
 
-	/**
-	 * Helper function to generate a new path from the OBC
-	 */
-	function generateNewPath() {
-		fetch("/api/path/initial/new")
-			.then((resp) => {
-				if (resp.status == 200) {
-					return resp.text();
-				} else {
-					throw resp.text();
-				}
-			})
-			.then((resp) => displayMsg(resp))
-			.catch((err) => {
-				console.error(err);
-				displayError(
-					"An error occured while uploading the mission. See the console for more info."
-				);
-			});
-	}
+    /**
+     * Helper function to generate a new path from the OBC
+     */
+    function generateNewPath() {
+        fetch("/api/path/initial/new")
+            .then((resp) => {
+                if (resp.status == 200) {
+                    return resp.text();
+                } else {
+                    throw resp.text();
+                }
+            })
+            .then((resp) => displayMsg(resp))
+            .catch((err) => {
+                console.error(err);
+                displayError(
+                    "An error occured while uploading the mission. See the console for more info."
+                );
+            });
+    }
 
-	/**
-	 * Heper function that sets variable (defaultView) to either
-	 * black mountain coordinates or competition coordinates.
-	 * @param selected The location selected.
-	 */
-	function changingDeafultView(selected: string) {
-		if (selected == "Black_Mountain") {
-			setDefaultView([32.990781135309724, -117.12830536731832]);
-			setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
-			setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-			setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
-		} else if (selected == "Competition_Left") {
-			setDefaultView([38.314666970000744, -76.54975138401012]);
-			setMapData(
-				new Map(
-					mapData.set(MapMode.FlightBound, [
-						[38.31729702009844, -76.55617670782419],
-						[38.31594832826572, -76.55657341657302],
-						[38.31546739500083, -76.55376201277696],
-						[38.31470980862425, -76.54936361414539],
-						[38.31424154692598, -76.54662761646904],
-						[38.31369801280048, -76.54342380058223],
-						[38.31331079191371, -76.54109648475954],
-						[38.31529941346197, -76.54052104837133],
-						[38.31587643291039, -76.54361305817427],
-						[38.31861642463319, -76.54538594175376],
-						[38.31862683616554, -76.55206138505936],
-						[38.31703471119464, -76.55244787859773],
-						[38.31674255749409, -76.55294546866578],
-						[38.31729702009844, -76.55617670782419],
-					])
-				)
-			);
-			setMapData(
-				new Map(
-					mapData.set(MapMode.SearchBound, [
-						[38.315386, -76.550875],
-						[38.315683, -76.552586],
-						[38.315895, -76.552519],
-						[38.315607, -76.5508],
-					])
-				)
-			);
-			setMapData(
-				new Map(
-					mapData.set(MapMode.MappingBound, [
-						[38.314816, -76.548947],
-						[38.31546, -76.552653],
-						[38.316639, -76.55233],
-						[38.316016, -76.5486],
-					])
-				)
-			);
-		} else if (selected == "Competition_Right") {
-			setDefaultView([38.314666970000744, -76.54975138401012]);
-			setMapData(
-				new Map(
-					mapData.set(MapMode.FlightBound, [
-						[38.31729702009844, -76.55617670782419],
-						[38.31594832826572, -76.55657341657302],
-						[38.31546739500083, -76.55376201277696],
-						[38.31470980862425, -76.54936361414539],
-						[38.31424154692598, -76.54662761646904],
-						[38.31369801280048, -76.54342380058223],
-						[38.31331079191371, -76.54109648475954],
-						[38.31529941346197, -76.54052104837133],
-						[38.31587643291039, -76.54361305817427],
-						[38.31861642463319, -76.54538594175376],
-						[38.31862683616554, -76.55206138505936],
-						[38.31703471119464, -76.55244787859773],
-						[38.31674255749409, -76.55294546866578],
-						[38.31729702009844, -76.55617670782419],
-					])
-				)
-			);
-			setMapData(
-				new Map(
-					mapData.set(MapMode.SearchBound, [
-						[38.314529, -76.545859],
-						[38.314731, -76.545792],
-						[38.314441, -76.544081],
-						[38.314228, -76.544156],
-					])
-				)
-			);
-			setMapData(
-				new Map(
-					mapData.set(MapMode.MappingBound, [
-						[38.314669, -76.547987],
-						[38.315873, -76.547611],
-						[38.315208, -76.54384],
-						[38.314008, -76.544237],
-					])
-				)
-			);
-		} else {
-			setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
-			setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-			setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
-		}
-	}
+    /**
+     * Heper function that sets variable (defaultView) to either
+     * black mountain coordinates or competition coordinates.
+     * @param selected The location selected.
+     */
+    function changingDeafultView(selected: string) {
+        if (selected == "Black_Mountain") {
+            setDefaultView([32.990781135309724, -117.12830536731832]);
+            setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
+            setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
+            setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
+        } else if (selected == "Competition_Left") {
+            setDefaultView([38.314666970000744, -76.54975138401012]);
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.FlightBound, [
+                        [38.31729702009844, -76.55617670782419],
+                        [38.31594832826572, -76.55657341657302],
+                        [38.31546739500083, -76.55376201277696],
+                        [38.31470980862425, -76.54936361414539],
+                        [38.31424154692598, -76.54662761646904],
+                        [38.31369801280048, -76.54342380058223],
+                        [38.31331079191371, -76.54109648475954],
+                        [38.31529941346197, -76.54052104837133],
+                        [38.31587643291039, -76.54361305817427],
+                        [38.31861642463319, -76.54538594175376],
+                        [38.31862683616554, -76.55206138505936],
+                        [38.31703471119464, -76.55244787859773],
+                        [38.31674255749409, -76.55294546866578],
+                        [38.31729702009844, -76.55617670782419],
+                    ])
+                )
+            );
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.SearchBound, [
+                        [38.315386, -76.550875],
+                        [38.315683, -76.552586],
+                        [38.315895, -76.552519],
+                        [38.315607, -76.5508],
+                    ])
+                )
+            );
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.MappingBound, [
+                        [38.314816, -76.548947],
+                        [38.31546, -76.552653],
+                        [38.316639, -76.55233],
+                        [38.316016, -76.5486],
+                    ])
+                )
+            );
+        } else if (selected == "Competition_Right") {
+            setDefaultView([38.314666970000744, -76.54975138401012]);
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.FlightBound, [
+                        [38.31729702009844, -76.55617670782419],
+                        [38.31594832826572, -76.55657341657302],
+                        [38.31546739500083, -76.55376201277696],
+                        [38.31470980862425, -76.54936361414539],
+                        [38.31424154692598, -76.54662761646904],
+                        [38.31369801280048, -76.54342380058223],
+                        [38.31331079191371, -76.54109648475954],
+                        [38.31529941346197, -76.54052104837133],
+                        [38.31587643291039, -76.54361305817427],
+                        [38.31861642463319, -76.54538594175376],
+                        [38.31862683616554, -76.55206138505936],
+                        [38.31703471119464, -76.55244787859773],
+                        [38.31674255749409, -76.55294546866578],
+                        [38.31729702009844, -76.55617670782419],
+                    ])
+                )
+            );
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.SearchBound, [
+                        [38.314529, -76.545859],
+                        [38.314731, -76.545792],
+                        [38.314441, -76.544081],
+                        [38.314228, -76.544156],
+                    ])
+                )
+            );
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.MappingBound, [
+                        [38.314669, -76.547987],
+                        [38.315873, -76.547611],
+                        [38.315208, -76.54384],
+                        [38.314008, -76.544237],
+                    ])
+                )
+            );
+        } else {
+            setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
+            setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
+            setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
+        }
+    }
 
-	useEffect(() => {
-		openModal();
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        openModal();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	return (
-		<>
-			<MyModal modalVisible={modalVisible} closeModal={closeModal}>
-				<h1>IMPORTANT NOTE</h1>
-				<p>
-					Make sure to input the search zone only with 4 coordinates
-					and in the following order
-				</p>
-				<p>
-					bottom left &gt; bottom right &gt; top right &gt; top left
-				</p>
-				<fieldset>
-					<legend>Default Location</legend>
-					<label>
-						<input
-							type="radio"
-							name="default_location"
-							value="Black_Mountain"
-							onClick={() =>
-								changingDeafultView("Black_Mountain")
-							}
-						/>
-						Black Mountain
-					</label>
-					<label>
-						<input
-							type="radio"
-							name="default_location"
-							value="Competition_Left"
-							onClick={() =>
-								changingDeafultView("Competition_Left")
-							}
-						/>
-						Competition Left
-					</label>
-					<label>
-						<input
-							type="radio"
-							name="default_location"
-							value="Competition_Right"
-							onClick={() =>
-								changingDeafultView("Competition_Right")
-							}
-						/>
-						Competition Right
-					</label>
-				</fieldset>
-			</MyModal>
-			<main className="input-page">
-				<TuasMap className="input-map" lat={51} lng={10}>
-					<MapClickHandler
-						mapMode={mapMode}
-						mapData={mapData}
-						setMapData={setMapData}
-					/>
-					<MapIllustrator mapData={mapData} />
-					<UpdateMapCenter position={defaultView} />
-				</TuasMap>
-				<div className="right-container">
-					<MapInputForm
-						mapMode={mapMode}
-						setMapMode={setMapMode}
-						mapData={mapData}
-						setMapData={setMapData}
-					/>
-					<BottleInputForm
-						bottleAssignments={bottleAssignments}
-						setBottleAssignments={setBottleAssignments}
-					/>
-					<form className="tuas-form input-controls">
-						<input
-							type="button"
-							onClick={submitMission}
-							value="Submit"
-						></input>
-						<input
-							type="button"
-							onClick={requestPath}
-							value="Get Generated Path"
-						></input>
-						<input
-							type="button"
-							onClick={validatePath}
-							value="Validate Path"
-						></input>
-						<input
-							type="button"
-							onClick={generateNewPath}
-							value="Generate New Path"
-						></input>
-					</form>
-				</div>
-				<MyModal
-					modalVisible={msgModalVisible}
-					closeModal={() => setMsgModalVisible(false)}
-					type={modalType}
-				>
-					{modalMsg}
-				</MyModal>
-			</main>
-		</>
-	);
+    return (
+        <>
+            <MyModal modalVisible={modalVisible} closeModal={closeModal}>
+                <h1>IMPORTANT NOTE</h1>
+                <p>
+                    Make sure to input the search zone only with 4 coordinates
+                    and in the following order
+                </p>
+                <p>
+                    bottom left &gt; bottom right &gt; top right &gt; top left
+                </p>
+                <fieldset>
+                    <legend>Default Location</legend>
+                    <label>
+                        <input
+                            type="radio"
+                            name="default_location"
+                            value="Black_Mountain"
+                            onClick={() =>
+                                changingDeafultView("Black_Mountain")
+                            }
+                        />
+                        Black Mountain
+                    </label>
+                    <label>
+                        <input
+                            type="radio"
+                            name="default_location"
+                            value="Competition_Left"
+                            onClick={() =>
+                                changingDeafultView("Competition_Left")
+                            }
+                        />
+                        Competition Left
+                    </label>
+                    <label>
+                        <input
+                            type="radio"
+                            name="default_location"
+                            value="Competition_Right"
+                            onClick={() =>
+                                changingDeafultView("Competition_Right")
+                            }
+                        />
+                        Competition Right
+                    </label>
+                </fieldset>
+            </MyModal>
+            <main className="input-page">
+                <TuasMap className="input-map" lat={51} lng={10}>
+                    <MapClickHandler
+                        mapMode={mapMode}
+                        mapData={mapData}
+                        setMapData={setMapData}
+                    />
+                    <MapIllustrator mapData={mapData} />
+                    <UpdateMapCenter position={defaultView} />
+                </TuasMap>
+                <div className="right-container">
+                    <MapInputForm
+                        mapMode={mapMode}
+                        setMapMode={setMapMode}
+                        mapData={mapData}
+                        setMapData={setMapData}
+                    />
+                    <BottleInputForm
+                        bottleAssignments={bottleAssignments}
+                        setBottleAssignments={setBottleAssignments}
+                    />
+                    <form className="tuas-form input-controls">
+                        <input
+                            type="button"
+                            onClick={submitMission}
+                            value="Submit"
+                        ></input>
+                        <input
+                            type="button"
+                            onClick={requestPath}
+                            value="Get Generated Path"
+                        ></input>
+                        <input
+                            type="button"
+                            onClick={validatePath}
+                            value="Validate Path"
+                        ></input>
+                        <input
+                            type="button"
+                            onClick={generateNewPath}
+                            value="Generate New Path"
+                        ></input>
+                    </form>
+                </div>
+                <MyModal
+                    modalVisible={msgModalVisible}
+                    closeModal={() => setMsgModalVisible(false)}
+                    type={modalType}
+                >
+                    {modalMsg}
+                </MyModal>
+            </main>
+        </>
+    );
 }
 
 export default Input;
