@@ -64,6 +64,8 @@ func (server *Server) initFrontend(router *gin.Engine) {
 	})
 }
 
+// Refer to
+// https://docs.google.com/document/d/1lC3JeaoQpAlVzV6pz506_U3zUBMEk0cjplOshf_CMKw/edit?tab=t.0
 func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
