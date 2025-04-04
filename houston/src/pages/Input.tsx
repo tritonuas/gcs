@@ -6,8 +6,8 @@ import "./Input.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
 import {
-    Bottle,
-    BottleDropIndex,
+    Airdrop,
+    AirdropIndex,
     GPSCoord,
     Mission,
     ODLCObjects,
@@ -329,19 +329,19 @@ function MapInputForm({
 }
 
 /**
- * Form that handles all the input for entering bottle loading information
+ * Form that handles all the input for entering airdrop loading information
  * on the plane for the mission
  * @param props props
- * @param props.bottleAssignments The list of current entered bottle assignments
- * @param props.setBottleAssignments State setter for props.bottleAssignments
- * @returns Bottle Input Form
+ * @param props.airdropAssignments The list of current entered airdrop assignments
+ * @param props.setAirdropAssignments State setter for props.airdropAssignments
+ * @returns airdrop Input Form
  */
-function BottleInputForm({
-    bottleAssignments,
-    setBottleAssignments,
+function AirdropInputForm({
+    airdropAssignments,
+    setAirdropAssignments,
 }: {
-    bottleAssignments: Bottle[];
-    setBottleAssignments: React.Dispatch<SetStateAction<Bottle[]>>;
+    airdropAssignments: Airdrop[];
+    setAirdropAssignments: React.Dispatch<SetStateAction<Airdrop[]>>;
 }) {
     /**
      * Maps the keys of the `ODLCObjects` object to an array of JSX `<option>` elements.
@@ -364,16 +364,16 @@ function BottleInputForm({
             });
     }
 
-    const bottleInput = (bottle: Bottle) => {
+    const airdropInput = (airdrop: Airdrop) => {
         return (
             <>
-                <fieldset key={bottle.Index}>
-                    <legend>Bottle {bottle.Index.toString()}</legend>
+                <fieldset key={airdrop.Index}>
+                    <legend>Airdrop {airdrop.Index.toString()}</legend>
                     <label>
                         Object:
                         <select
                             onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                                bottle.Object = e.currentTarget
+                                airdrop.Object = e.currentTarget
                                     .value as unknown as ODLCObjects;
                             }}
                         >
@@ -386,23 +386,25 @@ function BottleInputForm({
     };
 
     useEffect(() => {
-        const bottles = [];
-        for (let i = BottleDropIndex.A; i <= BottleDropIndex.E; i++) {
-            const bottle = {
+        const airdrops = [];
+        for (let i = AirdropIndex.Kaz; i <= AirdropIndex.Daniel; i++) {
+            const airdrop = {
                 Index: i,
-            } as Bottle;
-            bottles.push(bottle);
+            } as Airdrop;
+            airdrops.push(airdrop);
         }
-        setBottleAssignments(bottles);
-    }, [setBottleAssignments]);
+        setAirdropAssignments(airdrops);
+    }, [setAirdropAssignments]);
 
     return (
         <>
             <form className="tuas-form">
                 <fieldset>
-                    <legend>Bottle Input</legend>
-                    <div className="bottle-form-container">
-                        {bottleAssignments.map((bottle) => bottleInput(bottle))}
+                    <legend>Airdrop Input</legend>
+                    <div className="airdrop-form-container">
+                        {airdropAssignments.map((airdrop) =>
+                            airdropInput(airdrop)
+                        )}
                     </div>
                 </fieldset>
             </form>
@@ -524,7 +526,7 @@ function Input() {
     // so instead of number[][] its actually storing them as GPS Coords...
     const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
     const [mapData, setMapData] = useState<Map<MapMode, number[][]>>(new Map());
-    const [bottleAssignments, setBottleAssignments] = useState<Bottle[]>([]);
+    const [airdropAssignments, setAirdropAssignments] = useState<Airdrop[]>([]);
 
     const [modalType, setModalType] = useState<"default" | "error">("default");
     const [modalMsg, setModalMsg] = useState("");
@@ -571,7 +573,7 @@ function Input() {
         };
 
         const mission: Mission = {
-            BottleAssignments: bottleAssignments,
+            AirdropAssignments: airdropAssignments,
             FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
             AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
             MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
@@ -882,9 +884,9 @@ function Input() {
                         mapData={mapData}
                         setMapData={setMapData}
                     />
-                    <BottleInputForm
-                        bottleAssignments={bottleAssignments}
-                        setBottleAssignments={setBottleAssignments}
+                    <AirdropInputForm
+                        airdropAssignments={airdropAssignments}
+                        setAirdropAssignments={setAirdropAssignments}
                     />
                     <form className="tuas-form input-controls">
                         <input

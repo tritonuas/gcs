@@ -1,5 +1,5 @@
-import { ChangeEvent, useState } from "react"
-import { BottleDropIndex, BottleSwap } from "../protos/obc.pb";
+import { ChangeEvent, useState } from "react";
+import { AirdropIndex, BottleSwap } from "../protos/obc.pb";
 // import video from "../assets/IAMTHEANGRYPUMPKIN.mp4"
 
 /**
@@ -7,26 +7,23 @@ import { BottleDropIndex, BottleSwap } from "../protos/obc.pb";
  * @returns manual drop page
  */
 function Drop() {
-    const [bottle, setBottle] = useState<BottleDropIndex>(BottleDropIndex.A);
+    const [bottle, setBottle] = useState<AirdropIndex>(AirdropIndex.Kaz);
     // const [playing, setPlaying] = useState<boolean>(false);
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         switch (value) {
             case "1":
-                setBottle(BottleDropIndex.A);
+                setBottle(AirdropIndex.Kaz);
                 break;
             case "2":
-                setBottle(BottleDropIndex.B);
+                setBottle(AirdropIndex.Kimi);
                 break;
             case "3":
-                setBottle(BottleDropIndex.C);
+                setBottle(AirdropIndex.Chris);
                 break;
             case "4":
-                setBottle(BottleDropIndex.D);
-                break;
-            case "5":
-                setBottle(BottleDropIndex.E);
+                setBottle(AirdropIndex.Daniel);
                 break;
         }
     };
@@ -36,35 +33,38 @@ function Drop() {
      */
     function handleDropClick() {
         const body = {
-            index: bottle
+            index: bottle,
         } as BottleSwap;
 
-        const video = document.getElementById('pumpkin') as HTMLVideoElement;
+        const video = document.getElementById("pumpkin") as HTMLVideoElement;
         video.play();
         // setPlaying(true);
-        
+
         fetch("/api/plane/dodropnow", {
             method: "POST",
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
         })
-            .then(resp => resp.text())
-            .then(resp => {
-                console.log(resp)
+            .then((resp) => resp.text())
+            .then((resp) => {
+                console.log(resp);
                 video.play();
                 // setPlaying(true);
-            })
+            });
     }
 
-    return(
+    return (
         <>
             <h1>super secret manual airdrop button</h1>
             <form>
                 <input type="number" onChange={handleChange} value={bottle} />
-                <input type="button" value={`Drop Bottle ${bottle}`} onClick={handleDropClick}/>
+                <input
+                    type="button"
+                    value={`Drop Bottle ${bottle}`}
+                    onClick={handleDropClick}
+                />
             </form>
             {/* <video src={video} id="pumpkin" style={{display: (!playing) ? "none" : ""}}></video> */}
         </>
-
     );
 }
 
