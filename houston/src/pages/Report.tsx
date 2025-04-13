@@ -28,9 +28,6 @@ import {
     InputLabel,
     FormHelperText,
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-// import CancelIcon from "@mui/icons-material/Cancel"; // No longer needed for reject
-import PhotoSizeSelectActualIcon from "@mui/icons-material/PhotoSizeSelectActual";
 
 import {
     IdentifiedTarget,
@@ -69,7 +66,6 @@ const MOCK_MISSION_ASSIGNMENTS: Airdrop[] = [
 
 // --- Helper Functions ---
 
-/** Fetches all available image runs from the backend */
 const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
     try {
         const response = await fetch(`${API_BASE_URL}/targets/all`);
@@ -95,7 +91,6 @@ const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
     }
 };
 
-/** Posts the matched targets for a completed image run */
 const postMatchedTargets = async (
     payload: AirdropTarget[]
 ): Promise<boolean> => {
@@ -208,7 +203,9 @@ const Reports: React.FC = () => {
                     }
                     setError(null);
                 }
-            } catch (err: any) {
+            } catch (
+                err: any // eslint-disable-line
+            ) {
                 console.error(
                     `Error during ${
                         isInitialFetch ? "initial fetch" : "poll"
@@ -995,7 +992,7 @@ const Reports: React.FC = () => {
                                                                 // Filter out potential number keys if iterating over TS enum, and maybe UNKNOWN/UNSPECIFIED
                                                                 .filter(
                                                                     ([
-                                                                        key,
+                                                                        _,
                                                                         value,
                                                                     ]) =>
                                                                         typeof value ===
