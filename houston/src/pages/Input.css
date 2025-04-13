@@ -19,7 +19,7 @@ main.input-page .right-container .tuas-form {
     padding: 1rem;
 }
 
-main.input-page .tuas-form table{
+main.input-page .tuas-form table {
     border-collapse: collapse;
 }
 
@@ -60,7 +60,7 @@ main.input-page .input-controls > input {
     margin-right: 1rem;
 }
 
-main.input-page .button-container input:nth-child(3){
+main.input-page .button-container input:nth-child(3) {
     margin-right: auto;
 }
 
@@ -72,7 +72,7 @@ main.input-page .del-btn:hover {
     background-color: var(--failure-text) !important;
 }
 
-main.input-page .bottle-form-container {
+main.input-page .airdrop-form-container {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -86,17 +86,16 @@ main.input-page #default-locations {
     height: 30px;
 }
 
-main.input-page fieldset{
+main.input-page fieldset {
     justify-content: center;
 }
 
-main.input-page label{
+main.input-page label {
     display: block;
     font-size: large;
     padding: 5px;
 }
 
-main.input-page legend{
+main.input-page legend {
     font-size: large;
 }
-

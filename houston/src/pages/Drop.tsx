@@ -1,5 +1,5 @@
 import { ChangeEvent, useState } from "react";
-import { AirdropIndex, BottleSwap } from "../protos/obc.pb";
+import { AirdropIndex, AirdropSwap } from "../protos/obc.pb";
 // import video from "../assets/IAMTHEANGRYPUMPKIN.mp4"
 
 /**
@@ -7,23 +7,23 @@ import { AirdropIndex, BottleSwap } from "../protos/obc.pb";
  * @returns manual drop page
  */
 function Drop() {
-    const [bottle, setBottle] = useState<AirdropIndex>(AirdropIndex.Kaz);
+    const [airdrop, setAirdrop] = useState<AirdropIndex>(AirdropIndex.Kaz);
     // const [playing, setPlaying] = useState<boolean>(false);
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         switch (value) {
             case "1":
-                setBottle(AirdropIndex.Kaz);
+                setAirdrop(AirdropIndex.Kaz);
                 break;
             case "2":
-                setBottle(AirdropIndex.Kimi);
+                setAirdrop(AirdropIndex.Kimi);
                 break;
             case "3":
-                setBottle(AirdropIndex.Chris);
+                setAirdrop(AirdropIndex.Chris);
                 break;
             case "4":
-                setBottle(AirdropIndex.Daniel);
+                setAirdrop(AirdropIndex.Daniel);
                 break;
         }
     };
@@ -33,8 +33,8 @@ function Drop() {
      */
     function handleDropClick() {
         const body = {
-            index: bottle,
-        } as BottleSwap;
+            index: airdrop,
+        } as AirdropSwap;
 
         const video = document.getElementById("pumpkin") as HTMLVideoElement;
         video.play();
@@ -56,10 +56,10 @@ function Drop() {
         <>
             <h1>super secret manual airdrop button</h1>
             <form>
-                <input type="number" onChange={handleChange} value={bottle} />
+                <input type="number" onChange={handleChange} value={airdrop} />
                 <input
                     type="button"
-                    value={`Drop Bottle ${bottle}`}
+                    value={`Drop Bottle ${airdrop}`}
                     onClick={handleDropClick}
                 />
             </form>

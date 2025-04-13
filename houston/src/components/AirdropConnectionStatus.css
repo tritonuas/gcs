@@ -5,15 +5,15 @@
     justify-content: space-evenly;
     max-height: 150px;
     max-width: 400px;
-    gap:10px;
+    gap: 10px;
 }
 
-.bottle_connection_status_title {
+.airdrop_connection_status_title {
     font-size: 35px;
 }
 
-.bottle_connection_status_bottle_number {
+.airdrop_connection_status_airdrop_number {
     font-size: larger;
     font-weight: bolder;
-    color:azure;
+    color: azure;
 }

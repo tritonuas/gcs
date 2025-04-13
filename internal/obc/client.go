@@ -238,9 +238,9 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 }
 
 // Tell the OBC to do an airdrop NOW
-func (client *Client) DoDropNow(bottle *protos.BottleSwap) ([]byte, int) {
+func (client *Client) DoDropNow(airdrop *protos.AirdropSwap) ([]byte, int) {
 	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(bottle)
+	err := json.NewEncoder(&buf).Encode(airdrop)
 	if err != nil {
 		return nil, -1
 	}

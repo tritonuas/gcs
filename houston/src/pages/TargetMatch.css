@@ -1,6 +1,6 @@
 .flex-box {
     display: flex;
-    flex:19;
+    flex: 19;
     justify-content: center;
     justify-items: center;
     align-content: center;
@@ -13,10 +13,10 @@
     background-color: goldenrod;
     border-radius: 20px;
     padding: 20px;
-    text-align: center;     
+    text-align: center;
 }
 
-.bottle {
+.airdrop {
     display: flex;
     align-items: center;
     gap: 30px;
@@ -31,7 +31,7 @@
     border-top: none;
     border-left: none;
     border-right: none;
-    background: rgba(20, 20, 20, .2);
+    background: rgba(20, 20, 20, 0.2);
     color: white;
     outline: none;
     caret-color: black;
@@ -39,13 +39,14 @@
 
 .submit-button {
     background-color: initial;
-    background-image: linear-gradient(-180deg, #FF7E31, #E62C03);
+    background-image: linear-gradient(-180deg, #ff7e31, #e62c03);
     border-radius: 6px;
     box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
-    color: #FFFFFF;
+    color: #ffffff;
     cursor: pointer;
     display: inline-block;
-    font-family: Inter,-apple-system,system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-family: Inter, -apple-system, system-ui, Roboto, "Helvetica Neue",
+        Arial, sans-serif;
     font-size: x-large;
     height: 60px;
     line-height: 40px;
@@ -63,7 +64,7 @@
     width: 25%;
     z-index: 9;
     border: 0;
-    transition: box-shadow .2s;
+    transition: box-shadow 0.2s;
     margin-top: 5px;
 }
 

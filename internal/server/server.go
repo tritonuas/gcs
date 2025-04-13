@@ -593,13 +593,13 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 
 func (server *Server) doAirdropNow() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var bottle protos.BottleSwap
-		err := c.BindJSON(&bottle)
+		var airdrop protos.AirdropSwap
+		err := c.BindJSON(&airdrop)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Malformed bottle index")
 		}
 
-		body, status := server.obcClient.DoDropNow(&bottle)
+		body, status := server.obcClient.DoDropNow(&airdrop)
 		c.Data(status, "text/plain", body)
 	}
 }
