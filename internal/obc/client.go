@@ -44,10 +44,10 @@ func (client *Client) GetIdentifiedTargets() ([]byte, int) {
 Get all of the matched target information
 */
 // DELETE
-// func (client *Client) GetMatchedTargets() ([]byte, int) {
-// 	body, httpErr := client.httpClient.Get("/targets/matched")
-// 	return body, httpErr.Status
-// }
+func (client *Client) GetMatchedTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/targets/matched")
+	return body, httpErr.Status
+}
 
 /*
 Do a manual override on the target matchings
@@ -256,13 +256,13 @@ func (client *Client) DoCameraCapture() ([]byte, int) {
 }
 
 // DELETE?
-// func (client *Client) ValidateTargets() ([]byte, int) {
-// 	body, httpErr := client.httpClient.Post("/targets/validate", nil)
-// 	return body, httpErr.Status
-// }
+func (client *Client) ValidateTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/targets/validate", nil)
+	return body, httpErr.Status
+}
 
 // DELETE
-// func (client *Client) RejectTargets() ([]byte, int) {
-// 	body, httpErr := client.httpClient.Post("/targets/reject", nil)
-// 	return body, httpErr.Status
-// }
+func (client *Client) RejectTargets() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/targets/reject", nil)
+	return body, httpErr.Status
+}
