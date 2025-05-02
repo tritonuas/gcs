@@ -10,6 +10,7 @@ import {
     Grid,
     Card,
     CardContent,
+    Chip,
     Typography,
     Select,
     MenuItem,
@@ -627,13 +628,96 @@ const Reports: React.FC = () => {
             <Grid container spacing={2}>
                 {/* Top Row: Queue & Status (Keep Structure) */}
                 <Grid item xs={12} md={8}>
-                    {/* Image Queue Card ... (Keep existing structure) */}
+                    {/* Image Queue Card */}
                     <Card>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>
-                                Image Queue
+                                Image Queue ({imageRuns.length}{" "}
+                                {imageRuns.length === 1 ? "run" : "runs"}{" "}
+                                loaded)
                             </Typography>
-                            {/* ... Queue rendering logic ... */}
+                            {imageRuns.length > 0 ? (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap", // Allow items to wrap
+                                        gap: 1, // Spacing between items
+                                        maxHeight: "150px", // Limit height and allow scrolling if needed
+                                        overflowY: "auto",
+                                        p: 1, // Add some padding
+                                        border: "1px dashed grey", // Visual container
+                                        borderRadius: 1,
+                                    }}
+                                >
+                                    {imageRuns.map((run, index) => (
+                                        <Chip
+                                            key={run.runId} // Use runId as the key
+                                            label={`Run ${run.runId}`}
+                                            // Highlight the chip corresponding to the current image
+                                            color={
+                                                index === currentRunIndex
+                                                    ? "primary"
+                                                    : "default"
+                                            }
+                                            variant={
+                                                index === currentRunIndex
+                                                    ? "filled"
+                                                    : "outlined"
+                                            }
+                                            // Optional: Make chips clickable to navigate
+                                            onClick={() => {
+                                                // Only navigate if not already submitted and not the current index
+                                                if (
+                                                    !isCurrentRunSubmitted ||
+                                                    index !== currentRunIndex
+                                                ) {
+                                                    setCurrentRunIndex(index);
+                                                    // Reset state for the newly selected run
+                                                    setCurrentDetectionMatches(
+                                                        {}
+                                                    );
+                                                    setIsCurrentRunSubmitted(
+                                                        false
+                                                    );
+                                                    setError(null);
+                                                } else if (
+                                                    index === currentRunIndex
+                                                ) {
+                                                    // Maybe add a small visual feedback if clicking the current one?
+                                                    console.log(
+                                                        "Already viewing Run",
+                                                        run.runId
+                                                    );
+                                                }
+                                            }}
+                                            sx={{ cursor: "pointer" }} // Indicate clickability
+                                        />
+                                    ))}
+                                </Box>
+                            ) : (
+                                <Typography
+                                    color="textSecondary"
+                                    sx={{ textAlign: "center", pt: 2, pb: 1 }}
+                                >
+                                    {isPolling && !error
+                                        ? "Polling for new images..."
+                                        : error
+                                        ? "Error loading images."
+                                        : "No image runs loaded yet."}
+                                </Typography>
+                            )}
+                            {/* Optional: Add a separate polling indicator */}
+                            {isPolling && !error && imageRuns.length === 0 && (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        mt: 1,
+                                    }}
+                                >
+                                    <CircularProgress size={24} />
+                                </Box>
+                            )}
                         </CardContent>
                     </Card>
                 </Grid>
