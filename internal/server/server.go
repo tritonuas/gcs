@@ -666,9 +666,9 @@ func (s *Server) pushSavedTargets() gin.HandlerFunc {
 			return
 		}
 
-		str := string(jsonData)
-		fmt.Println("JSON IS")
-		fmt.Println(str)
+		// str := string(jsonData)
+		// fmt.Println("JSON IS")
+		// fmt.Println(str)
 
 		err = os.WriteFile(reportJson, jsonData, 0666)
 		if err != nil {
