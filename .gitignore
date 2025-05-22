@@ -90,3 +90,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Saved files
+internal/server/saved/*
+!internal/server/saved/.gitkeep

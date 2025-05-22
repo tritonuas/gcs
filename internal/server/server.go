@@ -645,12 +645,11 @@ func (server *Server) rejectTargets() gin.HandlerFunc {
 }
 
 // Also I think this dir is gonna save the json in the gcs/internal/server directory so plz change this to smth more reasonable
-const reportJson = "/saved/targets.json"
+const reportJson = "saved/targets.json"
 
 // Comments for Kimi:
 // - GET request; should return JSON in the HTTP Response body
 func (s *Server) getSavedTargets() gin.HandlerFunc {
-
 	return func(c *gin.Context) {
 		s.reportFileMutex.Lock()
 		defer s.reportFileMutex.Unlock()
@@ -675,16 +674,18 @@ func (s *Server) pushSavedTargets() gin.HandlerFunc {
 			return
 		}
 
-		// str := string(jsonData)
-		// fmt.Println("JSON IS")
-		// fmt.Println(str)
-
 		s.reportFileMutex.Lock()
 		defer s.reportFileMutex.Unlock()
 
+		// Create the directory if it doesn't exist
+		if err := os.MkdirAll("saved", 0755); err != nil {
+			c.String(http.StatusInternalServerError, "Failed to create directory: %v", err)
+			return
+		}
+
 		err = os.WriteFile(reportJson, jsonData, 0666)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Cant Write Json")
+			c.String(http.StatusBadRequest, "Cant Write Json: %v", err)
 			return
 		}
 
