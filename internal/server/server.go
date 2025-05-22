@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -646,12 +647,35 @@ const reportJson = "/saved/targets.json"
 func (s *Server) getSavedTargets() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
+		fileBytes, err := os.ReadFile(reportJson)
+		if err != nil {
+			emptyJsonPayload := []byte("{}") // Convert the string to a byte slice
+			c.Data(http.StatusOK, "application/json", emptyJsonPayload)
+			return
+		}
 
+		c.Data(http.StatusOK, "application/json", fileBytes)
 	}
 }
 
 func (s *Server) pushSavedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		jsonData, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "cant read body")
+			return
+		}
 
+		str := string(jsonData)
+		fmt.Println("JSON IS")
+		fmt.Println(str)
+
+		err = os.WriteFile(reportJson, jsonData, 0666)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Cant Write Json")
+			return
+		}
+
+		c.Data(http.StatusOK, "text/plain", nil)
 	}
 }
