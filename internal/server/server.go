@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-contrib/static"
@@ -36,7 +37,8 @@ type Server struct {
 	MissionTime         int64
 	ClassifiedTargets   []cvs.ClassifiedODLC
 
-	MissionConfig *protos.Mission
+	MissionConfig   *protos.Mission
+	reportFileMutex sync.Mutex
 }
 
 /*
@@ -650,6 +652,9 @@ const reportJson = "/saved/targets.json"
 func (s *Server) getSavedTargets() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
+		s.reportFileMutex.Lock()
+		defer s.reportFileMutex.Unlock()
+
 		fileBytes, err := os.ReadFile(reportJson) // This might error if "/saved" doesn't exist so might want to modify reportJson
 		if err != nil {
 			emptyJsonPayload := []byte("{}")
@@ -673,6 +678,9 @@ func (s *Server) pushSavedTargets() gin.HandlerFunc {
 		// str := string(jsonData)
 		// fmt.Println("JSON IS")
 		// fmt.Println(str)
+
+		s.reportFileMutex.Lock()
+		defer s.reportFileMutex.Unlock()
 
 		err = os.WriteFile(reportJson, jsonData, 0666)
 		if err != nil {
