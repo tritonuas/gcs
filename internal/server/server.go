@@ -74,6 +74,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
+		api.GET("/report", server.getSavedTargets())
+		api.POST("/report", server.pushSavedTargets())
 
 		api.GET("/camera/capture", server.doCameraCapture())
 
@@ -636,5 +638,20 @@ func (server *Server) rejectTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.RejectTargets()
 		c.Data(status, "application/json", body)
+	}
+}
+
+const reportJson = "/saved/targets.json"
+
+func (s *Server) getSavedTargets() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+
+	}
+}
+
+func (s *Server) pushSavedTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
 	}
 }
