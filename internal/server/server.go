@@ -655,8 +655,10 @@ func (s *Server) getSavedTargets() gin.HandlerFunc {
 		defer s.reportFileMutex.Unlock()
 
 		fileBytes, err := os.ReadFile(reportJson) // This might error if "/saved" doesn't exist so might want to modify reportJson
-		if err != nil {
-			emptyJsonPayload := []byte("{}")
+		
+		// If error reading OR file is empty, send an empty JSON array
+		if err != nil || len(fileBytes) == 0 {
+			emptyJsonPayload := []byte("[]") // Send empty array
 			c.Data(http.StatusOK, "application/json", emptyJsonPayload)
 			return
 		}
