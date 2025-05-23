@@ -224,7 +224,7 @@ const Reports: React.FC = () => {
     }>({});
     const [isCurrentRunProcessed, setIsCurrentRunProcessed] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isPolling, setIsPolling] = useState<boolean>(false);
+    const [isPollingUI, setIsPollingUI] = useState<boolean>(false); // For UI indication
     const [isConfirming, setIsConfirming] = useState<boolean>(false);
     const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -235,9 +235,13 @@ const Reports: React.FC = () => {
         useState(false);
     const [isSavingRuns, setIsSavingRuns] = useState(false); // Prevent concurrent saves
 
+    // Refs
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef<boolean>(true);
     const imageContainerRef = useRef<HTMLDivElement>(null);
+    const isFetchingTargetsRef = useRef<boolean>(false); // Ref for fetch guard
+
+    // --- Data Processing & Fetching ---
 
     const processFetchedRuns = useCallback(
         (fetchedRuns: IdentifiedTarget[]): boolean => {
@@ -263,7 +267,6 @@ const Reports: React.FC = () => {
                     !seenRunIds.has(run.runId) &&
                     isMountedRef.current
                 ) {
-                    // Mark runs without detections as seen to avoid re-processing
                     setSeenRunIds((prev) => new Set(prev).add(run.runId));
                 }
                 return hasDetections;
@@ -274,14 +277,12 @@ const Reports: React.FC = () => {
                 if (isMountedRef.current) {
                     setImageRuns((prevRuns) => {
                         const updatedRuns = [...prevRuns, ...newValidRuns];
-                        updatedRuns.sort((a, b) => a.runId - b.runId); // Keep sorted
+                        updatedRuns.sort((a, b) => a.runId - b.runId);
                         if (
                             prevRuns.length === 0 &&
                             updatedRuns.length > 0 &&
                             currentRunIndex === 0
                         ) {
-                            // Set currentRunIndex to 0 only if it's the first time runs are populated
-                            // And currentRunIndex hasn't been set by user interaction or previous saved state
                             setTimeout(() => {
                                 if (
                                     isMountedRef.current &&
@@ -301,60 +302,69 @@ const Reports: React.FC = () => {
             }
             return newValidRunsAddedToState;
         },
-        [seenRunIds, imageRuns, currentRunIndex] // Added imageRuns, currentRunIndex
+        [seenRunIds, imageRuns, currentRunIndex]
     );
 
     const fetchAndProcessLatest = useCallback(
         async (isInitialFetch = false) => {
-            if (isPolling && !isInitialFetch) return;
-            if (!isInitialFetch && !isPolling) setIsPolling(true); // Set polling true for non-initial, non-concurrent calls
+            if (!isInitialFetch) {
+                if (isFetchingTargetsRef.current) {
+                    return;
+                }
+                isFetchingTargetsRef.current = true;
+            }
 
             try {
-                const fetched = await fetchTargets(); // Fetches from /targets/all
+                const fetched = await fetchTargets();
                 if (isMountedRef.current) {
                     processFetchedRuns(fetched);
-                    // Saving is handled by useEffect on imageRuns change
                 }
                 if (isMountedRef.current) setError(null);
             } catch (
-                err: any // eslint-disable-line @typescript-eslint/no-explicit-any
+                err: any // eslint-disable-line
             ) {
                 if (isMountedRef.current) {
-                    setError(`Fetch failed: ${err.message}`);
-                    setSnackbarMessage(
-                        `Error fetching new runs: ${err.message}`
+                    console.error(
+                        `Fetch failed (isInitial: ${isInitialFetch}): ${err.message}`
                     );
-                    setSnackbarOpen(true);
+                    if (isInitialFetch) {
+                        setError(`Initial fetch failed: ${err.message}`);
+                        setSnackbarMessage(
+                            `Error fetching new runs: ${err.message}`
+                        );
+                        setSnackbarOpen(true);
+                    }
                 }
             } finally {
-                if (isMountedRef.current && !isInitialFetch)
-                    setIsPolling(false);
+                if (!isInitialFetch) {
+                    isFetchingTargetsRef.current = false;
+                }
             }
         },
-        [processFetchedRuns, isPolling]
+        [processFetchedRuns]
     );
 
-    // Effect for initial loading and polling
+    // Effect for initial loading of SAVED runs
     useEffect(() => {
         isMountedRef.current = true;
-
-        const initializeAndStartPolling = async () => {
-            // 1. Try to load saved runs
+        const loadSaved = async () => {
             try {
-                setSnackbarMessage("Loading saved run data...");
-                setSnackbarOpen(true);
+                // setSnackbarMessage("Loading saved run data..."); // Can be noisy
+                // setSnackbarOpen(true);
                 const savedRuns = await fetchSavedRunsFromServer();
                 if (isMountedRef.current && savedRuns.length > 0) {
-                    processFetchedRuns(savedRuns); // This updates imageRuns and seenRunIds
+                    processFetchedRuns(savedRuns); // This might trigger the save effect if imageRuns changes
                     setSnackbarMessage(
                         `Loaded ${savedRuns.length} saved run(s).`
                     );
+                    setSnackbarOpen(true);
                 } else if (isMountedRef.current) {
-                    setSnackbarMessage("No saved run data found.");
+                    console.log(
+                        "No saved run data found or component unmounted."
+                    );
                 }
-                setSnackbarOpen(true);
             } catch (
-                loadError: any // eslint-disable-line @typescript-eslint/no-explicit-any
+                loadError: any // eslint-disable-line
             ) {
                 console.error(
                     "Error loading saved runs during init:",
@@ -371,54 +381,66 @@ const Reports: React.FC = () => {
                 }
             } finally {
                 if (isMountedRef.current) {
-                    setHasLoadedInitialSavedRuns(true); // Gate for saving useEffect
+                    setHasLoadedInitialSavedRuns(true); // Critical: Gate other effects
                 }
             }
+        };
+        loadSaved();
+        // No return cleanup needed here for isMountedRef specifically,
+        // as it's managed by the component lifecycle.
+        // The main polling effect handles its own cleanup.
+    }, [processFetchedRuns]); // Runs if processFetchedRuns reference changes
 
-            // 2. Perform the initial fetch for any *new* runs from /targets/all
-            if (isMountedRef.current) {
-                await fetchAndProcessLatest(true); // isInitialFetch = true
-            }
+    // Effect for initial fetch from /targets/all and setting up polling
+    useEffect(() => {
+        if (!hasLoadedInitialSavedRuns || !isMountedRef.current) {
+            return; // Wait until saved runs are processed and component is mounted
+        }
 
-            // 3. Start polling
-            if (isMountedRef.current) {
-                intervalIdRef.current = setInterval(
-                    () => fetchAndProcessLatest(false), // isInitialFetch = false
-                    POLLING_INTERVAL_MS
-                );
-            }
+        const performInitialLiveFetch = async () => {
+            if (isMountedRef.current) setIsPollingUI(true);
+            await fetchAndProcessLatest(true); // isInitialFetch = true
+            if (isMountedRef.current) setIsPollingUI(false);
         };
 
-        initializeAndStartPolling();
+        performInitialLiveFetch();
+
+        const localIntervalId = setInterval(async () => {
+            if (!isMountedRef.current) {
+                clearInterval(localIntervalId);
+                return;
+            }
+            if (isMountedRef.current) setIsPollingUI(true);
+            await fetchAndProcessLatest(false); // isInitialFetch = false
+            if (isMountedRef.current) setIsPollingUI(false);
+        }, POLLING_INTERVAL_MS);
+        intervalIdRef.current = localIntervalId; // Store for global cleanup
 
         return () => {
-            isMountedRef.current = false;
-            if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+            if (localIntervalId) {
+                clearInterval(localIntervalId);
+            }
+            intervalIdRef.current = null;
         };
-    }, [fetchAndProcessLatest, processFetchedRuns]); // Dependencies
+    }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]); // Dependencies
 
     // Effect for saving imageRuns when they change
     useEffect(() => {
-        // Only save if initial load is complete, there are runs, and not currently saving
         if (
-            hasLoadedInitialSavedRuns &&
+            hasLoadedInitialSavedRuns && // Only save after initial load attempt
             imageRuns.length > 0 &&
-            !isSavingRuns
+            !isSavingRuns &&
+            isMountedRef.current // Ensure component is still mounted
         ) {
             const saveRuns = async () => {
-                if (!isMountedRef.current) return;
                 setIsSavingRuns(true);
-                // console.log("Attempting to save imageRuns due to change:", imageRuns.map(r => r.runId));
                 try {
-                    await pushSavedRunsToServer(imageRuns); // imageRuns here is the latest state
+                    await pushSavedRunsToServer(imageRuns);
                     console.log(
                         "Successfully pushed updated imageRuns to server."
                     );
-                    // Optional: Snackbar for successful save, but can be noisy
-                    // setSnackbarMessage("Run data auto-saved.");
-                    // setSnackbarOpen(true);
                 } catch (
-                    pushError: any // eslint-disable-line @typescript-eslint/no-explicit-any
+                    pushError: any // eslint-disable-line
                 ) {
                     console.error("Error auto-saving runs:", pushError);
                     if (isMountedRef.current) {
@@ -431,13 +453,23 @@ const Reports: React.FC = () => {
                     if (isMountedRef.current) setIsSavingRuns(false);
                 }
             };
-            // Debounce or throttle this if imageRuns can change very rapidly
-            // For now, direct call with isSavingRuns guard
             saveRuns();
         }
-    }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]);
+    }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]); // Dependencies
 
-    // --- Memoized Derived State (unchanged) ---
+    // Effect for component unmount cleanup (already implicitly handled by isMountedRef checks)
+    useEffect(() => {
+        isMountedRef.current = true; // Set on mount
+        return () => {
+            isMountedRef.current = false; // Set on unmount
+            if (intervalIdRef.current) {
+                // Clear any lingering interval
+                clearInterval(intervalIdRef.current);
+            }
+        };
+    }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
+
+    // --- Memoized Derived State ---
     const currentRun = useMemo(
         () =>
             imageRuns.length > 0 &&
@@ -490,7 +522,7 @@ const Reports: React.FC = () => {
         );
     }, [submittedTargets]);
 
-    // --- Event Handlers (mostly unchanged internally, just context might differ) ---
+    // --- Event Handlers ---
     const handleMatchUpdate = (
         compositeKey: string,
         field: "airdropIndex" | "objectType",
@@ -534,8 +566,7 @@ const Reports: React.FC = () => {
 
             if (field === "airdropIndex") {
                 if (selectedEnumValue === "") {
-                    // Clearing airdrop index
-                    delete updatedMatches[compositeKey]; // Remove the whole match for this detection
+                    delete updatedMatches[compositeKey];
                 } else if (
                     typeof selectedEnumValue === "number" &&
                     selectedEnumValue in AirdropIndex
@@ -549,15 +580,13 @@ const Reports: React.FC = () => {
                     };
                 }
             } else {
-                // objectType
                 if (!currentMatchData) {
                     console.warn(
                         "Cannot set objectType, no airdrop index assigned to this detection yet."
                     );
-                    return prev; // No change if trying to set objectType without an airdropIndex
+                    return prev;
                 }
                 if (selectedEnumValue === "") {
-                    // Clearing object type, set to Undefined
                     newMatch = {
                         ...currentMatchData,
                         objectType: ODLCObjects.Undefined,
@@ -578,7 +607,7 @@ const Reports: React.FC = () => {
             else if (field === "airdropIndex" && selectedEnumValue === "") {
                 /* handled by delete */
             } else if (!newMatch) {
-                return prev; // Avoid update if logic didn't produce a newMatch (e.g. invalid enum)
+                return prev;
             }
             return updatedMatches;
         });
@@ -659,7 +688,6 @@ const Reports: React.FC = () => {
                     "All required targets successfully submitted!"
                 );
                 setSnackbarOpen(true);
-                // Potentially clear submittedTargets or mark as "sent"
             }
         } catch (
             postError: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -687,9 +715,8 @@ const Reports: React.FC = () => {
             setError(null);
         } else {
             if (imageRuns.length > 0) {
-                // Only show "End of loaded" if there were images
                 setSnackbarMessage(
-                    isPolling
+                    isPollingUI // Use isPollingUI for the message
                         ? "Waiting for more images..."
                         : "End of loaded images."
                 );
@@ -699,7 +726,7 @@ const Reports: React.FC = () => {
     };
     const handleSnackbarClose = () => setSnackbarOpen(false);
 
-    // --- Rendering Helpers (unchanged) ---
+    // --- Rendering Helpers ---
     const formatCoordinates = (coord: GPSCoord | undefined): string => {
         if (!coord) return "N/A";
         const lat =
@@ -748,8 +775,6 @@ const Reports: React.FC = () => {
             imgElement.naturalWidth === 0 ||
             imgElement.naturalHeight === 0
         ) {
-            // Return default if image isn't loaded or container not ready
-            // This prevents errors if calculateDetectionStyles runs before image is fully rendered
             return defaultStyles;
         }
 
@@ -782,14 +807,14 @@ const Reports: React.FC = () => {
 
         const { x1, y1, x2, y2 } = detection.bbox ?? {};
         if (x1 == null || y1 == null || x2 == null || y2 == null)
-            return defaultStyles; // Bbox values must exist
+            return defaultStyles;
 
         const scaledX1 = offsetX + x1 * scale;
         const scaledY1 = offsetY + y1 * scale;
         const scaledWidth = Math.max(0, (x2 - x1) * scale);
         const scaledHeight = Math.max(0, (y2 - y1) * scale);
 
-        const isValid = scaledWidth > 1 && scaledHeight > 1; // Use a threshold slightly > 0
+        const isValid = scaledWidth > 1 && scaledHeight > 1;
         if (!isValid)
             return {
                 ...defaultStyles,
@@ -831,7 +856,6 @@ const Reports: React.FC = () => {
     // --- Main Render Function ---
     return (
         <Box className="reports-container" sx={{ p: 2 }}>
-            {/* Global Error Alert (excluding confirm/submit phases) */}
             {error && !isConfirming && !isFinalSubmitting && (
                 <Alert
                     severity="warning"
@@ -843,7 +867,7 @@ const Reports: React.FC = () => {
             )}
             <Snackbar
                 open={snackbarOpen}
-                autoHideDuration={isSavingRuns || isPolling ? 2000 : 6000} // Shorter for transient messages
+                autoHideDuration={isSavingRuns || isPollingUI ? 2000 : 6000} // Use isPollingUI
                 onClose={handleSnackbarClose}
                 message={snackbarMessage}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
@@ -863,6 +887,15 @@ const Reports: React.FC = () => {
                                         sx={{ ml: 1, fontStyle: "italic" }}
                                     />
                                 )}
+                                {isPollingUI && (
+                                    <Chip
+                                        label="Polling..."
+                                        color="secondary"
+                                        size="small"
+                                        sx={{ ml: 1 }}
+                                    />
+                                )}{" "}
+                                {/* Use isPollingUI */}
                             </Typography>
                             {imageRuns.length > 0 ? (
                                 <Box
@@ -916,16 +949,16 @@ const Reports: React.FC = () => {
                                     color="textSecondary"
                                     sx={{ textAlign: "center", pt: 2, pb: 1 }}
                                 >
-                                    {isPolling && !error
-                                        ? "Polling for new images..."
-                                        : hasLoadedInitialSavedRuns
-                                        ? "No image runs loaded."
-                                        : "Initializing..."}
+                                    {!hasLoadedInitialSavedRuns
+                                        ? "Initializing..."
+                                        : isPollingUI // Use isPollingUI
+                                        ? "Polling for images..."
+                                        : "No image runs loaded."}
                                 </Typography>
                             )}
-                            {(isPolling || !hasLoadedInitialSavedRuns) &&
-                                imageRuns.length === 0 &&
-                                !error && (
+                            {(!hasLoadedInitialSavedRuns ||
+                                (isPollingUI && imageRuns.length === 0)) &&
+                                !error && ( // Use isPollingUI
                                     <Box
                                         sx={{
                                             display: "flex",
@@ -1105,15 +1138,9 @@ const Reports: React.FC = () => {
                                                 objectFit: "contain",
                                             }}
                                             onLoad={() => {
-                                                // Force re-calculation of bbox styles if necessary, e.g., by triggering a state update
-                                                // that calculateDetectionStyles depends on if it's not already re-running.
-                                                // Forcing a re-render of detections could be done by briefly changing currentDetectionMatches
-                                                // or adding a dummy state to force re-render of the detection mapping.
-                                                // Usually, React handles this if dependencies are correct.
-                                                // If styles are off after load, may need to `forceUpdate` or similar.
                                                 setCurrentDetectionMatches(
                                                     (prev) => ({ ...prev })
-                                                ); // Simple way to trigger re-render of consumers
+                                                );
                                             }}
                                             onError={(e) => {
                                                 e.currentTarget.alt = `Error loading image for Run ${currentRun.runId}`;
@@ -1131,8 +1158,7 @@ const Reports: React.FC = () => {
                                                     index
                                                 );
                                                 if (!isValid) {
-                                                    // console.warn(`Detection ${index} for run ${detection.runId} has invalid scaled bbox.`);
-                                                    return null; // Or render a placeholder/error for this specific detection
+                                                    return null;
                                                 }
                                                 return (
                                                     <React.Fragment
@@ -1252,7 +1278,6 @@ const Reports: React.FC = () => {
                                                             )}
                                                         </Typography>
                                                     </Typography>
-                                                    {/* Index Select */}
                                                     <FormControl
                                                         fullWidth
                                                         size="small"
@@ -1353,7 +1378,6 @@ const Reports: React.FC = () => {
                                                                 </FormHelperText>
                                                             )}
                                                     </FormControl>
-                                                    {/* Object Select */}
                                                     <FormControl
                                                         fullWidth
                                                         size="small"
@@ -1411,7 +1435,7 @@ const Reports: React.FC = () => {
                                                                         v_enum >
                                                                             0 &&
                                                                         v_enum !==
-                                                                            ODLCObjects.UNRECOGNIZED /* Exclude Undefined(0) and UNRECOGNIZED */
+                                                                            ODLCObjects.UNRECOGNIZED
                                                                 )
                                                                 .map(
                                                                     ([
@@ -1488,13 +1512,13 @@ const Reports: React.FC = () => {
                                             isFinalSubmitting ||
                                             (currentRunIndex >=
                                                 imageRuns.length - 1 &&
-                                                !isPolling)
+                                                !isPollingUI) // Use isPollingUI
                                         }
                                         fullWidth
                                         sx={{ mt: 1 }}
                                     >
                                         {currentRunIndex >= imageRuns.length - 1
-                                            ? isPolling
+                                            ? isPollingUI // Use isPollingUI
                                                 ? "Waiting for New Images..."
                                                 : "End of Queue"
                                             : "Next Image"}
