@@ -76,7 +76,7 @@ houston/node_modules/.bin/protoc-gen-ts_proto:
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run run-docker run-compose stop-compose run-broach-compose develop
+.PHONY: run run-docker run-compose stop-compose run-broach-compose develop clean-saved
 run: build
 	./gcs
 
@@ -86,13 +86,16 @@ run-react-dev:
 run-docker:
 	docker run -e --network=host --name gcs tritonuas/gcs
 
-run-compose:
+clean-saved:
+	rm -f internal/server/saved/targets.json
+
+run-compose: clean-saved
 	docker compose -f deployments/docker-compose.yml up -d
 
 stop-compose:
 	docker compose -f deployments/docker-compose.yml down
 
-run-compose-mac:
+run-compose-mac: clean-saved
 	docker compose -f deployments/docker-compose-mac.yml up -d
 
 stop-compose-mac:

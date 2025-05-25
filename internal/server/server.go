@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-contrib/static"
@@ -35,7 +37,8 @@ type Server struct {
 	MissionTime         int64
 	ClassifiedTargets   []cvs.ClassifiedODLC
 
-	MissionConfig *protos.Mission
+	MissionConfig   *protos.Mission
+	reportFileMutex sync.Mutex
 }
 
 /*
@@ -74,6 +77,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
+		api.GET("/report", server.getSavedTargets())
+		api.POST("/report", server.pushSavedTargets())
 
 		api.GET("/camera/capture", server.doCameraCapture())
 
@@ -636,5 +641,56 @@ func (server *Server) rejectTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.RejectTargets()
 		c.Data(status, "application/json", body)
+	}
+}
+
+// Also I think this dir is gonna save the json in the gcs/internal/server directory so plz change this to smth more reasonable
+const reportJson = "saved/targets.json"
+
+// Comments for Kimi:
+// - GET request; should return JSON in the HTTP Response body
+func (s *Server) getSavedTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		s.reportFileMutex.Lock()
+		defer s.reportFileMutex.Unlock()
+
+		fileBytes, err := os.ReadFile(reportJson) // This might error if "/saved" doesn't exist so might want to modify reportJson
+		
+		// If error reading OR file is empty, send an empty JSON array
+		if err != nil || len(fileBytes) == 0 {
+			emptyJsonPayload := []byte("[]") // Send empty array
+			c.Data(http.StatusOK, "application/json", emptyJsonPayload)
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", fileBytes)
+	}
+}
+
+// - POST request; Expects JSON in body
+func (s *Server) pushSavedTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		jsonData, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "cant read body")
+			return
+		}
+
+		s.reportFileMutex.Lock()
+		defer s.reportFileMutex.Unlock()
+
+		// Create the directory if it doesn't exist
+		if err := os.MkdirAll("saved", 0755); err != nil {
+			c.String(http.StatusInternalServerError, "Failed to create directory: %v", err)
+			return
+		}
+
+		err = os.WriteFile(reportJson, jsonData, 0666)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Cant Write Json: %v", err)
+			return
+		}
+
+		c.Data(http.StatusOK, "text/plain", nil)
 	}
 }
