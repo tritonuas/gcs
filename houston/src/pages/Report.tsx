@@ -1,4 +1,4 @@
-// FILE: Report.tsx (Refactored for Undefined=0 and 404 Debugging)
+// FILE: Report.tsx (Refactored for Persistence, Undefined=0, and 404 Debugging)
 
 // =======================================================================
 // == IMPORTANT: MAKE SURE YOU HAVE REGENERATED obc.pb.ts FROM THE   	==
@@ -42,7 +42,7 @@ import {
 import {
     IdentifiedTarget,
     AirdropIndex,
-    ODLCObjects, // <-- This MUST be from the REGENERATED file
+    ODLCObjects,
     airdropIndexToJSON,
     oDLCObjectsToJSON,
     oDLCObjectsFromJSON,
@@ -57,31 +57,28 @@ import "./Report.css"; // Assuming you have this CSS file
 // --- Constants ---
 const POLLING_INTERVAL_MS = 10000;
 const API_BASE_URL = "/api"; // <-- Verify this matches proxy/backend base path
-const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`; // <-- Verify this exact path exists on backend for POST
+const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
+const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
+const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`; // For GET and POST of imageRuns
 const REQUIRED_AIRDROP_INDICES = [
     AirdropIndex.Kaz,
     AirdropIndex.Kimi,
     AirdropIndex.Chris,
     AirdropIndex.Daniel,
 ];
-// *** UPDATED: Use the explicit Undefined enum value ***
 const PLACEHOLDER_OBJECT_TYPE = ODLCObjects.Undefined;
-
-// --- Mock/Placeholder Data ---
-// MOCK_MISSION_ASSIGNMENTS might need updating if it used Mannequin=0 before
-// const MOCK_MISSION_ASSIGNMENTS: Airdrop[] = [ ... ];
 
 // --- Helper Functions ---
 const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
-    // (fetch logic unchanged)
     try {
-        const response = await fetch(`${API_BASE_URL}/targets/all`);
+        const response = await fetch(TARGETS_ALL_ENDPOINT);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        if (!Array.isArray(data)) throw new Error("Invalid data format");
+        if (!Array.isArray(data))
+            throw new Error("Invalid data format from /targets/all");
         return data.map((item) => IdentifiedTarget.fromJSON(item));
     } catch (error) {
-        console.error("Error fetching targets:", error);
+        console.error("Error fetching targets from /targets/all:", error);
         throw error;
     }
 };
@@ -89,7 +86,6 @@ const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
 const postMatchedTargets = async (
     payload: AirdropTarget[]
 ): Promise<boolean> => {
-    // *** Check the URL carefully ***
     console.log(
         `POSTING FINAL MATCHES to ${TARGET_MATCHED_ENDPOINT}:`,
         payload
@@ -97,19 +93,16 @@ const postMatchedTargets = async (
     const jsonPayload = payload.map((target) => AirdropTarget.toJSON(target));
     try {
         const response = await fetch(TARGET_MATCHED_ENDPOINT, {
-            // Use the constant
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(jsonPayload),
         });
         if (!response.ok) {
-            // Log more info for 404
-            const errorBody = await response.text().catch(() => ""); // Try to get body, default to empty
+            const errorBody = await response.text().catch(() => "");
             console.error(
                 `POST to ${TARGET_MATCHED_ENDPOINT} failed with status ${response.status}`,
                 errorBody
             );
-            // Provide specific error message for 404
             if (response.status === 404) {
                 throw new Error(
                     `Endpoint not found (${response.status}): POST ${TARGET_MATCHED_ENDPOINT}. Check backend route and dev proxy.`
@@ -126,7 +119,79 @@ const postMatchedTargets = async (
         return true;
     } catch (error) {
         console.error("Error posting final matched targets:", error);
-        throw error; // Rethrow to be handled in handleFinalSubmit
+        throw error;
+    }
+};
+
+// New helper to fetch saved runs
+const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
+    try {
+        const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT);
+        if (!response.ok) {
+            // For 404, it might mean no saved data yet, which is not a hard error for this function
+            if (response.status === 404) {
+                console.log("No saved runs found on server (404).");
+                return [];
+            }
+            throw new Error(`HTTP ${response.status} fetching saved runs`);
+        }
+        // Check for empty response body before .json()
+        const text = await response.text();
+        if (!text) {
+            console.log(
+                "Received empty response body from saved runs endpoint."
+            );
+            return [];
+        }
+        const data = JSON.parse(text);
+
+        if (!Array.isArray(data)) {
+            // Handle if server sends "{}" for empty instead of "[]"
+            if (typeof data === "object" && Object.keys(data).length === 0) {
+                console.warn(
+                    "Saved runs endpoint returned an empty object, expected array. Treating as no runs."
+                );
+                return [];
+            }
+            throw new Error(
+                "Invalid data format for saved runs (expected array)"
+            );
+        }
+        return data.map((item) => IdentifiedTarget.fromJSON(item));
+    } catch (error) {
+        console.error("Error fetching saved runs:", error);
+        // Don't throw, allow app to continue, but log it.
+        // Could set an error state if critical.
+        return [];
+    }
+};
+
+// New helper to push runs to be saved
+const pushSavedRunsToServer = async (
+    runsToSave: IdentifiedTarget[]
+): Promise<boolean> => {
+    console.log(
+        `Pushing ${runsToSave.length} runs to ${SAVE_LOAD_REPORT_ENDPOINT}`
+    );
+    const jsonPayload = runsToSave.map((run) => IdentifiedTarget.toJSON(run));
+    try {
+        const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(jsonPayload),
+        });
+        if (!response.ok) {
+            const errorBody = await response.text().catch(() => "");
+            throw new Error(
+                `HTTP ${response.status} pushing saved runs - ${
+                    errorBody || response.statusText
+                }`
+            );
+        }
+        return true;
+    } catch (error) {
+        console.error("Error pushing saved runs:", error);
+        throw error; // Rethrow to be handled by caller
     }
 };
 
@@ -148,10 +213,8 @@ interface CurrentDetectionMatch {
 
 // --- Component ---
 const Reports: React.FC = () => {
-    // --- State (declarations unchanged) ---
     const [imageRuns, setImageRuns] = useState<IdentifiedTarget[]>([]);
     const [currentRunIndex, setCurrentRunIndex] = useState<number>(0);
-    // const [missionAssignments] = useState<Airdrop[]>(MOCK_MISSION_ASSIGNMENTS);
     const [seenRunIds, setSeenRunIds] = useState<Set<number>>(new Set());
     const [currentDetectionMatches, setCurrentDetectionMatches] = useState<{
         [key: string]: CurrentDetectionMatch | undefined;
@@ -161,44 +224,71 @@ const Reports: React.FC = () => {
     }>({});
     const [isCurrentRunProcessed, setIsCurrentRunProcessed] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isPolling, setIsPolling] = useState<boolean>(false);
+    const [isPollingUI, setIsPollingUI] = useState<boolean>(false); // For UI indication
     const [isConfirming, setIsConfirming] = useState<boolean>(false);
     const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
 
+    // New state for persistence flow
+    const [hasLoadedInitialSavedRuns, setHasLoadedInitialSavedRuns] =
+        useState(false);
+    const [isSavingRuns, setIsSavingRuns] = useState(false); // Prevent concurrent saves
+
     // Refs
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef<boolean>(true);
     const imageContainerRef = useRef<HTMLDivElement>(null);
+    const isFetchingTargetsRef = useRef<boolean>(false); // Ref for fetch guard
 
-    // --- Data Processing & Fetching (Callbacks unchanged) ---
+    // --- Data Processing & Fetching ---
+
     const processFetchedRuns = useCallback(
-        /* ...unchanged... */ (fetchedRuns: IdentifiedTarget[]) => {
-            let newValidRunsFound = false;
+        (fetchedRuns: IdentifiedTarget[]): boolean => {
+            let newValidRunsAddedToState = false;
+            const currentRunIdsInState = new Set(imageRuns.map((r) => r.runId));
+
             const newValidRuns = fetchedRuns.filter((run) => {
-                if (seenRunIds.has(run.runId)) return false;
+                if (
+                    seenRunIds.has(run.runId) ||
+                    currentRunIdsInState.has(run.runId)
+                ) {
+                    return false;
+                }
                 const numCoords = run.coordinates?.length ?? 0;
                 const numBBoxes = run.bboxes?.length ?? 0;
                 const hasDetections =
                     numCoords > 0 &&
                     numBBoxes > 0 &&
                     Math.min(numCoords, numBBoxes) > 0;
-                if (!hasDetections && !seenRunIds.has(run.runId)) {
-                    if (isMountedRef.current)
-                        setSeenRunIds((prev) => new Set(prev).add(run.runId));
+
+                if (
+                    !hasDetections &&
+                    !seenRunIds.has(run.runId) &&
+                    isMountedRef.current
+                ) {
+                    setSeenRunIds((prev) => new Set(prev).add(run.runId));
                 }
                 return hasDetections;
             });
+
             if (newValidRuns.length > 0) {
-                newValidRunsFound = true;
+                newValidRunsAddedToState = true;
                 if (isMountedRef.current) {
-                    newValidRuns.sort((a, b) => a.runId - b.runId);
                     setImageRuns((prevRuns) => {
                         const updatedRuns = [...prevRuns, ...newValidRuns];
-                        if (prevRuns.length === 0 && updatedRuns.length > 0) {
+                        updatedRuns.sort((a, b) => a.runId - b.runId);
+                        if (
+                            prevRuns.length === 0 &&
+                            updatedRuns.length > 0 &&
+                            currentRunIndex === 0
+                        ) {
                             setTimeout(() => {
-                                if (isMountedRef.current) setCurrentRunIndex(0);
+                                if (
+                                    isMountedRef.current &&
+                                    currentRunIndex === 0
+                                )
+                                    setCurrentRunIndex(0);
                             }, 0);
                         }
                         return updatedRuns;
@@ -210,49 +300,178 @@ const Reports: React.FC = () => {
                     });
                 }
             }
-            return newValidRunsFound;
+            return newValidRunsAddedToState;
         },
-        [seenRunIds]
+        [seenRunIds, imageRuns, currentRunIndex]
     );
 
     const fetchAndProcessLatest = useCallback(
-        /* ...unchanged... */ async (isInitialFetch = false) => {
-            if (isPolling && !isInitialFetch) return;
-            if (!isInitialFetch) setIsPolling(true);
+        async (isInitialFetch = false) => {
+            if (!isInitialFetch) {
+                if (isFetchingTargetsRef.current) {
+                    return;
+                }
+                isFetchingTargetsRef.current = true;
+            }
+
             try {
                 const fetched = await fetchTargets();
-                if (isMountedRef.current) processFetchedRuns(fetched);
+                if (isMountedRef.current) {
+                    processFetchedRuns(fetched);
+                }
                 if (isMountedRef.current) setError(null);
             } catch (
                 err: any // eslint-disable-line
             ) {
-                if (isMountedRef.current)
-                    setError(`Fetch failed: ${err.message}`);
+                if (isMountedRef.current) {
+                    console.error(
+                        `Fetch failed (isInitial: ${isInitialFetch}): ${err.message}`
+                    );
+                    if (isInitialFetch) {
+                        setError(`Initial fetch failed: ${err.message}`);
+                        setSnackbarMessage(
+                            `Error fetching new runs: ${err.message}`
+                        );
+                        setSnackbarOpen(true);
+                    }
+                }
             } finally {
-                if (isMountedRef.current && !isInitialFetch)
-                    setIsPolling(false);
+                if (!isInitialFetch) {
+                    isFetchingTargetsRef.current = false;
+                }
             }
         },
-        [processFetchedRuns, isPolling]
+        [processFetchedRuns]
     );
 
-    // --- Effects (unchanged) ---
+    // Effect for initial loading of SAVED runs
     useEffect(() => {
         isMountedRef.current = true;
-        fetchAndProcessLatest(true);
-        intervalIdRef.current = setInterval(
-            () => fetchAndProcessLatest(false),
-            POLLING_INTERVAL_MS
-        );
-        return () => {
-            isMountedRef.current = false;
-            if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+        const loadSaved = async () => {
+            try {
+                // setSnackbarMessage("Loading saved run data..."); // Can be noisy
+                // setSnackbarOpen(true);
+                const savedRuns = await fetchSavedRunsFromServer();
+                if (isMountedRef.current && savedRuns.length > 0) {
+                    processFetchedRuns(savedRuns); // This might trigger the save effect if imageRuns changes
+                    setSnackbarMessage(
+                        `Loaded ${savedRuns.length} saved run(s).`
+                    );
+                    setSnackbarOpen(true);
+                } else if (isMountedRef.current) {
+                    console.log(
+                        "No saved run data found or component unmounted."
+                    );
+                }
+            } catch (
+                loadError: any // eslint-disable-line
+            ) {
+                console.error(
+                    "Error loading saved runs during init:",
+                    loadError
+                );
+                if (isMountedRef.current) {
+                    setError(
+                        `Failed to load saved run data: ${loadError.message}`
+                    );
+                    setSnackbarMessage(
+                        `Error loading saved runs: ${loadError.message}`
+                    );
+                    setSnackbarOpen(true);
+                }
+            } finally {
+                if (isMountedRef.current) {
+                    setHasLoadedInitialSavedRuns(true); // Critical: Gate other effects
+                }
+            }
         };
-    }, [fetchAndProcessLatest]);
+        loadSaved();
+        // No return cleanup needed here for isMountedRef specifically,
+        // as it's managed by the component lifecycle.
+        // The main polling effect handles its own cleanup.
+    }, [processFetchedRuns]); // Runs if processFetchedRuns reference changes
+
+    // Effect for initial fetch from /targets/all and setting up polling
+    useEffect(() => {
+        if (!hasLoadedInitialSavedRuns || !isMountedRef.current) {
+            return; // Wait until saved runs are processed and component is mounted
+        }
+
+        const performInitialLiveFetch = async () => {
+            if (isMountedRef.current) setIsPollingUI(true);
+            await fetchAndProcessLatest(true); // isInitialFetch = true
+            if (isMountedRef.current) setIsPollingUI(false);
+        };
+
+        performInitialLiveFetch();
+
+        const localIntervalId = setInterval(async () => {
+            if (!isMountedRef.current) {
+                clearInterval(localIntervalId);
+                return;
+            }
+            if (isMountedRef.current) setIsPollingUI(true);
+            await fetchAndProcessLatest(false); // isInitialFetch = false
+            if (isMountedRef.current) setIsPollingUI(false);
+        }, POLLING_INTERVAL_MS);
+        intervalIdRef.current = localIntervalId; // Store for global cleanup
+
+        return () => {
+            if (localIntervalId) {
+                clearInterval(localIntervalId);
+            }
+            intervalIdRef.current = null;
+        };
+    }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]); // Dependencies
+
+    // Effect for saving imageRuns when they change
+    useEffect(() => {
+        if (
+            hasLoadedInitialSavedRuns && // Only save after initial load attempt
+            imageRuns.length > 0 &&
+            !isSavingRuns &&
+            isMountedRef.current // Ensure component is still mounted
+        ) {
+            const saveRuns = async () => {
+                setIsSavingRuns(true);
+                try {
+                    await pushSavedRunsToServer(imageRuns);
+                    console.log(
+                        "Successfully pushed updated imageRuns to server."
+                    );
+                } catch (
+                    pushError: any // eslint-disable-line
+                ) {
+                    console.error("Error auto-saving runs:", pushError);
+                    if (isMountedRef.current) {
+                        setSnackbarMessage(
+                            `Error auto-saving run data: ${pushError.message}`
+                        );
+                        setSnackbarOpen(true);
+                    }
+                } finally {
+                    if (isMountedRef.current) setIsSavingRuns(false);
+                }
+            };
+            saveRuns();
+        }
+    }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]); // Dependencies
+
+    // Effect for component unmount cleanup (already implicitly handled by isMountedRef checks)
+    useEffect(() => {
+        isMountedRef.current = true; // Set on mount
+        return () => {
+            isMountedRef.current = false; // Set on unmount
+            if (intervalIdRef.current) {
+                // Clear any lingering interval
+                clearInterval(intervalIdRef.current);
+            }
+        };
+    }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
 
     // --- Memoized Derived State ---
     const currentRun = useMemo(
-        /* ...unchanged... */ () =>
+        () =>
             imageRuns.length > 0 &&
             currentRunIndex >= 0 &&
             currentRunIndex < imageRuns.length
@@ -260,31 +479,29 @@ const Reports: React.FC = () => {
                 : null,
         [imageRuns, currentRunIndex]
     );
-    const currentDetections = useMemo(
-        /* ...unchanged... */ (): DetectionInfo[] => {
-            if (!currentRun) return [];
-            const detections: DetectionInfo[] = [];
-            const coords = currentRun.coordinates ?? [];
-            const bboxes = currentRun.bboxes ?? [];
-            const numDetections = Math.min(coords.length, bboxes.length);
-            if (coords.length !== bboxes.length && numDetections > 0)
-                console.warn(`Run ${currentRun.runId}: Coord/Bbox mismatch`);
-            for (let i = 0; i < numDetections; i++) {
-                if (coords[i] && bboxes[i])
-                    detections.push({
-                        runId: currentRun.runId,
-                        detectionIndex: i,
-                        compositeKey: `${currentRun.runId}-${i}`,
-                        coordinate: coords[i],
-                        bbox: bboxes[i],
-                    });
-            }
-            return detections;
-        },
-        [currentRun]
-    );
+    const currentDetections = useMemo((): DetectionInfo[] => {
+        if (!currentRun) return [];
+        const detections: DetectionInfo[] = [];
+        const coords = currentRun.coordinates ?? [];
+        const bboxes = currentRun.bboxes ?? [];
+        const numDetections = Math.min(coords.length, bboxes.length);
+        if (coords.length !== bboxes.length && numDetections > 0)
+            console.warn(
+                `Run ${currentRun.runId}: Coord/Bbox mismatch. Coords: ${coords.length}, BBoxes: ${bboxes.length}`
+            );
+        for (let i = 0; i < numDetections; i++) {
+            if (coords[i] && bboxes[i])
+                detections.push({
+                    runId: currentRun.runId,
+                    detectionIndex: i,
+                    compositeKey: `${currentRun.runId}-${i}`,
+                    coordinate: coords[i],
+                    bbox: bboxes[i],
+                });
+        }
+        return detections;
+    }, [currentRun]);
 
-    // Can confirm if >= 1 valid match exists in current selections
     const canConfirmCurrentImage = useMemo(() => {
         return Object.values(currentDetectionMatches).some(
             (match) =>
@@ -293,22 +510,19 @@ const Reports: React.FC = () => {
                 match.airdropIndex !== AirdropIndex.UNRECOGNIZED &&
                 match.objectType !== undefined &&
                 match.objectType !== ODLCObjects.UNRECOGNIZED &&
-                match.objectType !== PLACEHOLDER_OBJECT_TYPE // Check against Undefined
+                match.objectType !== PLACEHOLDER_OBJECT_TYPE
         );
     }, [currentDetectionMatches]);
 
-    // Can submit final if all required targets are confirmed
     const canSubmitFinalMatches = useMemo(() => {
         return REQUIRED_AIRDROP_INDICES.every(
             (index) =>
                 submittedTargets[index] !== undefined &&
-                submittedTargets[index]?.Object !== ODLCObjects.Undefined // Also ensure object isn't Undefined in submitted
+                submittedTargets[index]?.Object !== ODLCObjects.Undefined
         );
     }, [submittedTargets]);
 
     // --- Event Handlers ---
-
-    // Update current image selections
     const handleMatchUpdate = (
         compositeKey: string,
         field: "airdropIndex" | "objectType",
@@ -318,7 +532,6 @@ const Reports: React.FC = () => {
         const selectedJsonValue = event.target.value;
         let selectedEnumValue: AirdropIndex | ODLCObjects | undefined | "" = "";
 
-        // Convert and validate enum
         if (selectedJsonValue === "") selectedEnumValue = "";
         else {
             try {
@@ -329,11 +542,18 @@ const Reports: React.FC = () => {
                     selectedEnumValue === AirdropIndex.UNRECOGNIZED ||
                     selectedEnumValue === ODLCObjects.UNRECOGNIZED
                 ) {
-                    console.warn("Invalid enum value");
+                    console.warn(
+                        "Invalid enum value selected:",
+                        selectedJsonValue
+                    );
                     return;
                 }
             } catch (e) {
-                console.error("Enum conversion error", e);
+                console.error(
+                    "Enum conversion error for value:",
+                    selectedJsonValue,
+                    e
+                );
                 return;
             }
         }
@@ -341,68 +561,59 @@ const Reports: React.FC = () => {
         setCurrentDetectionMatches((prev) => {
             const updatedMatches = { ...prev };
             const currentMatchData = updatedMatches[compositeKey];
-            // *** UPDATED: Default object type is now Undefined ***
             const defaultObjectType = ODLCObjects.Undefined;
-
             let newMatch: CurrentDetectionMatch | undefined = undefined;
 
             if (field === "airdropIndex") {
                 if (selectedEnumValue === "") {
                     delete updatedMatches[compositeKey];
-                    return updatedMatches;
                 } else if (
                     typeof selectedEnumValue === "number" &&
                     selectedEnumValue in AirdropIndex
                 ) {
                     const newAirdropIndex = selectedEnumValue as AirdropIndex;
-                    // Allow re-selection locally, confirmation handles overwrites
                     newMatch = {
                         airdropIndex: newAirdropIndex,
-                        // If creating new, set type to Undefined, else keep existing
                         objectType:
                             currentMatchData?.objectType ?? defaultObjectType,
                         detectionInfo: detectionInfo,
                     };
                 }
             } else {
-                // objectType
+                if (!currentMatchData) {
+                    console.warn(
+                        "Cannot set objectType, no airdrop index assigned to this detection yet."
+                    );
+                    return prev;
+                }
                 if (selectedEnumValue === "") {
-                    // *** UPDATED: Set to Undefined when clearing ***
-                    if (currentMatchData)
-                        newMatch = {
-                            ...currentMatchData,
-                            objectType: ODLCObjects.Undefined,
-                        };
-                    else
-                        console.warn(
-                            "Cannot clear objectType, no index assigned."
-                        );
+                    newMatch = {
+                        ...currentMatchData,
+                        objectType: ODLCObjects.Undefined,
+                    };
                 } else if (
                     typeof selectedEnumValue === "number" &&
                     selectedEnumValue in ODLCObjects
                 ) {
                     const newObjectType = selectedEnumValue as ODLCObjects;
-                    if (currentMatchData)
-                        newMatch = {
-                            ...currentMatchData,
-                            objectType: newObjectType,
-                        };
-                    else
-                        console.warn(
-                            "Cannot set objectType, no index assigned."
-                        );
+                    newMatch = {
+                        ...currentMatchData,
+                        objectType: newObjectType,
+                    };
                 }
             }
 
             if (newMatch) updatedMatches[compositeKey] = newMatch;
-            else if (field !== "airdropIndex") return prev; // Avoid update if object change invalid
-
+            else if (field === "airdropIndex" && selectedEnumValue === "") {
+                /* handled by delete */
+            } else if (!newMatch) {
+                return prev;
+            }
             return updatedMatches;
         });
-        if (isCurrentRunProcessed) setIsCurrentRunProcessed(false); // Reset processed status on change
+        if (isCurrentRunProcessed) setIsCurrentRunProcessed(false);
     };
 
-    // Confirm matches for the current image locally
     const handleConfirmLocalMatches = () => {
         if (!currentRun || !canConfirmCurrentImage || isConfirming) return;
         setIsConfirming(true);
@@ -420,13 +631,11 @@ const Reports: React.FC = () => {
                 match.airdropIndex !== AirdropIndex.UNRECOGNIZED &&
                 match.objectType !== undefined &&
                 match.objectType !== ODLCObjects.UNRECOGNIZED &&
-                // *** UPDATED: Check against Undefined ***
                 match.objectType !== PLACEHOLDER_OBJECT_TYPE &&
                 match.detectionInfo
             ) {
                 if (submittedTargets[match.airdropIndex]) {
                     overwriteCount++;
-                    // Optional: Add confirmation dialog for overwrite
                 }
                 const confirmedTarget = AirdropTarget.create({
                     Index: match.airdropIndex,
@@ -447,18 +656,14 @@ const Reports: React.FC = () => {
         setSnackbarMessage(message);
         setSnackbarOpen(true);
         setIsCurrentRunProcessed(true);
-        // Decide whether to clear currentDetectionMatches or not here
         setIsConfirming(false);
-        // Optionally move next: handleNextImage();
     };
 
-    // Submit final confirmed matches to backend
     const handleFinalSubmit = async () => {
         if (!canSubmitFinalMatches || isFinalSubmitting) return;
         setIsFinalSubmitting(true);
         setError(null);
 
-        // *** UPDATED: Ensure submitted targets don't have Undefined object type ***
         const finalPayload = Object.values(submittedTargets).filter(
             (target): target is AirdropTarget =>
                 target !== undefined && target.Object !== ODLCObjects.Undefined
@@ -466,9 +671,12 @@ const Reports: React.FC = () => {
 
         if (finalPayload.length !== REQUIRED_AIRDROP_INDICES.length) {
             console.error(
-                "Final submit: Payload incomplete or contains Undefined objects."
+                "Final submit: Payload incomplete or contains Undefined objects.",
+                finalPayload
             );
-            setError("Internal error: Incomplete final target list.");
+            setError(
+                "Internal error: Incomplete final target list. Ensure all targets have a defined object type."
+            );
             setIsFinalSubmitting(false);
             return;
         }
@@ -481,13 +689,11 @@ const Reports: React.FC = () => {
                 );
                 setSnackbarOpen(true);
             }
-            // Error handled by catch
         } catch (
-            postError: any // eslint-disable-line
+            postError: any // eslint-disable-line @typescript-eslint/no-explicit-any
         ) {
             console.error("Final submission failed:", postError);
             if (isMountedRef.current) {
-                // Display the specific error from postMatchedTargets (includes 404 details)
                 setError(
                     `Final submission failed: ${
                         postError.message || "Unknown error"
@@ -499,14 +705,8 @@ const Reports: React.FC = () => {
         }
     };
 
-    // Other handlers (handleNextImage, handleSnackbarClose) unchanged
     const handleNextImage = () => {
-        /* ...unchanged... */ if (
-            !isMountedRef.current ||
-            isConfirming ||
-            isFinalSubmitting
-        )
-            return;
+        if (!isMountedRef.current || isConfirming || isFinalSubmitting) return;
         if (currentRunIndex < imageRuns.length - 1) {
             const nextIndex = currentRunIndex + 1;
             setCurrentRunIndex(nextIndex);
@@ -514,16 +714,21 @@ const Reports: React.FC = () => {
             setIsCurrentRunProcessed(false);
             setError(null);
         } else {
-            if (!isPolling) alert("End of loaded images.");
+            if (imageRuns.length > 0) {
+                setSnackbarMessage(
+                    isPollingUI // Use isPollingUI for the message
+                        ? "Waiting for more images..."
+                        : "End of loaded images."
+                );
+                setSnackbarOpen(true);
+            }
         }
     };
-    const handleSnackbarClose = () => {
-        /* ...unchanged... */ setSnackbarOpen(false);
-    };
+    const handleSnackbarClose = () => setSnackbarOpen(false);
 
-    // --- Rendering Helpers (formatCoordinates, renderTargetLabel, calculateDetectionStyles unchanged) ---
+    // --- Rendering Helpers ---
     const formatCoordinates = (coord: GPSCoord | undefined): string => {
-        /* ...unchanged... */ if (!coord) return "N/A";
+        if (!coord) return "N/A";
         const lat =
             typeof coord.Latitude === "number"
                 ? coord.Latitude.toFixed(5)
@@ -534,11 +739,9 @@ const Reports: React.FC = () => {
                 : "N/A";
         return `(${lat}, ${lon})`;
     };
-    const renderTargetLabel = (index: number): string => {
-        /* ...unchanged... */ return `Detection ${String.fromCharCode(
-            65 + index
-        )}`;
-    };
+    const renderTargetLabel = (index: number): string =>
+        `Detection ${String.fromCharCode(65 + index)}`;
+
     const calculateDetectionStyles = (
         detection: DetectionInfo,
         index: number
@@ -548,7 +751,7 @@ const Reports: React.FC = () => {
         labelText: string;
         isValid: boolean;
     } => {
-        /* ...unchanged from previous fix... */ const defaultStyles = {
+        const defaultStyles = {
             bboxStyle: {},
             labelStyle: {},
             labelText: renderTargetLabel(index),
@@ -559,29 +762,35 @@ const Reports: React.FC = () => {
             match?.airdropIndex !== undefined &&
             match.airdropIndex !== AirdropIndex.UNRECOGNIZED;
         const color = isAssigned ? "lime" : "cyan";
+
         const container = imageContainerRef.current;
         const imgElement = container?.querySelector(
             "img.reports-current-image"
         ) as HTMLImageElement | null;
+
         if (
             !container ||
             !imgElement ||
             !imgElement.complete ||
             imgElement.naturalWidth === 0 ||
             imgElement.naturalHeight === 0
-        )
+        ) {
             return defaultStyles;
+        }
+
         const containerWidth = container.offsetWidth;
         const containerHeight = container.offsetHeight;
         const naturalWidth = imgElement.naturalWidth;
         const naturalHeight = imgElement.naturalHeight;
         const naturalRatio = naturalWidth / naturalHeight;
         const containerRatio = containerWidth / containerHeight;
+
         let scale: number;
         let displayedWidth: number;
         let displayedHeight: number;
         let offsetX: number;
         let offsetY: number;
+
         if (naturalRatio > containerRatio) {
             displayedWidth = containerWidth;
             displayedHeight = displayedWidth / naturalRatio;
@@ -595,17 +804,23 @@ const Reports: React.FC = () => {
             offsetX = (containerWidth - displayedWidth) / 2;
             offsetY = 0;
         }
+
         const { x1, y1, x2, y2 } = detection.bbox ?? {};
-        const x1_raw: number = x1 ?? 0;
-        const y1_raw: number = y1 ?? 0;
-        const x2_raw: number = x2 ?? x1_raw;
-        const y2_raw: number = y2 ?? y1_raw;
-        const scaledX1 = offsetX + x1_raw * scale;
-        const scaledY1 = offsetY + y1_raw * scale;
-        const scaledWidth = Math.max(0, (x2_raw - x1_raw) * scale);
-        const scaledHeight = Math.max(0, (y2_raw - y1_raw) * scale);
-        const isValid = scaledWidth > 0 && scaledHeight > 0;
-        if (!isValid) return defaultStyles;
+        if (x1 == null || y1 == null || x2 == null || y2 == null)
+            return defaultStyles;
+
+        const scaledX1 = offsetX + x1 * scale;
+        const scaledY1 = offsetY + y1 * scale;
+        const scaledWidth = Math.max(0, (x2 - x1) * scale);
+        const scaledHeight = Math.max(0, (y2 - y1) * scale);
+
+        const isValid = scaledWidth > 1 && scaledHeight > 1;
+        if (!isValid)
+            return {
+                ...defaultStyles,
+                labelText: `${renderTargetLabel(index)} (scaled small)`,
+            };
+
         const bboxStyle: React.CSSProperties = {
             position: "absolute",
             left: `${scaledX1}px`,
@@ -641,7 +856,6 @@ const Reports: React.FC = () => {
     // --- Main Render Function ---
     return (
         <Box className="reports-container" sx={{ p: 2 }}>
-            {/* Global Error Alert */}
             {error && !isConfirming && !isFinalSubmitting && (
                 <Alert
                     severity="warning"
@@ -653,7 +867,7 @@ const Reports: React.FC = () => {
             )}
             <Snackbar
                 open={snackbarOpen}
-                autoHideDuration={6000}
+                autoHideDuration={isSavingRuns || isPollingUI ? 2000 : 6000} // Use isPollingUI
                 onClose={handleSnackbarClose}
                 message={snackbarMessage}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
@@ -662,13 +876,27 @@ const Reports: React.FC = () => {
             <Grid container spacing={2}>
                 {/* === Top Row: Queue & Status === */}
                 <Grid item xs={12} md={8}>
-                    {/* Image Queue (UI unchanged) */}
                     <Card>
                         <CardContent>
-                            {" "}
                             <Typography variant="h6" gutterBottom>
-                                Image Queue ({imageRuns.length} runs)
-                            </Typography>{" "}
+                                Image Queue ({imageRuns.length} runs processed)
+                                {isSavingRuns && (
+                                    <Chip
+                                        label="Saving..."
+                                        size="small"
+                                        sx={{ ml: 1, fontStyle: "italic" }}
+                                    />
+                                )}
+                                {isPollingUI && (
+                                    <Chip
+                                        label="Polling..."
+                                        color="secondary"
+                                        size="small"
+                                        sx={{ ml: 1 }}
+                                    />
+                                )}{" "}
+                                {/* Use isPollingUI */}
+                            </Typography>
                             {imageRuns.length > 0 ? (
                                 <Box
                                     sx={{
@@ -682,7 +910,6 @@ const Reports: React.FC = () => {
                                         borderRadius: 1,
                                     }}
                                 >
-                                    {" "}
                                     {imageRuns.map((run, index) => (
                                         <Chip
                                             key={run.runId}
@@ -715,53 +942,54 @@ const Reports: React.FC = () => {
                                             }}
                                             sx={{ cursor: "pointer" }}
                                         />
-                                    ))}{" "}
+                                    ))}
                                 </Box>
                             ) : (
                                 <Typography
                                     color="textSecondary"
                                     sx={{ textAlign: "center", pt: 2, pb: 1 }}
                                 >
-                                    {isPolling ? "Polling..." : "No runs."}
+                                    {!hasLoadedInitialSavedRuns
+                                        ? "Initializing..."
+                                        : isPollingUI // Use isPollingUI
+                                        ? "Polling for images..."
+                                        : "No image runs loaded."}
                                 </Typography>
-                            )}{" "}
-                            {isPolling && !error && imageRuns.length === 0 && (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        mt: 1,
-                                    }}
-                                >
-                                    <CircularProgress size={24} />
-                                </Box>
-                            )}{" "}
+                            )}
+                            {(!hasLoadedInitialSavedRuns ||
+                                (isPollingUI && imageRuns.length === 0)) &&
+                                !error && ( // Use isPollingUI
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            mt: 1,
+                                        }}
+                                    >
+                                        <CircularProgress size={24} />
+                                    </Box>
+                                )}
                         </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                    {/* Mission Status Table (Shows Confirmed) */}
                     <Card>
                         <CardContent>
                             <Typography variant="h6" gutterBottom>
                                 Mission Target Status (Confirmed)
                             </Typography>
                             <TableContainer component={Paper}>
-                                {" "}
                                 <Table stickyHeader size="small">
-                                    {" "}
                                     <TableHead>
-                                        {" "}
                                         <TableRow>
                                             <TableCell>Assignee</TableCell>
                                             <TableCell>
                                                 Confirmed Object
                                             </TableCell>
                                             <TableCell>Coords</TableCell>
-                                        </TableRow>{" "}
-                                    </TableHead>{" "}
+                                        </TableRow>
+                                    </TableHead>
                                     <TableBody>
-                                        {" "}
                                         {REQUIRED_AIRDROP_INDICES.map(
                                             (index) => {
                                                 const d =
@@ -771,17 +999,19 @@ const Reports: React.FC = () => {
                                                         key={index}
                                                         hover
                                                         sx={{
-                                                            background: d
-                                                                ? "#e8f5e9"
-                                                                : "inherit",
+                                                            background:
+                                                                d &&
+                                                                d.Object !==
+                                                                    ODLCObjects.Undefined
+                                                                    ? "#e8f5e9"
+                                                                    : "inherit",
                                                         }}
                                                     >
-                                                        {" "}
                                                         <TableCell>
                                                             {airdropIndexToJSON(
                                                                 index
                                                             )}
-                                                        </TableCell>{" "}
+                                                        </TableCell>
                                                         <TableCell>
                                                             {d?.Object !==
                                                                 undefined &&
@@ -793,22 +1023,21 @@ const Reports: React.FC = () => {
                                                             ) : (
                                                                 <em>Needed</em>
                                                             )}
-                                                        </TableCell>{" "}
+                                                        </TableCell>
                                                         <TableCell>
                                                             {d?.Coordinate
                                                                 ? formatCoordinates(
                                                                       d.Coordinate
                                                                   )
                                                                 : "-"}
-                                                        </TableCell>{" "}
+                                                        </TableCell>
                                                     </TableRow>
                                                 );
                                             }
-                                        )}{" "}
-                                    </TableBody>{" "}
-                                </Table>{" "}
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </TableContainer>
-                            {/* Final Submit Button */}
                             <Divider sx={{ my: 2 }} />
                             <Button
                                 variant="contained"
@@ -829,10 +1058,9 @@ const Reports: React.FC = () => {
                                     ) : null
                                 }
                             >
-                                {" "}
                                 {isFinalSubmitting
                                     ? "Submitting..."
-                                    : "Send Final Matches"}{" "}
+                                    : "Send Final Matches"}
                             </Button>
                             {error && isFinalSubmitting && (
                                 <Alert
@@ -850,7 +1078,8 @@ const Reports: React.FC = () => {
                                     color="textSecondary"
                                     sx={{ mt: 1, textAlign: "center" }}
                                 >
-                                    (Requires all 4 targets confirmed)
+                                    (Requires all 4 targets confirmed with
+                                    specific object types)
                                 </Typography>
                             )}
                         </CardContent>
@@ -859,11 +1088,8 @@ const Reports: React.FC = () => {
 
                 {/* === Bottom Row: Current Image & Actions === */}
                 <Grid item xs={12} md={8}>
-                    {/* Current Image Display */}
                     <Card>
-                        {" "}
                         <CardContent>
-                            {" "}
                             <Typography
                                 variant="h6"
                                 gutterBottom
@@ -873,9 +1099,7 @@ const Reports: React.FC = () => {
                                     alignItems: "center",
                                 }}
                             >
-                                {" "}
-                                Current Image: Run {currentRun?.runId ??
-                                    "N/A"}{" "}
+                                Current Image: Run {currentRun?.runId ?? "N/A"}
                                 {isCurrentRunProcessed && !isConfirming && (
                                     <Chip
                                         label="Confirmed"
@@ -883,8 +1107,8 @@ const Reports: React.FC = () => {
                                         size="small"
                                         sx={{ ml: 1.5 }}
                                     />
-                                )}{" "}
-                            </Typography>{" "}
+                                )}
+                            </Typography>
                             <Box
                                 ref={imageContainerRef}
                                 className="reports-current-image-container"
@@ -899,10 +1123,8 @@ const Reports: React.FC = () => {
                                     overflow: "hidden",
                                 }}
                             >
-                                {" "}
                                 {currentRun ? (
                                     <>
-                                        {" "}
                                         <img
                                             id="current-target-image"
                                             src={`data:image/png;base64,${currentRun.Picture}`}
@@ -915,15 +1137,15 @@ const Reports: React.FC = () => {
                                                 height: "auto",
                                                 objectFit: "contain",
                                             }}
-                                            onLoad={() =>
+                                            onLoad={() => {
                                                 setCurrentDetectionMatches(
                                                     (prev) => ({ ...prev })
-                                                )
-                                            }
-                                            onError={(e) => {
-                                                e.currentTarget.alt = `Error load ${currentRun.runId}`;
+                                                );
                                             }}
-                                        />{" "}
+                                            onError={(e) => {
+                                                e.currentTarget.alt = `Error loading image for Run ${currentRun.runId}`;
+                                            }}
+                                        />
                                         {currentDetections.map(
                                             (detection, index) => {
                                                 const {
@@ -935,7 +1157,9 @@ const Reports: React.FC = () => {
                                                     detection,
                                                     index
                                                 );
-                                                if (!isValid) return null;
+                                                if (!isValid) {
+                                                    return null;
+                                                }
                                                 return (
                                                     <React.Fragment
                                                         key={
@@ -954,7 +1178,7 @@ const Reports: React.FC = () => {
                                                     </React.Fragment>
                                                 );
                                             }
-                                        )}{" "}
+                                        )}
                                     </>
                                 ) : (
                                     <Typography
@@ -962,23 +1186,20 @@ const Reports: React.FC = () => {
                                         sx={{ textAlign: "center", p: 3 }}
                                     >
                                         {imageRuns.length > 0
-                                            ? "Loading..."
-                                            : "No images."}
+                                            ? "Loading image..."
+                                            : "No images available to display."}
                                     </Typography>
-                                )}{" "}
-                            </Box>{" "}
-                        </CardContent>{" "}
+                                )}
+                            </Box>
+                        </CardContent>
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                    {/* Match Detections Actions */}
                     <Card>
-                        {" "}
                         <CardContent className="reports-confirm-actions-content">
-                            {" "}
                             <Typography variant="h6" gutterBottom>
                                 Match Detections
-                            </Typography>{" "}
+                            </Typography>
                             {currentRun && currentDetections.length > 0 ? (
                                 <Box
                                     sx={{
@@ -987,7 +1208,6 @@ const Reports: React.FC = () => {
                                         gap: 2,
                                     }}
                                 >
-                                    {" "}
                                     {currentDetections.map(
                                         (detection, index) => {
                                             const currentMatch =
@@ -1016,6 +1236,7 @@ const Reports: React.FC = () => {
                                                 isConfirming ||
                                                 isFinalSubmitting ||
                                                 isCurrentRunProcessed;
+
                                             return (
                                                 <Paper
                                                     key={detection.compositeKey}
@@ -1033,7 +1254,6 @@ const Reports: React.FC = () => {
                                                                 : "auto",
                                                     }}
                                                 >
-                                                    {" "}
                                                     <Typography
                                                         variant="subtitle1"
                                                         gutterBottom
@@ -1045,10 +1265,9 @@ const Reports: React.FC = () => {
                                                                 "center",
                                                         }}
                                                     >
-                                                        {" "}
                                                         {renderTargetLabel(
                                                             index
-                                                        )}{" "}
+                                                        )}
                                                         <Typography
                                                             component="span"
                                                             variant="body2"
@@ -1057,24 +1276,22 @@ const Reports: React.FC = () => {
                                                             {formatCoordinates(
                                                                 detection.coordinate
                                                             )}
-                                                        </Typography>{" "}
-                                                    </Typography>{" "}
-                                                    {/* Index Select */}{" "}
+                                                        </Typography>
+                                                    </Typography>
                                                     <FormControl
                                                         fullWidth
                                                         size="small"
                                                         sx={{ mb: 1 }}
                                                         disabled={isDisabled}
                                                     >
-                                                        {" "}
                                                         <InputLabel
                                                             id={`a-${detection.compositeKey}`}
                                                         >
-                                                            Target
-                                                        </InputLabel>{" "}
+                                                            Target Assignee
+                                                        </InputLabel>
                                                         <Select
                                                             labelId={`a-${detection.compositeKey}`}
-                                                            label="Target"
+                                                            label="Target Assignee"
                                                             value={
                                                                 assignedAirdropJsonValue
                                                             }
@@ -1096,10 +1313,12 @@ const Reports: React.FC = () => {
                                                                 )
                                                             }
                                                         >
-                                                            {" "}
                                                             <MenuItem value="">
-                                                                <em>Clear</em>
-                                                            </MenuItem>{" "}
+                                                                <em>
+                                                                    Clear
+                                                                    Assignment
+                                                                </em>
+                                                            </MenuItem>
                                                             {REQUIRED_AIRDROP_INDICES.map(
                                                                 (idxEnum) => {
                                                                     const v =
@@ -1110,6 +1329,10 @@ const Reports: React.FC = () => {
                                                                         submittedTargets[
                                                                             idxEnum
                                                                         ];
+                                                                    const isAlreadyConfirmed =
+                                                                        s &&
+                                                                        s.Object !==
+                                                                            ODLCObjects.Undefined;
                                                                     return (
                                                                         <MenuItem
                                                                             key={
@@ -1119,20 +1342,20 @@ const Reports: React.FC = () => {
                                                                                 v
                                                                             }
                                                                             sx={{
-                                                                                color: s
+                                                                                color: isAlreadyConfirmed
                                                                                     ? "text.secondary"
                                                                                     : "inherit",
                                                                             }}
                                                                         >
                                                                             {v}{" "}
-                                                                            {s
-                                                                                ? "(Conf.)"
+                                                                            {isAlreadyConfirmed
+                                                                                ? "(Confirmed)"
                                                                                 : ""}
                                                                         </MenuItem>
                                                                     );
                                                                 }
-                                                            )}{" "}
-                                                        </Select>{" "}
+                                                            )}
+                                                        </Select>
                                                         {assignedAirdropJsonValue &&
                                                             submittedTargets[
                                                                 airdropIndexFromJSON(
@@ -1147,11 +1370,14 @@ const Reports: React.FC = () => {
                                                                 >
                                                                     Will
                                                                     overwrite
-                                                                    confirmed.
+                                                                    previously
+                                                                    confirmed
+                                                                    selection
+                                                                    for this
+                                                                    assignee.
                                                                 </FormHelperText>
-                                                            )}{" "}
-                                                    </FormControl>{" "}
-                                                    {/* Object Select */}{" "}
+                                                            )}
+                                                    </FormControl>
                                                     <FormControl
                                                         fullWidth
                                                         size="small"
@@ -1161,15 +1387,14 @@ const Reports: React.FC = () => {
                                                             !assignedAirdropJsonValue
                                                         }
                                                     >
-                                                        {" "}
                                                         <InputLabel
                                                             id={`o-${detection.compositeKey}`}
                                                         >
-                                                            Object
-                                                        </InputLabel>{" "}
+                                                            Object Type
+                                                        </InputLabel>
                                                         <Select
                                                             labelId={`o-${detection.compositeKey}`}
-                                                            label="Object"
+                                                            label="Object Type"
                                                             value={
                                                                 assignedObjectTypeJsonValue
                                                             }
@@ -1191,56 +1416,58 @@ const Reports: React.FC = () => {
                                                                 )
                                                             }
                                                         >
-                                                            {" "}
                                                             <MenuItem value="">
                                                                 <em>
                                                                     Undefined
+                                                                    (Clear Type)
                                                                 </em>
-                                                            </MenuItem>{" "}
+                                                            </MenuItem>
                                                             {Object.entries(
                                                                 ODLCObjects
                                                             )
                                                                 .filter(
-                                                                    ([_, v]) =>
-                                                                        typeof v ===
+                                                                    ([
+                                                                        _,
+                                                                        v_enum,
+                                                                    ]) =>
+                                                                        typeof v_enum ===
                                                                             "number" &&
-                                                                        v > 0 &&
-                                                                        v !==
-                                                                            ODLCObjects.UNRECOGNIZED /* Exclude Undefined(0) */
+                                                                        v_enum >
+                                                                            0 &&
+                                                                        v_enum !==
+                                                                            ODLCObjects.UNRECOGNIZED
                                                                 )
                                                                 .map(
                                                                     ([
-                                                                        k,
-                                                                        v,
+                                                                        k_enum,
+                                                                        v_enum,
                                                                     ]) => {
-                                                                        const o =
+                                                                        const o_json =
                                                                             oDLCObjectsToJSON(
-                                                                                v as ODLCObjects
+                                                                                v_enum as ODLCObjects
                                                                             );
                                                                         return (
                                                                             <MenuItem
                                                                                 key={
-                                                                                    k
+                                                                                    k_enum
                                                                                 }
                                                                                 value={
-                                                                                    o
+                                                                                    o_json
                                                                                 }
                                                                             >
                                                                                 {
-                                                                                    o
+                                                                                    o_json
                                                                                 }
                                                                             </MenuItem>
                                                                         );
                                                                     }
-                                                                )}{" "}
-                                                        </Select>{" "}
-                                                        {/* Helper for Undefined removed as it's now an explicit option */}{" "}
-                                                    </FormControl>{" "}
+                                                                )}
+                                                        </Select>
+                                                    </FormControl>
                                                 </Paper>
                                             );
                                         }
-                                    )}{" "}
-                                    {/* Confirm Button */}{" "}
+                                    )}
                                     <Button
                                         variant="contained"
                                         color="primary"
@@ -1262,13 +1489,12 @@ const Reports: React.FC = () => {
                                             ) : null
                                         }
                                     >
-                                        {" "}
                                         {isCurrentRunProcessed
-                                            ? "Confirmed"
+                                            ? "Matches Confirmed"
                                             : isConfirming
                                             ? "Confirming..."
-                                            : "Confirm Image Matches"}{" "}
-                                    </Button>{" "}
+                                            : "Confirm Image Matches"}
+                                    </Button>
                                     {error && isConfirming && (
                                         <Alert
                                             severity="error"
@@ -1277,27 +1503,26 @@ const Reports: React.FC = () => {
                                         >
                                             {error}
                                         </Alert>
-                                    )}{" "}
-                                    {/* Next Button */}{" "}
+                                    )}
                                     <Button
                                         variant="outlined"
                                         onClick={handleNextImage}
                                         disabled={
-                                            currentRunIndex >=
-                                                imageRuns.length - 1 ||
                                             isConfirming ||
-                                            isFinalSubmitting
+                                            isFinalSubmitting ||
+                                            (currentRunIndex >=
+                                                imageRuns.length - 1 &&
+                                                !isPollingUI) // Use isPollingUI
                                         }
                                         fullWidth
                                         sx={{ mt: 1 }}
                                     >
-                                        {" "}
                                         {currentRunIndex >= imageRuns.length - 1
-                                            ? isPolling
-                                                ? "Waiting..."
-                                                : "End"
-                                            : "Next Image"}{" "}
-                                    </Button>{" "}
+                                            ? isPollingUI // Use isPollingUI
+                                                ? "Waiting for New Images..."
+                                                : "End of Queue"
+                                            : "Next Image"}
+                                    </Button>
                                 </Box>
                             ) : (
                                 <Typography
@@ -1305,11 +1530,13 @@ const Reports: React.FC = () => {
                                     sx={{ textAlign: "center", p: 3 }}
                                 >
                                     {currentRun
-                                        ? "No detections."
-                                        : "Select run."}
+                                        ? "No detections in this image."
+                                        : imageRuns.length > 0
+                                        ? "Select a run from the queue."
+                                        : "No image runs available."}
                                 </Typography>
-                            )}{" "}
-                        </CardContent>{" "}
+                            )}
+                        </CardContent>
                     </Card>
                 </Grid>
             </Grid>
