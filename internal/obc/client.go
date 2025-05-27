@@ -238,12 +238,7 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 }
 
 // Tell the OBC to do an airdrop NOW
-func (client *Client) DoDropNow(airdrop *protos.AirdropSwap) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(airdrop)
-	if err != nil {
-		return nil, -1
-	}
+func (client *Client) DoDropNow() ([]byte, int) {
 
 	body, httpErr := client.httpClient.Post("/dodropnow", &buf)
 	return body, httpErr.Status

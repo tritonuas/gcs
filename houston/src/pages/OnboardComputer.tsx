@@ -201,6 +201,16 @@ function OnboardComputer() {
                 >
                     Take Photo
                 </button>
+
+                <button
+                    onClick={() => {
+                        fetch("/api/dodropnow")
+                            .then((resp) => resp.json())
+                            .catch((err) => alert(err));
+                    }}
+                >
+                    Drop airdrop
+                </button>
                 <div className="image-container">
                     <div className="gallery-container">
                         <ImageGallery
