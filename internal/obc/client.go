@@ -240,7 +240,7 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 // Tell the OBC to do an airdrop NOW
 func (client *Client) DoDropNow() ([]byte, int) {
 
-	body, httpErr := client.httpClient.Post("/dodropnow", &buf)
+	body, httpErr := client.httpClient.Post("/dodropnow", nil)
 	return body, httpErr.Status
 }
 

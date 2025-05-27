@@ -204,9 +204,22 @@ function OnboardComputer() {
 
                 <button
                     onClick={() => {
-                        fetch("/api/dodropnow")
-                            .then((resp) => resp.json())
-                            .catch((err) => alert(err));
+                        fetch("/api/plane/dodropnow", { method: "POST" }) 
+                            .then((resp) => {
+                                if (!resp.ok) {
+                                    return resp.text().then(text => {
+                                        throw new Error(`Airdrop command failed: ${text || resp.statusText} (Status: ${resp.status})`);
+                                    });
+                                }
+                                return resp.text();
+                            })
+                            .then(responseText => {
+                                alert(responseText || "Airdrop command successfully processed!");
+                            })
+                            .catch((err) => {
+                                console.error("Airdrop error:", err);
+                                alert(err.message || "An unexpected error occurred during airdrop.");
+                            });
                     }}
                 >
                     Drop airdrop
