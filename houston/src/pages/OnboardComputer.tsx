@@ -203,6 +203,7 @@ function OnboardComputer() {
                 </button>
 
                 <button
+                    type="button"
                     onClick={() => {
                         fetch("/api/plane/dodropnow", { method: "POST" }) 
                             .then((resp) => {
