@@ -80,7 +80,11 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.GET("/report", server.getSavedTargets())
 		api.POST("/report", server.pushSavedTargets())
 
-		api.GET("/camera/capture", server.doCameraCapture())
+		camera := api.Group("/camera")
+		{
+			camera.GET("/capture", server.doCameraCapture())
+			camera.POST("/startstream", server.doCameraStartStream())
+		}
 
 		takeoff := api.Group("/takeoff")
 		{
@@ -621,6 +625,20 @@ func (server *Server) doManualTakeoff() gin.HandlerFunc {
 func (server *Server) doCameraCapture() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.DoCameraCapture()
+		c.Data(status, "application/json", body)
+	}
+}
+
+func (server *Server) doCameraStartStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoCameraStartStream()
+		c.Data(status, "application/json", body)
+	}
+}
+
+func (server *Server) doCameraEndStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoCameraEndStream()
 		c.Data(status, "application/json", body)
 	}
 }

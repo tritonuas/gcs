@@ -250,6 +250,18 @@ func (client *Client) DoCameraCapture() ([]byte, int) {
 	return body, httpErr.Status
 }
 
+// Tell the OBC to start camera stream
+func (client *Client) DoCameraStartStream(uint32 intervalMs) ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/startstream", intervalMs)
+	return body, httpErr.Status
+}
+
+// Tell the OBC to end camera stream
+func (client *Client) DoCameraStartStream() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/endstream", intervalMs)
+	return body, httpErr.Status
+}
+
 // DELETE?
 func (client *Client) ValidateTargets() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/targets/validate", nil)
