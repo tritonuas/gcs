@@ -2,6 +2,7 @@ package obc
 
 import (
 	"bytes"
+	"strings"
 	"encoding/json"
 	"net/http"
 
@@ -247,6 +248,18 @@ func (client *Client) DoDropNow() ([]byte, int) {
 // Tell the OBC to take a picture on the camera
 func (client *Client) DoCameraCapture() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/camera/capture")
+	return body, httpErr.Status
+}
+
+// Tell the OBC to start camera stream
+func (client *Client) DoCameraStartStream(intervalMs string) ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/startstream", strings.NewReader(intervalMs))
+	return body, httpErr.Status
+}
+
+// Tell the OBC to end camera stream
+func (client *Client) DoCameraEndStream() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/endstream", nil)
 	return body, httpErr.Status
 }
 

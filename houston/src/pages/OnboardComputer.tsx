@@ -25,6 +25,8 @@ function OnboardComputer() {
         ) as OBCConnInfo
     );
 
+    const [intervalMS, setintervalMS] = useState<number>(0);
+
     /**
      * Note: the way protobuf serialization works is that if things are null values (false, 0.0) then they
      * wont show up in the serialization, as that can be "implied" to be a zero value by it not being there.
@@ -205,25 +207,127 @@ function OnboardComputer() {
                 <button
                     type="button"
                     onClick={() => {
-                        fetch("/api/plane/dodropnow", { method: "POST" }) 
+                        fetch("/api/plane/dodropnow", { method: "POST" })
                             .then((resp) => {
                                 if (!resp.ok) {
-                                    return resp.text().then(text => {
-                                        throw new Error(`Airdrop command failed: ${text || resp.statusText} (Status: ${resp.status})`);
+                                    return resp.text().then((text) => {
+                                        throw new Error(
+                                            `Airdrop command failed: ${
+                                                text || resp.statusText
+                                            } (Status: ${resp.status})`
+                                        );
                                     });
                                 }
                                 return resp.text();
                             })
-                            .then(responseText => {
-                                alert(responseText || "Airdrop command successfully processed!");
+                            .then((responseText) => {
+                                alert(
+                                    responseText ||
+                                        "Airdrop command successfully processed!"
+                                );
                             })
                             .catch((err) => {
                                 console.error("Airdrop error:", err);
-                                alert(err.message || "An unexpected error occurred during airdrop.");
+                                alert(
+                                    err.message ||
+                                        "An unexpected error occurred during airdrop."
+                                );
                             });
                     }}
                 >
                     Drop airdrop
+                </button>
+
+                <div style={{ margin: "10px 0" }}>
+                    {" "}
+                    {/* Simple styling for spacing */}
+                    <label htmlFor="intervalMS">Interval MS (int): </label>
+                    <input
+                        type="number"
+                        id="intervalMS"
+                        value={intervalMS}
+                        onChange={(e) =>
+                            setintervalMS(parseInt(e.target.value, 10) || 0)
+                        }
+                        placeholder="Enter Interval MS"
+                    />
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        fetch("/api/camera/startstream", {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain" },
+                            body: String(intervalMS),
+                        })
+                            .then((resp) => {
+                                if (!resp.ok) {
+                                    return resp.text().then((text) => {
+                                        throw new Error(
+                                            `Start camera stream failed: ${
+                                                text || resp.statusText
+                                            } (Status: ${resp.status})`
+                                        );
+                                    });
+                                }
+                                return resp.text();
+                            })
+                            .then((responseText) => {
+                                alert(
+                                    responseText ||
+                                        "Camera stream start command successfully processed!"
+                                );
+                            })
+                            .catch((err) => {
+                                console.error(
+                                    "Camera stream start error:",
+                                    err
+                                );
+                                alert(
+                                    err.message ||
+                                        "An unexpected error occurred during camera stream start."
+                                );
+                            });
+                    }}
+                >
+                    Start camera stream
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        fetch("/api/camera/endstream", {
+                            method: "POST",
+                        })
+                            .then((resp) => {
+                                if (!resp.ok) {
+                                    return resp.text().then((text) => {
+                                        throw new Error(
+                                            `End camera stream failed: ${
+                                                text || resp.statusText
+                                            } (Status: ${resp.status})`
+                                        );
+                                    });
+                                }
+                                return resp.text();
+                            })
+                            .then((responseText) => {
+                                alert(
+                                    responseText ||
+                                        "Camera stream end command successfully processed!"
+                                );
+                            })
+                            .catch((err) => {
+                                console.error("Camera stream end error:", err);
+                                alert(
+                                    err.message ||
+                                        "An unexpected error occurred during camera stream end."
+                                );
+                            });
+                    }}
+                >
+                    End camera stream
                 </button>
                 <div className="image-container">
                     <div className="gallery-container">
