@@ -25,7 +25,8 @@ function OnboardComputer() {
         ) as OBCConnInfo
     );
 
-    const [intervalMS, setintervalMS] = useState<number>(0);
+    const DEFAULT_INTERVAL_MS = 500;
+    const [intervalMS, setIntervalMS] = useState<number>(DEFAULT_INTERVAL_MS);
 
     /**
      * Note: the way protobuf serialization works is that if things are null values (false, 0.0) then they
@@ -247,8 +248,9 @@ function OnboardComputer() {
                         id="intervalMS"
                         value={intervalMS}
                         onChange={(e) =>
-                            setintervalMS(parseInt(e.target.value, 10) || 0)
+                            setIntervalMS(parseInt(e.target.value, 10) || 0)
                         }
+                        onFocus={(e) => e.target.select()} // Add this line
                         placeholder="Enter Interval MS"
                     />
                 </div>
@@ -256,10 +258,12 @@ function OnboardComputer() {
                 <button
                     type="button"
                     onClick={() => {
+                        const valueToSend =
+                            intervalMS <= 0 ? DEFAULT_INTERVAL_MS : intervalMS;
                         fetch("/api/camera/startstream", {
                             method: "POST",
                             headers: { "Content-Type": "text/plain" },
-                            body: String(intervalMS),
+                            body: String(valueToSend),
                         })
                             .then((resp) => {
                                 if (!resp.ok) {
