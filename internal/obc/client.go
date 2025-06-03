@@ -85,6 +85,11 @@ func (client *Client) GetConnectionInfo() ([]byte, int) {
 	return body, httpErr.Status
 }
 
+func (client *Client) GetTickState() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/tickstate")
+	return body, httpErr.Status
+}
+
 /*
 Requests a newly generated Initial Path from the OBC via GET request
 
