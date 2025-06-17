@@ -1,7 +1,5 @@
 import { SetStateAction, useState, useEffect, ChangeEvent } from "react";
-
 import { useMapEvents, Polygon, Polyline } from "react-leaflet";
-
 import "./Input.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
@@ -108,14 +106,14 @@ function FormTable({
     setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
 }) {
     // add extra left column for the X button
-    headings = ["---"].concat(headings);
+    const displayHeadings = ["---"].concat(headings);
 
     return (
         <>
             <table>
                 <thead>
                     <tr>
-                        {headings.map((str, i) => (
+                        {displayHeadings.map((str, i) => (
                             <th key={i}>{str}</th>
                         ))}
                     </tr>
@@ -137,7 +135,8 @@ function FormTable({
                                                 return;
                                             }
 
-                                            setMapData((mapData) => {
+                                            setMapData((currentMapData) => {
+                                                // Changed mapData to currentMapData to avoid shadow
                                                 if (data !== undefined) {
                                                     const temp = data
                                                         .slice(0, i)
@@ -145,13 +144,14 @@ function FormTable({
                                                             data.slice(i + 1)
                                                         );
                                                     return new Map(
-                                                        mapData.set(
+                                                        currentMapData.set(
+                                                            // use currentMapData
                                                             mapMode,
                                                             temp
                                                         )
                                                     );
                                                 } else {
-                                                    return mapData; // should never happen
+                                                    return currentMapData; // should never happen
                                                 }
                                             });
                                         }}
@@ -167,11 +167,22 @@ function FormTable({
                                                     mapData
                                                         .get(mapMode)
                                                         ?.at(i)
-                                                        ?.at(j)
+                                                        ?.at(j) +
+                                                    `${i}-${j}` // Ensure key is more unique
                                                 }
                                                 step="any"
                                                 defaultValue={num}
+                                                readOnly={
+                                                    !getModeConfig(mapMode)
+                                                        .editable
+                                                } // Added readOnly based on editable config
                                                 onChange={(e) => {
+                                                    if (
+                                                        !getModeConfig(mapMode)
+                                                            .editable
+                                                    )
+                                                        return; // Prevent change if not editable
+
                                                     const newArr =
                                                         mapData.get(mapMode);
                                                     if (newArr == undefined) {
@@ -181,10 +192,17 @@ function FormTable({
                                                         e.target.value
                                                     );
                                                     setMapData(
-                                                        new Map(
-                                                            mapData.set(
+                                                        new Map( // Create a new Map to ensure re-render
+                                                            new Map(
+                                                                mapData
+                                                            ).set(
+                                                                // Create a new inner map as well
                                                                 mapMode,
-                                                                newArr
+                                                                newArr.map(
+                                                                    (r) => [
+                                                                        ...r,
+                                                                    ]
+                                                                ) // Ensure rows are new arrays
                                                             )
                                                         )
                                                     );
@@ -217,6 +235,7 @@ function FormTable({
  * @param props.setMapMode setter for the current mode of the map
  * @param props.mapData Current data for the map (latlng points)
  * @param props.setMapData setter for the map data
+ * @param props.onOpenWaypointJsonModal Callback to open the JSON import modal for waypoints
  * @returns MapInputForm
  */
 function MapInputForm({
@@ -224,11 +243,13 @@ function MapInputForm({
     setMapMode,
     mapData,
     setMapData,
+    onOpenWaypointJsonModal,
 }: {
     mapMode: MapMode;
     setMapMode: React.Dispatch<SetStateAction<MapMode>>;
     mapData: Map<MapMode, number[][]>;
     setMapData: React.Dispatch<SetStateAction<Map<MapMode, number[][]>>>;
+    onOpenWaypointJsonModal: () => void;
 }) {
     return (
         <>
@@ -239,24 +260,19 @@ function MapInputForm({
                         {Object.keys(MapMode)
                             .filter((v) => isNaN(Number(v)))
                             .map((v, i) => {
+                                const modeKey = v as keyof typeof MapMode;
                                 return (
                                     <input
                                         key={i}
                                         data-selected={
-                                            mapMode ==
-                                            MapMode[v as keyof typeof MapMode]
+                                            mapMode === MapMode[modeKey]
                                         }
                                         type="button"
-                                        readOnly={
-                                            !getModeConfig(mapMode).editable
-                                        }
-                                        value={v}
+                                        value={v
+                                            .replace(/([A-Z])/g, " $1")
+                                            .trim()}
                                         onClick={() => {
-                                            setMapMode(
-                                                MapMode[
-                                                    v as keyof typeof MapMode
-                                                ]
-                                            );
+                                            setMapMode(MapMode[modeKey]);
                                         }}
                                     />
                                 );
@@ -265,28 +281,24 @@ function MapInputForm({
                             type="button"
                             value="+"
                             className="add-btn"
+                            disabled={!getModeConfig(mapMode).editable}
                             onClick={() => {
                                 if (!getModeConfig(mapMode).editable) {
                                     return;
                                 }
-                                const data = mapData.get(mapMode);
                                 const headingLength =
                                     getModeConfig(mapMode).headings.length;
                                 const newRow = new Array(headingLength).fill(0);
 
-                                setMapData((mapData) => {
-                                    if (data !== undefined) {
-                                        return new Map(
-                                            mapData.set(
-                                                mapMode,
-                                                data.concat([newRow])
-                                            )
-                                        );
-                                    } else {
-                                        return new Map(
-                                            mapData.set(mapMode, [newRow])
-                                        );
-                                    }
+                                setMapData((currentMapData) => {
+                                    const currentModeData =
+                                        currentMapData.get(mapMode) || [];
+                                    return new Map(
+                                        currentMapData.set(mapMode, [
+                                            ...currentModeData,
+                                            newRow,
+                                        ])
+                                    );
                                 });
                             }}
                         />
@@ -294,27 +306,37 @@ function MapInputForm({
                             type="button"
                             value="-"
                             className="del-btn"
+                            disabled={
+                                !getModeConfig(mapMode).editable ||
+                                (mapData.get(mapMode)?.length || 0) === 0
+                            }
                             onClick={() => {
-                                const data = mapData.get(mapMode);
                                 if (!getModeConfig(mapMode).editable) {
                                     return;
                                 }
-
-                                setMapData((mapData) => {
+                                setMapData((currentMapData) => {
+                                    const data = currentMapData.get(mapMode);
                                     if (data !== undefined && data.length > 0) {
                                         return new Map(
-                                            mapData.set(
+                                            currentMapData.set(
                                                 mapMode,
                                                 data.slice(0, -1)
                                             )
                                         );
-                                    } else {
-                                        // can't remove anything if data is undefined because there is already nothing
-                                        return mapData;
                                     }
+                                    return currentMapData;
                                 });
                             }}
                         />
+                        {mapMode === MapMode.Waypoint &&
+                            getModeConfig(mapMode).editable && (
+                                <input
+                                    type="button"
+                                    value="Import JSON"
+                                    className="import-json-btn"
+                                    onClick={onOpenWaypointJsonModal}
+                                />
+                            )}
                     </div>
                     <FormTable
                         headings={getModeConfig(mapMode).headings}
@@ -349,52 +371,77 @@ function AirdropInputForm({
      * @returns An array of JSX `<option>` elements.
      */
     function mapObjectsToOptions() {
-        return (Object.keys(ODLCObjects) as unknown as Array<ODLCObjects>)
-            .filter((object) => {
-                return isNaN(Number(object)); // Filters out numeric keys
+        return (
+            Object.keys(ODLCObjects) as unknown as Array<
+                keyof typeof ODLCObjects
+            >
+        ) // Corrected type
+            .filter((objectKey) => {
+                return isNaN(Number(ODLCObjects[objectKey])); // Filter by value if keys are strings
             })
-            .map((object) => {
+            .map((objectKey) => {
                 return (
-                    <>
-                        <option key={object} value={object}>
-                            {object}
-                        </option>
-                    </>
+                    <option key={objectKey} value={ODLCObjects[objectKey]}>
+                        {" "}
+                        {/* Use enum value for submission */}
+                        {objectKey} {/* Display enum key name */}
+                    </option>
                 );
             });
     }
 
-    const airdropInput = (airdrop: Airdrop) => {
+    const airdropInput = (airdrop: Airdrop, index: number) => {
+        // Added index for unique key
         return (
-            <>
-                <fieldset key={airdrop.Index}>
-                    <legend>Airdrop {airdrop.Index.toString()}</legend>
-                    <label>
-                        Object:
-                        <select
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                                airdrop.Object = e.currentTarget
-                                    .value as unknown as ODLCObjects;
-                            }}
-                        >
-                            {mapObjectsToOptions()}
-                        </select>
-                    </label>
-                </fieldset>
-            </>
+            <fieldset key={airdrop.Index || index}>
+                {" "}
+                {/* Use index if Index is not yet set */}
+                <legend>
+                    Airdrop{" "}
+                    {AirdropIndex[airdrop.Index] || `Pending ${index + 1}`}
+                </legend>
+                <label>
+                    Object:
+                    <select
+                        value={airdrop.Object} // Controlled component
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            setAirdropAssignments((prevAssignments) =>
+                                prevAssignments.map((ad) =>
+                                    ad.Index === airdrop.Index
+                                        ? {
+                                              ...ad,
+                                              Object: Number(
+                                                  e.target.value
+                                              ) as ODLCObjects,
+                                          }
+                                        : ad
+                                )
+                            );
+                        }}
+                    >
+                        {mapObjectsToOptions()}
+                    </select>
+                </label>
+            </fieldset>
         );
     };
 
     useEffect(() => {
-        const airdrops = [];
-        for (let i = AirdropIndex.Kaz; i <= AirdropIndex.Daniel; i++) {
-            const airdrop = {
-                Index: i,
-            } as Airdrop;
-            airdrops.push(airdrop);
+        if (airdropAssignments.length === 0) {
+            // Initialize only if empty
+            const airdrops = [];
+            for (let i = AirdropIndex.Kaz; i <= AirdropIndex.Daniel; i++) {
+                const airdrop = {
+                    Index: i,
+                    Object: ODLCObjects[
+                        Object.keys(ODLCObjects)[i] as keyof typeof ODLCObjects
+                    ], // Default object
+                } as Airdrop;
+                airdrops.push(airdrop);
+            }
+            setAirdropAssignments(airdrops);
         }
-        setAirdropAssignments(airdrops);
-    }, [setAirdropAssignments]);
+    }, [setAirdropAssignments, airdropAssignments.length]);
 
     return (
         <>
@@ -402,8 +449,11 @@ function AirdropInputForm({
                 <fieldset>
                     <legend>Airdrop Input</legend>
                     <div className="airdrop-form-container">
-                        {airdropAssignments.map((airdrop) =>
-                            airdropInput(airdrop)
+                        {airdropAssignments.map(
+                            (
+                                airdrop,
+                                index // Pass index
+                            ) => airdropInput(airdrop, index) // Pass index
                         )}
                     </div>
                 </fieldset>
@@ -444,19 +494,25 @@ function MapClickHandler({
                 data = [];
             }
 
-            const newData = (() => {
+            const newDataPoint = (() => {
                 if (config.headings.length == 2) {
-                    return [...data, [e.latlng.lat, e.latlng.lng]];
+                    return [e.latlng.lat, e.latlng.lng];
                 } else {
-                    return [...data, [e.latlng.lat, e.latlng.lng, 75]]; // fill in 75 for default alt
+                    return [e.latlng.lat, e.latlng.lng, 75]; // fill in 75 for default alt
                 }
             })();
 
-            setMapData(new Map(mapData.set(mapMode, newData)));
+            setMapData((prevMapData) => {
+                const currentModeData = prevMapData.get(mapMode) || [];
+                return new Map(prevMapData).set(mapMode, [
+                    ...currentModeData,
+                    newDataPoint,
+                ]);
+            });
         },
     });
 
-    return <>{null}</>;
+    return null; // React components should return null or JSX, not <>{null}</>
 }
 
 /**
@@ -470,6 +526,8 @@ function MapIllustrator({ mapData }: { mapData: Map<MapMode, number[][]> }) {
     return (
         <>
             {Array.from(mapData).map(([mode, currData]) => {
+                if (!currData || currData.length === 0) return null; // Don't render if no data
+
                 const currConfig = getModeConfig(mode);
                 const parsedData = currData.map(
                     (latlng) => new LatLng(latlng[0], latlng[1])
@@ -479,32 +537,49 @@ function MapIllustrator({ mapData }: { mapData: Map<MapMode, number[][]> }) {
                     case ShapeType.Line:
                         return (
                             <Polyline
-                                key={JSON.stringify(parsedData)}
+                                key={`${mode}-line-${JSON.stringify(
+                                    parsedData
+                                )}`} // More specific key
                                 color={currConfig.color}
                                 positions={parsedData}
                             />
                         );
                     case ShapeType.Polygon:
+                        // Polygon needs at least 3 points to form a shape.
+                        // For display purposes, it might draw with fewer, but Leaflet might complain or not draw.
+                        if (parsedData.length < 1) return null; // Avoid empty polygon issues
                         return (
                             <Polygon
-                                key={JSON.stringify(parsedData)}
+                                key={`${mode}-polygon-${JSON.stringify(
+                                    parsedData
+                                )}`} // More specific key
                                 color={currConfig.color}
-                                positions={[parsedData]}
+                                positions={[parsedData]} // Polygon expects array of arrays of LatLngs, or array of LatLngs
                             />
                         );
                     case ShapeType.Discrete:
-                        // Idk why the fuck I can't map this to <Marker> tags... so doing this stupid hack
-                        // ok on second thought this probably looks better with how many markers there would be
+                        // This will render many Polyline components if there are many points.
+                        // Consider using Markers for better performance/semantics if appropriate.
                         return (
                             <>
                                 {parsedData.map((latlng, index) => (
-                                    <Polyline
-                                        key={index}
-                                        positions={[latlng, latlng]}
-                                    ></Polyline>
+                                    <Polyline // This creates a tiny line segment (dot)
+                                        key={`${mode}-discrete-${index}-${latlng.lat}-${latlng.lng}`} // More specific key
+                                        positions={[
+                                            latlng,
+                                            new LatLng(
+                                                latlng.lat + 0.000001,
+                                                latlng.lng + 0.000001
+                                            ),
+                                        ]} // Make it a tiny line to be visible
+                                        color={currConfig.color}
+                                        weight={5} // Make dots more visible
+                                    />
                                 ))}
                             </>
                         );
+                    default:
+                        return null;
                 }
             })}
         </>
@@ -522,8 +597,6 @@ function MapIllustrator({ mapData }: { mapData: Map<MapMode, number[][]> }) {
  * @returns Input page
  */
 function Input() {
-    // TODO: simplify all of these state variables into one mission state variable
-    // so instead of number[][] its actually storing them as GPS Coords...
     const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
     const [mapData, setMapData] = useState<Map<MapMode, number[][]>>(new Map());
     const [airdropAssignments, setAirdropAssignments] = useState<Airdrop[]>([]);
@@ -531,12 +604,18 @@ function Input() {
     const [modalType, setModalType] = useState<"default" | "error">("default");
     const [modalMsg, setModalMsg] = useState("");
     const [msgModalVisible, setMsgModalVisible] = useState(false);
-    const [defaultView, setDefaultView] = useState<[number, number]>([51, 10]);
+    const [defaultView, setDefaultView] = useState<[number, number]>([
+        38.314666970000744, -76.54975138401012,
+    ]);
     const { modalVisible, openModal, closeModal } = useMyModal();
 
+    const [isWaypointJsonModalOpen, setIsWaypointJsonModalOpen] =
+        useState(false);
+    const [waypointJsonInput, setWaypointJsonInput] = useState("");
+
     /**
-     *
-     * @param msg Message to display in the modal as an error
+     * Displays an error message in a modal dialog
+     * @param msg - The error message to display
      */
     function displayError(msg: string) {
         setModalType("error");
@@ -545,8 +624,8 @@ function Input() {
     }
 
     /**
-     *
-     * @param msg Message to display in the modal as normal text
+     * Displays a regular message in a modal dialog
+     * @param msg - The message to display
      */
     function displayMsg(msg: string) {
         setModalType("default");
@@ -554,31 +633,155 @@ function Input() {
         setMsgModalVisible(true);
     }
 
+    // NEW: Handler for file input
+    const handleFileChosen = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+
+        // Basic validation for file type (though 'accept' attribute should mostly handle this)
+        if (file.type !== "application/json" && !file.name.endsWith(".json")) {
+            displayError("Invalid file type. Please select a .json file.");
+            event.target.value = ""; // Clear the file input
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text === "string") {
+                    setWaypointJsonInput(text); // Populate the textarea with file content
+                    displayMsg(
+                        `Content from "${file.name}" loaded into the text area. Review and click Submit.`
+                    );
+                } else {
+                    throw new Error("Could not read file content as text.");
+                }
+            } catch (err) {
+                console.error("Error processing file content:", err);
+                const errorMessage =
+                    err instanceof Error ? err.message : "Unknown error";
+                displayError(`Error reading file content: ${errorMessage}`);
+            }
+        };
+        reader.onerror = () => {
+            console.error("FileReader error:", reader.error);
+            displayError(
+                `Failed to read file: ${
+                    reader.error?.message || "Unknown FileReader error"
+                }`
+            );
+        };
+        reader.readAsText(file);
+
+        // Clear the file input so the same file can be selected again if needed
+        event.target.value = "";
+    };
+
+    const handleImportWaypointsFromJson = () => {
+        try {
+            if (!waypointJsonInput.trim()) {
+                throw new Error("JSON input cannot be empty.");
+            }
+            const parsedInput = JSON.parse(waypointJsonInput);
+
+            if (!Array.isArray(parsedInput)) {
+                throw new Error("Input must be a JSON array of waypoints.");
+            }
+
+            const newWaypoints: number[][] = [];
+            for (const item of parsedInput) {
+                if (
+                    !Array.isArray(item) ||
+                    item.length !== 3 || // Expecting [lat, lng, alt]
+                    !item.every((coord) => typeof coord === "number")
+                ) {
+                    throw new Error(
+                        "Each waypoint must be an array of 3 numbers: [latitude, longitude, altitude]." +
+                            ` Invalid item: ${JSON.stringify(item)}`
+                    );
+                }
+                newWaypoints.push(item as [number, number, number]);
+            }
+
+            if (newWaypoints.length === 0 && parsedInput.length > 0) {
+                throw new Error("No valid waypoints found in the JSON data.");
+            }
+            if (newWaypoints.length === 0 && parsedInput.length === 0) {
+                // If user submits an empty array []
+                displayMsg("No waypoints to import (empty array).");
+                setIsWaypointJsonModalOpen(false);
+                setWaypointJsonInput("");
+                return;
+            }
+
+            setMapData((prevMapData) => {
+                const existingWaypoints =
+                    prevMapData.get(MapMode.Waypoint) || [];
+                const updatedWaypoints = [
+                    ...existingWaypoints,
+                    ...newWaypoints,
+                ];
+                return new Map(prevMapData).set(
+                    MapMode.Waypoint,
+                    updatedWaypoints
+                );
+            });
+
+            displayMsg(
+                `${newWaypoints.length} waypoint(s) imported successfully.`
+            );
+            setWaypointJsonInput("");
+            setIsWaypointJsonModalOpen(false);
+        } catch (error) {
+            let errorMessage = "Failed to import waypoints from JSON. ";
+            if (error instanceof Error) {
+                errorMessage += error.message;
+            } else {
+                errorMessage += "Unknown error.";
+            }
+            console.error("JSON Import Error:", error);
+            displayError(errorMessage);
+        }
+    };
+
     /**
-     * Takes the current state of all the inputs and posts to Hub
+     * Submits the current mission configuration to the server
+     * Converts map data to GPS coordinates and sends the mission object
+     * including airdrop assignments, boundaries, and waypoints
      */
     function submitMission() {
         const mapDataToGpsCoords = (mode: MapMode) => {
             const config = getModeConfig(mode);
+            const data = mapData.get(mode) || []; // Ensure data is an array
 
-            return (
-                mapData.get(mode)?.map((row) => {
-                    return {
-                        Latitude: row[config.headings.indexOf("Latitude")],
-                        Longitude: row[config.headings.indexOf("Longitude")],
-                        Altitude: row[config.headings.indexOf("Altitude")],
-                    } as GPSCoord;
-                }) || []
-            );
+            return data.map((row) => {
+                const latIndex = config.headings.indexOf("Latitude");
+                const lonIndex = config.headings.indexOf("Longitude");
+                const altIndex = config.headings.indexOf("Altitude");
+
+                return {
+                    Latitude: row[latIndex > -1 ? latIndex : 0], // Default to 0 if not found
+                    Longitude: row[lonIndex > -1 ? lonIndex : 1], // Default to 1 if not found
+                    Altitude:
+                        altIndex > -1 && row[altIndex] !== undefined
+                            ? row[altIndex]
+                            : 0, // Default alt to 0 if not present
+                } as GPSCoord;
+            });
         };
 
         const mission: Mission = {
             AirdropAssignments: airdropAssignments,
             FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
-            AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
+            AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound), // This used to be SearchBound, changed to AirdropBoundary as per proto?
             MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
         };
+
+        console.log("Submitting Mission:", mission); // For debugging
 
         fetch("/api/mission", {
             method: "POST",
@@ -587,279 +790,282 @@ function Input() {
             },
             body: JSON.stringify(mission),
         })
-            .then((response) => {
-                if (response.status == 200) {
+            .then(async (response) => {
+                // made async to await text()
+                if (response.ok) {
+                    // Check for 2xx status codes
                     return response.text();
                 } else {
-                    throw response.text();
+                    const errorText = await response.text(); // Await error text
+                    throw new Error(
+                        errorText ||
+                            `Request failed with status ${response.status}`
+                    );
                 }
             })
             .then((succ_msg) => {
-                displayMsg(succ_msg);
+                displayMsg(succ_msg || "Mission submitted successfully!");
             })
-            .catch((err_msg) => {
-                console.error(err_msg);
+            .catch((err) => {
+                // Catch both Error objects and strings
+                console.error("Submit Mission Error:", err);
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err);
                 displayError(
-                    "An error occured while uploading the mission. See the console for more info."
+                    `An error occured while uploading the mission: ${errorMessage}. See console for more info.`
                 );
             });
     }
 
     /**
-     * Helper function to request the initial path from the OBC
+     * Requests both initial and coverage paths from the server
+     * Updates the map data with the received paths
      */
     function requestPath() {
         fetch("/api/path/initial")
-            .then((resp) => {
-                if (resp.status == 200) {
-                    return resp.json();
-                } else {
-                    throw resp.text();
-                }
-            })
-            .then((path) => {
-                const pathJson = path as {
-                    Latitude: number;
-                    Longitude: number;
-                    Altitude: number;
-                }[];
-                const data = pathJson.map((obj) => [
-                    obj.Latitude,
-                    obj.Longitude,
-                    obj.Altitude,
-                ]);
-
-                setMapData((mapData) => {
-                    return new Map(mapData.set(MapMode.InitialPath, data));
-                });
-            })
-            .catch((err) => {
-                console.error(err);
-                displayError(
-                    "An error occured while requesting the initial path. See the console for more info."
+            .then(async (resp) => {
+                if (resp.ok) return resp.json();
+                const errorText = await resp.text();
+                throw new Error(
+                    errorText || `Request failed with status ${resp.status}`
                 );
-            });
-        fetch("/api/path/coverage")
-            .then((resp) => {
-                if (resp.status == 200) {
-                    return resp.json();
-                } else {
-                    throw resp.text();
-                }
             })
             .then((path) => {
-                const pathJson = path as {
-                    Latitude: number;
-                    Longitude: number;
-                    Altitude: number;
-                }[];
+                const pathJson = path as GPSCoord[];
                 const data = pathJson.map((obj) => [
                     obj.Latitude,
                     obj.Longitude,
                     obj.Altitude,
                 ]);
-
-                setMapData((mapData) => {
-                    return new Map(mapData.set(MapMode.SearchPath, data));
-                });
+                setMapData(
+                    (currentMapData) =>
+                        new Map(currentMapData.set(MapMode.InitialPath, data))
+                );
             })
             .catch((err) => {
-                console.error(err);
+                console.error("Request Initial Path Error:", err);
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err);
+                displayError(`Error requesting initial path: ${errorMessage}.`);
+            });
+
+        fetch("/api/path/coverage")
+            .then(async (resp) => {
+                if (resp.ok) return resp.json();
+                const errorText = await resp.text();
+                throw new Error(
+                    errorText || `Request failed with status ${resp.status}`
+                );
+            })
+            .then((path) => {
+                const pathJson = path as GPSCoord[];
+                const data = pathJson.map((obj) => [
+                    obj.Latitude,
+                    obj.Longitude,
+                    obj.Altitude,
+                ]);
+                setMapData(
+                    (currentMapData) =>
+                        new Map(currentMapData.set(MapMode.SearchPath, data))
+                );
+            })
+            .catch((err) => {
+                console.error("Request Coverage Path Error:", err);
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err);
                 displayError(
-                    "An error occured while requesting the initial path. See the console for more info."
+                    `Error requesting coverage path: ${errorMessage}.`
                 );
             });
     }
 
     /**
-     * Helper function to validate the initial path from the OBC
+     * Validates the current initial path configuration
+     * Sends a validation request to the server
      */
     function validatePath() {
         fetch("/api/path/initial/validate", { method: "POST" })
-            .then((resp) => {
-                if (resp.status == 200) {
-                    return resp.text();
-                } else {
-                    throw resp.text();
-                }
-            })
-            .then((resp) => displayMsg(resp))
-            .catch((err) => {
-                console.error(err);
-                displayError(
-                    "An error occured while uploading the mission. See the console for more info."
+            .then(async (resp) => {
+                if (resp.ok) return resp.text();
+                const errorText = await resp.text();
+                throw new Error(
+                    errorText || `Request failed with status ${resp.status}`
                 );
+            })
+            .then((respMsg) =>
+                displayMsg(respMsg || "Path validation successful.")
+            )
+            .catch((err) => {
+                console.error("Validate Path Error:", err);
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err);
+                displayError(`Error validating path: ${errorMessage}.`);
             });
     }
 
     /**
-     * Helper function to generate a new path from the OBC
+     * Generates a new optimal path configuration
+     * Sends a request to the server to generate a new path
      */
     function generateNewPath() {
         fetch("/api/path/initial/new")
-            .then((resp) => {
-                if (resp.status == 200) {
-                    return resp.text();
-                } else {
-                    throw resp.text();
-                }
-            })
-            .then((resp) => displayMsg(resp))
-            .catch((err) => {
-                console.error(err);
-                displayError(
-                    "An error occured while uploading the mission. See the console for more info."
+            .then(async (resp) => {
+                if (resp.ok) return resp.text();
+                const errorText = await resp.text();
+                throw new Error(
+                    errorText || `Request failed with status ${resp.status}`
                 );
+            })
+            .then((respMsg) =>
+                displayMsg(respMsg || "New path generated successfully.")
+            )
+            .catch((err) => {
+                console.error("Generate New Path Error:", err);
+                const errorMessage =
+                    err instanceof Error ? err.message : String(err);
+                displayError(`Error generating new path: ${errorMessage}.`);
             });
     }
 
     /**
-     * Heper function that sets variable (defaultView) to either
-     * black mountain coordinates or competition coordinates.
-     * @param selected The location selected.
+     * Changes the default view and map data based on the selected location
+     * @param selected - The name of the selected location (Black_Mountain, Competition_Left, or Competition_Right)
      */
     function changingDeafultView(selected: string) {
-        if (selected == "Black_Mountain") {
-            setDefaultView([32.990781135309724, -117.12830536731832]);
-            setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
-            setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-            setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
-        } else if (selected == "Competition_Left") {
-            setDefaultView([38.314666970000744, -76.54975138401012]);
-            setMapData(
-                new Map(
-                    mapData.set(MapMode.FlightBound, [
-                        [38.31729702009844, -76.55617670782419],
-                        [38.31594832826572, -76.55657341657302],
-                        [38.31546739500083, -76.55376201277696],
-                        [38.31470980862425, -76.54936361414539],
-                        [38.31424154692598, -76.54662761646904],
-                        [38.31369801280048, -76.54342380058223],
-                        [38.31331079191371, -76.54109648475954],
-                        [38.31529941346197, -76.54052104837133],
-                        [38.31587643291039, -76.54361305817427],
-                        [38.31861642463319, -76.54538594175376],
-                        [38.31862683616554, -76.55206138505936],
-                        [38.31703471119464, -76.55244787859773],
-                        [38.31674255749409, -76.55294546866578],
-                        [38.31729702009844, -76.55617670782419],
-                    ])
-                )
-            );
-            setMapData(
-                new Map(
-                    mapData.set(MapMode.SearchBound, [
-                        [38.315683, -76.552586], //bl
-                        [38.315386, -76.550875], //br
-                        [38.315607, -76.5508],   //tr
-                        [38.315895, -76.552519], //tl
-                    ])
-                )
-            );
-            setMapData(
-                new Map(
-                    mapData.set(MapMode.MappingBound, [
-                        [38.314816, -76.548947],
-                        [38.31546, -76.552653],
-                        [38.316639, -76.55233],
-                        [38.316016, -76.5486],
-                    ])
-                )
-            );
-        } else if (selected == "Competition_Right") {
-            setDefaultView([38.314666970000744, -76.54975138401012]);
-            setMapData(
-                new Map(
-                    mapData.set(MapMode.FlightBound, [
-                        [38.31729702009844, -76.55617670782419],
-                        [38.31594832826572, -76.55657341657302],
-                        [38.31546739500083, -76.55376201277696],
-                        [38.31470980862425, -76.54936361414539],
-                        [38.31424154692598, -76.54662761646904],
-                        [38.31369801280048, -76.54342380058223],
-                        [38.31331079191371, -76.54109648475954],
-                        [38.31529941346197, -76.54052104837133],
-                        [38.31587643291039, -76.54361305817427],
-                        [38.31861642463319, -76.54538594175376],
-                        [38.31862683616554, -76.55206138505936],
-                        [38.31703471119464, -76.55244787859773],
-                        [38.31674255749409, -76.55294546866578],
-                        [38.31729702009844, -76.55617670782419],
-                    ])
-                )
-            );
-            setMapData(
-                new Map(
-                    mapData.set(MapMode.SearchBound, [
-                        [38.314529, -76.545859], //bl
-                        [38.314228, -76.544156], //br
-                        [38.314441, -76.544081], //tr
-                        [38.314731, -76.545792], //tl
-                    ])
-                )
-            );
-            setMapData(
-                new Map(
-                    mapData.set(MapMode.MappingBound, [
-                        [38.314669, -76.547987],
-                        [38.315873, -76.547611],
-                        [38.315208, -76.54384],
-                        [38.314008, -76.544237],
-                    ])
-                )
-            );
+        let newView: [number, number] = defaultView;
+        const newMapData = new Map(mapData); // Create a mutable copy
+
+        if (selected === "Black_Mountain") {
+            newView = [32.990781135309724, -117.12830536731832];
+            newMapData.set(MapMode.FlightBound, []);
+            newMapData.set(MapMode.SearchBound, []);
+            newMapData.set(MapMode.MappingBound, []);
+        } else if (selected === "Competition_Left") {
+            newView = [38.314666970000744, -76.54975138401012];
+            newMapData.set(MapMode.FlightBound, [
+                [38.31729702009844, -76.55617670782419],
+                [38.31594832826572, -76.55657341657302],
+                [38.31546739500083, -76.55376201277696],
+                [38.31470980862425, -76.54936361414539],
+                [38.31424154692598, -76.54662761646904],
+                [38.31369801280048, -76.54342380058223],
+                [38.31331079191371, -76.54109648475954],
+                [38.31529941346197, -76.54052104837133],
+                [38.31587643291039, -76.54361305817427],
+                [38.31861642463319, -76.54538594175376],
+                [38.31862683616554, -76.55206138505936],
+                [38.31703471119464, -76.55244787859773],
+                [38.31674255749409, -76.55294546866578],
+                [38.31729702009844, -76.55617670782419],
+            ]);
+            newMapData.set(MapMode.SearchBound, [
+                [38.315683, -76.552586],
+                [38.315386, -76.550875],
+                [38.315607, -76.5508],
+                [38.315895, -76.552519],
+            ]);
+            newMapData.set(MapMode.MappingBound, [
+                [38.314816, -76.548947],
+                [38.31546, -76.552653],
+                [38.316639, -76.55233],
+                [38.316016, -76.5486],
+            ]);
+        } else if (selected === "Competition_Right") {
+            newView = [38.314666970000744, -76.54975138401012];
+            newMapData.set(MapMode.FlightBound, [
+                /* Same as Competition_Left for brevity */
+                [38.31729702009844, -76.55617670782419],
+                [38.31594832826572, -76.55657341657302],
+                [38.31546739500083, -76.55376201277696],
+                [38.31470980862425, -76.54936361414539],
+                [38.31424154692598, -76.54662761646904],
+                [38.31369801280048, -76.54342380058223],
+                [38.31331079191371, -76.54109648475954],
+                [38.31529941346197, -76.54052104837133],
+                [38.31587643291039, -76.54361305817427],
+                [38.31861642463319, -76.54538594175376],
+                [38.31862683616554, -76.55206138505936],
+                [38.31703471119464, -76.55244787859773],
+                [38.31674255749409, -76.55294546866578],
+                [38.31729702009844, -76.55617670782419],
+            ]);
+            newMapData.set(MapMode.SearchBound, [
+                [38.314529, -76.545859],
+                [38.314228, -76.544156],
+                [38.314441, -76.544081],
+                [38.314731, -76.545792],
+            ]);
+            newMapData.set(MapMode.MappingBound, [
+                [38.314669, -76.547987],
+                [38.315873, -76.547611],
+                [38.315208, -76.54384],
+                [38.314008, -76.544237],
+            ]);
         } else {
-            setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
-            setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-            setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
+            // Default to clearing if unknown selection
+            newView = [51, 10]; // Or your preferred truly default view
+            newMapData.set(MapMode.FlightBound, []);
+            newMapData.set(MapMode.SearchBound, []);
+            newMapData.set(MapMode.MappingBound, []);
         }
+        setDefaultView(newView);
+        setMapData(newMapData); // Set the modified map data
     }
 
     useEffect(() => {
-        openModal();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        // Automatically select a default view on initial load, e.g., Competition Left
+        changingDeafultView("Competition_Left");
+        openModal(); // Open the initial information modal
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run once on mount
 
     return (
         <>
             <MyModal modalVisible={modalVisible} closeModal={closeModal}>
+                {/* ... content of the initial info modal ... */}
                 <h1>IMPORTANT NOTE</h1>
                 <p>
                     Make sure to input the search zone only with 4 coordinates
-                    and in the following order
+                    and in the following order:
                 </p>
                 <p>
-                    bottom left &gt; bottom right &gt; top right &gt; top left
+                    Bottom Left {">"} Bottom Right {">"} Top Right {">"} Top
+                    Left
                 </p>
                 <fieldset>
                     <legend>Default Location</legend>
-                    <label>
+                    <label style={{ display: "block", margin: "5px 0" }}>
                         <input
                             type="radio"
                             name="default_location"
                             value="Black_Mountain"
-                            onClick={() =>
+                            // checked={defaultView[0] === 32.990781135309724}
+                            onChange={() =>
                                 changingDeafultView("Black_Mountain")
                             }
                         />
                         Black Mountain
                     </label>
-                    <label>
+                    <label style={{ display: "block", margin: "5px 0" }}>
                         <input
                             type="radio"
                             name="default_location"
                             value="Competition_Left"
-                            onClick={() =>
+                            // checked={defaultView[0] === 38.314666970000744 && mapData.get(MapMode.SearchBound)?.[0]?.[0] === 38.315683}
+                            onChange={() =>
                                 changingDeafultView("Competition_Left")
                             }
+                            defaultChecked // Or manage checked state more robustly
                         />
                         Competition Left
                     </label>
-                    <label>
+                    <label style={{ display: "block", margin: "5px 0" }}>
                         <input
                             type="radio"
                             name="default_location"
                             value="Competition_Right"
-                            onClick={() =>
+                            // checked={defaultView[0] === 38.314666970000744 && mapData.get(MapMode.SearchBound)?.[0]?.[0] === 38.314529}
+                            onChange={() =>
                                 changingDeafultView("Competition_Right")
                             }
                         />
@@ -867,8 +1073,143 @@ function Input() {
                     </label>
                 </fieldset>
             </MyModal>
+
+            {/* Waypoint JSON Import Modal - MODIFIED */}
+            <MyModal
+                modalVisible={isWaypointJsonModalOpen}
+                closeModal={() => {
+                    setIsWaypointJsonModalOpen(false);
+                    // setWaypointJsonInput(""); // Optionally clear on any close
+                }}
+            >
+                <div
+                    style={{
+                        padding: "10px 20px",
+                        maxWidth: "500px",
+                        margin: "auto",
+                    }}
+                >
+                    <h2>Import Waypoints via JSON</h2>
+                    <p>
+                        Paste JSON directly into the text area below,{" "}
+                        <strong>OR</strong> load waypoints from a local{" "}
+                        <code>.json</code> file.
+                    </p>
+                    <p>
+                        Expected format: An array of waypoint arrays, e.g.,{" "}
+                        <code>[[lat1, lng1, alt1], [lat2, lng2, alt2]]</code>
+                    </p>
+
+                    <div style={{ margin: "20px 0" }}>
+                        <label
+                            htmlFor="waypoint-file-input"
+                            style={{
+                                display: "inline-block",
+                                padding: "8px 12px",
+                                cursor: "pointer",
+                                border: "1px solid #007bff",
+                                borderRadius: "4px",
+                                backgroundColor: "#e7f3ff",
+                                color: "#007bff",
+                                textAlign: "center",
+                                marginBottom: "10px",
+                            }}
+                        >
+                            Load Waypoints from .json File
+                        </label>
+                        <input
+                            id="waypoint-file-input"
+                            type="file"
+                            accept=".json,application/json" // More specific accept types
+                            onChange={handleFileChosen}
+                            style={{ display: "none" }} // Hide default input, label acts as trigger
+                        />
+                        <p
+                            style={{
+                                fontSize: "0.9em",
+                                color: "#555",
+                                marginTop: "5px",
+                            }}
+                        >
+                            If using a file, its content will appear in the text
+                            area below for review before submission.
+                        </p>
+                    </div>
+
+                    <p
+                        style={{
+                            textAlign: "center",
+                            margin: "15px 0",
+                            fontWeight: "bold",
+                        }}
+                    >
+                        JSON Input Area:
+                    </p>
+                    <textarea
+                        value={waypointJsonInput}
+                        onChange={(e) => setWaypointJsonInput(e.target.value)}
+                        rows={10}
+                        style={{
+                            width: "calc(100% - 16px)", // Account for padding
+                            minHeight: "150px",
+                            fontFamily: "monospace",
+                            padding: "8px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            marginTop: "5px",
+                            boxSizing: "border-box",
+                        }}
+                        placeholder="[[38.316, -76.547, 75], [38.315, -76.546, 150]]"
+                    />
+                    <div
+                        style={{
+                            marginTop: "20px",
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "10px",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsWaypointJsonModalOpen(false);
+                                // setWaypointJsonInput(""); // Optionally clear on cancel
+                            }}
+                            style={{
+                                padding: "10px 18px",
+                                border: "1px solid #ccc",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                backgroundColor: "#f0f0f0",
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleImportWaypointsFromJson}
+                            style={{
+                                padding: "10px 18px",
+                                border: "none",
+                                borderRadius: "4px",
+                                backgroundColor: "#28a745",
+                                color: "white",
+                                cursor: "pointer",
+                            }}
+                        >
+                            Submit Waypoints
+                        </button>
+                    </div>
+                </div>
+            </MyModal>
+
             <main className="input-page">
-                <TuasMap className="input-map" lat={51} lng={10}>
+                <TuasMap
+                    className="input-map"
+                    lat={defaultView[0]}
+                    lng={defaultView[1]}
+                    key={`${defaultView[0]}-${defaultView[1]}`}
+                >
                     <MapClickHandler
                         mapMode={mapMode}
                         mapData={mapData}
@@ -883,6 +1224,13 @@ function Input() {
                         setMapMode={setMapMode}
                         mapData={mapData}
                         setMapData={setMapData}
+                        onOpenWaypointJsonModal={() => {
+                            if (mapMode !== MapMode.Waypoint) {
+                                setMapMode(MapMode.Waypoint);
+                            }
+                            setWaypointJsonInput(""); // Clear previous input when opening modal
+                            setIsWaypointJsonModalOpen(true);
+                        }}
                     />
                     <AirdropInputForm
                         airdropAssignments={airdropAssignments}
@@ -892,23 +1240,23 @@ function Input() {
                         <input
                             type="button"
                             onClick={submitMission}
-                            value="Submit"
-                        ></input>
+                            value="Submit Mission" // More descriptive
+                        />
                         <input
                             type="button"
                             onClick={requestPath}
-                            value="Get Generated Path"
-                        ></input>
+                            value="Get Generated Paths" // Plural as it gets two
+                        />
                         <input
                             type="button"
                             onClick={validatePath}
-                            value="Validate Path"
-                        ></input>
+                            value="Validate Current Path"
+                        />
                         <input
                             type="button"
                             onClick={generateNewPath}
-                            value="Generate New Path"
-                        ></input>
+                            value="Generate New Optimal Path"
+                        />
                     </form>
                 </div>
                 <MyModal
