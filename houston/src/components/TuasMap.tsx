@@ -22,6 +22,13 @@ function TuasMap({className, lat, lng, children }:{className: string, lat: numbe
                     zoomOffset={-1}
                     id= 'mapbox/satellite-v9'
                 />
+                {/* This is for if you are offline and want to use local tiles.
+                <TileLayer
+                    key="offline"
+                    attribution="Offline Map"
+                    url="/tiles/{z}/{x}/{y}.png"
+                />
+                */}
                 {children}
             </MapContainer>
         </>
