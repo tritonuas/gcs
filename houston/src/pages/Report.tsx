@@ -37,7 +37,7 @@ import {
     FormHelperText,
     Divider,
     Snackbar,
-    TextField, // <-- ADDED
+    TextField,
 } from "@mui/material";
 
 import {
@@ -236,12 +236,13 @@ const Reports: React.FC = () => {
         useState(false);
     const [isSavingRuns, setIsSavingRuns] = useState(false); // Prevent concurrent saves
 
-    // --- NEW: State for manual coordinate entry ---
+    // --- State for manual coordinate entry ---
     const [manualAirdropIndexJson, setManualAirdropIndexJson] =
+        useState<string>("");
+    const [manualObjectTypeJson, setManualObjectTypeJson] =
         useState<string>("");
     const [manualLatitude, setManualLatitude] = useState<string>("");
     const [manualLongitude, setManualLongitude] = useState<string>("");
-    const [manualAltitude, setManualAltitude] = useState<string>("");
     const [manualInputError, setManualInputError] = useState<string>("");
 
     // Refs
@@ -358,11 +359,9 @@ const Reports: React.FC = () => {
         isMountedRef.current = true;
         const loadSaved = async () => {
             try {
-                // setSnackbarMessage("Loading saved run data..."); // Can be noisy
-                // setSnackbarOpen(true);
                 const savedRuns = await fetchSavedRunsFromServer();
                 if (isMountedRef.current && savedRuns.length > 0) {
-                    processFetchedRuns(savedRuns); // This might trigger the save effect if imageRuns changes
+                    processFetchedRuns(savedRuns);
                     setSnackbarMessage(
                         `Loaded ${savedRuns.length} saved run(s).`
                     );
@@ -390,25 +389,22 @@ const Reports: React.FC = () => {
                 }
             } finally {
                 if (isMountedRef.current) {
-                    setHasLoadedInitialSavedRuns(true); // Critical: Gate other effects
+                    setHasLoadedInitialSavedRuns(true);
                 }
             }
         };
         loadSaved();
-        // No return cleanup needed here for isMountedRef specifically,
-        // as it's managed by the component lifecycle.
-        // The main polling effect handles its own cleanup.
-    }, [processFetchedRuns]); // Runs if processFetchedRuns reference changes
+    }, [processFetchedRuns]);
 
     // Effect for initial fetch from /targets/all and setting up polling
     useEffect(() => {
         if (!hasLoadedInitialSavedRuns || !isMountedRef.current) {
-            return; // Wait until saved runs are processed and component is mounted
+            return;
         }
 
         const performInitialLiveFetch = async () => {
             if (isMountedRef.current) setIsPollingUI(true);
-            await fetchAndProcessLatest(true); // isInitialFetch = true
+            await fetchAndProcessLatest(true);
             if (isMountedRef.current) setIsPollingUI(false);
         };
 
@@ -420,10 +416,10 @@ const Reports: React.FC = () => {
                 return;
             }
             if (isMountedRef.current) setIsPollingUI(true);
-            await fetchAndProcessLatest(false); // isInitialFetch = false
+            await fetchAndProcessLatest(false);
             if (isMountedRef.current) setIsPollingUI(false);
         }, POLLING_INTERVAL_MS);
-        intervalIdRef.current = localIntervalId; // Store for global cleanup
+        intervalIdRef.current = localIntervalId;
 
         return () => {
             if (localIntervalId) {
@@ -431,15 +427,15 @@ const Reports: React.FC = () => {
             }
             intervalIdRef.current = null;
         };
-    }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]); // Dependencies
+    }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]);
 
     // Effect for saving imageRuns when they change
     useEffect(() => {
         if (
-            hasLoadedInitialSavedRuns && // Only save after initial load attempt
+            hasLoadedInitialSavedRuns &&
             imageRuns.length > 0 &&
             !isSavingRuns &&
-            isMountedRef.current // Ensure component is still mounted
+            isMountedRef.current
         ) {
             const saveRuns = async () => {
                 setIsSavingRuns(true);
@@ -464,19 +460,18 @@ const Reports: React.FC = () => {
             };
             saveRuns();
         }
-    }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]); // Dependencies
+    }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]);
 
-    // Effect for component unmount cleanup (already implicitly handled by isMountedRef checks)
+    // Effect for component unmount cleanup
     useEffect(() => {
-        isMountedRef.current = true; // Set on mount
+        isMountedRef.current = true;
         return () => {
-            isMountedRef.current = false; // Set on unmount
+            isMountedRef.current = false;
             if (intervalIdRef.current) {
-                // Clear any lingering interval
                 clearInterval(intervalIdRef.current);
             }
         };
-    }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
+    }, []);
 
     // --- Memoized Derived State ---
     const currentRun = useMemo(
@@ -533,17 +528,19 @@ const Reports: React.FC = () => {
 
     // --- Event Handlers ---
 
-    // --- NEW: Handler for manual coordinate submission ---
-    const handleSetManualCoordinates = () => {
+    const handleSetManualTarget = () => {
         setManualInputError("");
         if (!manualAirdropIndexJson) {
             setManualInputError("Please select a target assignee.");
             return;
         }
+        if (!manualObjectTypeJson) {
+            setManualInputError("Please select an object type.");
+            return;
+        }
 
         const lat = parseFloat(manualLatitude);
         const lon = parseFloat(manualLongitude);
-        const alt = parseFloat(manualAltitude); // Can be NaN if empty
 
         if (isNaN(lat) || isNaN(lon)) {
             setManualInputError("Latitude and Longitude must be valid numbers.");
@@ -551,47 +548,42 @@ const Reports: React.FC = () => {
         }
 
         const indexEnum = airdropIndexFromJSON(manualAirdropIndexJson);
-        if (indexEnum === AirdropIndex.UNRECOGNIZED) {
-            setManualInputError("Invalid assignee selected.");
+        const objectEnum = oDLCObjectsFromJSON(manualObjectTypeJson);
+
+        if (
+            indexEnum === AirdropIndex.UNRECOGNIZED ||
+            objectEnum === ODLCObjects.UNRECOGNIZED
+        ) {
+            setManualInputError("Invalid assignee or object selected.");
             return;
         }
 
         const newCoord = GPSCoord.create({
             Latitude: lat,
             Longitude: lon,
-            Altitude: isNaN(alt) ? 0.0 : alt, // Default altitude to 0 if not provided or invalid
+            Altitude: 0, // Defaulting altitude to 0 as it's removed from the form
         });
 
-        setSubmittedTargets((prev) => {
-            const updated = { ...prev };
-            const existingTarget = updated[indexEnum];
-
-            if (existingTarget) {
-                // Update the coordinate of the existing target
-                updated[indexEnum] = AirdropTarget.create({
-                    ...existingTarget,
-                    Coordinate: newCoord,
-                });
-            } else {
-                // Create a new target entry with the coordinate but an Undefined object
-                updated[indexEnum] = AirdropTarget.create({
-                    Index: indexEnum,
-                    Coordinate: newCoord,
-                    Object: ODLCObjects.Undefined, // User must still match an object from an image
-                });
-            }
-            return updated;
+        const newTarget = AirdropTarget.create({
+            Index: indexEnum,
+            Coordinate: newCoord,
+            Object: objectEnum,
         });
+
+        setSubmittedTargets((prev) => ({
+            ...prev,
+            [indexEnum]: newTarget, // This will override any existing entry for this index
+        }));
 
         setSnackbarMessage(
-            `Manually set coordinates for ${manualAirdropIndexJson}.`
+            `Manually set ${manualAirdropIndexJson} to ${manualObjectTypeJson}.`
         );
         setSnackbarOpen(true);
         // Reset form
         setManualAirdropIndexJson("");
+        setManualObjectTypeJson("");
         setManualLatitude("");
         setManualLongitude("");
-        setManualAltitude("");
     };
 
     const handleMatchUpdate = (
@@ -787,7 +779,7 @@ const Reports: React.FC = () => {
         } else {
             if (imageRuns.length > 0) {
                 setSnackbarMessage(
-                    isPollingUI // Use isPollingUI for the message
+                    isPollingUI
                         ? "Waiting for more images..."
                         : "End of loaded images."
                 );
@@ -938,13 +930,13 @@ const Reports: React.FC = () => {
             )}
             <Snackbar
                 open={snackbarOpen}
-                autoHideDuration={isSavingRuns || isPollingUI ? 2000 : 6000} // Use isPollingUI
+                autoHideDuration={isSavingRuns || isPollingUI ? 2000 : 6000}
                 onClose={handleSnackbarClose}
                 message={snackbarMessage}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
             />
-
-            <Grid container spacing={2}>
+            {/* --- FIX: Added alignItems="flex-start" to fix layout bug --- */}
+            <Grid container spacing={2} alignItems="flex-start">
                 {/* === Top Row: Queue & Status === */}
                 <Grid item xs={12} md={8}>
                     <Card>
@@ -965,8 +957,7 @@ const Reports: React.FC = () => {
                                         size="small"
                                         sx={{ ml: 1 }}
                                     />
-                                )}{" "}
-                                {/* Use isPollingUI */}
+                                )}
                             </Typography>
                             {imageRuns.length > 0 ? (
                                 <Box
@@ -1022,14 +1013,14 @@ const Reports: React.FC = () => {
                                 >
                                     {!hasLoadedInitialSavedRuns
                                         ? "Initializing..."
-                                        : isPollingUI // Use isPollingUI
+                                        : isPollingUI
                                         ? "Polling for images..."
                                         : "No image runs loaded."}
                                 </Typography>
                             )}
                             {(!hasLoadedInitialSavedRuns ||
                                 (isPollingUI && imageRuns.length === 0)) &&
-                                !error && ( // Use isPollingUI
+                                !error && (
                                     <Box
                                         sx={{
                                             display: "flex",
@@ -1110,10 +1101,10 @@ const Reports: React.FC = () => {
                                 </Table>
                             </TableContainer>
 
-                            {/* === BEGIN NEW MANUAL COORDINATE ENTRY SECTION === */}
+                            {/* === UPDATED MANUAL TARGET ENTRY SECTION === */}
                             <Divider sx={{ my: 2 }} />
                             <Typography variant="subtitle1" gutterBottom>
-                                Manual Coordinate Entry
+                                Manual Target Entry
                             </Typography>
                             <FormControl
                                 fullWidth
@@ -1122,12 +1113,12 @@ const Reports: React.FC = () => {
                                 error={!!manualInputError}
                             >
                                 <InputLabel id="manual-airdrop-select-label">
-                                    Assignee
+                                    Target Assignee
                                 </InputLabel>
                                 <Select
                                     labelId="manual-airdrop-select-label"
                                     value={manualAirdropIndexJson}
-                                    label="Assignee"
+                                    label="Target Assignee"
                                     onChange={(e) =>
                                         setManualAirdropIndexJson(
                                             e.target.value as string
@@ -1151,6 +1142,52 @@ const Reports: React.FC = () => {
                                     })}
                                 </Select>
                             </FormControl>
+                            <FormControl
+                                fullWidth
+                                size="small"
+                                sx={{ mb: 1.5 }}
+                                error={!!manualInputError}
+                            >
+                                <InputLabel id="manual-object-select-label">
+                                    Object Type
+                                </InputLabel>
+                                <Select
+                                    labelId="manual-object-select-label"
+                                    value={manualObjectTypeJson}
+                                    label="Object Type"
+                                    onChange={(e) =>
+                                        setManualObjectTypeJson(
+                                            e.target.value as string
+                                        )
+                                    }
+                                >
+                                    <MenuItem value="">
+                                        <em>Select Object...</em>
+                                    </MenuItem>
+                                    {Object.entries(ODLCObjects)
+                                        .filter(
+                                            ([_, v_enum]) =>
+                                                typeof v_enum === "number" &&
+                                                v_enum > 0 &&
+                                                v_enum !==
+                                                    ODLCObjects.UNRECOGNIZED
+                                        )
+                                        .map(([k_enum, v_enum]) => {
+                                            const o_json = oDLCObjectsToJSON(
+                                                v_enum as ODLCObjects
+                                            );
+                                            return (
+                                                <MenuItem
+                                                    key={k_enum}
+                                                    value={o_json}
+                                                >
+                                                    {o_json}
+                                                </MenuItem>
+                                            );
+                                        })}
+                                </Select>
+                            </FormControl>
+
                             <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
                                 <TextField
                                     label="Latitude"
@@ -1177,19 +1214,6 @@ const Reports: React.FC = () => {
                                     inputProps={{ step: "any" }}
                                 />
                             </Box>
-                            <TextField
-                                label="Altitude (Optional, m)"
-                                variant="outlined"
-                                size="small"
-                                fullWidth
-                                value={manualAltitude}
-                                onChange={(e) =>
-                                    setManualAltitude(e.target.value)
-                                }
-                                sx={{ mb: 1.5 }}
-                                type="number"
-                                inputProps={{ step: "any" }}
-                            />
                             {manualInputError && (
                                 <FormHelperText error sx={{ mb: 1.5, mt: -1 }}>
                                     {manualInputError}
@@ -1198,17 +1222,18 @@ const Reports: React.FC = () => {
                             <Button
                                 variant="outlined"
                                 color="secondary"
-                                onClick={handleSetManualCoordinates}
+                                onClick={handleSetManualTarget}
                                 disabled={
                                     !manualAirdropIndexJson ||
+                                    !manualObjectTypeJson ||
                                     !manualLatitude ||
                                     !manualLongitude
                                 }
                                 fullWidth
                             >
-                                Set Manual Coordinates
+                                Set Manual Target (Override)
                             </Button>
-                            {/* === END NEW MANUAL COORDINATE ENTRY SECTION === */}
+                            {/* === END MANUAL TARGET ENTRY SECTION === */}
 
                             <Divider sx={{ my: 2 }} />
                             <Button
@@ -1684,13 +1709,13 @@ const Reports: React.FC = () => {
                                             isFinalSubmitting ||
                                             (currentRunIndex >=
                                                 imageRuns.length - 1 &&
-                                                !isPollingUI) // Use isPollingUI
+                                                !isPollingUI)
                                         }
                                         fullWidth
                                         sx={{ mt: 1 }}
                                     >
                                         {currentRunIndex >= imageRuns.length - 1
-                                            ? isPollingUI // Use isPollingUI
+                                            ? isPollingUI
                                                 ? "Waiting for New Images..."
                                                 : "End of Queue"
                                             : "Next Image"}
