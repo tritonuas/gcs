@@ -38,6 +38,7 @@ import {
     Divider,
     Snackbar,
     TextField,
+    Stack, // <-- ADDED FOR LAYOUT FIX
 } from "@mui/material";
 
 import {
@@ -129,14 +130,12 @@ const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
     try {
         const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT);
         if (!response.ok) {
-            // For 404, it might mean no saved data yet, which is not a hard error for this function
             if (response.status === 404) {
                 console.log("No saved runs found on server (404).");
                 return [];
             }
             throw new Error(`HTTP ${response.status} fetching saved runs`);
         }
-        // Check for empty response body before .json()
         const text = await response.text();
         if (!text) {
             console.log(
@@ -147,7 +146,6 @@ const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
         const data = JSON.parse(text);
 
         if (!Array.isArray(data)) {
-            // Handle if server sends "{}" for empty instead of "[]"
             if (typeof data === "object" && Object.keys(data).length === 0) {
                 console.warn(
                     "Saved runs endpoint returned an empty object, expected array. Treating as no runs."
@@ -161,8 +159,6 @@ const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
         return data.map((item) => IdentifiedTarget.fromJSON(item));
     } catch (error) {
         console.error("Error fetching saved runs:", error);
-        // Don't throw, allow app to continue, but log it.
-        // Could set an error state if critical.
         return [];
     }
 };
@@ -192,7 +188,7 @@ const pushSavedRunsToServer = async (
         return true;
     } catch (error) {
         console.error("Error pushing saved runs:", error);
-        throw error; // Rethrow to be handled by caller
+        throw error;
     }
 };
 
@@ -225,16 +221,16 @@ const Reports: React.FC = () => {
     }>({});
     const [isCurrentRunProcessed, setIsCurrentRunProcessed] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isPollingUI, setIsPollingUI] = useState<boolean>(false); // For UI indication
+    const [isPollingUI, setIsPollingUI] = useState<boolean>(false);
     const [isConfirming, setIsConfirming] = useState<boolean>(false);
     const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
 
-    // New state for persistence flow
+    // State for persistence flow
     const [hasLoadedInitialSavedRuns, setHasLoadedInitialSavedRuns] =
         useState(false);
-    const [isSavingRuns, setIsSavingRuns] = useState(false); // Prevent concurrent saves
+    const [isSavingRuns, setIsSavingRuns] = useState(false);
 
     // --- State for manual coordinate entry ---
     const [manualAirdropIndexJson, setManualAirdropIndexJson] =
@@ -249,7 +245,7 @@ const Reports: React.FC = () => {
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef<boolean>(true);
     const imageContainerRef = useRef<HTMLDivElement>(null);
-    const isFetchingTargetsRef = useRef<boolean>(false); // Ref for fetch guard
+    const isFetchingTargetsRef = useRef<boolean>(false);
 
     // --- Data Processing & Fetching ---
 
@@ -354,7 +350,6 @@ const Reports: React.FC = () => {
         [processFetchedRuns]
     );
 
-    // Effect for initial loading of SAVED runs
     useEffect(() => {
         isMountedRef.current = true;
         const loadSaved = async () => {
@@ -396,7 +391,6 @@ const Reports: React.FC = () => {
         loadSaved();
     }, [processFetchedRuns]);
 
-    // Effect for initial fetch from /targets/all and setting up polling
     useEffect(() => {
         if (!hasLoadedInitialSavedRuns || !isMountedRef.current) {
             return;
@@ -429,7 +423,6 @@ const Reports: React.FC = () => {
         };
     }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]);
 
-    // Effect for saving imageRuns when they change
     useEffect(() => {
         if (
             hasLoadedInitialSavedRuns &&
@@ -462,7 +455,6 @@ const Reports: React.FC = () => {
         }
     }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]);
 
-    // Effect for component unmount cleanup
     useEffect(() => {
         isMountedRef.current = true;
         return () => {
@@ -473,7 +465,6 @@ const Reports: React.FC = () => {
         };
     }, []);
 
-    // --- Memoized Derived State ---
     const currentRun = useMemo(
         () =>
             imageRuns.length > 0 &&
@@ -526,8 +517,6 @@ const Reports: React.FC = () => {
         );
     }, [submittedTargets]);
 
-    // --- Event Handlers ---
-
     const handleSetManualTarget = () => {
         setManualInputError("");
         if (!manualAirdropIndexJson) {
@@ -561,7 +550,7 @@ const Reports: React.FC = () => {
         const newCoord = GPSCoord.create({
             Latitude: lat,
             Longitude: lon,
-            Altitude: 0, // Defaulting altitude to 0 as it's removed from the form
+            Altitude: 0,
         });
 
         const newTarget = AirdropTarget.create({
@@ -572,7 +561,7 @@ const Reports: React.FC = () => {
 
         setSubmittedTargets((prev) => ({
             ...prev,
-            [indexEnum]: newTarget, // This will override any existing entry for this index
+            [indexEnum]: newTarget,
         }));
 
         setSnackbarMessage(
@@ -789,7 +778,6 @@ const Reports: React.FC = () => {
     };
     const handleSnackbarClose = () => setSnackbarOpen(false);
 
-    // --- Rendering Helpers ---
     const formatCoordinates = (coord: GPSCoord | undefined): string => {
         if (!coord) return "N/A";
         const lat =
@@ -916,7 +904,6 @@ const Reports: React.FC = () => {
         };
     };
 
-    // --- Main Render Function ---
     return (
         <Box className="reports-container" sx={{ p: 2 }}>
             {error && !isConfirming && !isFinalSubmitting && (
@@ -935,806 +922,852 @@ const Reports: React.FC = () => {
                 message={snackbarMessage}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
             />
-            {/* --- FIX: Added alignItems="flex-start" to fix layout bug --- */}
-            <Grid container spacing={2} alignItems="flex-start">
-                {/* === Top Row: Queue & Status === */}
+            {/* === LAYOUT FIX: Main Grid now defines two columns for content === */}
+            <Grid container spacing={2}>
+                {/* --- Left Column --- */}
                 <Grid item xs={12} md={8}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Image Queue ({imageRuns.length} runs processed)
-                                {isSavingRuns && (
-                                    <Chip
-                                        label="Saving..."
-                                        size="small"
-                                        sx={{ ml: 1, fontStyle: "italic" }}
-                                    />
-                                )}
-                                {isPollingUI && (
-                                    <Chip
-                                        label="Polling..."
-                                        color="secondary"
-                                        size="small"
-                                        sx={{ ml: 1 }}
-                                    />
-                                )}
-                            </Typography>
-                            {imageRuns.length > 0 ? (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexWrap: "wrap",
-                                        gap: 1,
-                                        maxHeight: "150px",
-                                        overflowY: "auto",
-                                        p: 1,
-                                        border: "1px dashed grey",
-                                        borderRadius: 1,
-                                    }}
-                                >
-                                    {imageRuns.map((run, index) => (
+                    <Stack spacing={2}>
+                        {/* --- Image Queue Card --- */}
+                        <Card>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    Image Queue ({imageRuns.length} runs
+                                    processed)
+                                    {isSavingRuns && (
                                         <Chip
-                                            key={run.runId}
-                                            label={`Run ${run.runId}`}
-                                            color={
-                                                index === currentRunIndex
-                                                    ? "primary"
-                                                    : "default"
-                                            }
-                                            variant={
-                                                index === currentRunIndex
-                                                    ? "filled"
-                                                    : "outlined"
-                                            }
-                                            onClick={() => {
-                                                if (
-                                                    index !== currentRunIndex &&
-                                                    !isConfirming &&
-                                                    !isFinalSubmitting
-                                                ) {
-                                                    setCurrentRunIndex(index);
-                                                    setCurrentDetectionMatches(
-                                                        {}
-                                                    );
-                                                    setIsCurrentRunProcessed(
-                                                        false
-                                                    );
-                                                    setError(null);
-                                                }
+                                            label="Saving..."
+                                            size="small"
+                                            sx={{
+                                                ml: 1,
+                                                fontStyle: "italic",
                                             }}
-                                            sx={{ cursor: "pointer" }}
                                         />
-                                    ))}
-                                </Box>
-                            ) : (
-                                <Typography
-                                    color="textSecondary"
-                                    sx={{ textAlign: "center", pt: 2, pb: 1 }}
-                                >
-                                    {!hasLoadedInitialSavedRuns
-                                        ? "Initializing..."
-                                        : isPollingUI
-                                        ? "Polling for images..."
-                                        : "No image runs loaded."}
+                                    )}
+                                    {isPollingUI && (
+                                        <Chip
+                                            label="Polling..."
+                                            color="secondary"
+                                            size="small"
+                                            sx={{ ml: 1 }}
+                                        />
+                                    )}
                                 </Typography>
-                            )}
-                            {(!hasLoadedInitialSavedRuns ||
-                                (isPollingUI && imageRuns.length === 0)) &&
-                                !error && (
+                                {imageRuns.length > 0 ? (
                                     <Box
                                         sx={{
                                             display: "flex",
-                                            justifyContent: "center",
-                                            mt: 1,
+                                            flexWrap: "wrap",
+                                            gap: 1,
+                                            maxHeight: "150px",
+                                            overflowY: "auto",
+                                            p: 1,
+                                            border: "1px dashed grey",
+                                            borderRadius: 1,
                                         }}
                                     >
-                                        <CircularProgress size={24} />
+                                        {imageRuns.map((run, index) => (
+                                            <Chip
+                                                key={run.runId}
+                                                label={`Run ${run.runId}`}
+                                                color={
+                                                    index === currentRunIndex
+                                                        ? "primary"
+                                                        : "default"
+                                                }
+                                                variant={
+                                                    index === currentRunIndex
+                                                        ? "filled"
+                                                        : "outlined"
+                                                }
+                                                onClick={() => {
+                                                    if (
+                                                        index !==
+                                                            currentRunIndex &&
+                                                        !isConfirming &&
+                                                        !isFinalSubmitting
+                                                    ) {
+                                                        setCurrentRunIndex(
+                                                            index
+                                                        );
+                                                        setCurrentDetectionMatches(
+                                                            {}
+                                                        );
+                                                        setIsCurrentRunProcessed(
+                                                            false
+                                                        );
+                                                        setError(null);
+                                                    }
+                                                }}
+                                                sx={{ cursor: "pointer" }}
+                                            />
+                                        ))}
                                     </Box>
+                                ) : (
+                                    <Typography
+                                        color="textSecondary"
+                                        sx={{
+                                            textAlign: "center",
+                                            pt: 2,
+                                            pb: 1,
+                                        }}
+                                    >
+                                        {!hasLoadedInitialSavedRuns
+                                            ? "Initializing..."
+                                            : isPollingUI
+                                            ? "Polling for images..."
+                                            : "No image runs loaded."}
+                                    </Typography>
                                 )}
-                        </CardContent>
-                    </Card>
+                                {(!hasLoadedInitialSavedRuns ||
+                                    (isPollingUI &&
+                                        imageRuns.length === 0)) &&
+                                    !error && (
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                justifyContent: "center",
+                                                mt: 1,
+                                            }}
+                                        >
+                                            <CircularProgress size={24} />
+                                        </Box>
+                                    )}
+                            </CardContent>
+                        </Card>
+
+                        {/* --- Current Image Card --- */}
+                        <Card>
+                            <CardContent>
+                                <Typography
+                                    variant="h6"
+                                    gutterBottom
+                                    sx={{
+                                        mb: 1,
+                                        display: "flex",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    Current Image: Run{" "}
+                                    {currentRun?.runId ?? "N/A"}
+                                    {isCurrentRunProcessed && !isConfirming && (
+                                        <Chip
+                                            label="Confirmed"
+                                            color="info"
+                                            size="small"
+                                            sx={{ ml: 1.5 }}
+                                        />
+                                    )}
+                                </Typography>
+                                <Box
+                                    ref={imageContainerRef}
+                                    className="reports-current-image-container"
+                                    sx={{
+                                        position: "relative",
+                                        mb: 2,
+                                        minHeight: "300px",
+                                        background: "#e0e0e0",
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    {currentRun ? (
+                                        <>
+                                            <img
+                                                id="current-target-image"
+                                                src={`data:image/png;base64,${currentRun.Picture}`}
+                                                alt={`Run ${currentRun.runId}`}
+                                                className="reports-current-image"
+                                                style={{
+                                                    display: "block",
+                                                    maxWidth: "100%",
+                                                    maxHeight: "70vh",
+                                                    height: "auto",
+                                                    objectFit: "contain",
+                                                }}
+                                                onLoad={() => {
+                                                    setCurrentDetectionMatches(
+                                                        (prev) => ({ ...prev })
+                                                    );
+                                                }}
+                                                onError={(e) => {
+                                                    e.currentTarget.alt = `Error loading image for Run ${currentRun.runId}`;
+                                                }}
+                                            />
+                                            {currentDetections.map(
+                                                (detection, index) => {
+                                                    const {
+                                                        bboxStyle,
+                                                        labelStyle,
+                                                        labelText,
+                                                        isValid,
+                                                    } =
+                                                        calculateDetectionStyles(
+                                                            detection,
+                                                            index
+                                                        );
+                                                    if (!isValid) {
+                                                        return null;
+                                                    }
+                                                    return (
+                                                        <React.Fragment
+                                                            key={
+                                                                detection.compositeKey
+                                                            }
+                                                        >
+                                                            <Box
+                                                                style={
+                                                                    bboxStyle
+                                                                }
+                                                            />
+                                                            <Typography
+                                                                component="span"
+                                                                style={
+                                                                    labelStyle
+                                                                }
+                                                            >
+                                                                {labelText}
+                                                            </Typography>
+                                                        </React.Fragment>
+                                                    );
+                                                }
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Typography
+                                            color="textSecondary"
+                                            sx={{ textAlign: "center", p: 3 }}
+                                        >
+                                            {imageRuns.length > 0
+                                                ? "Loading image..."
+                                                : "No images available to display."}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Stack>
                 </Grid>
+
+                {/* --- Right Column --- */}
                 <Grid item xs={12} md={4}>
-                    <Card>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                Mission Target Status (Confirmed)
-                            </Typography>
-                            <TableContainer component={Paper}>
-                                <Table stickyHeader size="small">
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Assignee</TableCell>
-                                            <TableCell>
-                                                Confirmed Object
-                                            </TableCell>
-                                            <TableCell>Coords</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {REQUIRED_AIRDROP_INDICES.map(
-                                            (index) => {
-                                                const d =
-                                                    submittedTargets[index];
-                                                return (
-                                                    <TableRow
-                                                        key={index}
-                                                        hover
-                                                        sx={{
-                                                            background:
-                                                                d &&
+                    <Stack spacing={2}>
+                        {/* --- Mission Status & Manual Entry Card --- */}
+                        <Card>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    Mission Target Status (Confirmed)
+                                </Typography>
+                                <TableContainer component={Paper}>
+                                    <Table stickyHeader size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>Assignee</TableCell>
+                                                <TableCell>
+                                                    Confirmed Object
+                                                </TableCell>
+                                                <TableCell>Coords</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {REQUIRED_AIRDROP_INDICES.map(
+                                                (index) => {
+                                                    const d =
+                                                        submittedTargets[index];
+                                                    return (
+                                                        <TableRow
+                                                            key={index}
+                                                            hover
+                                                            sx={{
+                                                                background:
+                                                                    d &&
+                                                                    d.Object !==
+                                                                        ODLCObjects.Undefined
+                                                                        ? "#e8f5e9"
+                                                                        : "inherit",
+                                                            }}
+                                                        >
+                                                            <TableCell>
+                                                                {airdropIndexToJSON(
+                                                                    index
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {d?.Object !==
+                                                                    undefined &&
                                                                 d.Object !==
-                                                                    ODLCObjects.Undefined
-                                                                    ? "#e8f5e9"
-                                                                    : "inherit",
-                                                        }}
+                                                                    ODLCObjects.Undefined ? (
+                                                                    oDLCObjectsToJSON(
+                                                                        d.Object
+                                                                    )
+                                                                ) : (
+                                                                    <em>
+                                                                        Needed
+                                                                    </em>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {d?.Coordinate
+                                                                    ? formatCoordinates(
+                                                                          d.Coordinate
+                                                                      )
+                                                                    : "-"}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                }
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+
+                                {/* === UPDATED MANUAL TARGET ENTRY SECTION === */}
+                                <Divider sx={{ my: 2 }} />
+                                <Typography variant="subtitle1" gutterBottom>
+                                    Manual Target Entry
+                                </Typography>
+                                <FormControl
+                                    fullWidth
+                                    size="small"
+                                    sx={{ mb: 1.5 }}
+                                    error={!!manualInputError}
+                                >
+                                    <InputLabel id="manual-airdrop-select-label">
+                                        Target Assignee
+                                    </InputLabel>
+                                    <Select
+                                        labelId="manual-airdrop-select-label"
+                                        value={manualAirdropIndexJson}
+                                        label="Target Assignee"
+                                        onChange={(e) =>
+                                            setManualAirdropIndexJson(
+                                                e.target.value as string
+                                            )
+                                        }
+                                    >
+                                        <MenuItem value="">
+                                            <em>Select Assignee...</em>
+                                        </MenuItem>
+                                        {REQUIRED_AIRDROP_INDICES.map(
+                                            (idxEnum) => {
+                                                const jsonVal =
+                                                    airdropIndexToJSON(idxEnum);
+                                                return (
+                                                    <MenuItem
+                                                        key={jsonVal}
+                                                        value={jsonVal}
                                                     >
-                                                        <TableCell>
-                                                            {airdropIndexToJSON(
-                                                                index
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {d?.Object !==
-                                                                undefined &&
-                                                            d.Object !==
-                                                                ODLCObjects.Undefined ? (
-                                                                oDLCObjectsToJSON(
-                                                                    d.Object
-                                                                )
-                                                            ) : (
-                                                                <em>Needed</em>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {d?.Coordinate
-                                                                ? formatCoordinates(
-                                                                      d.Coordinate
-                                                                  )
-                                                                : "-"}
-                                                        </TableCell>
-                                                    </TableRow>
+                                                        {jsonVal}
+                                                    </MenuItem>
                                                 );
                                             }
                                         )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-
-                            {/* === UPDATED MANUAL TARGET ENTRY SECTION === */}
-                            <Divider sx={{ my: 2 }} />
-                            <Typography variant="subtitle1" gutterBottom>
-                                Manual Target Entry
-                            </Typography>
-                            <FormControl
-                                fullWidth
-                                size="small"
-                                sx={{ mb: 1.5 }}
-                                error={!!manualInputError}
-                            >
-                                <InputLabel id="manual-airdrop-select-label">
-                                    Target Assignee
-                                </InputLabel>
-                                <Select
-                                    labelId="manual-airdrop-select-label"
-                                    value={manualAirdropIndexJson}
-                                    label="Target Assignee"
-                                    onChange={(e) =>
-                                        setManualAirdropIndexJson(
-                                            e.target.value as string
-                                        )
-                                    }
-                                >
-                                    <MenuItem value="">
-                                        <em>Select Assignee...</em>
-                                    </MenuItem>
-                                    {REQUIRED_AIRDROP_INDICES.map((idxEnum) => {
-                                        const jsonVal =
-                                            airdropIndexToJSON(idxEnum);
-                                        return (
-                                            <MenuItem
-                                                key={jsonVal}
-                                                value={jsonVal}
-                                            >
-                                                {jsonVal}
-                                            </MenuItem>
-                                        );
-                                    })}
-                                </Select>
-                            </FormControl>
-                            <FormControl
-                                fullWidth
-                                size="small"
-                                sx={{ mb: 1.5 }}
-                                error={!!manualInputError}
-                            >
-                                <InputLabel id="manual-object-select-label">
-                                    Object Type
-                                </InputLabel>
-                                <Select
-                                    labelId="manual-object-select-label"
-                                    value={manualObjectTypeJson}
-                                    label="Object Type"
-                                    onChange={(e) =>
-                                        setManualObjectTypeJson(
-                                            e.target.value as string
-                                        )
-                                    }
-                                >
-                                    <MenuItem value="">
-                                        <em>Select Object...</em>
-                                    </MenuItem>
-                                    {Object.entries(ODLCObjects)
-                                        .filter(
-                                            ([_, v_enum]) =>
-                                                typeof v_enum === "number" &&
-                                                v_enum > 0 &&
-                                                v_enum !==
-                                                    ODLCObjects.UNRECOGNIZED
-                                        )
-                                        .map(([k_enum, v_enum]) => {
-                                            const o_json = oDLCObjectsToJSON(
-                                                v_enum as ODLCObjects
-                                            );
-                                            return (
-                                                <MenuItem
-                                                    key={k_enum}
-                                                    value={o_json}
-                                                >
-                                                    {o_json}
-                                                </MenuItem>
-                                            );
-                                        })}
-                                </Select>
-                            </FormControl>
-
-                            <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
-                                <TextField
-                                    label="Latitude"
-                                    variant="outlined"
-                                    size="small"
+                                    </Select>
+                                </FormControl>
+                                <FormControl
                                     fullWidth
-                                    value={manualLatitude}
-                                    onChange={(e) =>
-                                        setManualLatitude(e.target.value)
-                                    }
-                                    type="number"
-                                    inputProps={{ step: "any" }}
-                                />
-                                <TextField
-                                    label="Longitude"
-                                    variant="outlined"
                                     size="small"
-                                    fullWidth
-                                    value={manualLongitude}
-                                    onChange={(e) =>
-                                        setManualLongitude(e.target.value)
-                                    }
-                                    type="number"
-                                    inputProps={{ step: "any" }}
-                                />
-                            </Box>
-                            {manualInputError && (
-                                <FormHelperText error sx={{ mb: 1.5, mt: -1 }}>
-                                    {manualInputError}
-                                </FormHelperText>
-                            )}
-                            <Button
-                                variant="outlined"
-                                color="secondary"
-                                onClick={handleSetManualTarget}
-                                disabled={
-                                    !manualAirdropIndexJson ||
-                                    !manualObjectTypeJson ||
-                                    !manualLatitude ||
-                                    !manualLongitude
-                                }
-                                fullWidth
-                            >
-                                Set Manual Target (Override)
-                            </Button>
-                            {/* === END MANUAL TARGET ENTRY SECTION === */}
-
-                            <Divider sx={{ my: 2 }} />
-                            <Button
-                                variant="contained"
-                                color="success"
-                                fullWidth
-                                onClick={handleFinalSubmit}
-                                disabled={
-                                    !canSubmitFinalMatches ||
-                                    isFinalSubmitting ||
-                                    isConfirming
-                                }
-                                startIcon={
-                                    isFinalSubmitting ? (
-                                        <CircularProgress
-                                            size={20}
-                                            color="inherit"
-                                        />
-                                    ) : null
-                                }
-                            >
-                                {isFinalSubmitting
-                                    ? "Submitting..."
-                                    : "Send Final Matches"}
-                            </Button>
-                            {error && isFinalSubmitting && (
-                                <Alert
-                                    severity="error"
-                                    sx={{ mt: 1 }}
-                                    onClose={() => setError(null)}
+                                    sx={{ mb: 1.5 }}
+                                    error={!!manualInputError}
                                 >
-                                    {error}
-                                </Alert>
-                            )}
-                            {!canSubmitFinalMatches && (
-                                <Typography
-                                    variant="caption"
-                                    display="block"
-                                    color="textSecondary"
-                                    sx={{ mt: 1, textAlign: "center" }}
-                                >
-                                    (Requires all 4 targets confirmed with
-                                    specific object types)
-                                </Typography>
-                            )}
-                        </CardContent>
-                    </Card>
-                </Grid>
-
-                {/* === Bottom Row: Current Image & Actions === */}
-                <Grid item xs={12} md={8}>
-                    <Card>
-                        <CardContent>
-                            <Typography
-                                variant="h6"
-                                gutterBottom
-                                sx={{
-                                    mb: 1,
-                                    display: "flex",
-                                    alignItems: "center",
-                                }}
-                            >
-                                Current Image: Run {currentRun?.runId ?? "N/A"}
-                                {isCurrentRunProcessed && !isConfirming && (
-                                    <Chip
-                                        label="Confirmed"
-                                        color="info"
-                                        size="small"
-                                        sx={{ ml: 1.5 }}
-                                    />
-                                )}
-                            </Typography>
-                            <Box
-                                ref={imageContainerRef}
-                                className="reports-current-image-container"
-                                sx={{
-                                    position: "relative",
-                                    mb: 2,
-                                    minHeight: "300px",
-                                    background: "#e0e0e0",
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {currentRun ? (
-                                    <>
-                                        <img
-                                            id="current-target-image"
-                                            src={`data:image/png;base64,${currentRun.Picture}`}
-                                            alt={`Run ${currentRun.runId}`}
-                                            className="reports-current-image"
-                                            style={{
-                                                display: "block",
-                                                maxWidth: "100%",
-                                                maxHeight: "70vh",
-                                                height: "auto",
-                                                objectFit: "contain",
-                                            }}
-                                            onLoad={() => {
-                                                setCurrentDetectionMatches(
-                                                    (prev) => ({ ...prev })
+                                    <InputLabel id="manual-object-select-label">
+                                        Object Type
+                                    </InputLabel>
+                                    <Select
+                                        labelId="manual-object-select-label"
+                                        value={manualObjectTypeJson}
+                                        label="Object Type"
+                                        onChange={(e) =>
+                                            setManualObjectTypeJson(
+                                                e.target.value as string
+                                            )
+                                        }
+                                    >
+                                        <MenuItem value="">
+                                            <em>Select Object...</em>
+                                        </MenuItem>
+                                        {Object.entries(ODLCObjects)
+                                            .filter(
+                                                ([_, v_enum]) =>
+                                                    typeof v_enum ===
+                                                        "number" &&
+                                                    v_enum > 0 &&
+                                                    v_enum !==
+                                                        ODLCObjects.UNRECOGNIZED
+                                            )
+                                            .map(([k_enum, v_enum]) => {
+                                                const o_json =
+                                                    oDLCObjectsToJSON(
+                                                        v_enum as ODLCObjects
+                                                    );
+                                                return (
+                                                    <MenuItem
+                                                        key={k_enum}
+                                                        value={o_json}
+                                                    >
+                                                        {o_json}
+                                                    </MenuItem>
                                                 );
-                                            }}
-                                            onError={(e) => {
-                                                e.currentTarget.alt = `Error loading image for Run ${currentRun.runId}`;
-                                            }}
-                                        />
+                                            })}
+                                    </Select>
+                                </FormControl>
+
+                                <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
+                                    <TextField
+                                        label="Latitude"
+                                        variant="outlined"
+                                        size="small"
+                                        fullWidth
+                                        value={manualLatitude}
+                                        onChange={(e) =>
+                                            setManualLatitude(e.target.value)
+                                        }
+                                        type="number"
+                                        inputProps={{ step: "any" }}
+                                    />
+                                    <TextField
+                                        label="Longitude"
+                                        variant="outlined"
+                                        size="small"
+                                        fullWidth
+                                        value={manualLongitude}
+                                        onChange={(e) =>
+                                            setManualLongitude(e.target.value)
+                                        }
+                                        type="number"
+                                        inputProps={{ step: "any" }}
+                                    />
+                                </Box>
+                                {manualInputError && (
+                                    <FormHelperText
+                                        error
+                                        sx={{ mb: 1.5, mt: -1 }}
+                                    >
+                                        {manualInputError}
+                                    </FormHelperText>
+                                )}
+                                <Button
+                                    variant="outlined"
+                                    color="secondary"
+                                    onClick={handleSetManualTarget}
+                                    disabled={
+                                        !manualAirdropIndexJson ||
+                                        !manualObjectTypeJson ||
+                                        !manualLatitude ||
+                                        !manualLongitude
+                                    }
+                                    fullWidth
+                                >
+                                    Set Manual Target (Override)
+                                </Button>
+                                {/* === END MANUAL TARGET ENTRY SECTION === */}
+
+                                <Divider sx={{ my: 2 }} />
+                                <Button
+                                    variant="contained"
+                                    color="success"
+                                    fullWidth
+                                    onClick={handleFinalSubmit}
+                                    disabled={
+                                        !canSubmitFinalMatches ||
+                                        isFinalSubmitting ||
+                                        isConfirming
+                                    }
+                                    startIcon={
+                                        isFinalSubmitting ? (
+                                            <CircularProgress
+                                                size={20}
+                                                color="inherit"
+                                            />
+                                        ) : null
+                                    }
+                                >
+                                    {isFinalSubmitting
+                                        ? "Submitting..."
+                                        : "Send Final Matches"}
+                                </Button>
+                                {error && isFinalSubmitting && (
+                                    <Alert
+                                        severity="error"
+                                        sx={{ mt: 1 }}
+                                        onClose={() => setError(null)}
+                                    >
+                                        {error}
+                                    </Alert>
+                                )}
+                                {!canSubmitFinalMatches && (
+                                    <Typography
+                                        variant="caption"
+                                        display="block"
+                                        color="textSecondary"
+                                        sx={{ mt: 1, textAlign: "center" }}
+                                    >
+                                        (Requires all 4 targets confirmed with
+                                        specific object types)
+                                    </Typography>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* --- Match Detections Card --- */}
+                        <Card>
+                            <CardContent className="reports-confirm-actions-content">
+                                <Typography variant="h6" gutterBottom>
+                                    Match Detections
+                                </Typography>
+                                {currentRun &&
+                                currentDetections.length > 0 ? (
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 2,
+                                        }}
+                                    >
                                         {currentDetections.map(
                                             (detection, index) => {
-                                                const {
-                                                    bboxStyle,
-                                                    labelStyle,
-                                                    labelText,
-                                                    isValid,
-                                                } = calculateDetectionStyles(
-                                                    detection,
-                                                    index
-                                                );
-                                                if (!isValid) {
-                                                    return null;
-                                                }
+                                                const currentMatch =
+                                                    currentDetectionMatches[
+                                                        detection.compositeKey
+                                                    ];
+                                                const assignedAirdropJsonValue =
+                                                    currentMatch?.airdropIndex !==
+                                                        undefined &&
+                                                    currentMatch.airdropIndex !==
+                                                        AirdropIndex.UNRECOGNIZED
+                                                        ? airdropIndexToJSON(
+                                                              currentMatch.airdropIndex
+                                                          )
+                                                        : "";
+                                                const assignedObjectTypeJsonValue =
+                                                    currentMatch?.objectType !==
+                                                        undefined &&
+                                                    currentMatch.objectType !==
+                                                        ODLCObjects.UNRECOGNIZED
+                                                        ? oDLCObjectsToJSON(
+                                                              currentMatch.objectType
+                                                          )
+                                                        : "";
+                                                const isDisabled =
+                                                    isConfirming ||
+                                                    isFinalSubmitting ||
+                                                    isCurrentRunProcessed;
+
                                                 return (
-                                                    <React.Fragment
+                                                    <Paper
                                                         key={
                                                             detection.compositeKey
                                                         }
+                                                        elevation={2}
+                                                        sx={{
+                                                            p: 1.5,
+                                                            opacity: isDisabled
+                                                                ? 0.6
+                                                                : 1,
+                                                            transition:
+                                                                "opacity 0.3s ease",
+                                                            pointerEvents:
+                                                                isDisabled
+                                                                    ? "none"
+                                                                    : "auto",
+                                                        }}
                                                     >
-                                                        <Box
-                                                            style={bboxStyle}
-                                                        />
                                                         <Typography
-                                                            component="span"
-                                                            style={labelStyle}
+                                                            variant="subtitle1"
+                                                            gutterBottom
+                                                            sx={{
+                                                                display: "flex",
+                                                                justifyContent:
+                                                                    "space-between",
+                                                                alignItems:
+                                                                    "center",
+                                                            }}
                                                         >
-                                                            {labelText}
+                                                            {renderTargetLabel(
+                                                                index
+                                                            )}
+                                                            <Typography
+                                                                component="span"
+                                                                variant="body2"
+                                                                color="text.secondary"
+                                                            >
+                                                                {formatCoordinates(
+                                                                    detection.coordinate
+                                                                )}
+                                                            </Typography>
                                                         </Typography>
-                                                    </React.Fragment>
+                                                        <FormControl
+                                                            fullWidth
+                                                            size="small"
+                                                            sx={{ mb: 1 }}
+                                                            disabled={
+                                                                isDisabled
+                                                            }
+                                                        >
+                                                            <InputLabel
+                                                                id={`a-${detection.compositeKey}`}
+                                                            >
+                                                                Target Assignee
+                                                            </InputLabel>
+                                                            <Select
+                                                                labelId={`a-${detection.compositeKey}`}
+                                                                label="Target Assignee"
+                                                                value={
+                                                                    assignedAirdropJsonValue
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleMatchUpdate(
+                                                                        detection.compositeKey,
+                                                                        "airdropIndex",
+                                                                        e,
+                                                                        detection
+                                                                    )
+                                                                }
+                                                                displayEmpty
+                                                                renderValue={(
+                                                                    v
+                                                                ) =>
+                                                                    v || (
+                                                                        <em>
+                                                                            Assign
+                                                                            ID...
+                                                                        </em>
+                                                                    )
+                                                                }
+                                                            >
+                                                                <MenuItem value="">
+                                                                    <em>
+                                                                        Clear
+                                                                        Assignment
+                                                                    </em>
+                                                                </MenuItem>
+                                                                {REQUIRED_AIRDROP_INDICES.map(
+                                                                    (
+                                                                        idxEnum
+                                                                    ) => {
+                                                                        const v =
+                                                                            airdropIndexToJSON(
+                                                                                idxEnum
+                                                                            );
+                                                                        const s =
+                                                                            submittedTargets[
+                                                                                idxEnum
+                                                                            ];
+                                                                        const isAlreadyConfirmed =
+                                                                            s &&
+                                                                            s.Object !==
+                                                                                ODLCObjects.Undefined;
+                                                                        return (
+                                                                            <MenuItem
+                                                                                key={
+                                                                                    v
+                                                                                }
+                                                                                value={
+                                                                                    v
+                                                                                }
+                                                                                sx={{
+                                                                                    color: isAlreadyConfirmed
+                                                                                        ? "text.secondary"
+                                                                                        : "inherit",
+                                                                                }}
+                                                                            >
+                                                                                {v}{" "}
+                                                                                {isAlreadyConfirmed
+                                                                                    ? "(Confirmed)"
+                                                                                    : ""}
+                                                                            </MenuItem>
+                                                                        );
+                                                                    }
+                                                                )}
+                                                            </Select>
+                                                            {assignedAirdropJsonValue &&
+                                                                submittedTargets[
+                                                                    airdropIndexFromJSON(
+                                                                        assignedAirdropJsonValue
+                                                                    )
+                                                                ] &&
+                                                                !isDisabled && (
+                                                                    <FormHelperText
+                                                                        sx={{
+                                                                            color: "orange.main",
+                                                                        }}
+                                                                    >
+                                                                        Will
+                                                                        overwrite
+                                                                        previously
+                                                                        confirmed
+                                                                        selection
+                                                                        for this
+                                                                        assignee.
+                                                                    </FormHelperText>
+                                                                )}
+                                                        </FormControl>
+                                                        <FormControl
+                                                            fullWidth
+                                                            size="small"
+                                                            sx={{ mb: 1 }}
+                                                            disabled={
+                                                                isDisabled ||
+                                                                !assignedAirdropJsonValue
+                                                            }
+                                                        >
+                                                            <InputLabel
+                                                                id={`o-${detection.compositeKey}`}
+                                                            >
+                                                                Object Type
+                                                            </InputLabel>
+                                                            <Select
+                                                                labelId={`o-${detection.compositeKey}`}
+                                                                label="Object Type"
+                                                                value={
+                                                                    assignedObjectTypeJsonValue
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleMatchUpdate(
+                                                                        detection.compositeKey,
+                                                                        "objectType",
+                                                                        e,
+                                                                        detection
+                                                                    )
+                                                                }
+                                                                displayEmpty
+                                                                renderValue={(
+                                                                    v
+                                                                ) =>
+                                                                    v || (
+                                                                        <em>
+                                                                            Select
+                                                                            Type...
+                                                                        </em>
+                                                                    )
+                                                                }
+                                                            >
+                                                                <MenuItem value="">
+                                                                    <em>
+                                                                        Undefined
+                                                                        (Clear
+                                                                        Type)
+                                                                    </em>
+                                                                </MenuItem>
+                                                                {Object.entries(
+                                                                    ODLCObjects
+                                                                )
+                                                                    .filter(
+                                                                        ([
+                                                                            _,
+                                                                            v_enum,
+                                                                        ]) =>
+                                                                            typeof v_enum ===
+                                                                                "number" &&
+                                                                            v_enum >
+                                                                                0 &&
+                                                                            v_enum !==
+                                                                                ODLCObjects.UNRECOGNIZED
+                                                                    )
+                                                                    .map(
+                                                                        ([
+                                                                            k_enum,
+                                                                            v_enum,
+                                                                        ]) => {
+                                                                            const o_json =
+                                                                                oDLCObjectsToJSON(
+                                                                                    v_enum as ODLCObjects
+                                                                                );
+                                                                            return (
+                                                                                <MenuItem
+                                                                                    key={
+                                                                                        k_enum
+                                                                                    }
+                                                                                    value={
+                                                                                        o_json
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        o_json
+                                                                                    }
+                                                                                </MenuItem>
+                                                                            );
+                                                                        }
+                                                                    )}
+                                                            </Select>
+                                                        </FormControl>
+                                                    </Paper>
                                                 );
                                             }
                                         )}
-                                    </>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={handleConfirmLocalMatches}
+                                            disabled={
+                                                !canConfirmCurrentImage ||
+                                                isConfirming ||
+                                                isFinalSubmitting ||
+                                                isCurrentRunProcessed
+                                            }
+                                            fullWidth
+                                            sx={{ mt: 1 }}
+                                            startIcon={
+                                                isConfirming ? (
+                                                    <CircularProgress
+                                                        size={20}
+                                                        color="inherit"
+                                                    />
+                                                ) : null
+                                            }
+                                        >
+                                            {isCurrentRunProcessed
+                                                ? "Matches Confirmed"
+                                                : isConfirming
+                                                ? "Confirming..."
+                                                : "Confirm Image Matches"}
+                                        </Button>
+                                        {error && isConfirming && (
+                                            <Alert
+                                                severity="error"
+                                                sx={{ mt: 1 }}
+                                                onClose={() => setError(null)}
+                                            >
+                                                {error}
+                                            </Alert>
+                                        )}
+                                        <Button
+                                            variant="outlined"
+                                            onClick={handleNextImage}
+                                            disabled={
+                                                isConfirming ||
+                                                isFinalSubmitting ||
+                                                (currentRunIndex >=
+                                                    imageRuns.length - 1 &&
+                                                    !isPollingUI)
+                                            }
+                                            fullWidth
+                                            sx={{ mt: 1 }}
+                                        >
+                                            {currentRunIndex >=
+                                            imageRuns.length - 1
+                                                ? isPollingUI
+                                                    ? "Waiting for New Images..."
+                                                    : "End of Queue"
+                                                : "Next Image"}
+                                        </Button>
+                                    </Box>
                                 ) : (
                                     <Typography
                                         color="textSecondary"
                                         sx={{ textAlign: "center", p: 3 }}
                                     >
-                                        {imageRuns.length > 0
-                                            ? "Loading image..."
-                                            : "No images available to display."}
+                                        {currentRun
+                                            ? "No detections in this image."
+                                            : imageRuns.length > 0
+                                            ? "Select a run from the queue."
+                                            : "No image runs available."}
                                     </Typography>
                                 )}
-                            </Box>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                    <Card>
-                        <CardContent className="reports-confirm-actions-content">
-                            <Typography variant="h6" gutterBottom>
-                                Match Detections
-                            </Typography>
-                            {currentRun && currentDetections.length > 0 ? (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 2,
-                                    }}
-                                >
-                                    {currentDetections.map(
-                                        (detection, index) => {
-                                            const currentMatch =
-                                                currentDetectionMatches[
-                                                    detection.compositeKey
-                                                ];
-                                            const assignedAirdropJsonValue =
-                                                currentMatch?.airdropIndex !==
-                                                    undefined &&
-                                                currentMatch.airdropIndex !==
-                                                    AirdropIndex.UNRECOGNIZED
-                                                    ? airdropIndexToJSON(
-                                                          currentMatch.airdropIndex
-                                                      )
-                                                    : "";
-                                            const assignedObjectTypeJsonValue =
-                                                currentMatch?.objectType !==
-                                                    undefined &&
-                                                currentMatch.objectType !==
-                                                    ODLCObjects.UNRECOGNIZED
-                                                    ? oDLCObjectsToJSON(
-                                                          currentMatch.objectType
-                                                      )
-                                                    : "";
-                                            const isDisabled =
-                                                isConfirming ||
-                                                isFinalSubmitting ||
-                                                isCurrentRunProcessed;
-
-                                            return (
-                                                <Paper
-                                                    key={detection.compositeKey}
-                                                    elevation={2}
-                                                    sx={{
-                                                        p: 1.5,
-                                                        opacity: isDisabled
-                                                            ? 0.6
-                                                            : 1,
-                                                        transition:
-                                                            "opacity 0.3s ease",
-                                                        pointerEvents:
-                                                            isDisabled
-                                                                ? "none"
-                                                                : "auto",
-                                                    }}
-                                                >
-                                                    <Typography
-                                                        variant="subtitle1"
-                                                        gutterBottom
-                                                        sx={{
-                                                            display: "flex",
-                                                            justifyContent:
-                                                                "space-between",
-                                                            alignItems:
-                                                                "center",
-                                                        }}
-                                                    >
-                                                        {renderTargetLabel(
-                                                            index
-                                                        )}
-                                                        <Typography
-                                                            component="span"
-                                                            variant="body2"
-                                                            color="text.secondary"
-                                                        >
-                                                            {formatCoordinates(
-                                                                detection.coordinate
-                                                            )}
-                                                        </Typography>
-                                                    </Typography>
-                                                    <FormControl
-                                                        fullWidth
-                                                        size="small"
-                                                        sx={{ mb: 1 }}
-                                                        disabled={isDisabled}
-                                                    >
-                                                        <InputLabel
-                                                            id={`a-${detection.compositeKey}`}
-                                                        >
-                                                            Target Assignee
-                                                        </InputLabel>
-                                                        <Select
-                                                            labelId={`a-${detection.compositeKey}`}
-                                                            label="Target Assignee"
-                                                            value={
-                                                                assignedAirdropJsonValue
-                                                            }
-                                                            onChange={(e) =>
-                                                                handleMatchUpdate(
-                                                                    detection.compositeKey,
-                                                                    "airdropIndex",
-                                                                    e,
-                                                                    detection
-                                                                )
-                                                            }
-                                                            displayEmpty
-                                                            renderValue={(v) =>
-                                                                v || (
-                                                                    <em>
-                                                                        Assign
-                                                                        ID...
-                                                                    </em>
-                                                                )
-                                                            }
-                                                        >
-                                                            <MenuItem value="">
-                                                                <em>
-                                                                    Clear
-                                                                    Assignment
-                                                                </em>
-                                                            </MenuItem>
-                                                            {REQUIRED_AIRDROP_INDICES.map(
-                                                                (idxEnum) => {
-                                                                    const v =
-                                                                        airdropIndexToJSON(
-                                                                            idxEnum
-                                                                        );
-                                                                    const s =
-                                                                        submittedTargets[
-                                                                            idxEnum
-                                                                        ];
-                                                                    const isAlreadyConfirmed =
-                                                                        s &&
-                                                                        s.Object !==
-                                                                            ODLCObjects.Undefined;
-                                                                    return (
-                                                                        <MenuItem
-                                                                            key={
-                                                                                v
-                                                                            }
-                                                                            value={
-                                                                                v
-                                                                            }
-                                                                            sx={{
-                                                                                color: isAlreadyConfirmed
-                                                                                    ? "text.secondary"
-                                                                                    : "inherit",
-                                                                            }}
-                                                                        >
-                                                                            {v}{" "}
-                                                                            {isAlreadyConfirmed
-                                                                                ? "(Confirmed)"
-                                                                                : ""}
-                                                                        </MenuItem>
-                                                                    );
-                                                                }
-                                                            )}
-                                                        </Select>
-                                                        {assignedAirdropJsonValue &&
-                                                            submittedTargets[
-                                                                airdropIndexFromJSON(
-                                                                    assignedAirdropJsonValue
-                                                                )
-                                                            ] &&
-                                                            !isDisabled && (
-                                                                <FormHelperText
-                                                                    sx={{
-                                                                        color: "orange.main",
-                                                                    }}
-                                                                >
-                                                                    Will
-                                                                    overwrite
-                                                                    previously
-                                                                    confirmed
-                                                                    selection
-                                                                    for this
-                                                                    assignee.
-                                                                </FormHelperText>
-                                                            )}
-                                                    </FormControl>
-                                                    <FormControl
-                                                        fullWidth
-                                                        size="small"
-                                                        sx={{ mb: 1 }}
-                                                        disabled={
-                                                            isDisabled ||
-                                                            !assignedAirdropJsonValue
-                                                        }
-                                                    >
-                                                        <InputLabel
-                                                            id={`o-${detection.compositeKey}`}
-                                                        >
-                                                            Object Type
-                                                        </InputLabel>
-                                                        <Select
-                                                            labelId={`o-${detection.compositeKey}`}
-                                                            label="Object Type"
-                                                            value={
-                                                                assignedObjectTypeJsonValue
-                                                            }
-                                                            onChange={(e) =>
-                                                                handleMatchUpdate(
-                                                                    detection.compositeKey,
-                                                                    "objectType",
-                                                                    e,
-                                                                    detection
-                                                                )
-                                                            }
-                                                            displayEmpty
-                                                            renderValue={(v) =>
-                                                                v || (
-                                                                    <em>
-                                                                        Select
-                                                                        Type...
-                                                                    </em>
-                                                                )
-                                                            }
-                                                        >
-                                                            <MenuItem value="">
-                                                                <em>
-                                                                    Undefined
-                                                                    (Clear Type)
-                                                                </em>
-                                                            </MenuItem>
-                                                            {Object.entries(
-                                                                ODLCObjects
-                                                            )
-                                                                .filter(
-                                                                    ([
-                                                                        _,
-                                                                        v_enum,
-                                                                    ]) =>
-                                                                        typeof v_enum ===
-                                                                            "number" &&
-                                                                        v_enum >
-                                                                            0 &&
-                                                                        v_enum !==
-                                                                            ODLCObjects.UNRECOGNIZED
-                                                                )
-                                                                .map(
-                                                                    ([
-                                                                        k_enum,
-                                                                        v_enum,
-                                                                    ]) => {
-                                                                        const o_json =
-                                                                            oDLCObjectsToJSON(
-                                                                                v_enum as ODLCObjects
-                                                                            );
-                                                                        return (
-                                                                            <MenuItem
-                                                                                key={
-                                                                                    k_enum
-                                                                                }
-                                                                                value={
-                                                                                    o_json
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    o_json
-                                                                                }
-                                                                            </MenuItem>
-                                                                        );
-                                                                    }
-                                                                )}
-                                                        </Select>
-                                                    </FormControl>
-                                                </Paper>
-                                            );
-                                        }
-                                    )}
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={handleConfirmLocalMatches}
-                                        disabled={
-                                            !canConfirmCurrentImage ||
-                                            isConfirming ||
-                                            isFinalSubmitting ||
-                                            isCurrentRunProcessed
-                                        }
-                                        fullWidth
-                                        sx={{ mt: 1 }}
-                                        startIcon={
-                                            isConfirming ? (
-                                                <CircularProgress
-                                                    size={20}
-                                                    color="inherit"
-                                                />
-                                            ) : null
-                                        }
-                                    >
-                                        {isCurrentRunProcessed
-                                            ? "Matches Confirmed"
-                                            : isConfirming
-                                            ? "Confirming..."
-                                            : "Confirm Image Matches"}
-                                    </Button>
-                                    {error && isConfirming && (
-                                        <Alert
-                                            severity="error"
-                                            sx={{ mt: 1 }}
-                                            onClose={() => setError(null)}
-                                        >
-                                            {error}
-                                        </Alert>
-                                    )}
-                                    <Button
-                                        variant="outlined"
-                                        onClick={handleNextImage}
-                                        disabled={
-                                            isConfirming ||
-                                            isFinalSubmitting ||
-                                            (currentRunIndex >=
-                                                imageRuns.length - 1 &&
-                                                !isPollingUI)
-                                        }
-                                        fullWidth
-                                        sx={{ mt: 1 }}
-                                    >
-                                        {currentRunIndex >= imageRuns.length - 1
-                                            ? isPollingUI
-                                                ? "Waiting for New Images..."
-                                                : "End of Queue"
-                                            : "Next Image"}
-                                    </Button>
-                                </Box>
-                            ) : (
-                                <Typography
-                                    color="textSecondary"
-                                    sx={{ textAlign: "center", p: 3 }}
-                                >
-                                    {currentRun
-                                        ? "No detections in this image."
-                                        : imageRuns.length > 0
-                                        ? "Select a run from the queue."
-                                        : "No image runs available."}
-                                </Typography>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </Stack>
                 </Grid>
             </Grid>
         </Box>
