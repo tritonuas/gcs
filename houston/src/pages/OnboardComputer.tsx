@@ -333,6 +333,41 @@ function OnboardComputer() {
                 >
                     End camera stream
                 </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        fetch("/api/camera/runpipeline", {
+                            method: "POST",
+                        })
+                            .then((resp) => {
+                                if (!resp.ok) {
+                                    return resp.text().then((text) => {
+                                        throw new Error(
+                                            `Pipeline run failed: ${
+                                                text || resp.statusText
+                                            } (Status: ${resp.status})`
+                                        );
+                                    });
+                                }
+                                return resp.text();
+                            })
+                            .then((responseText) => {
+                                alert(
+                                    responseText ||
+                                        "Run pipeline command successfully processed!"
+                                );
+                            })
+                            .catch((err) => {
+                                console.error("Run pipeline end error:", err);
+                                alert(
+                                    err.message ||
+                                        "Run pipeline error"
+                                );
+                            });
+                    }}
+                >
+                    Run Pipeline
+                </button>
                 <div className="image-container">
                     <div className="gallery-container">
                         <ImageGallery

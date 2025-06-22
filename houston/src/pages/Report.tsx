@@ -37,6 +37,7 @@ import {
     FormHelperText,
     Divider,
     Snackbar,
+    TextField, // <-- ADDED
 } from "@mui/material";
 
 import {
@@ -234,6 +235,14 @@ const Reports: React.FC = () => {
     const [hasLoadedInitialSavedRuns, setHasLoadedInitialSavedRuns] =
         useState(false);
     const [isSavingRuns, setIsSavingRuns] = useState(false); // Prevent concurrent saves
+
+    // --- NEW: State for manual coordinate entry ---
+    const [manualAirdropIndexJson, setManualAirdropIndexJson] =
+        useState<string>("");
+    const [manualLatitude, setManualLatitude] = useState<string>("");
+    const [manualLongitude, setManualLongitude] = useState<string>("");
+    const [manualAltitude, setManualAltitude] = useState<string>("");
+    const [manualInputError, setManualInputError] = useState<string>("");
 
     // Refs
     const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -523,6 +532,68 @@ const Reports: React.FC = () => {
     }, [submittedTargets]);
 
     // --- Event Handlers ---
+
+    // --- NEW: Handler for manual coordinate submission ---
+    const handleSetManualCoordinates = () => {
+        setManualInputError("");
+        if (!manualAirdropIndexJson) {
+            setManualInputError("Please select a target assignee.");
+            return;
+        }
+
+        const lat = parseFloat(manualLatitude);
+        const lon = parseFloat(manualLongitude);
+        const alt = parseFloat(manualAltitude); // Can be NaN if empty
+
+        if (isNaN(lat) || isNaN(lon)) {
+            setManualInputError("Latitude and Longitude must be valid numbers.");
+            return;
+        }
+
+        const indexEnum = airdropIndexFromJSON(manualAirdropIndexJson);
+        if (indexEnum === AirdropIndex.UNRECOGNIZED) {
+            setManualInputError("Invalid assignee selected.");
+            return;
+        }
+
+        const newCoord = GPSCoord.create({
+            Latitude: lat,
+            Longitude: lon,
+            Altitude: isNaN(alt) ? 0.0 : alt, // Default altitude to 0 if not provided or invalid
+        });
+
+        setSubmittedTargets((prev) => {
+            const updated = { ...prev };
+            const existingTarget = updated[indexEnum];
+
+            if (existingTarget) {
+                // Update the coordinate of the existing target
+                updated[indexEnum] = AirdropTarget.create({
+                    ...existingTarget,
+                    Coordinate: newCoord,
+                });
+            } else {
+                // Create a new target entry with the coordinate but an Undefined object
+                updated[indexEnum] = AirdropTarget.create({
+                    Index: indexEnum,
+                    Coordinate: newCoord,
+                    Object: ODLCObjects.Undefined, // User must still match an object from an image
+                });
+            }
+            return updated;
+        });
+
+        setSnackbarMessage(
+            `Manually set coordinates for ${manualAirdropIndexJson}.`
+        );
+        setSnackbarOpen(true);
+        // Reset form
+        setManualAirdropIndexJson("");
+        setManualLatitude("");
+        setManualLongitude("");
+        setManualAltitude("");
+    };
+
     const handleMatchUpdate = (
         compositeKey: string,
         field: "airdropIndex" | "objectType",
@@ -1038,6 +1109,107 @@ const Reports: React.FC = () => {
                                     </TableBody>
                                 </Table>
                             </TableContainer>
+
+                            {/* === BEGIN NEW MANUAL COORDINATE ENTRY SECTION === */}
+                            <Divider sx={{ my: 2 }} />
+                            <Typography variant="subtitle1" gutterBottom>
+                                Manual Coordinate Entry
+                            </Typography>
+                            <FormControl
+                                fullWidth
+                                size="small"
+                                sx={{ mb: 1.5 }}
+                                error={!!manualInputError}
+                            >
+                                <InputLabel id="manual-airdrop-select-label">
+                                    Assignee
+                                </InputLabel>
+                                <Select
+                                    labelId="manual-airdrop-select-label"
+                                    value={manualAirdropIndexJson}
+                                    label="Assignee"
+                                    onChange={(e) =>
+                                        setManualAirdropIndexJson(
+                                            e.target.value as string
+                                        )
+                                    }
+                                >
+                                    <MenuItem value="">
+                                        <em>Select Assignee...</em>
+                                    </MenuItem>
+                                    {REQUIRED_AIRDROP_INDICES.map((idxEnum) => {
+                                        const jsonVal =
+                                            airdropIndexToJSON(idxEnum);
+                                        return (
+                                            <MenuItem
+                                                key={jsonVal}
+                                                value={jsonVal}
+                                            >
+                                                {jsonVal}
+                                            </MenuItem>
+                                        );
+                                    })}
+                                </Select>
+                            </FormControl>
+                            <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
+                                <TextField
+                                    label="Latitude"
+                                    variant="outlined"
+                                    size="small"
+                                    fullWidth
+                                    value={manualLatitude}
+                                    onChange={(e) =>
+                                        setManualLatitude(e.target.value)
+                                    }
+                                    type="number"
+                                    inputProps={{ step: "any" }}
+                                />
+                                <TextField
+                                    label="Longitude"
+                                    variant="outlined"
+                                    size="small"
+                                    fullWidth
+                                    value={manualLongitude}
+                                    onChange={(e) =>
+                                        setManualLongitude(e.target.value)
+                                    }
+                                    type="number"
+                                    inputProps={{ step: "any" }}
+                                />
+                            </Box>
+                            <TextField
+                                label="Altitude (Optional, m)"
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={manualAltitude}
+                                onChange={(e) =>
+                                    setManualAltitude(e.target.value)
+                                }
+                                sx={{ mb: 1.5 }}
+                                type="number"
+                                inputProps={{ step: "any" }}
+                            />
+                            {manualInputError && (
+                                <FormHelperText error sx={{ mb: 1.5, mt: -1 }}>
+                                    {manualInputError}
+                                </FormHelperText>
+                            )}
+                            <Button
+                                variant="outlined"
+                                color="secondary"
+                                onClick={handleSetManualCoordinates}
+                                disabled={
+                                    !manualAirdropIndexJson ||
+                                    !manualLatitude ||
+                                    !manualLongitude
+                                }
+                                fullWidth
+                            >
+                                Set Manual Coordinates
+                            </Button>
+                            {/* === END NEW MANUAL COORDINATE ENTRY SECTION === */}
+
                             <Divider sx={{ my: 2 }} />
                             <Button
                                 variant="contained"
