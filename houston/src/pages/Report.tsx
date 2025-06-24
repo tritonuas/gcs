@@ -52,6 +52,7 @@ import {
     GPSCoord,
     BboxProto,
     AirdropTarget,
+    Mission,
 } from "../protos/obc.pb"; // Adjust path as needed
 
 import "./Report.css"; // Assuming you have this CSS file
@@ -210,6 +211,7 @@ interface CurrentDetectionMatch {
 
 // --- Component ---
 const Reports: React.FC = () => {
+    console.log("Report component loaded");
     const [imageRuns, setImageRuns] = useState<IdentifiedTarget[]>([]);
     const [currentRunIndex, setCurrentRunIndex] = useState<number>(0);
     const [seenRunIds, setSeenRunIds] = useState<Set<number>>(new Set());
@@ -464,6 +466,50 @@ const Reports: React.FC = () => {
             }
         };
     }, []);
+
+    // TODO : probably should be a button
+    const handleAutofillDropLocations = () => {
+        fetch('/api/mission')
+            .then(res => res.json())
+            .then((mission: Mission & { DropLocation?: GPSCoord[] }) => {
+                console.log("Autofilling drop locations and object types from mission");
+                const dropLocations = mission.DropLocation;
+                const airdropAssignments = mission.AirdropAssignments || [];
+                
+                if (dropLocations && Array.isArray(dropLocations)) {
+                    const newTargets: { [key in AirdropIndex]?: AirdropTarget } = {};
+                    let filledCount = 0;
+                    
+                    for (let i = 0; i < REQUIRED_AIRDROP_INDICES.length; i++) {
+                        const coord = dropLocations[i];
+                        if (coord) {
+                            // Find the corresponding airdrop assignment for this index
+                            const assignment = airdropAssignments.find(
+                                assignment => assignment.Index === REQUIRED_AIRDROP_INDICES[i]
+                            );
+                            
+                            newTargets[REQUIRED_AIRDROP_INDICES[i]] = AirdropTarget.create({
+                                Index: REQUIRED_AIRDROP_INDICES[i],
+                                Coordinate: coord,
+                                Object: assignment?.Object || ODLCObjects.Bus,
+                            });
+                            filledCount++;
+                        }
+                    }
+                    setSubmittedTargets(prev => ({ ...newTargets, ...prev }));
+                    setSnackbarMessage(`Autofilled ${filledCount} targets with coordinates and object types from mission`);
+                    setSnackbarOpen(true);
+                } else {
+                    setSnackbarMessage("No drop locations found in mission data");
+                    setSnackbarOpen(true);
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching mission for autofill:", error);
+                setSnackbarMessage("Error fetching mission data for autofill");
+                setSnackbarOpen(true);
+            });
+    };
 
     const currentRun = useMemo(
         () =>
@@ -1362,6 +1408,24 @@ const Reports: React.FC = () => {
                                     Set Manual Target (Override)
                                 </Button>
                                 {/* === END MANUAL TARGET ENTRY SECTION === */}
+
+                                {/* === AUTOFILL DROP LOCATIONS SECTION === */}
+                                <Typography variant="subtitle1" gutterBottom>
+                                    Mission Data
+                                </Typography>
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    onClick={handleAutofillDropLocations}
+                                    fullWidth
+                                    sx={{ mb: 1.5 }}
+                                >
+                                    Autofill Targets from Mission
+                                </Button>
+                                <Typography variant="caption" display="block" color="textSecondary" sx={{ mb: 2, textAlign: "center" }}>
+                                    Loads drop location coordinates and object types from the submitted mission
+                                </Typography>
+                                {/* === END AUTOFILL SECTION === */}
 
                                 <Divider sx={{ my: 2 }} />
                                 <Button

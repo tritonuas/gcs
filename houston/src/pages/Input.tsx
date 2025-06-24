@@ -23,6 +23,7 @@ enum MapMode {
     Waypoint,
     InitialPath,
     SearchPath,
+    DropLocation,
 }
 
 enum ShapeType {
@@ -81,6 +82,13 @@ const getModeConfig = (mapMode: MapMode) => {
                 headings: ["Latitude", "Longitude", "Altitude"],
                 type: ShapeType.Discrete,
                 editable: false,
+            } as MapModeConfig;
+        case MapMode.DropLocation:
+            return {
+                color: "purple",
+                headings: ["Latitude", "Longitude"],
+                type: ShapeType.Line,
+                editable: true,
             } as MapModeConfig;
     }
 };
@@ -578,6 +586,7 @@ function Input() {
             AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
             MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
             Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
+            DropLocation: mapDataToGpsCoords(MapMode.DropLocation),
         };
 
         fetch("/api/mission", {

@@ -20,6 +20,7 @@ import { Marker, Polygon, Polyline } from "react-leaflet";
 import L, { LatLng } from "leaflet";
 import { useMyModal } from "../components/UseMyModal.tsx";
 import TakeoffSelector from "../components/TakeoffSelector.tsx";
+import RTLSelector from "../components/RTLSelector.tsx";
 
 type Unit =
     | "knots"
@@ -418,6 +419,7 @@ function Control({
     });
     const [centerMap, setCenterMap] = useState(true);
     const { modalVisible, openModal, closeModal } = useMyModal();
+    const { modalVisible: rtlModalVisible, openModal: openRTLModal, closeModal: closeRTLModal } = useMyModal();
 
     const [superSecret, setSuperSecret] = useState(false);
 
@@ -494,6 +496,10 @@ function Control({
         openModal();
     };
 
+    const handleRTLButton = () => {
+        openRTLModal();
+    };
+
     useEffect(() => {
         window.addEventListener("storage", () => {
             handleStorageChange();
@@ -559,6 +565,36 @@ function Control({
                                 modalVisible={modalVisible}
                                 closeModal={closeModal}
                             />
+                            <RTLSelector
+                                modalVisible={rtlModalVisible}
+                                closeModal={closeRTLModal}
+                            />
+                        </CustomControl>
+                        <CustomControl prepend position="bottomleft">
+                            <button
+                                className="rtl-button"
+                                onClick={handleRTLButton}
+                                style={{
+                                    background: "linear-gradient(-180deg, #FF6B6B, #C44569)",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    padding: "10px 15px",
+                                    cursor: "pointer",
+                                    fontSize: "14px",
+                                    fontWeight: "bold",
+                                    boxShadow: "rgba(0, 0, 0, 0.1) 0 2px 4px",
+                                    transition: "box-shadow .2s"
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.boxShadow = "rgba(196, 69, 105, 0.5) 0 3px 8px";
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.boxShadow = "rgba(0, 0, 0, 0.1) 0 2px 4px";
+                                }}
+                            >
+                                RTL
+                            </button>
                         </CustomControl>
                         {centerMap ? (
                             <UpdateMapCenter position={planeLatLng} />

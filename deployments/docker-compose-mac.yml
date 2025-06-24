@@ -5,7 +5,7 @@ services:
     image: tritonuas/gcs
     # network_mode: "host"
     ports:
-      - 4545:5000
+      - 5000:5000
     environment:
       - DEBUG_MODE=true
       - OBC_ADDR=192.168.1.51:5010
@@ -24,7 +24,7 @@ services:
       - ../flight-logs:/CSV
     extra_hosts:
       - host.docker.internal:host-gateway
-      
+
   influxdb:
     image: influxdb:2.0-alpine
     # network_mode: "host"
@@ -39,7 +39,7 @@ services:
       - 3000:3000
     depends_on:
       - gcs
-    environment: 
+    environment:
       - GF_USERS_DEFAULT_THEME=dark
       - GF_USERS_HOME_PAGE=/dashboards
         #- GF_INSTALL_PLUGINS=briangann-gauge-panel
@@ -59,7 +59,7 @@ services:
       - influxdb
     image: influxdb:2.0-alpine
     # network_mode: "host"
-    entrypoint: > 
+    entrypoint: >
       influx setup 
       --bucket mavlink 
       --org TritonUAS 
