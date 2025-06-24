@@ -371,49 +371,41 @@ function AirdropInputForm({
      * @returns An array of JSX `<option>` elements.
      */
     function mapObjectsToOptions() {
-        return (
-            Object.keys(ODLCObjects) as unknown as Array<
-                keyof typeof ODLCObjects
-            >
-        ) // Corrected type
-            .filter((objectKey) => {
-                return isNaN(Number(ODLCObjects[objectKey])); // Filter by value if keys are strings
+        return (Object.keys(ODLCObjects) as Array<keyof typeof ODLCObjects>)
+            .filter((key) => {
+                return isNaN(Number(key)); // This correctly gets the string names of the enum
             })
-            .map((objectKey) => {
+            .map((key) => {
                 return (
-                    <option key={objectKey} value={ODLCObjects[objectKey]}>
-                        {" "}
-                        {/* Use enum value for submission */}
-                        {objectKey} {/* Display enum key name */}
+                    // FIX 1: The 'value' of the option must be the numeric enum value, not the string key.
+                    <option key={ODLCObjects[key]} value={ODLCObjects[key]}>
+                        {key}
                     </option>
                 );
             });
     }
 
-    const airdropInput = (airdrop: Airdrop, index: number) => {
-        // Added index for unique key
+    const airdropInput = (airdrop: Airdrop) => {
         return (
-            <fieldset key={airdrop.Index || index}>
-                {" "}
-                {/* Use index if Index is not yet set */}
-                <legend>
-                    Airdrop{" "}
-                    {AirdropIndex[airdrop.Index] || `Pending ${index + 1}`}
-                </legend>
+            // Use index for a stable key if airdrop.Index is not yet defined
+            <fieldset key={airdrop.Index}>
+                <legend>Airdrop {AirdropIndex[airdrop.Index]}</legend>
                 <label>
                     Object:
                     <select
-                        value={airdrop.Object} // Controlled component
+                        // FIX 2: Make this a "controlled component" by setting its value from state.
+                        // This ensures the dropdown always shows the correct value.
+                        value={airdrop.Object}
                         onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                            // FIX 3: This is the correct React pattern for updating an item in a state array.
+                            // We create a new array instead of modifying the old one.
+                            const newObjectValue = Number(
+                                e.currentTarget.value
+                            ) as ODLCObjects;
                             setAirdropAssignments((prevAssignments) =>
                                 prevAssignments.map((ad) =>
                                     ad.Index === airdrop.Index
-                                        ? {
-                                              ...ad,
-                                              Object: Number(
-                                                  e.target.value
-                                              ) as ODLCObjects,
-                                          }
+                                        ? { ...ad, Object: newObjectValue }
                                         : ad
                                 )
                             );
@@ -427,38 +419,33 @@ function AirdropInputForm({
     };
 
     useEffect(() => {
-        if (airdropAssignments.length === 0) {
-            // Initialize only if empty
-            const airdrops = [];
-            for (let i = AirdropIndex.Kaz; i <= AirdropIndex.Daniel; i++) {
-                const airdrop = {
-                    Index: i,
-                    Object: ODLCObjects[
-                        Object.keys(ODLCObjects)[i] as keyof typeof ODLCObjects
-                    ], // Default object
-                } as Airdrop;
-                airdrops.push(airdrop);
-            }
-            setAirdropAssignments(airdrops);
+        // Prevent re-initializing if data is already there
+        if (airdropAssignments.length > 0) {
+            return;
         }
-    }, [setAirdropAssignments, airdropAssignments.length]);
+
+        const airdrops: Airdrop[] = [];
+        for (let i = AirdropIndex.Kaz; i <= AirdropIndex.Daniel; i++) {
+            const airdrop = {
+                Index: i,
+                // FIX 4: Initialize with a default NUMERIC value. This was the other
+                // source of the error. It ensures `Object` is a number from the start.
+                Object: ODLCObjects.Undefined,
+            } as Airdrop;
+            airdrops.push(airdrop);
+        }
+        setAirdropAssignments(airdrops);
+    }, [airdropAssignments, setAirdropAssignments]);
 
     return (
-        <>
-            <form className="tuas-form">
-                <fieldset>
-                    <legend>Airdrop Input</legend>
-                    <div className="airdrop-form-container">
-                        {airdropAssignments.map(
-                            (
-                                airdrop,
-                                index // Pass index
-                            ) => airdropInput(airdrop, index) // Pass index
-                        )}
-                    </div>
-                </fieldset>
-            </form>
-        </>
+        <form className="tuas-form">
+            <fieldset>
+                <legend>Airdrop Input</legend>
+                <div className="airdrop-form-container">
+                    {airdropAssignments.map((airdrop) => airdropInput(airdrop))}
+                </div>
+            </fieldset>
+        </form>
     );
 }
 
