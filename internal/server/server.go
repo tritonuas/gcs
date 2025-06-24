@@ -86,6 +86,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 			camera.GET("/capture", server.doCameraCapture())
 			camera.POST("/startstream", server.doCameraStartStream())
 			camera.POST("/endstream", server.doCameraEndStream())
+			camera.POST("/runpipeline", server.doRunPipeline())
 		}
 
 		takeoff := api.Group("/takeoff")
@@ -650,7 +651,7 @@ func (server *Server) doCameraStartStream() gin.HandlerFunc {
 			c.String(http.StatusBadRequest, "cant read body")
 			return
 		}
-		
+
 		body, status := server.obcClient.DoCameraStartStream(string(intervalMs))
 		c.Data(status, "text/plain", body)
 	}
@@ -659,6 +660,13 @@ func (server *Server) doCameraStartStream() gin.HandlerFunc {
 func (server *Server) doCameraEndStream() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.DoCameraEndStream()
+		c.Data(status, "application/json", body)
+	}
+}
+
+func (server *Server) doRunPipeline() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoRunPipeline()
 		c.Data(status, "application/json", body)
 	}
 }
@@ -688,7 +696,7 @@ func (s *Server) getSavedTargets() gin.HandlerFunc {
 		defer s.reportFileMutex.Unlock()
 
 		fileBytes, err := os.ReadFile(reportJson) // This might error if "/saved" doesn't exist so might want to modify reportJson
-		
+
 		// If error reading OR file is empty, send an empty JSON array
 		if err != nil || len(fileBytes) == 0 {
 			emptyJsonPayload := []byte("[]") // Send empty array

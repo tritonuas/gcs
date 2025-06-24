@@ -2,9 +2,9 @@ package obc
 
 import (
 	"bytes"
-	"strings"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/tritonuas/gcs/internal/obc/camera"
 	"github.com/tritonuas/gcs/internal/protos"
@@ -265,6 +265,12 @@ func (client *Client) DoCameraStartStream(intervalMs string) ([]byte, int) {
 // Tell the OBC to end camera stream
 func (client *Client) DoCameraEndStream() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/camera/endstream", nil)
+	return body, httpErr.Status
+}
+
+// Tell the OBC to end run pipeline
+func (client *Client) DoRunPipeline() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/runpipeline", nil)
 	return body, httpErr.Status
 }
 
