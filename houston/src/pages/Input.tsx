@@ -733,6 +733,7 @@ function Input() {
             setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
             setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
             setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
+            setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
         } else if (selected == "Competition_Left") {
             setDefaultView([38.314666970000744, -76.54975138401012]);
             setMapData(
@@ -775,6 +776,8 @@ function Input() {
                     ])
                 )
             );
+            // Competition Left Waypoints - typical competition waypoints with altitude
+
         } else if (selected == "Competition_Right") {
             setDefaultView([38.314666970000744, -76.54975138401012]);
             setMapData(
@@ -817,10 +820,30 @@ function Input() {
                     ])
                 )
             );
+            // Competition Right Waypoints - typical competition waypoints with altitude
+            setMapData(
+                new Map(
+                    mapData.set(MapMode.Waypoint, [
+                        [38.3159728, -76.5481119, 68.58], // Runway 2 Waypoint 1 (225ft -> 68.58m)
+                        [38.3177991, -76.5475429, 68.58], // Runway 2 Waypoint 2 (225ft -> 68.58m)
+                        [38.3175435, -76.5457284, 68.58], // Runway 2 Waypoint 3 (225ft -> 68.58m)
+                        [38.3163228, -76.5448165, 68.58], // Runway 2 Waypoint 4 (225ft -> 68.58m)
+                        [38.3172741, -76.5509426, 68.58], // Runway 2 Waypoint 5 (225ft -> 68.58m)
+                        [38.3162977, -76.5492742, 68.58], // Runway 2 Waypoint 6 (225ft -> 68.58m)
+                        [38.3150939, -76.5416300, 68.58], // Runway 2 Waypoint 7 (225ft -> 68.58m)
+                        [38.3139321, -76.5435289, 68.58], // Runway 2 Waypoint 8 (225ft -> 68.58m)
+                        [38.3157505, -76.5540862, 68.58], // Runway 2 Waypoint 9 (225ft -> 68.58m)
+                        [38.3180653, -76.5498269, 68.58], // Runway 2 Waypoint 10 (225ft -> 68.58m)
+                        [38.3178044, -76.5477133, 68.58], // Runway 2 Waypoint 11 (225ft -> 68.58m)
+                        [38.3159996, -76.5482839, 68.58], // Runway 2 Waypoint 12 (225ft -> 68.58m)
+                    ])
+                )
+            );
         } else {
             setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
             setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
             setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
+            setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
         }
     }
 
