@@ -170,13 +170,6 @@ function FormTable({
                                         <td key={j}>
                                             <input
                                                 type="number"
-                                                key={
-                                                    mapMode.toString() +
-                                                    mapData
-                                                        .get(mapMode)
-                                                        ?.at(i)
-                                                        ?.at(j)
-                                                }
                                                 step="any"
                                                 defaultValue={num}
                                                 onChange={(e) => {
