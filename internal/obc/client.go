@@ -244,7 +244,7 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 }
 
 func (client *Client) RTL() ([]byte, int) {
-	body, httpErr := client.httpClient.Post("rtl")
+	body, httpErr := client.httpClient.Post("rtl", nil)
 	return body, httpErr.Status
 }
 
