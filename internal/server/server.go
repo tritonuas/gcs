@@ -80,6 +80,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.POST("/mission", server.postMission())
 		api.GET("/report", server.getSavedTargets())
 		api.POST("/report", server.pushSavedTargets())
+		api.POST("/rtl", server.pushSavedTargets())
 
 		camera := api.Group("/camera")
 		{

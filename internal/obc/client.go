@@ -243,6 +243,11 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 	return cameraStatus, httpErr.Status
 }
 
+func (client *Client) RTL() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("rtl")
+	return body, httpErr.Status
+}
+
 // Tell the OBC to do an airdrop NOW
 func (client *Client) DoDropNow() ([]byte, int) {
 
