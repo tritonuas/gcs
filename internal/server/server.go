@@ -80,7 +80,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 		api.POST("/mission", server.postMission())
 		api.GET("/report", server.getSavedTargets())
 		api.POST("/report", server.pushSavedTargets())
-		api.POST("/rtl", server.pushSavedTargets())
+		api.POST("/rtl", server.RTL())
 
 		camera := api.Group("/camera")
 		{
@@ -734,5 +734,12 @@ func (s *Server) pushSavedTargets() gin.HandlerFunc {
 		}
 
 		c.Data(http.StatusOK, "text/plain", nil)
+	}
+}
+
+func (server *Server) RTL() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.RTL()
+		c.Data(status, "text/plain", body)
 	}
 }
