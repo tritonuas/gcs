@@ -1,6 +1,6 @@
 module github.com/tritonuas/gcs
 
-go 1.19
+go 1.20
 
 require (
 	github.com/aler9/gomavlib v0.0.0-20220414051749-b209e19eb336

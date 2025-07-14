@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-contrib/static"
@@ -35,7 +37,8 @@ type Server struct {
 	MissionTime         int64
 	ClassifiedTargets   []cvs.ClassifiedODLC
 
-	MissionConfig *protos.Mission
+	MissionConfig   *protos.Mission
+	reportFileMutex sync.Mutex
 }
 
 /*
@@ -64,16 +67,28 @@ func (server *Server) initFrontend(router *gin.Engine) {
 	})
 }
 
+// Refer to
+// https://docs.google.com/document/d/1lC3JeaoQpAlVzV6pz506_U3zUBMEk0cjplOshf_CMKw/edit?tab=t.0
 func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
+		api.GET("/tickstate", server.getTickState())
 		api.GET("/obc_connection", server.testOBCConnection())
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
 		api.POST("/mission", server.postMission())
+		api.GET("/report", server.getSavedTargets())
+		api.POST("/report", server.pushSavedTargets())
+		api.POST("/rtl", server.RTL())
 
-		api.GET("/camera/capture", server.doCameraCapture())
+		camera := api.Group("/camera")
+		{
+			camera.GET("/capture", server.doCameraCapture())
+			camera.POST("/startstream", server.doCameraStartStream())
+			camera.POST("/endstream", server.doCameraEndStream())
+			camera.POST("/runpipeline", server.doRunPipeline())
+		}
 
 		takeoff := api.Group("/takeoff")
 		{
@@ -175,6 +190,17 @@ func (server *Server) testOBCConnection() gin.HandlerFunc {
 		}
 
 		c.Data(http.StatusOK, "application/json", obcStatusBytes)
+	}
+}
+
+func (server *Server) getTickState() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data, err := server.obcClient.GetTickState()
+		if err != http.StatusOK {
+			c.Data(err, "text/plain", data)
+		} else {
+			c.Data(http.StatusOK, "application/json", data)
+		}
 	}
 }
 
@@ -591,13 +617,8 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 
 func (server *Server) doAirdropNow() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var bottle protos.BottleSwap
-		err := c.BindJSON(&bottle)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Malformed bottle index")
-		}
 
-		body, status := server.obcClient.DoDropNow(&bottle)
+		body, status := server.obcClient.DoDropNow()
 		c.Data(status, "text/plain", body)
 	}
 }
@@ -623,6 +644,34 @@ func (server *Server) doCameraCapture() gin.HandlerFunc {
 	}
 }
 
+func (server *Server) doCameraStartStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		intervalMs, err := io.ReadAll(c.Request.Body)
+
+		if err != nil {
+			c.String(http.StatusBadRequest, "cant read body")
+			return
+		}
+
+		body, status := server.obcClient.DoCameraStartStream(string(intervalMs))
+		c.Data(status, "text/plain", body)
+	}
+}
+
+func (server *Server) doCameraEndStream() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoCameraEndStream()
+		c.Data(status, "application/json", body)
+	}
+}
+
+func (server *Server) doRunPipeline() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.DoRunPipeline()
+		c.Data(status, "application/json", body)
+	}
+}
+
 func (server *Server) validateTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.ValidateTargets()
@@ -634,5 +683,63 @@ func (server *Server) rejectTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.RejectTargets()
 		c.Data(status, "application/json", body)
+	}
+}
+
+// Also I think this dir is gonna save the json in the gcs/internal/server directory so plz change this to smth more reasonable
+const reportJson = "saved/targets.json"
+
+// Comments for Kimi:
+// - GET request; should return JSON in the HTTP Response body
+func (s *Server) getSavedTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		s.reportFileMutex.Lock()
+		defer s.reportFileMutex.Unlock()
+
+		fileBytes, err := os.ReadFile(reportJson) // This might error if "/saved" doesn't exist so might want to modify reportJson
+
+		// If error reading OR file is empty, send an empty JSON array
+		if err != nil || len(fileBytes) == 0 {
+			emptyJsonPayload := []byte("[]") // Send empty array
+			c.Data(http.StatusOK, "application/json", emptyJsonPayload)
+			return
+		}
+
+		c.Data(http.StatusOK, "application/json", fileBytes)
+	}
+}
+
+// - POST request; Expects JSON in body
+func (s *Server) pushSavedTargets() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		jsonData, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, "cant read body")
+			return
+		}
+
+		s.reportFileMutex.Lock()
+		defer s.reportFileMutex.Unlock()
+
+		// Create the directory if it doesn't exist
+		if err := os.MkdirAll("saved", 0755); err != nil {
+			c.String(http.StatusInternalServerError, "Failed to create directory: %v", err)
+			return
+		}
+
+		err = os.WriteFile(reportJson, jsonData, 0666)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Cant Write Json: %v", err)
+			return
+		}
+
+		c.Data(http.StatusOK, "text/plain", nil)
+	}
+}
+
+func (server *Server) RTL() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, status := server.obcClient.RTL()
+		c.Data(status, "text/plain", body)
 	}
 }

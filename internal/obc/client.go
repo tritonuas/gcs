@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/tritonuas/gcs/internal/obc/camera"
 	"github.com/tritonuas/gcs/internal/protos"
@@ -34,6 +35,7 @@ func NewClient(urlBase string, timeout int) *Client {
 /*
 Get all of the identified target information
 */
+// MAYBE MODIFY??
 func (client *Client) GetIdentifiedTargets() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/targets/all")
 	return body, httpErr.Status
@@ -42,6 +44,7 @@ func (client *Client) GetIdentifiedTargets() ([]byte, int) {
 /*
 Get all of the matched target information
 */
+// DELETE
 func (client *Client) GetMatchedTargets() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/targets/matched")
 	return body, httpErr.Status
@@ -50,6 +53,7 @@ func (client *Client) GetMatchedTargets() ([]byte, int) {
 /*
 Do a manual override on the target matchings
 */
+// MODIFY
 func (client *Client) PostTargetMatchOverride(data []byte) ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/targets/matched", bytes.NewReader(data))
 	return body, httpErr.Status
@@ -78,6 +82,11 @@ Returns the info in json form
 */
 func (client *Client) GetConnectionInfo() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/connections")
+	return body, httpErr.Status
+}
+
+func (client *Client) GetTickState() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/tickstate")
 	return body, httpErr.Status
 }
 
@@ -234,15 +243,15 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 	return cameraStatus, httpErr.Status
 }
 
-// Tell the OBC to do an airdrop NOW
-func (client *Client) DoDropNow(bottle *protos.BottleSwap) ([]byte, int) {
-	var buf bytes.Buffer
-	err := json.NewEncoder(&buf).Encode(bottle)
-	if err != nil {
-		return nil, -1
-	}
+func (client *Client) RTL() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/rtl", nil)
+	return body, httpErr.Status
+}
 
-	body, httpErr := client.httpClient.Post("/dodropnow", &buf)
+// Tell the OBC to do an airdrop NOW
+func (client *Client) DoDropNow() ([]byte, int) {
+
+	body, httpErr := client.httpClient.Post("/dodropnow", nil)
 	return body, httpErr.Status
 }
 
@@ -252,11 +261,31 @@ func (client *Client) DoCameraCapture() ([]byte, int) {
 	return body, httpErr.Status
 }
 
+// Tell the OBC to start camera stream
+func (client *Client) DoCameraStartStream(intervalMs string) ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/startstream", strings.NewReader(intervalMs))
+	return body, httpErr.Status
+}
+
+// Tell the OBC to end camera stream
+func (client *Client) DoCameraEndStream() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/endstream", nil)
+	return body, httpErr.Status
+}
+
+// Tell the OBC to end run pipeline
+func (client *Client) DoRunPipeline() ([]byte, int) {
+	body, httpErr := client.httpClient.Post("/camera/runpipeline", nil)
+	return body, httpErr.Status
+}
+
+// DELETE?
 func (client *Client) ValidateTargets() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/targets/validate", nil)
 	return body, httpErr.Status
 }
 
+// DELETE
 func (client *Client) RejectTargets() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/targets/reject", nil)
 	return body, httpErr.Status

@@ -1,13 +1,96 @@
+# Custom Files & Assets
 gcs
-*.env
-.vscode
 influx_token.key
 *.mp4
 *.webm
 *.wav
 *.mp3
-
 **/*.pb.go
 **/*.pb.ts
 flight-logs
+.DS_Store
 
+# IDE & Editor Settings
+.vscode
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Testing
+/coverage
+
+# Production Build
+build
+public
+
+# Environment Files
+.env*
+
+# Logs & Diagnostic Reports
+logs
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime Data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage & Test Reports
+lib-cov
+coverage
+*.lcov
+.nyc_output
+
+# Build Tools & Package Managers
+.grunt
+bower_components
+.lock-wscript
+build/Release
+jspm_packages/
+web_modules/
+*.tsbuildinfo
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.node_repl_history
+*.tgz
+.yarn-integrity
+
+# Cache, Bundler & Build Outputs
+.cache
+.parcel-cache
+.next
+out
+.nuxt
+dist
+.vuepress/dist
+.temp
+**/.vitepress/dist
+**/.vitepress/cache
+.docusaurus
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+
+# Editor & Testing Tools
+.vscode-test
+
+# Yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Saved files
+internal/server/saved/*
+!internal/server/saved/.gitkeep
