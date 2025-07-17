@@ -26,7 +26,7 @@ func (c *Client) verifyAntennaTrackerConnection() {
 //
 // Example output:
 // "34.566,-74.567,200"
-func (c *Client) forwardToAntennaTracker(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+func (c *Client) forwardToAntennaTracker(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	if msg, ok := evt.Frame.GetMessage().(*common.MessageGlobalPositionInt); ok {
 		conn, err := net.Dial("udp", fmt.Sprintf("%s:%s", c.antennaTrackerIP, c.antennaTrackerPort))
 		if err != nil {

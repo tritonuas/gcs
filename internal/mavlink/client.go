@@ -123,7 +123,7 @@ func (c *Client) IsConnectedToAntennaTracker() bool {
 // These events can include frames from the plane or other devices that
 // send Mavlink packets.
 func (c *Client) Listen() {
-	loop := func(n *gomavlib.Node, killChan chan bool) bool {
+	loop := func(n *gomavlib.Node, _ chan bool) bool {
 		Log.Info("Starting up new mavlink Listen loop")
 		for e := range n.Events() {
 			select {
