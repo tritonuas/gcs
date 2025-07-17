@@ -85,6 +85,7 @@ func (client *Client) GetConnectionInfo() ([]byte, int) {
 	return body, httpErr.Status
 }
 
+// GetTickState requests the current tick state from the OBC
 func (client *Client) GetTickState() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/tickstate")
 	return body, httpErr.Status
@@ -243,6 +244,7 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 	return cameraStatus, httpErr.Status
 }
 
+// RTL sends a return-to-launch command to the OBC
 func (client *Client) RTL() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/rtl", nil)
 	return body, httpErr.Status
