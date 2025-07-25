@@ -16,7 +16,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.24.x'
 
       - name: Checkout Repo
         uses: actions/checkout@v2
@@ -32,8 +32,6 @@ jobs:
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.59.1
 
   eslint:
     name: Lint Frontend
