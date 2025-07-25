@@ -1,6 +1,6 @@
 package cvs
 
-// ClassifiedODLC represents the a target and its characteristics that are predicted by the Computer Vision pipeline.
+// ClassifiedODLC represents a target and its characteristics that are predicted by the Computer Vision pipeline.
 // This data will be provided by the Computer Vision Server.
 type ClassifiedODLC struct {
 	Latitude           float64 `json:"latitude"`
@@ -30,7 +30,7 @@ type UnclassifiedODLC struct {
 	Mannequin          bool    `json:"mannequin"`
 }
 
-// Bounding box drawn around target in full resolution aerial image.
+// Bbox is a bounding box drawn around a target in the full-resolution aerial image.
 // This data will be provided by the Jetson in the saliency stage of the CV pipeline.
 type Bbox struct {
 	X1 int `json:"x1"`
@@ -39,7 +39,7 @@ type Bbox struct {
 	Y2 int `json:"y2"`
 }
 
-// Computer Vision Data that Hub stores
+// Data aggregates all Computer Vision data that the Hub stores.
 type Data struct {
 	ClassifiedODLCs []ClassifiedODLC
 }

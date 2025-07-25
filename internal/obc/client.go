@@ -1,3 +1,6 @@
+// Package obc provides a Go client for interacting with the On-Board Computer
+// (OBC) REST API exposed on the aircraft.
+//revive:disable:exported
 package obc
 
 import (
@@ -11,14 +14,14 @@ import (
 	"github.com/tritonuas/gcs/internal/utils"
 )
 
-// Generic client struct for interfacing with the OBC
+// Client is a generic client struct for interfacing with the OBC.
 type Client struct {
 	httpClient *utils.Client
 	urlBase    string
 	timeout    int
 }
 
-// Creates a new client struct and initializes all its values
+// NewClient creates a new client struct and initializes all its values.
 func NewClient(urlBase string, timeout int) *Client {
 	client := &Client{
 
@@ -85,6 +88,7 @@ func (client *Client) GetConnectionInfo() ([]byte, int) {
 	return body, httpErr.Status
 }
 
+// GetTickState requests the current tick state from the OBC
 func (client *Client) GetTickState() ([]byte, int) {
 	body, httpErr := client.httpClient.Get("/tickstate")
 	return body, httpErr.Status
@@ -243,6 +247,7 @@ func (client *Client) GetCameraStatus() (camera.Status, int) {
 	return cameraStatus, httpErr.Status
 }
 
+// RTL sends a return-to-launch command to the OBC
 func (client *Client) RTL() ([]byte, int) {
 	body, httpErr := client.httpClient.Post("/rtl", nil)
 	return body, httpErr.Status

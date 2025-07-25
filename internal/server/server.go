@@ -24,9 +24,8 @@ import (
 // Log is the logger for the server
 var Log = logrus.New()
 
-/*
-Stores the server state and data that the server deals with.
-*/
+// Server aggregates long-lived state (clients, cached mission data, etc.) and
+// exposes both HTTP APIs and the static frontend.
 type Server struct {
 	influxDBClient *influxdb.Client
 	mavlinkClient  *mav.Client
@@ -41,9 +40,9 @@ type Server struct {
 	reportFileMutex sync.Mutex
 }
 
-/*
-We aren't hosting this online, so it's okay to allow requests from all origins to make Houston2's life easier
-*/
+// CORSMiddleware sets very permissive CORS headers. Since the GCS is typically
+// run on a local network during competitions, allowing requests from all
+// origins simplifies development and operation.
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -137,11 +136,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 	}
 }
 
-/*
-Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
-
-General route format is "/place/thing".
-*/
+// SetupRouter constructs a fully-configured Gin engine with all API routes and
+// static-file handlers attached. General route format is "/place/thing".
 func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
@@ -153,8 +149,8 @@ func (server *Server) SetupRouter() *gin.Engine {
 }
 
 // New will initialize a server struct and populate fields with their initial state
-func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *obc.Client) Server {
-	server := Server{}
+func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *obc.Client) *Server {
+	server := &Server{}
 
 	server.influxDBClient = influxdbClient
 	server.mavlinkClient = mavlinkClient
@@ -165,9 +161,7 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *
 	return server
 }
 
-/*
-Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if you want the plane to fly.
-*/
+// Start launches the HTTP server on localhost:5000. This call blocks until the server exits.
 func (server *Server) Start() {
 	router := server.SetupRouter()
 
@@ -266,6 +260,10 @@ func (server *Server) getTelemetryHistory() gin.HandlerFunc {
 			if err != nil {
 				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
 			} else {
+				if msgIDInt < 0 || msgIDInt > 65535 {
+					c.String(http.StatusBadRequest, "Message ID out of valid range")
+					return
+				}
 				data, err := server.influxDBClient.QueryMsgIDAndFields(uint32(msgIDInt), time.Duration(timeRangeFloat)*time.Minute, fields...)
 				if err != nil {
 					// TODO: have other types of errors (id does not exist for example)
@@ -324,6 +322,11 @@ func (server *Server) getTelemetry() gin.HandlerFunc {
 			msgIDInt, err := strconv.Atoi(msgID)
 			if err != nil {
 				c.String(http.StatusBadRequest, "Non-numerical message ID requested")
+				return
+			}
+
+			if msgIDInt < 0 || msgIDInt > 65535 {
+				c.String(http.StatusBadRequest, "Message ID out of valid range")
 				return
 			}
 
@@ -687,21 +690,21 @@ func (server *Server) rejectTargets() gin.HandlerFunc {
 }
 
 // Also I think this dir is gonna save the json in the gcs/internal/server directory so plz change this to smth more reasonable
-const reportJson = "saved/targets.json"
+const reportJSON = "saved/targets.json"
 
 // Comments for Kimi:
 // - GET request; should return JSON in the HTTP Response body
-func (s *Server) getSavedTargets() gin.HandlerFunc {
+func (server *Server) getSavedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		s.reportFileMutex.Lock()
-		defer s.reportFileMutex.Unlock()
+		server.reportFileMutex.Lock()
+		defer server.reportFileMutex.Unlock()
 
-		fileBytes, err := os.ReadFile(reportJson) // This might error if "/saved" doesn't exist so might want to modify reportJson
+		fileBytes, err := os.ReadFile(reportJSON) // This might error if "/saved" doesn't exist so might want to modify reportJSON
 
 		// If error reading OR file is empty, send an empty JSON array
 		if err != nil || len(fileBytes) == 0 {
-			emptyJsonPayload := []byte("[]") // Send empty array
-			c.Data(http.StatusOK, "application/json", emptyJsonPayload)
+			emptyJSONPayload := []byte("[]") // Send empty array
+			c.Data(http.StatusOK, "application/json", emptyJSONPayload)
 			return
 		}
 
@@ -709,8 +712,8 @@ func (s *Server) getSavedTargets() gin.HandlerFunc {
 	}
 }
 
-// - POST request; Expects JSON in body
-func (s *Server) pushSavedTargets() gin.HandlerFunc {
+// pushSavedTargets handles POST request; Expects JSON in body
+func (server *Server) pushSavedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		jsonData, err := io.ReadAll(c.Request.Body)
 		if err != nil {
@@ -718,16 +721,16 @@ func (s *Server) pushSavedTargets() gin.HandlerFunc {
 			return
 		}
 
-		s.reportFileMutex.Lock()
-		defer s.reportFileMutex.Unlock()
+		server.reportFileMutex.Lock()
+		defer server.reportFileMutex.Unlock()
 
 		// Create the directory if it doesn't exist
-		if err := os.MkdirAll("saved", 0755); err != nil {
-			c.String(http.StatusInternalServerError, "Failed to create directory: %v", err)
+		if mkdirErr := os.MkdirAll("saved", 0750); mkdirErr != nil {
+			c.String(http.StatusInternalServerError, "Failed to create directory: %v", mkdirErr)
 			return
 		}
 
-		err = os.WriteFile(reportJson, jsonData, 0666)
+		err = os.WriteFile(reportJSON, jsonData, 0600)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Cant Write Json: %v", err)
 			return
@@ -737,6 +740,7 @@ func (s *Server) pushSavedTargets() gin.HandlerFunc {
 	}
 }
 
+// RTL handles return-to-launch request
 func (server *Server) RTL() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, status := server.obcClient.RTL()

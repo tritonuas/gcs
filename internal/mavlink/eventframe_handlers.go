@@ -38,7 +38,7 @@ func (c *Client) forwardMessage(evt *gomavlib.EventFrame, node *gomavlib.Node) {
 // writeMsgToInfluxDB will take an eventFrame and write the data from the
 // Mavlink message to InfluxDB (if it's one of the messages we want to store)
 // TODO: add signals board messages and anything else that seems useful
-func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	if !c.influxdbClient.IsConnected() {
 		return
 	}
@@ -147,7 +147,7 @@ func (c *Client) writeMsgToInfluxDB(evt *gomavlib.EventFrame, node *gomavlib.Nod
 // TODO: Check client for an update to a channel to know
 // when to upload mission and what the waypoints are.
 // Client has to have previously sent a MISSION_COUNT message to the plane
-func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	switch evt.Frame.GetMessage().(type) {
 	case *common.MessageMissionAck:
 		// TODO: save if mission upload suceeded/failed
@@ -160,7 +160,7 @@ func (c *Client) handleMissionUpload(evt *gomavlib.EventFrame, node *gomavlib.No
 
 // handleBatteryUpdate stores the most recent recorded voltage for each battery in the
 // client's battery map
-func (c *Client) handleBatteryUpdate(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+func (c *Client) handleBatteryUpdate(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	switch msg := evt.Frame.GetMessage().(type) { //nolint: gocritic
 	case *common.MessageBatteryStatus:
 		if msg.BatteryRemaining != 0 { // hacky fix to wierd battery voltage behavior we're seeing
@@ -181,7 +181,7 @@ func (c *Client) handleBatteryUpdate(evt *gomavlib.EventFrame, node *gomavlib.No
 // See https://mavlink.io/en/services/mission.html#download_mission for details
 // on the entire mission downloading process.
 // TODO: Client has to have previously sent a MISSION_REQUEST_LIST message to the plane
-func (c *Client) handleMissionDownload(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+func (c *Client) handleMissionDownload(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	switch evt.Frame.GetMessage().(type) {
 	case *common.MessageMissionCount:
 		// TODO: send MISSION_REQUEST_INT
@@ -194,7 +194,7 @@ func (c *Client) handleMissionDownload(evt *gomavlib.EventFrame, node *gomavlib.
 
 // monitorMission will handle messages relating to the progress of the current mission
 // and which mission is currently on the plane.
-func (c *Client) monitorMission(evt *gomavlib.EventFrame, node *gomavlib.Node) {
+func (c *Client) monitorMission(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	switch evt.Frame.GetMessage().(type) {
 	case *common.MessageMissionItemReached:
 		// TODO: save to currMissionProgress

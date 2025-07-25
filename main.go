@@ -1,3 +1,6 @@
+// Command gcs is the entry point for the Ground Control Station backend.
+// It wires together the InfluxDB client, MAVLink client, OBC client and the
+// HTTP server, then starts listening for incoming requests.
 package main
 
 import (

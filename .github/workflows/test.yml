@@ -12,12 +12,12 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19
+          go-version: '1.24.x'
 
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
           token: ${{ secrets.SSH_TOKEN }}
