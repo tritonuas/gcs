@@ -31,7 +31,7 @@ jobs:
         run: make build-protos
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.3.0
 
