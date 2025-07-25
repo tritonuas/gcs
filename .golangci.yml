@@ -7,16 +7,7 @@ version: "2"
 #########################
 
 # configure golangci-lint
-# see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
-issues:
-    exclude-rules:
-        - path: _test\.go
-          linters:
-              - dupl
-              - gosec
-              - goconst
-    exclude-files:
-        - ".*test*"
+# see https://golangci-lint.run/usage/configuration/
 linters:
     enable:
         - gosec
@@ -38,3 +29,12 @@ linters:
             rules:
                 - name: var-naming
                   disabled: true
+    exclusions:
+        paths:
+            - ".*test.*" # replaces issues.exclude-files
+        rules: # replaces issues.exclude-rules
+            - path: "_test\\.go"
+              linters:
+                  - dupl
+                  - gosec
+                  - goconst
