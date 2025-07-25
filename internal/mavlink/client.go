@@ -10,7 +10,7 @@ import (
 	"github.com/tritonuas/gcs/internal/influxdb"
 )
 
-// log is the logger for the mav package
+// Log is the package-level logger used by the mavlink client package.
 var Log = logrus.New()
 
 var errCreatingNode = errors.New("could not create mavlink node to communicate with Plane and other Mavlink clients")
@@ -109,12 +109,14 @@ func New(influxdbClient *influxdb.Client, antennaTrackerIP string, antennaTracke
 	return c
 }
 
-// IsConnected returns if the client is connected to the plane
+// IsConnectedToPlane reports whether the client is currently connected to the
+// plane Mavlink endpoint.
 func (c *Client) IsConnectedToPlane() bool {
 	return c.connectedToPlane
 }
 
-// IsConnected returns if the client is connected to the antenna tracker
+// IsConnectedToAntennaTracker reports whether the client is currently
+// connected to the antenna tracker.
 func (c *Client) IsConnectedToAntennaTracker() bool {
 	return c.connectedToAntennaTracker
 }

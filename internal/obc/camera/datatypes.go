@@ -1,3 +1,5 @@
+// Package camera defines types related to the imaging payload onboard the
+// aircraft as used by the OBC.
 package camera
 
 // Config defines the configuration options we can change from the frontend for the camera

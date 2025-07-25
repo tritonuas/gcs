@@ -24,9 +24,8 @@ import (
 // Log is the logger for the server
 var Log = logrus.New()
 
-/*
-Stores the server state and data that the server deals with.
-*/
+// Server aggregates long-lived state (clients, cached mission data, etc.) and
+// exposes both HTTP APIs and the static frontend.
 type Server struct {
 	influxDBClient *influxdb.Client
 	mavlinkClient  *mav.Client
@@ -41,9 +40,9 @@ type Server struct {
 	reportFileMutex sync.Mutex
 }
 
-/*
-We aren't hosting this online, so it's okay to allow requests from all origins to make Houston2's life easier
-*/
+// CORSMiddleware sets very permissive CORS headers. Since the GCS is typically
+// run on a local network during competitions, allowing requests from all
+// origins simplifies development and operation.
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -137,11 +136,8 @@ func (server *Server) initBackend(router *gin.Engine) {
 	}
 }
 
-/*
-Initializes all http request routes (tells the server which handler functions to call when a certain route is requested).
-
-General route format is "/place/thing".
-*/
+// SetupRouter constructs a fully-configured Gin engine with all API routes and
+// static-file handlers attached. General route format is "/place/thing".
 func (server *Server) SetupRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
@@ -165,9 +161,7 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *
 	return server
 }
 
-/*
-Starts the server on localhost:5000. Make sure nothing else runs on port 5000 if you want the plane to fly.
-*/
+// Start launches the HTTP server on localhost:5000. This call blocks until the server exits.
 func (server *Server) Start() {
 	router := server.SetupRouter()
 
@@ -731,7 +725,7 @@ func (server *Server) pushSavedTargets() gin.HandlerFunc {
 		defer server.reportFileMutex.Unlock()
 
 		// Create the directory if it doesn't exist
-		if mkdirErr := os.MkdirAll("saved", 0755); mkdirErr != nil {
+		if mkdirErr := os.MkdirAll("saved", 0750); mkdirErr != nil {
 			c.String(http.StatusInternalServerError, "Failed to create directory: %v", mkdirErr)
 			return
 		}

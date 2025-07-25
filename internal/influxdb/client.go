@@ -1,3 +1,5 @@
+// Package influxdb provides a thin wrapper around InfluxDB v2 for writing and
+// querying telemetry as well as exporting it to CSV.
 package influxdb
 
 import (
@@ -5,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -239,7 +242,8 @@ func (c *Client) QueryMsgNameAndFields(msgName string, timeRange time.Duration, 
 	return data, nil
 }
 
-// Will dump entire DB to a CSV format
+// GetAll dumps the entire InfluxDB bucket to CSV files in the CSV/<timestamp>
+// directory. It returns a human-readable status string and an error, if any.
 func (c *Client) GetAll() (string, error) {
 
 	if !c.IsConnected() {
@@ -289,7 +293,8 @@ func (c *Client) GetAll() (string, error) {
 		"error": vfrhudError,
 	}))
 
-	mkDirErr := os.Mkdir("/CSV/"+timeStamp, 0700)
+	// create the CSV directory for this export with restrictive permissions (0700)
+	mkDirErr := os.Mkdir(filepath.Join("CSV", timeStamp), 0700)
 
 	if mkDirErr != nil {
 		return "Error in making directory", mkDirErr
@@ -304,12 +309,17 @@ func (c *Client) GetAll() (string, error) {
 			return "Query for " + name + " not working", queryErr.(error)
 		}
 
-		file, err := os.Create("/CSV/" + timeStamp + "/" + name + ".csv")
-
+		// #nosec G304 – timeStamp and name are generated internally, not from user input
+		file, err := os.Create(filepath.Join("CSV", timeStamp, fmt.Sprintf("%s.csv", name)))
 		if err != nil {
-			file.Close()
 			return "Fail to create new CSV file", err
 		}
+		// ensure file is closed and check the error to satisfy errcheck
+		defer func() {
+			if cerr := file.Close(); cerr != nil {
+				Log.Errorf("error closing CSV file: %v", cerr)
+			}
+		}()
 
 		titleArray := []string{}
 
@@ -335,7 +345,6 @@ func (c *Client) GetAll() (string, error) {
 				return fileWriterErrMsg, err
 			}
 		}
-		file.Close()
 	}
 
 	return "Data dump succesful", nil

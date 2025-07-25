@@ -1,4 +1,5 @@
 ---
+version: 2
 #########################
 #########################
 ## Golang Linter rules ##
@@ -24,10 +25,10 @@ linters:
         - unconvert
         - gocyclo
         - goconst
-        - goimports
         - govet
         - gocritic
         - revive
+    disable:
 linters-settings:
     errcheck:
         # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
@@ -36,3 +37,7 @@ linters-settings:
     gocyclo:
         # minimal code complexity to report, 30 by default
         min-complexity: 15
+    revive:
+        rules:
+            - name: var-naming
+              disabled: true

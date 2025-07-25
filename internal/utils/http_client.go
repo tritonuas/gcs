@@ -1,3 +1,4 @@
+// Package utils provides generic HTTP client helpers used across the backend.
 package utils
 
 import (
@@ -14,7 +15,9 @@ import (
 // Log is the logger for the http client
 var Log = logrus.New()
 
-// change name of Client since it might mess with the inheritance for the other clients
+// Client is a thin wrapper around the standard http.Client that provides
+// convenience helpers (GET/POST/etc.) and uniform error handling when
+// communicating with other GCS services.
 type Client struct {
 	client  *http.Client
 	urlBase string
@@ -87,7 +90,9 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 		httpErr.SetError("POST", errMsg, resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	Log.Debugf("Making Request : POST - %s - %d", uri, resp.StatusCode)
 
 	return errMsg, *httpErr
@@ -112,7 +117,9 @@ func (c *Client) Get(uri string) ([]byte, HTTPError) {
 		}
 		httpErr.SetError("GET", errMsg, resp.StatusCode)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	body, resErr := io.ReadAll(resp.Body)
 	if resErr != nil {
 		Log.Debug(resErr)

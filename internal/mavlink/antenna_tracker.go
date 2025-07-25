@@ -1,3 +1,5 @@
+// Package mav provides functionality for communicating with the plane and
+// other MAVLink-enabled devices such as the antenna tracker.
 package mav
 
 import (
@@ -46,7 +48,11 @@ func (c *Client) forwardToAntennaTracker(evt *gomavlib.EventFrame, _ *gomavlib.N
 		if err != nil {
 			Log.Errorf("Error with connecting to antenna tracker. Reason: %s", err.Error())
 		}
-		defer conn.Close()
+		defer func() {
+			if cerr := conn.Close(); cerr != nil {
+				Log.Errorf("Error closing antenna tracker connection: %v", cerr)
+			}
+		}()
 
 	}
 }
