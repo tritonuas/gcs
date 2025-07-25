@@ -91,7 +91,9 @@ func (c *Client) Post(uri string, msg io.Reader) ([]byte, HTTPError) {
 	}
 
 	defer func() {
-		_ = resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			Log.Debugf("resp.Body.Close: %v", err)
+		}
 	}()
 	Log.Debugf("Making Request : POST - %s - %d", uri, resp.StatusCode)
 
@@ -118,7 +120,9 @@ func (c *Client) Get(uri string) ([]byte, HTTPError) {
 		httpErr.SetError("GET", errMsg, resp.StatusCode)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			Log.Debugf("resp.Body.Close: %v", err)
+		}
 	}()
 	body, resErr := io.ReadAll(resp.Body)
 	if resErr != nil {

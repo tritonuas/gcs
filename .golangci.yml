@@ -15,8 +15,6 @@ issues:
               - dupl
               - gosec
               - goconst
-    include:
-        - EXC0012 # requires function and variable comments
     exclude-files:
         - ".*test*"
 linters:
@@ -28,15 +26,15 @@ linters:
         - govet
         - gocritic
         - revive
-linters-settings:
-    errcheck:
-        # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
-        # default is false: such cases aren't reported by default.
-        check-blank: true
-    gocyclo:
-        # minimal code complexity to report, 30 by default
-        min-complexity: 15
-    revive:
-        rules:
-            - name: var-naming
-              disabled: true
+    settings:
+        errcheck:
+            # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+            # default is false: such cases aren't reported by default.
+            check-blank: true
+        gocyclo:
+            # minimal code complexity to report, 30 by default
+            min-complexity: 15
+        revive:
+            rules:
+                - name: var-naming
+                  disabled: true
