@@ -31,8 +31,8 @@ linters:
                   disabled: true
     exclusions:
         paths:
-            - ".*test.*" # replaces issues.exclude-files
-        rules: # replaces issues.exclude-rules
+            - ".*test.*"
+        rules:
             - path: "_test\\.go"
               linters:
                   - dupl
