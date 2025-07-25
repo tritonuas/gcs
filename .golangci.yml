@@ -1,5 +1,5 @@
 ---
-version: 2
+version: "2"
 #########################
 #########################
 ## Golang Linter rules ##
@@ -28,7 +28,6 @@ linters:
         - govet
         - gocritic
         - revive
-    disable:
 linters-settings:
     errcheck:
         # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
