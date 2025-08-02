@@ -1,4 +1,10 @@
-import { SetStateAction, useState, useEffect, ChangeEvent } from "react";
+import {
+    SetStateAction,
+    useState,
+    useEffect,
+    ChangeEvent,
+    useRef,
+} from "react";
 
 import { useMapEvents, Polygon, Polyline } from "react-leaflet";
 
@@ -414,6 +420,153 @@ function AirdropInputForm({
 }
 
 /**
+ * A modal component for importing waypoints by pasting a JSON string or uploading a .json file.
+ * It validates the JSON structure before submitting.
+ * @param props The component props.
+ * @param props.modalVisible Boolean to control the visibility of the modal.
+ * @param props.closeModal Function to call when the modal should be closed.
+ * @param props.onSubmit Function to call with the parsed waypoints on successful submission.
+ * @returns A modal for importing waypoint data.
+ */
+function WaypointImportModal({
+    modalVisible,
+    closeModal,
+    onSubmit,
+}: {
+    modalVisible: boolean;
+    closeModal: () => void;
+    onSubmit: (waypoints: number[][]) => void;
+}) {
+    const [jsonText, setJsonText] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    /**
+     * Handles the file input change event. Reads the selected .json file
+     * as text and populates the textarea.
+     * @param e The change event from the file input element.
+     */
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result;
+            if (typeof text === "string") {
+                setJsonText(text);
+                setError(null); // Clear previous errors
+            }
+            // Reset file input to allow re-uploading the same file if needed
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        };
+        reader.onerror = () => {
+            setError("Error reading file.");
+        };
+        reader.readAsText(file);
+    };
+
+    /**
+     * Handles the submission of the JSON data. It parses the text, validates that it's an
+     * array of valid waypoint objects, and then calls the onSubmit prop.
+     * Sets an error message if parsing or validation fails.
+     */
+    const handleSubmit = () => {
+        setError(null);
+        if (!jsonText.trim()) {
+            setError("Input cannot be empty.");
+            return;
+        }
+
+        try {
+            const data = JSON.parse(jsonText);
+
+            // Robust validation: check for array of objects with correct properties and types
+            if (
+                !Array.isArray(data) ||
+                !data.every(
+                    (item) =>
+                        item &&
+                        typeof item === "object" &&
+                        "Latitude" in item &&
+                        typeof item.Latitude === "number" &&
+                        "Longitude" in item &&
+                        typeof item.Longitude === "number" &&
+                        "Altitude" in item &&
+                        typeof item.Altitude === "number"
+                )
+            ) {
+                throw new Error(
+                    'Invalid JSON format. Expected an array of objects like: [{"Latitude": lat, "Longitude": lon, "Altitude": alt}]'
+                );
+            }
+
+            // Convert from array of objects to array of arrays
+            const waypoints = data.map((wp) => [
+                wp.Latitude,
+                wp.Longitude,
+                wp.Altitude,
+            ]);
+            onSubmit(waypoints);
+            setJsonText(""); // Clear textarea on successful submission
+        } catch (e) {
+            const message =
+                e instanceof Error ? e.message : "An unknown error occurred.";
+            setError(`Parsing Error: ${message}`);
+        }
+    };
+
+    return (
+        <MyModal modalVisible={modalVisible} closeModal={closeModal}>
+            <h2>Import Waypoints</h2>
+            <p>Paste JSON text or upload a .json file.</p>
+            <p>
+                Format:{" "}
+                {'`[{"Latitude": ..., "Longitude": ..., "Altitude": ...}]`'}
+            </p>
+
+            <textarea
+                value={jsonText}
+                onChange={(e) => setJsonText(e.target.value)}
+                placeholder='e.g., [{"Latitude": 38.315, "Longitude": -76.552, "Altitude": 75}, {"Latitude": 38.317, "Longitude": -76.551, "Altitude": 75}]'
+                rows={10}
+                style={{
+                    width: "95%",
+                    minWidth: "300px",
+                    marginBottom: "10px",
+                    fontFamily: "monospace",
+                }}
+            />
+
+            <input
+                type="file"
+                accept=".json"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                style={{ display: "block", marginBottom: "20px" }}
+            />
+
+            {error && <p style={{ color: "red" }}>{error}</p>}
+
+            <div
+                className="button-container"
+                style={{ justifyContent: "flex-end", gap: "10px" }}
+            >
+                <input
+                    type="button"
+                    className="del-btn"
+                    onClick={closeModal}
+                    value="Cancel"
+                />
+                <input type="button" onClick={handleSubmit} value="Submit" />
+            </div>
+        </MyModal>
+    );
+}
+
+/**
  * Component which gets placed inside of the leaflet map and listens for click events
  * on the map and then adjusts the relevant mapData state variable.
  * @param props Props
@@ -535,6 +688,12 @@ function Input() {
     const [defaultView, setDefaultView] = useState<[number, number]>([51, 10]);
     const { modalVisible, openModal, closeModal } = useMyModal();
 
+    const {
+        modalVisible: importModalVisible,
+        openModal: openImportModal,
+        closeModal: closeImportModal,
+    } = useMyModal();
+
     /**
      *
      * @param msg Message to display in the modal as an error
@@ -553,6 +712,18 @@ function Input() {
         setModalType("default");
         setModalMsg(msg);
         setMsgModalVisible(true);
+    }
+    /**
+     * Handler function to process the imported waypoints
+     * @param newWaypoints Array of waypoint coordinates to import
+     */
+    function handleWaypointImport(newWaypoints: number[][]) {
+        // This will replace all existing waypoints with the imported ones.
+        setMapData(
+            (mapData) => new Map(mapData.set(MapMode.Waypoint, newWaypoints))
+        );
+        closeImportModal(); // Close the modal on success
+        displayMsg(`${newWaypoints.length} waypoints imported successfully!`);
     }
 
     /**
@@ -754,7 +925,7 @@ function Input() {
                     mapData.set(MapMode.SearchBound, [
                         [38.315683, -76.552586], //bl
                         [38.315386, -76.550875], //br
-                        [38.315607, -76.5508],   //tr
+                        [38.315607, -76.550800], //tr
                         [38.315895, -76.552519], //tl
                     ])
                 )
@@ -770,7 +941,6 @@ function Input() {
                 )
             );
             // Competition Left Waypoints - typical competition waypoints with altitude
-
         } else if (selected == "Competition_Right") {
             setDefaultView([38.314666970000744, -76.54975138401012]);
             setMapData(
@@ -934,6 +1104,13 @@ function Input() {
                             onClick={generateNewPath}
                             value="Generate New Path"
                         ></input>
+                        {mapMode === MapMode.Waypoint && (
+                            <input
+                                type="button"
+                                onClick={openImportModal}
+                                value="Import Waypoints"
+                            ></input>
+                        )}
                     </form>
                 </div>
                 <MyModal
@@ -943,6 +1120,11 @@ function Input() {
                 >
                     {modalMsg}
                 </MyModal>
+                <WaypointImportModal
+                    modalVisible={importModalVisible}
+                    closeModal={closeImportModal}
+                    onSubmit={handleWaypointImport}
+                />
             </main>
         </>
     );
