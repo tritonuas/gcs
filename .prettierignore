@@ -1,0 +1,17 @@
+node_modules
+build
+dist
+.husky/_
+houston/dist
+houston/node_modules
+**/*.pb.ts
+**/*.pb.go
+**/*.min.js
+**/*.min.css
+**/*.svg
+**/*.png
+**/*.jpg
+**/*.gif
+**/*.webp
+**/tiles/
+

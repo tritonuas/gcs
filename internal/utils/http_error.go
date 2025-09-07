@@ -1,5 +1,6 @@
 // Package utils contains helper types (such as HTTPError) that are reused
 // across multiple server/client components.
+//
 //nolint:revive // package name 'utils' is acceptable here
 package utils
 

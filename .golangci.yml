@@ -9,32 +9,32 @@ version: "2"
 # configure golangci-lint
 # see https://golangci-lint.run/usage/configuration/
 linters:
-    enable:
-        - gosec
-        - unconvert
-        - gocyclo
-        - goconst
-        - govet
-        - gocritic
-        - revive
-    settings:
-        errcheck:
-            # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
-            # default is false: such cases aren't reported by default.
-            check-blank: true
-        gocyclo:
-            # minimal code complexity to report, 30 by default
-            min-complexity: 15
-        revive:
-            rules:
-                - name: var-naming
-                  disabled: true
-    exclusions:
-        paths:
-            - ".*test.*"
-        rules:
-            - path: "_test\\.go"
-              linters:
-                  - dupl
-                  - gosec
-                  - goconst
+  enable:
+    - gosec
+    - unconvert
+    - gocyclo
+    - goconst
+    - govet
+    - gocritic
+    - revive
+  settings:
+    errcheck:
+      # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+      # default is false: such cases aren't reported by default.
+      check-blank: true
+    gocyclo:
+      # minimal code complexity to report, 30 by default
+      min-complexity: 15
+    revive:
+      rules:
+        - name: var-naming
+          disabled: true
+  exclusions:
+    paths:
+      - ".*test.*"
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - dupl
+          - gosec
+          - goconst
