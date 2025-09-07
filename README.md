@@ -31,10 +31,8 @@ Entries in bold indicate that it is a module which we implement.
 
 To install Docker, follow the instructions in the above links.
 
-
-To install Go, the easiest way is to use [g](https://github.com/stefanmaric/g). The repo's 
-README contains installation instructions. Make sure to install and set up go >= 1.24. 
-
+To install Go, the easiest way is to use [g](https://github.com/stefanmaric/g). The repo's
+README contains installation instructions. Make sure to install and set up go >= 1.24.
 
 To install the linter, run the following make command. If you encounter a permission denied error,
 then rerun the command with sudo permissions.
