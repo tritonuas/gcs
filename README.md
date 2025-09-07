@@ -16,10 +16,10 @@ Entries in bold indicate that it is a module which we implement.
 
 ## Dependencies
 
-- go 1.19
+- go >= 1.24
 - [docker](https://docs.docker.com/engine/install/)
 - [docker-compose](https://docs.docker.com/compose/install/) (needed to run hub concurrently with [Influxdb](https://www.influxdata.com/products/influxdb/), [Grafana](https://grafana.com/oss/grafana/) and [SITL](https://github.com/tritonuas/ottopilot))
-- [golangci-lint](https://github.com/golangci/golangci-lint)
+- [golangci-lint](https://github.com/golangci/golangci-lint) (make sure that it is >= v2.0)
 - [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
 - [protoc](https://grpc.io/docs/protoc-installation/)
 - [protoc-gen-go](https://grpc.io/docs/languages/go/quickstart/)
@@ -31,8 +31,10 @@ Entries in bold indicate that it is a module which we implement.
 
 To install Docker, follow the instructions in the above links.
 
-To install Go, the easiest way is to use [g](https://github.com/stefanmaric/g). The repo's
-README contains installation instructions. Make sure to install and set up go 1.19.
+
+To install Go, the easiest way is to use [g](https://github.com/stefanmaric/g). The repo's 
+README contains installation instructions. Make sure to install and set up go >= 1.24. 
+
 
 To install the linter, run the following make command. If you encounter a permission denied error,
 then rerun the command with sudo permissions.
