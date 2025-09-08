@@ -1,71 +1,71 @@
 div#root {
-    height: 100dvh;
-    display: flex;
-    flex-direction:column;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 img.svg {
-    width: 3rem;
+  width: 3rem;
 }
 
 .svg.active {
-    filter: var(--success-filter);
+  filter: var(--success-filter);
 }
 
 .svg.inactive {
-    filter: var(--failure-filter);
+  filter: var(--failure-filter);
 }
 
 .svg.white {
-    filter: invert(100%) sepia(8%) saturate(0%) hue-rotate(339deg) brightness(108%) contrast(100%);
+  filter: invert(100%) sepia(8%) saturate(0%) hue-rotate(339deg) brightness(108%) contrast(100%);
 }
 
 /* For any form where we want the basic same style format */
 form.tuas-form {
-    border: 0;
+  border: 0;
 }
 
 /* Put all the field items going down in a nice column */
 form.tuas-form fieldset {
-    border: none;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: column;
-    flex-wrap: wrap;
-    background-color: var(--light-bg);
-    margin: 0;
-    padding: 0;
-    font-family: 'Jetbrains Mono', sans-serif;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  background-color: var(--light-bg);
+  margin: 0;
+  padding: 0;
+  font-family: "Jetbrains Mono", sans-serif;
 }
 
 form.tuas-form legend {
-    color: var(--highlight);
-    background-color: var(--dark-bg);
-    border: 1px solid var(--dark-text);
+  color: var(--highlight);
+  background-color: var(--dark-bg);
+  border: 1px solid var(--dark-text);
 }
 
 form.tuas-form input,
 [contenteditable] {
-    font-family: 'Jetbrains Mono', sans-serif;
-    outline: 0;
-    caret-color: var(--dark-text) !important;
+  font-family: "Jetbrains Mono", sans-serif;
+  outline: 0;
+  caret-color: var(--dark-text) !important;
 }
 
 form.tuas-form input:is([type="submit"], [type="button"]) {
-    border: none;
+  border: none;
 }
 
 form.tuas-form input:is([type="submit"], [type="button"]):is(:hover),
 form.tuas-form input[data-selected="true"] {
-    background-color: var(--dark-bg);
-    color: var(--highlight);
-    border: none;
+  background-color: var(--dark-bg);
+  color: var(--highlight);
+  border: none;
 }
 
 form.tuas-form fieldset > * {
-    margin: 0.3rem;
+  margin: 0.3rem;
 }
 
 input:is[data-selected="true"] {
-    border: 1px solid red;
+  border: 1px solid red;
 }

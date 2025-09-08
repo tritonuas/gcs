@@ -1,5 +1,5 @@
-import "./Connection.css"
-import {statusToLink} from "../utilities/connection"
+import "./Connection.css";
+import { statusToLink } from "../utilities/connection";
 
 import { ConnectionStatus } from "../utilities/temp";
 
@@ -7,8 +7,7 @@ import { ConnectionStatus } from "../utilities/temp";
 // in order to see a more in depth description of that
 // connectiontrue
 
-
-// TODO: Pull connection info from gcs, use DotPulse waiting icon before 
+// TODO: Pull connection info from gcs, use DotPulse waiting icon before
 // data has been pulled
 
 /**
@@ -18,16 +17,14 @@ import { ConnectionStatus } from "../utilities/temp";
  * @param props.statuses List of connection statuses that we are tracking.
  * @returns Connection Page
  */
-function Connection({statuses}:{statuses:ConnectionStatus[]}) {
-    return (
-        <>
-            <main className="connection-page">
-                <ul>
-                    {statuses.map(statusToLink)} 
-                </ul>
-            </main>
-        </>
-    );
+function Connection({ statuses }: { statuses: ConnectionStatus[] }) {
+  return (
+    <>
+      <main className="connection-page">
+        <ul>{statuses.map(statusToLink)}</ul>
+      </main>
+    </>
+  );
 }
 
 export default Connection;

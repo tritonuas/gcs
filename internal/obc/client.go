@@ -1,5 +1,6 @@
 // Package obc provides a Go client for interacting with the On-Board Computer
 // (OBC) REST API exposed on the aircraft.
+//
 //revive:disable:exported
 package obc
 

@@ -16,7 +16,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
+          go-version: "1.24.x"
 
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -37,9 +37,17 @@ jobs:
     name: Lint Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install root deps (Prettier)
+        run: npm ci
+      - name: Install frontend deps
+        run: npm ci --prefix houston
+      - name: Prettier Check
+        run: npm run format:check
       - name: Run Frontend Linter
-        run: |
-          cd houston
-          npm install
-          npm run lint
+        run: npm run --prefix houston lint

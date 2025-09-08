@@ -1,5 +1,5 @@
 @font-face {
-  font-family: 'Jetbrains Mono';
+  font-family: "Jetbrains Mono";
   font-display: swap;
   src: url("./assets/JetBrainsMono-Regular.ttf");
 }
@@ -7,7 +7,7 @@
 body {
   margin: 0;
   min-height: 100%;
-  font-family: 'Jetbrains Mono', monospace;
+  font-family: "Jetbrains Mono", monospace;
   font-size: 14px;
   line-height: 1.5;
   caret-color: transparent;
@@ -17,30 +17,29 @@ body {
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
-:root { 
-	--dark-bg: #00204a;
+:root {
+  --dark-bg: #00204a;
   --med-bg: #2667ff;
   --light-bg: #3f8efc;
   --grey-out-bg: #808080;
 
-	--highlight: #fdb44b; 
+  --highlight: #fdb44b;
 
-  --dark-text: #111111; 
-  --light-text: #DDDDDD;
+  --dark-text: #111111;
+  --light-text: #dddddd;
 
-
-  --success-text: #33AA66; 
+  --success-text: #33aa66;
   --warning-text: #eed202;
-  --failure-text: #AA3344;
-  --success-filter: invert(50%) sepia(71%) saturate(411%) hue-rotate(93deg) brightness(96%) contrast(86%);
-  --failure-filter: invert(23%) sepia(22%) saturate(4213%) hue-rotate(321deg) brightness(108%) contrast(91%);
+  --failure-text: #aa3344;
+  --success-filter: invert(50%) sepia(71%) saturate(411%) hue-rotate(93deg) brightness(96%)
+    contrast(86%);
+  --failure-filter: invert(23%) sepia(22%) saturate(4213%) hue-rotate(321deg) brightness(108%)
+    contrast(91%);
 
   --std-transition: 0.3s ease-in;
-
 
   --main-height: 92dvh;
 }

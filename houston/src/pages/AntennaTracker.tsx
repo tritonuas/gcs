@@ -1,11 +1,11 @@
-import {useState, useEffect} from 'react'
-import "./AntennaTracker.css"
-import TuasMap from '../components/TuasMap';
+import { useState, useEffect } from "react";
+import "./AntennaTracker.css";
+import TuasMap from "../components/TuasMap";
 
-import duck from '../assets/duck.png';
+import duck from "../assets/duck.png";
 
-import { Marker } from 'react-leaflet';
-import L from 'leaflet';
+import { Marker } from "react-leaflet";
+import L from "leaflet";
 
 /**
  * A fuction that calculates the angle between two points.
@@ -38,73 +38,84 @@ import L from 'leaflet';
  * @param props.planeLatLng The position of the plane.
  * @returns Component representing page for the Antenna Tracker Connection Status
  */
-function AntennaTracker({planeLatLng}:{planeLatLng:[number, number]}) {
-    const [terminalText, setTerminalText] = useState<Array<string>>([]);
-    const [rotation, setRotation] = useState(0);
-    const [antennaLatLng,] = useState<[number, number]>([0,0]);
-    const [antennaDirection,] = useState<number>(0);
-    const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
-    const planeIcon = L.icon({
-        iconUrl: icon,
-        iconSize: [65, 50],
-        iconAnchor: [32, 25]
+function AntennaTracker({ planeLatLng }: { planeLatLng: [number, number] }) {
+  const [terminalText, setTerminalText] = useState<Array<string>>([]);
+  const [rotation, setRotation] = useState(0);
+  const [antennaLatLng] = useState<[number, number]>([0, 0]);
+  const [antennaDirection] = useState<number>(0);
+  const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
+  const planeIcon = L.icon({
+    iconUrl: icon,
+    iconSize: [65, 50],
+    iconAnchor: [32, 25],
+  });
+  const handleStorageChange = () => {
+    const data = localStorage.getItem("icon");
+    data ? setIcon(data) : setIcon(duck);
+  };
+
+  // For testing so text is constantly being added to the terminal
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Update the text
+      const date = new Date();
+      setTerminalText((txt) => [`${date.toString()}`].concat(txt));
+
+      // const pre = document.querySelector(".atracker-terminal");
+      // if (pre != null) {
+      //     pre.scrollTop = pre?.scrollHeight;
+      // }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("storage", () => {
+      handleStorageChange();
     });
-    const handleStorageChange = () => {
-        const data = localStorage.getItem("icon");
-        data ? setIcon(data) : setIcon(duck);
+    window.dispatchEvent(new Event("storage"));
+    return () => {
+      window.removeEventListener("storage", () => {
+        handleStorageChange();
+      });
     };
-    
-    // For testing so text is constantly being added to the terminal
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Update the text
-            const date = new Date();
-            setTerminalText(txt => [`${date.toString()}`].concat(txt));
-           
-            // const pre = document.querySelector(".atracker-terminal");
-            // if (pre != null) {
-            //     pre.scrollTop = pre?.scrollHeight;
-            // }
-        }, 500);
+  });
 
-        return () => clearInterval(interval);
-    }, []);
+  useEffect(() => {
+    /* This calcualtes the angle if antenna was tracking where the plane is. */
+    // setRotation(calculateDegree(planeLatLng, antennaLatLng));
+    setRotation(antennaDirection + 217);
+  }, [antennaDirection]);
 
-    useEffect(() => {
-        window.addEventListener("storage", () => {handleStorageChange()})
-        window.dispatchEvent(new Event("storage"))
-        return () => {window.removeEventListener("storage", () => {handleStorageChange()})}
-    });
-    
-    useEffect(() => {
-        /* This calcualtes the angle if antenna was tracking where the plane is. */
-        // setRotation(calculateDegree(planeLatLng, antennaLatLng));
-        setRotation(antennaDirection + 217);
-    }, [antennaDirection]);
-
-    return (
-        <>
-            <main className="atracker-page">
-                <TuasMap className="atracker-map" lat={51} lng={10}>
-                <Marker position={planeLatLng} icon={planeIcon}/>
-                <Marker position={antennaLatLng} icon={
-                                                new L.DivIcon({
-                                                    className: '',
-                                                    html: "<img id='antenna-icon' style='--rotation: " + rotation + "deg;' src='../src/assets/banana.webp'/>",
-                                                    iconSize: [30, 42],
-                                                    iconAnchor: [15, 42]
-                                                })
-                                            }
-                />
-                </TuasMap>
-                <div className="atracker-terminal">
-                    {
-                        terminalText.map((str, i) => <p key={i}>{str}</p>)
-                    }
-                </div>
-            </main>
-        </>
-    );
+  return (
+    <>
+      <main className="atracker-page">
+        <TuasMap className="atracker-map" lat={51} lng={10}>
+          <Marker position={planeLatLng} icon={planeIcon} />
+          <Marker
+            position={antennaLatLng}
+            icon={
+              new L.DivIcon({
+                className: "",
+                html:
+                  "<img id='antenna-icon' style='--rotation: " +
+                  rotation +
+                  "deg;' src='../src/assets/banana.webp'/>",
+                iconSize: [30, 42],
+                iconAnchor: [15, 42],
+              })
+            }
+          />
+        </TuasMap>
+        <div className="atracker-terminal">
+          {terminalText.map((str, i) => (
+            <p key={i}>{str}</p>
+          ))}
+        </div>
+      </main>
+    </>
+  );
 }
 
 export default AntennaTracker;

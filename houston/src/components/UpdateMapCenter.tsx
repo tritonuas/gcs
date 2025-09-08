@@ -6,14 +6,14 @@ import { useMap } from "react-leaflet";
  * @param props.position the coordiantes to center the map on
  * @returns UpdateMapCenter component
  */
-function UpdateMapCenter({position}:{position: [number, number]}){
-    const map = useMap();
+function UpdateMapCenter({ position }: { position: [number, number] }) {
+  const map = useMap();
 
-    useEffect(() => {
-        map.setView(position);
-    }, [position]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    map.setView(position);
+  }, [position]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return null;
+  return null;
 }
 
 export default UpdateMapCenter;

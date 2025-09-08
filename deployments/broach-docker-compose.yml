@@ -28,7 +28,7 @@ services:
       - /dev/ttyACM0:/dev/ttyACM0
     extra_hosts:
       - host.docker.internal:host-gateway
-      
+
   influxdb:
     image: influxdb:2.0-alpine
     network_mode: "host"
@@ -41,7 +41,7 @@ services:
     network_mode: "host"
     ports:
       - 3000:3000
-    environment: 
+    environment:
       - GF_USERS_DEFAULT_THEME=light
       - GF_USERS_HOME_PAGE=/dashboards
       - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=500ms
@@ -60,7 +60,7 @@ services:
       - influxdb
     image: influxdb:2.0-alpine
     network_mode: "host"
-    entrypoint: > 
+    entrypoint: >
       influx setup 
       --bucket mavlink 
       --org TritonUAS 

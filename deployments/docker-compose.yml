@@ -7,7 +7,7 @@ services:
       - MASTER0=--master=tcp:127.0.0.1:5760
       - MASTER1=
       - OUT0=
-      # obc 
+      # obc
       - OUT1=--out=tcpin:127.0.0.1:14552
       # gcs
       - OUT2=--out=tcpin:127.0.0.1:14551
@@ -42,7 +42,7 @@ services:
       - ../flight-logs:/CSV
     extra_hosts:
       - host.docker.internal:host-gateway
-      
+
   influxdb:
     image: influxdb:2.0-alpine
     network_mode: "host"
@@ -57,7 +57,7 @@ services:
     #   - 3000:3000
     depends_on:
       - gcs
-    environment: 
+    environment:
       - GF_USERS_DEFAULT_THEME=dark
       - GF_USERS_HOME_PAGE=/dashboards
         #- GF_INSTALL_PLUGINS=briangann-gauge-panel
@@ -77,7 +77,7 @@ services:
       - influxdb
     image: influxdb:2.0-alpine
     network_mode: "host"
-    entrypoint: > 
+    entrypoint: >
       influx setup 
       --bucket mavlink 
       --org TritonUAS 

@@ -18,7 +18,6 @@ datasources:
     jsonData:
       version: Flux
       organization: TritonUAS
-      defaultBucket: mavlink 
+      defaultBucket: mavlink
       tlsSkipVerify: true
-
 # More info on configuration here: https://grafana.com/docs/grafana/latest/datasources/influxdb/influxdb-flux/

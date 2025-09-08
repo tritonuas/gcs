@@ -1,54 +1,61 @@
 .rtl_button_outer_div {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: auto;
-    border-radius: 5px;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: auto;
+  border-radius: 5px;
+  align-items: center;
 }
 
 .rtl_button_submit_button {
-    background-color: initial;
-    background-image: linear-gradient(-180deg, #FF6B6B, #C44569);
-    border-radius: 6px;
-    box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
-    color: #FFFFFF;
-    cursor: pointer;
-    display: inline-block;
-    font-family: Inter,-apple-system,system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
-    height: 40px;
-    line-height: 40px;
-    outline: 0;
-    overflow: hidden;
-    padding: 0 20px;
-    pointer-events: auto;
-    position: relative;
-    text-align: center;
-    touch-action: manipulation;
-    user-select: none;
-    -webkit-user-select: none;
-    vertical-align: top;
-    white-space: nowrap;
-    width: 20%;
-    z-index: 9;
-    border: 0;
-    transition: box-shadow .2s;
-    margin-top: 5px;
+  background-color: initial;
+  background-image: linear-gradient(-180deg, #ff6b6b, #c44569);
+  border-radius: 6px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-block;
+  font-family:
+    Inter,
+    -apple-system,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  height: 40px;
+  line-height: 40px;
+  outline: 0;
+  overflow: hidden;
+  padding: 0 20px;
+  pointer-events: auto;
+  position: relative;
+  text-align: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  vertical-align: top;
+  white-space: nowrap;
+  width: 20%;
+  z-index: 9;
+  border: 0;
+  transition: box-shadow 0.2s;
+  margin-top: 5px;
 }
 
 .rtl_button_submit_button:hover {
-    box-shadow: rgba(196, 69, 105, 0.5) 0 3px 8px;
+  box-shadow: rgba(196, 69, 105, 0.5) 0 3px 8px;
 }
 
 .rtl_button_outer_div h2 {
-    color: #C44569;
-    margin-bottom: 10px;
-    text-align: center;
+  color: #c44569;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
 .rtl_button_outer_div p {
-    color: #333;
-    text-align: center;
-    margin-bottom: 15px;
-    line-height: 1.4;
-} 
+  color: #333;
+  text-align: center;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}

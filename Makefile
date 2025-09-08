@@ -131,9 +131,27 @@ clear-cache:
 
 # Style/formatting
 # --------------------------------------------------------------------
-.PHONY: fmt
-fmt:
+.PHONY: fmt fmt-frontend fmt-backend fmt-check fmt-check-frontend fmt-check-backend
+fmt: fmt-backend fmt-frontend
+
+fmt-backend:
 	goimports -w -l $(GOFILES_NOVENDOR)
+
+fmt-frontend:
+	npm run format
+
+fmt-check: fmt-check-backend fmt-check-frontend
+
+fmt-check-backend:
+	@changed=$$(goimports -l $(GOFILES_NOVENDOR)); \
+	if [ -n "$$changed" ]; then \
+		echo "Go files not formatted:"; \
+		echo "$$changed"; \
+		exit 1; \
+	fi
+
+fmt-check-frontend:
+	npm run format:check
 
 # Linting
 # --------------------------------------------------------------------
@@ -146,6 +164,10 @@ lint-frontend:
 
 lint-backend:
 	golangci-lint run
+
+# Checks
+.PHONY: check
+check: build-protos fmt-check lint test
 
 
 # Just for Kimi <3 <3 uwu just for meee

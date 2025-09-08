@@ -1,58 +1,65 @@
 .emergency_button_outer_div {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: auto;
-    border-radius: 5px;
-    align-items: center;
- }
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: auto;
+  border-radius: 5px;
+  align-items: center;
+}
 
 .emergency_button_submit_button {
-    background-color: initial;
-    background-image: linear-gradient(-180deg, #FF7E31, #E62C03);
-    border-radius: 6px;
-    box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
-    color: #FFFFFF;
-    cursor: pointer;
-    display: inline-block;
-    font-family: Inter,-apple-system,system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
-    height: 40px;
-    line-height: 40px;
-    outline: 0;
-    overflow: hidden;
-    padding: 0 20px;
-    pointer-events: auto;
-    position: relative;
-    text-align: center;
-    touch-action: manipulation;
-    user-select: none;
-    -webkit-user-select: none;
-    vertical-align: top;
-    white-space: nowrap;
-    width: 20%;
-    z-index: 9;
-    border: 0;
-    transition: box-shadow .2s;
-    margin-top: 5px;
+  background-color: initial;
+  background-image: linear-gradient(-180deg, #ff7e31, #e62c03);
+  border-radius: 6px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-block;
+  font-family:
+    Inter,
+    -apple-system,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  height: 40px;
+  line-height: 40px;
+  outline: 0;
+  overflow: hidden;
+  padding: 0 20px;
+  pointer-events: auto;
+  position: relative;
+  text-align: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  vertical-align: top;
+  white-space: nowrap;
+  width: 20%;
+  z-index: 9;
+  border: 0;
+  transition: box-shadow 0.2s;
+  margin-top: 5px;
 }
 
 .emergency_button_submit_button:hover {
-    box-shadow: rgba(253, 76, 0, 0.5) 0 3px 8px;
+  box-shadow: rgba(253, 76, 0, 0.5) 0 3px 8px;
 }
 
 .emergency_button_takeoff_option {
-    background-color: gold;
-    width: 100%;
-    text-align: center;
-    font-size: 35px;
-    border-radius: 5px;
-    cursor: pointer;
-    box-shadow: rgba(207, 242, 11, 0.5) 0 3px 8px;
-    margin: 5px;
+  background-color: gold;
+  width: 100%;
+  text-align: center;
+  font-size: 35px;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: rgba(207, 242, 11, 0.5) 0 3px 8px;
+  margin: 5px;
 }
 
 .emergency_button_takeoff_option.select {
-    background-color: rgba(255, 215, 0, 0.8);
-    transition: inset 0.2s ease;
-    box-shadow: inset rgba(0, 0, 0, 0.5) 0 3px 8px;
+  background-color: rgba(255, 215, 0, 0.8);
+  transition: inset 0.2s ease;
+  box-shadow: inset rgba(0, 0, 0, 0.5) 0 3px 8px;
 }

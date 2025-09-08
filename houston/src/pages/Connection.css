@@ -1,121 +1,123 @@
 main.connection-page {
-    --skew-amt: 2deg; /* By how much to rotate the horizontal background for the content */
-    --connection-font-size: 3rem;
+  --skew-amt: 2deg; /* By how much to rotate the horizontal background for the content */
+  --connection-font-size: 3rem;
 
-    /*
+  /*
         Take up the whole screen, and vertically center content
     */
-    display: flex;
-    flex-direction: column; 
-    justify-content: center;
-    align-items: center;
-    flex-grow: 1; /* Take up remainder of screen */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1; /* Take up remainder of screen */
 
-    /* smooth transition when hovering over connection subpage link */
-    transition: background-color var(--std-transition);
+  /* smooth transition when hovering over connection subpage link */
+  transition: background-color var(--std-transition);
 }
 
 main.connection-page ul {
-    /*
+  /*
         Treat as flexbox, not list
     */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  list-style: none;
 
-    margin: 1rem;
-    padding: 3rem 0;
+  margin: 1rem;
+  padding: 3rem 0;
 
-    font-size: var(--connection-font-size);
+  font-size: var(--connection-font-size);
 
-    background-color: var(--dark-bg);
-    color: var(--highlight);
-    overflow: hidden;
+  background-color: var(--dark-bg);
+  color: var(--highlight);
+  overflow: hidden;
 
-    /* Slightly rotate the background */
-    transform: skewY(var(--skew-amt));
+  /* Slightly rotate the background */
+  transform: skewY(var(--skew-amt));
 
-    min-width: 100dvw;
+  min-width: 100dvw;
 }
 
 /* Select the current selected page in the navbar, if in the connection page the user is 
    currently selecting an active connection */
 nav.topbar:has(+ main.connection-page li:is(:hover, :focus) img.svg.active) li:has(a.active) {
-    background-color: var(--success-text);
+  background-color: var(--success-text);
 }
 /* Select the current selected page in the navbar, if in the connection page the user is 
    currently selecting an INactive connection */
 nav.topbar:has(+ main.connection-page li:is(:hover, :focus) img.svg.inactive) li:has(a.active) {
-    background-color: var(--failure-text);
+  background-color: var(--failure-text);
 }
 
 /* When you hover over a selection, alter the background color to green/red to match active connection */
 main.connection-page:has(li:is(:hover, :focus) img.svg.active) {
-    background-color: var(--success-text);
+  background-color: var(--success-text);
 }
 main.connection-page:has(li:is(:hover, :focus) img.svg.inactive) {
-    background-color: var(--failure-text);
+  background-color: var(--failure-text);
 }
 
 main.connection-page li {
-    /* Unrotate the tilt on the items inside the background */
-    transform: skewY(calc(var(--skew-amt) * -1));
+  /* Unrotate the tilt on the items inside the background */
+  transform: skewY(calc(var(--skew-amt) * -1));
 
-    /* Make connection statuses take up at least 2/3 of screen */
-    min-width: 66dvw;
+  /* Make connection statuses take up at least 2/3 of screen */
+  min-width: 66dvw;
 
-    padding: 0 1rem;
-    
-    /* Set up sliding animation */
-    background: linear-gradient(to left, var(--dark-bg) 50%, var(--highlight) 50%) right;
-    background-size: 200% 100%;
+  padding: 0 1rem;
 
-    transition: all var(--std-transition);
+  /* Set up sliding animation */
+  background: linear-gradient(to left, var(--dark-bg) 50%, var(--highlight) 50%) right;
+  background-size: 200% 100%;
+
+  transition: all var(--std-transition);
 }
 
 main.connection-page .conn-link {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    text-decoration: none;
-    color: var(--highlight);
-    transition: color var(--std-transition);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  text-decoration: none;
+  color: var(--highlight);
+  transition: color var(--std-transition);
 }
 
 main.connection-page li:is(:hover, :focus) .conn-link {
-    color: var(--dark-text);
+  color: var(--dark-text);
 }
 
 main.connection-page li:is(:hover, :focus) {
-    background-position: left;
+  background-position: left;
 }
 
 main.connection-page li::before {
-    /* Arrow ( > ) that appears to the left of the connection selections */
-    content: '>';
-    color: var(--highlight);
-    opacity: 0;
-    visibility: hidden;
-    position: absolute;
-    left: -8rem;
-    transition: opacity var(--std-transition), left var(--std-transition);
+  /* Arrow ( > ) that appears to the left of the connection selections */
+  content: ">";
+  color: var(--highlight);
+  opacity: 0;
+  visibility: hidden;
+  position: absolute;
+  left: -8rem;
+  transition:
+    opacity var(--std-transition),
+    left var(--std-transition);
 }
 
 main.connection-page li:is(:hover, :focus)::before,
 main.connection-page li.selected {
-    opacity: 1;
-    visibility: visible;
-    left: -3rem;
+  opacity: 1;
+  visibility: visible;
+  left: -3rem;
 }
 
-@media only screen and (max-width: 62rem)  {
-    main.connection-page li {
-        justify-content: flex-start;
-    }    
+@media only screen and (max-width: 62rem) {
+  main.connection-page li {
+    justify-content: flex-start;
+  }
 
-    main.connection-page span.conn-name{
-        padding-right: 2rem;
-    }
+  main.connection-page span.conn-name {
+    padding-right: 2rem;
+  }
 }
