@@ -54,10 +54,9 @@ const API_BASE_URL = "/api"; // <-- Verify this matches proxy/backend base path
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
 const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`; // For GET and POST of imageRuns
-const REQUIRED_AIRDROP_INDICES = (Object.values(AirdropType)
-  .filter(
-    (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
-  ) as AirdropType[]);
+const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
+  (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
+) as AirdropType[];
 
 // --- Helper Functions ---
 const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
@@ -202,7 +201,7 @@ const Reports: React.FC = () => {
 
   // --- State for manual coordinate entry ---
   const [manualAirdropTypeJson, setManualAirdropTypeJson] = useState<string>("");
-  
+
   const [manualLatitude, setManualLatitude] = useState<string>("");
   const [manualLongitude, setManualLongitude] = useState<string>("");
   const [manualInputError, setManualInputError] = useState<string>("");
