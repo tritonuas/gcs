@@ -295,14 +295,12 @@ function AirdropInputForm({
   airdropAssignments: Airdrop[];
   setAirdropAssignments: React.Dispatch<SetStateAction<Airdrop[]>>;
 }) {
-  // Object selection no longer needed
 
   const airdropInput = (airdrop: Airdrop) => {
     return (
       <>
         <fieldset key={airdrop.Index}>
           <legend>Airdrop {airdrop.Index.toString()}</legend>
-          {/* Object selection removed */}
         </fieldset>
       </>
     );

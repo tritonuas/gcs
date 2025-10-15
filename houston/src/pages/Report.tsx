@@ -1,10 +1,3 @@
-// FILE: Report.tsx (Refactored for Persistence, Undefined=0, and 404 Debugging)
-
-// =======================================================================
-// == IMPORTANT: MAKE SURE YOU HAVE REGENERATED obc.pb.ts FROM THE   	==
-// ==        	UPDATED .proto FILE BEFORE USING THIS CODE!        	==
-// =======================================================================
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Box,
@@ -32,7 +25,7 @@ import {
   Divider,
   Snackbar,
   TextField,
-  Stack, // <-- ADDED FOR LAYOUT FIX
+  Stack,
 } from "@mui/material";
 
 import {
@@ -44,16 +37,16 @@ import {
   BboxProto,
   AirdropTarget,
   Mission,
-} from "../protos/obc.pb"; // Adjust path as needed
+} from "../protos/obc.pb";
 
-import "./Report.css"; // Assuming you have this CSS file
+import "./Report.css";
 
 // --- Constants ---
 const POLLING_INTERVAL_MS = 10000;
-const API_BASE_URL = "/api"; // <-- Verify this matches proxy/backend base path
+const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
-const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`; // For GET and POST of imageRuns
+const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
 const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
   (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
 ) as AirdropType[];
@@ -480,7 +473,6 @@ const Reports: React.FC = () => {
       setManualInputError("Please select a target assignee.");
       return;
     }
-    // Object type selection removed
 
     const lat = parseFloat(manualLatitude);
     const lon = parseFloat(manualLongitude);
@@ -515,7 +507,6 @@ const Reports: React.FC = () => {
 
     setSnackbarMessage(`Manually set ${manualAirdropTypeJson} coordinate.`);
     setSnackbarOpen(true);
-    // Reset form
     setManualAirdropTypeJson("");
     setManualLatitude("");
     setManualLongitude("");
@@ -800,7 +791,6 @@ const Reports: React.FC = () => {
         message={snackbarMessage}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       />
-      {/* === LAYOUT FIX: Main Grid now defines two columns for content === */}
       <Grid container spacing={2}>
         {/* --- Left Column --- */}
         <Grid item xs={12} md={8}>
@@ -1006,7 +996,6 @@ const Reports: React.FC = () => {
                   </Table>
                 </TableContainer>
 
-                {/* === UPDATED MANUAL TARGET ENTRY SECTION === */}
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle1" gutterBottom>
                   Manual Target Entry
@@ -1032,7 +1021,6 @@ const Reports: React.FC = () => {
                     })}
                   </Select>
                 </FormControl>
-                {/* Object type selection removed */}
 
                 <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
                   <TextField
@@ -1070,9 +1058,7 @@ const Reports: React.FC = () => {
                 >
                   Set Manual Target (Override)
                 </Button>
-                {/* === END MANUAL TARGET ENTRY SECTION === */}
 
-                {/* === AUTOFILL DROP LOCATIONS SECTION === */}
                 <Typography variant="subtitle1" gutterBottom>
                   Mission Data
                 </Typography>
@@ -1093,7 +1079,6 @@ const Reports: React.FC = () => {
                 >
                   Loads drop location coordinates and object types from the submitted mission
                 </Typography>
-                {/* === END AUTOFILL SECTION === */}
 
                 <Divider sx={{ my: 2 }} />
                 <Button
@@ -1225,7 +1210,6 @@ const Reports: React.FC = () => {
                                 </FormHelperText>
                               )}
                           </FormControl>
-                          {/* Object type control removed */}
                         </Paper>
                       );
                     })}
