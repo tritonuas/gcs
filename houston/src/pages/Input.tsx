@@ -5,7 +5,7 @@ import { useMapEvents, Polygon, Polyline } from "react-leaflet";
 import "./Input.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
-import { Airdrop, AirdropIndex, GPSCoord, Mission, ODLCObjects } from "../protos/obc.pb";
+import { Airdrop, AirdropType, GPSCoord, Mission } from "../protos/obc.pb";
 import MyModal from "../components/MyModal";
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import { useMyModal } from "../components/UseMyModal";
@@ -295,42 +295,14 @@ function AirdropInputForm({
   airdropAssignments: Airdrop[];
   setAirdropAssignments: React.Dispatch<SetStateAction<Airdrop[]>>;
 }) {
-  /**
-   * Maps the keys of the `ODLCObjects` object to an array of JSX `<option>` elements.
-   * Filters out numeric keys before mapping.
-   * @returns An array of JSX `<option>` elements.
-   */
-  function mapObjectsToOptions() {
-    return (Object.keys(ODLCObjects) as unknown as Array<ODLCObjects>)
-      .filter((object) => {
-        return isNaN(Number(object)); // Filters out numeric keys
-      })
-      .map((object) => {
-        return (
-          <>
-            <option key={object} value={object}>
-              {object}
-            </option>
-          </>
-        );
-      });
-  }
+  // Object selection no longer needed
 
   const airdropInput = (airdrop: Airdrop) => {
     return (
       <>
         <fieldset key={airdrop.Index}>
           <legend>Airdrop {airdrop.Index.toString()}</legend>
-          <label>
-            Object:
-            <select
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                airdrop.Object = e.currentTarget.value as unknown as ODLCObjects;
-              }}
-            >
-              {mapObjectsToOptions()}
-            </select>
-          </label>
+          {/* Object selection removed */}
         </fieldset>
       </>
     );
@@ -338,7 +310,7 @@ function AirdropInputForm({
 
   useEffect(() => {
     const airdrops = [];
-    for (let i = AirdropIndex.Kaz; i <= AirdropIndex.Daniel; i++) {
+    for (let i = AirdropType.Water; i <= AirdropType.Beacon; i++) {
       const airdrop = {
         Index: i,
       } as Airdrop;

@@ -1,5 +1,5 @@
 import { ChangeEvent, useState } from "react";
-import { AirdropIndex, AirdropSwap } from "../protos/obc.pb";
+import { AirdropType, AirdropSwap } from "../protos/obc.pb";
 // import video from "../assets/IAMTHEANGRYPUMPKIN.mp4"
 
 /**
@@ -7,23 +7,17 @@ import { AirdropIndex, AirdropSwap } from "../protos/obc.pb";
  * @returns manual drop page
  */
 function Drop() {
-  const [airdrop, setAirdrop] = useState<AirdropIndex>(AirdropIndex.Kaz);
+  const [airdrop, setAirdrop] = useState<AirdropType>(AirdropType.Undefined);
   // const [playing, setPlaying] = useState<boolean>(false);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     switch (value) {
       case "1":
-        setAirdrop(AirdropIndex.Kaz);
+        setAirdrop(AirdropType.Water);
         break;
       case "2":
-        setAirdrop(AirdropIndex.Kimi);
-        break;
-      case "3":
-        setAirdrop(AirdropIndex.Chris);
-        break;
-      case "4":
-        setAirdrop(AirdropIndex.Daniel);
+        setAirdrop(AirdropType.Beacon);
         break;
     }
   };

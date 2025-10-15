@@ -37,12 +37,9 @@ import {
 
 import {
   IdentifiedTarget,
-  AirdropIndex,
-  ODLCObjects,
-  airdropIndexToJSON,
-  oDLCObjectsToJSON,
-  oDLCObjectsFromJSON,
-  airdropIndexFromJSON,
+  AirdropType,
+  airdropTypeToJSON,
+  airdropTypeFromJSON,
   GPSCoord,
   BboxProto,
   AirdropTarget,
@@ -57,13 +54,10 @@ const API_BASE_URL = "/api"; // <-- Verify this matches proxy/backend base path
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
 const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`; // For GET and POST of imageRuns
-const REQUIRED_AIRDROP_INDICES = [
-  AirdropIndex.Kaz,
-  AirdropIndex.Kimi,
-  AirdropIndex.Chris,
-  AirdropIndex.Daniel,
-];
-const PLACEHOLDER_OBJECT_TYPE = ODLCObjects.Undefined;
+const REQUIRED_AIRDROP_INDICES = (Object.values(AirdropType)
+  .filter(
+    (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
+  ) as AirdropType[]);
 
 // --- Helper Functions ---
 const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
@@ -178,8 +172,7 @@ interface DetectionInfo {
 
 /* Interface for storing the user's match *for the current image* */
 interface CurrentDetectionMatch {
-  airdropIndex: AirdropIndex;
-  objectType: ODLCObjects;
+  airdropType: AirdropType;
   detectionInfo: DetectionInfo;
 }
 
@@ -193,7 +186,7 @@ const Reports: React.FC = () => {
     [key: string]: CurrentDetectionMatch | undefined;
   }>({});
   const [submittedTargets, setSubmittedTargets] = useState<{
-    [key in AirdropIndex]?: AirdropTarget;
+    [key in AirdropType]?: AirdropTarget;
   }>({});
   const [isCurrentRunProcessed, setIsCurrentRunProcessed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -208,8 +201,8 @@ const Reports: React.FC = () => {
   const [isSavingRuns, setIsSavingRuns] = useState(false);
 
   // --- State for manual coordinate entry ---
-  const [manualAirdropIndexJson, setManualAirdropIndexJson] = useState<string>("");
-  const [manualObjectTypeJson, setManualObjectTypeJson] = useState<string>("");
+  const [manualAirdropTypeJson, setManualAirdropTypeJson] = useState<string>("");
+  
   const [manualLatitude, setManualLatitude] = useState<string>("");
   const [manualLongitude, setManualLongitude] = useState<string>("");
   const [manualInputError, setManualInputError] = useState<string>("");
@@ -406,34 +399,25 @@ const Reports: React.FC = () => {
     fetch("/api/mission")
       .then((res) => res.json())
       .then((mission: Mission & { DropLocation?: GPSCoord[] }) => {
-        console.log("Autofilling drop locations and object types from mission");
+        console.log("Autofilling drop locations from mission");
         const dropLocations = mission.DropLocation;
-        const airdropAssignments = mission.AirdropAssignments || [];
 
         if (dropLocations && Array.isArray(dropLocations)) {
-          const newTargets: { [key in AirdropIndex]?: AirdropTarget } = {};
+          const newTargets: { [key in AirdropType]?: AirdropTarget } = {};
           let filledCount = 0;
 
           for (let i = 0; i < REQUIRED_AIRDROP_INDICES.length; i++) {
             const coord = dropLocations[i];
             if (coord) {
-              // Find the corresponding airdrop assignment for this index
-              const assignment = airdropAssignments.find(
-                (assignment) => assignment.Index === REQUIRED_AIRDROP_INDICES[i],
-              );
-
               newTargets[REQUIRED_AIRDROP_INDICES[i]] = AirdropTarget.create({
                 Index: REQUIRED_AIRDROP_INDICES[i],
                 Coordinate: coord,
-                Object: assignment?.Object || ODLCObjects.Bus,
               });
               filledCount++;
             }
           }
           setSubmittedTargets((prev) => ({ ...newTargets, ...prev }));
-          setSnackbarMessage(
-            `Autofilled ${filledCount} targets with coordinates and object types from mission`,
-          );
+          setSnackbarMessage(`Autofilled ${filledCount} targets with coordinates from mission`);
           setSnackbarOpen(true);
         } else {
           setSnackbarMessage("No drop locations found in mission data");
@@ -480,33 +464,24 @@ const Reports: React.FC = () => {
   const canConfirmCurrentImage = useMemo(() => {
     return Object.values(currentDetectionMatches).some(
       (match) =>
-        match &&
-        match.airdropIndex !== undefined &&
-        match.airdropIndex !== AirdropIndex.UNRECOGNIZED &&
-        match.objectType !== undefined &&
-        match.objectType !== ODLCObjects.UNRECOGNIZED &&
-        match.objectType !== PLACEHOLDER_OBJECT_TYPE,
+        match && match.airdropType !== undefined && match.airdropType !== AirdropType.UNRECOGNIZED,
     );
   }, [currentDetectionMatches]);
 
   const canSubmitFinalMatches = useMemo(() => {
-    return REQUIRED_AIRDROP_INDICES.every(
-      (index) =>
-        submittedTargets[index] !== undefined &&
-        submittedTargets[index]?.Object !== ODLCObjects.Undefined,
-    );
+    return REQUIRED_AIRDROP_INDICES.every((index) => {
+      const t = submittedTargets[index];
+      return t !== undefined && t.Coordinate !== undefined;
+    });
   }, [submittedTargets]);
 
   const handleSetManualTarget = () => {
     setManualInputError("");
-    if (!manualAirdropIndexJson) {
+    if (!manualAirdropTypeJson) {
       setManualInputError("Please select a target assignee.");
       return;
     }
-    if (!manualObjectTypeJson) {
-      setManualInputError("Please select an object type.");
-      return;
-    }
+    // Object type selection removed
 
     const lat = parseFloat(manualLatitude);
     const lon = parseFloat(manualLongitude);
@@ -516,11 +491,10 @@ const Reports: React.FC = () => {
       return;
     }
 
-    const indexEnum = airdropIndexFromJSON(manualAirdropIndexJson);
-    const objectEnum = oDLCObjectsFromJSON(manualObjectTypeJson);
+    const indexEnum = airdropTypeFromJSON(manualAirdropTypeJson);
 
-    if (indexEnum === AirdropIndex.UNRECOGNIZED || objectEnum === ODLCObjects.UNRECOGNIZED) {
-      setManualInputError("Invalid assignee or object selected.");
+    if (indexEnum === AirdropType.UNRECOGNIZED) {
+      setManualInputError("Invalid assignee selected.");
       return;
     }
 
@@ -533,7 +507,6 @@ const Reports: React.FC = () => {
     const newTarget = AirdropTarget.create({
       Index: indexEnum,
       Coordinate: newCoord,
-      Object: objectEnum,
     });
 
     setSubmittedTargets((prev) => ({
@@ -541,33 +514,28 @@ const Reports: React.FC = () => {
       [indexEnum]: newTarget,
     }));
 
-    setSnackbarMessage(`Manually set ${manualAirdropIndexJson} to ${manualObjectTypeJson}.`);
+    setSnackbarMessage(`Manually set ${manualAirdropTypeJson} coordinate.`);
     setSnackbarOpen(true);
     // Reset form
-    setManualAirdropIndexJson("");
-    setManualObjectTypeJson("");
+    setManualAirdropTypeJson("");
     setManualLatitude("");
     setManualLongitude("");
   };
 
   const handleMatchUpdate = (
     compositeKey: string,
-    field: "airdropIndex" | "objectType",
+    field: "airdropType",
     event: SelectChangeEvent<string | number>,
     detectionInfo: DetectionInfo,
   ) => {
     const selectedJsonValue = event.target.value;
-    let selectedEnumValue: AirdropIndex | ODLCObjects | undefined | "" = "";
+    let selectedEnumValue: AirdropType | undefined | "" = "";
 
     if (selectedJsonValue === "") selectedEnumValue = "";
     else {
       try {
-        if (field === "airdropIndex") selectedEnumValue = airdropIndexFromJSON(selectedJsonValue);
-        else selectedEnumValue = oDLCObjectsFromJSON(selectedJsonValue);
-        if (
-          selectedEnumValue === AirdropIndex.UNRECOGNIZED ||
-          selectedEnumValue === ODLCObjects.UNRECOGNIZED
-        ) {
+        selectedEnumValue = airdropTypeFromJSON(selectedJsonValue);
+        if (selectedEnumValue === AirdropType.UNRECOGNIZED) {
           console.warn("Invalid enum value selected:", selectedJsonValue);
           return;
         }
@@ -579,42 +547,22 @@ const Reports: React.FC = () => {
 
     setCurrentDetectionMatches((prev) => {
       const updatedMatches = { ...prev };
-      const currentMatchData = updatedMatches[compositeKey];
-      const defaultObjectType = ODLCObjects.Undefined;
       let newMatch: CurrentDetectionMatch | undefined = undefined;
 
-      if (field === "airdropIndex") {
+      if (field === "airdropType") {
         if (selectedEnumValue === "") {
           delete updatedMatches[compositeKey];
-        } else if (typeof selectedEnumValue === "number" && selectedEnumValue in AirdropIndex) {
-          const newAirdropIndex = selectedEnumValue as AirdropIndex;
+        } else if (typeof selectedEnumValue === "number" && selectedEnumValue in AirdropType) {
+          const newAirdropType = selectedEnumValue as AirdropType;
           newMatch = {
-            airdropIndex: newAirdropIndex,
-            objectType: currentMatchData?.objectType ?? defaultObjectType,
+            airdropType: newAirdropType,
             detectionInfo: detectionInfo,
-          };
-        }
-      } else {
-        if (!currentMatchData) {
-          console.warn("Cannot set objectType, no airdrop index assigned to this detection yet.");
-          return prev;
-        }
-        if (selectedEnumValue === "") {
-          newMatch = {
-            ...currentMatchData,
-            objectType: ODLCObjects.Undefined,
-          };
-        } else if (typeof selectedEnumValue === "number" && selectedEnumValue in ODLCObjects) {
-          const newObjectType = selectedEnumValue as ODLCObjects;
-          newMatch = {
-            ...currentMatchData,
-            objectType: newObjectType,
           };
         }
       }
 
       if (newMatch) updatedMatches[compositeKey] = newMatch;
-      else if (field === "airdropIndex" && selectedEnumValue === "") {
+      else if (field === "airdropType" && selectedEnumValue === "") {
         /* handled by delete */
       } else if (!newMatch) {
         return prev;
@@ -631,28 +579,24 @@ const Reports: React.FC = () => {
     let confirmedCount = 0;
     let overwriteCount = 0;
     const updatesToSubmittedTargets: {
-      [key in AirdropIndex]?: AirdropTarget;
+      [key in AirdropType]?: AirdropTarget;
     } = {};
 
     Object.values(currentDetectionMatches).forEach((match) => {
       if (
         match &&
-        match.airdropIndex !== undefined &&
-        match.airdropIndex !== AirdropIndex.UNRECOGNIZED &&
-        match.objectType !== undefined &&
-        match.objectType !== ODLCObjects.UNRECOGNIZED &&
-        match.objectType !== PLACEHOLDER_OBJECT_TYPE &&
+        match.airdropType !== undefined &&
+        match.airdropType !== AirdropType.UNRECOGNIZED &&
         match.detectionInfo
       ) {
-        if (submittedTargets[match.airdropIndex]) {
+        if (submittedTargets[match.airdropType]) {
           overwriteCount++;
         }
         const confirmedTarget = AirdropTarget.create({
-          Index: match.airdropIndex,
+          Index: match.airdropType,
           Coordinate: match.detectionInfo.coordinate,
-          Object: match.objectType,
         });
-        updatesToSubmittedTargets[match.airdropIndex] = confirmedTarget;
+        updatesToSubmittedTargets[match.airdropType] = confirmedTarget;
         confirmedCount++;
       }
     });
@@ -675,8 +619,7 @@ const Reports: React.FC = () => {
     setError(null);
 
     const finalPayload = Object.values(submittedTargets).filter(
-      (target): target is AirdropTarget =>
-        target !== undefined && target.Object !== ODLCObjects.Undefined,
+      (target): target is AirdropTarget => target !== undefined && target.Coordinate !== undefined,
     );
 
     if (finalPayload.length !== REQUIRED_AIRDROP_INDICES.length) {
@@ -685,7 +628,7 @@ const Reports: React.FC = () => {
         finalPayload,
       );
       setError(
-        "Internal error: Incomplete final target list. Ensure all targets have a defined object type.",
+        "Internal error: Incomplete final target list. Ensure all targets have confirmed coordinates.",
       );
       setIsFinalSubmitting(false);
       return;
@@ -752,7 +695,7 @@ const Reports: React.FC = () => {
     };
     const match = currentDetectionMatches[detection.compositeKey];
     const isAssigned =
-      match?.airdropIndex !== undefined && match.airdropIndex !== AirdropIndex.UNRECOGNIZED;
+      match?.airdropType !== undefined && match.airdropType !== AirdropType.UNRECOGNIZED;
     const color = isAssigned ? "lime" : "cyan";
 
     const container = imageContainerRef.current;
@@ -1039,7 +982,6 @@ const Reports: React.FC = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell>Assignee</TableCell>
-                        <TableCell>Confirmed Object</TableCell>
                         <TableCell>Coords</TableCell>
                       </TableRow>
                     </TableHead>
@@ -1051,18 +993,10 @@ const Reports: React.FC = () => {
                             key={index}
                             hover
                             sx={{
-                              background:
-                                d && d.Object !== ODLCObjects.Undefined ? "#e8f5e9" : "inherit",
+                              background: d && d.Coordinate !== undefined ? "#e8f5e9" : "inherit",
                             }}
                           >
-                            <TableCell>{airdropIndexToJSON(index)}</TableCell>
-                            <TableCell>
-                              {d?.Object !== undefined && d.Object !== ODLCObjects.Undefined ? (
-                                oDLCObjectsToJSON(d.Object)
-                              ) : (
-                                <em>Needed</em>
-                              )}
-                            </TableCell>
+                            <TableCell>{airdropTypeToJSON(index)}</TableCell>
                             <TableCell>
                               {d?.Coordinate ? formatCoordinates(d.Coordinate) : "-"}
                             </TableCell>
@@ -1082,15 +1016,15 @@ const Reports: React.FC = () => {
                   <InputLabel id="manual-airdrop-select-label">Target Assignee</InputLabel>
                   <Select
                     labelId="manual-airdrop-select-label"
-                    value={manualAirdropIndexJson}
+                    value={manualAirdropTypeJson}
                     label="Target Assignee"
-                    onChange={(e) => setManualAirdropIndexJson(e.target.value as string)}
+                    onChange={(e) => setManualAirdropTypeJson(e.target.value as string)}
                   >
                     <MenuItem value="">
                       <em>Select Assignee...</em>
                     </MenuItem>
                     {REQUIRED_AIRDROP_INDICES.map((idxEnum) => {
-                      const jsonVal = airdropIndexToJSON(idxEnum);
+                      const jsonVal = airdropTypeToJSON(idxEnum);
                       return (
                         <MenuItem key={jsonVal} value={jsonVal}>
                           {jsonVal}
@@ -1099,34 +1033,7 @@ const Reports: React.FC = () => {
                     })}
                   </Select>
                 </FormControl>
-                <FormControl fullWidth size="small" sx={{ mb: 1.5 }} error={!!manualInputError}>
-                  <InputLabel id="manual-object-select-label">Object Type</InputLabel>
-                  <Select
-                    labelId="manual-object-select-label"
-                    value={manualObjectTypeJson}
-                    label="Object Type"
-                    onChange={(e) => setManualObjectTypeJson(e.target.value as string)}
-                  >
-                    <MenuItem value="">
-                      <em>Select Object...</em>
-                    </MenuItem>
-                    {Object.entries(ODLCObjects)
-                      .filter(
-                        ([_, v_enum]) =>
-                          typeof v_enum === "number" &&
-                          v_enum > 0 &&
-                          v_enum !== ODLCObjects.UNRECOGNIZED,
-                      )
-                      .map(([k_enum, v_enum]) => {
-                        const o_json = oDLCObjectsToJSON(v_enum as ODLCObjects);
-                        return (
-                          <MenuItem key={k_enum} value={o_json}>
-                            {o_json}
-                          </MenuItem>
-                        );
-                      })}
-                  </Select>
-                </FormControl>
+                {/* Object type selection removed */}
 
                 <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
                   <TextField
@@ -1159,12 +1066,7 @@ const Reports: React.FC = () => {
                   variant="outlined"
                   color="secondary"
                   onClick={handleSetManualTarget}
-                  disabled={
-                    !manualAirdropIndexJson ||
-                    !manualObjectTypeJson ||
-                    !manualLatitude ||
-                    !manualLongitude
-                  }
+                  disabled={!manualAirdropTypeJson || !manualLatitude || !manualLongitude}
                   fullWidth
                 >
                   Set Manual Target (Override)
@@ -1219,7 +1121,7 @@ const Reports: React.FC = () => {
                     color="textSecondary"
                     sx={{ mt: 1, textAlign: "center" }}
                   >
-                    (Requires all 4 targets confirmed with specific object types)
+                    (Requires all targets have confirmed coordinates)
                   </Typography>
                 )}
               </CardContent>
@@ -1242,14 +1144,9 @@ const Reports: React.FC = () => {
                     {currentDetections.map((detection, index) => {
                       const currentMatch = currentDetectionMatches[detection.compositeKey];
                       const assignedAirdropJsonValue =
-                        currentMatch?.airdropIndex !== undefined &&
-                        currentMatch.airdropIndex !== AirdropIndex.UNRECOGNIZED
-                          ? airdropIndexToJSON(currentMatch.airdropIndex)
-                          : "";
-                      const assignedObjectTypeJsonValue =
-                        currentMatch?.objectType !== undefined &&
-                        currentMatch.objectType !== ODLCObjects.UNRECOGNIZED
-                          ? oDLCObjectsToJSON(currentMatch.objectType)
+                        currentMatch?.airdropType !== undefined &&
+                        currentMatch.airdropType !== AirdropType.UNRECOGNIZED
+                          ? airdropTypeToJSON(currentMatch.airdropType)
                           : "";
                       const isDisabled = isConfirming || isFinalSubmitting || isCurrentRunProcessed;
 
@@ -1289,7 +1186,7 @@ const Reports: React.FC = () => {
                               onChange={(e) =>
                                 handleMatchUpdate(
                                   detection.compositeKey,
-                                  "airdropIndex",
+                                  "airdropType",
                                   e,
                                   detection,
                                 )
@@ -1301,9 +1198,9 @@ const Reports: React.FC = () => {
                                 <em>Clear Assignment</em>
                               </MenuItem>
                               {REQUIRED_AIRDROP_INDICES.map((idxEnum) => {
-                                const v = airdropIndexToJSON(idxEnum);
+                                const v = airdropTypeToJSON(idxEnum);
                                 const s = submittedTargets[idxEnum];
-                                const isAlreadyConfirmed = s && s.Object !== ODLCObjects.Undefined;
+                                const isAlreadyConfirmed = s && s.Coordinate !== undefined;
                                 return (
                                   <MenuItem
                                     key={v}
@@ -1318,7 +1215,7 @@ const Reports: React.FC = () => {
                               })}
                             </Select>
                             {assignedAirdropJsonValue &&
-                              submittedTargets[airdropIndexFromJSON(assignedAirdropJsonValue)] &&
+                              submittedTargets[airdropTypeFromJSON(assignedAirdropJsonValue)] &&
                               !isDisabled && (
                                 <FormHelperText
                                   sx={{
@@ -1329,48 +1226,7 @@ const Reports: React.FC = () => {
                                 </FormHelperText>
                               )}
                           </FormControl>
-                          <FormControl
-                            fullWidth
-                            size="small"
-                            sx={{ mb: 1 }}
-                            disabled={isDisabled || !assignedAirdropJsonValue}
-                          >
-                            <InputLabel id={`o-${detection.compositeKey}`}>Object Type</InputLabel>
-                            <Select
-                              labelId={`o-${detection.compositeKey}`}
-                              label="Object Type"
-                              value={assignedObjectTypeJsonValue}
-                              onChange={(e) =>
-                                handleMatchUpdate(
-                                  detection.compositeKey,
-                                  "objectType",
-                                  e,
-                                  detection,
-                                )
-                              }
-                              displayEmpty
-                              renderValue={(v) => v || <em>Select Type...</em>}
-                            >
-                              <MenuItem value="">
-                                <em>Undefined (Clear Type)</em>
-                              </MenuItem>
-                              {Object.entries(ODLCObjects)
-                                .filter(
-                                  ([_, v_enum]) =>
-                                    typeof v_enum === "number" &&
-                                    v_enum > 0 &&
-                                    v_enum !== ODLCObjects.UNRECOGNIZED,
-                                )
-                                .map(([k_enum, v_enum]) => {
-                                  const o_json = oDLCObjectsToJSON(v_enum as ODLCObjects);
-                                  return (
-                                    <MenuItem key={k_enum} value={o_json}>
-                                      {o_json}
-                                    </MenuItem>
-                                  );
-                                })}
-                            </Select>
-                          </FormControl>
+                          {/* Object type control removed */}
                         </Paper>
                       );
                     })}
