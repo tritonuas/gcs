@@ -295,7 +295,6 @@ function AirdropInputForm({
   airdropAssignments: Airdrop[];
   setAirdropAssignments: React.Dispatch<SetStateAction<Airdrop[]>>;
 }) {
-
   const airdropInput = (airdrop: Airdrop) => {
     return (
       <>
