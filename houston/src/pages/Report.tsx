@@ -1,135 +1,63 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 import {
-  IdentifiedTarget,
   AirdropType,
-  airdropTypeToJSON,
-  airdropTypeFromJSON,
   GPSCoord,
-  BboxProto,
-  AirdropTarget,
-  Mission,
 } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
-import { AddIcCall, Cancel, CheckCircle } from "@mui/icons-material";
 import TuasMap from "../components/TuasMap";
-import { LatLng, latLng, map } from "leaflet";
-import { Circle, Marker, Polygon, Popup, SVGOverlay } from "react-leaflet";
+import { LatLng } from "leaflet";
+import { Circle, Marker, Popup,  } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
 // --- Constants ---
-const POLLING_INTERVAL_MS = 10000;
-const API_BASE_URL = "/api";
-const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
-const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
-const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
-const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
-  (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
-) as AirdropType[];
+// const POLLING_INTERVAL_MS = 10000;
+// const API_BASE_URL = "/api";
+// const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
+// const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
+// const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
+// const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
+//   (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
+// ) as AirdropType[];
 
-// --- Helper Functions ---
-const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
-  try {
-    const response = await fetch(TARGETS_ALL_ENDPOINT);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error("Invalid data format from /targets/all");
-    return data.map((item) => IdentifiedTarget.fromJSON(item));
-  } catch (error) {
-    console.error("Error fetching targets from /targets/all:", error);
-    throw error;
-  }
-};
 
-const postMatchedTargets = async (payload: AirdropTarget[]): Promise<boolean> => {
-  console.log(`POSTING FINAL MATCHES to ${TARGET_MATCHED_ENDPOINT}:`, payload);
-  const jsonPayload = payload.map((target) => AirdropTarget.toJSON(target));
-  try {
-    const response = await fetch(TARGET_MATCHED_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(jsonPayload),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      console.error(
-        `POST to ${TARGET_MATCHED_ENDPOINT} failed with status ${response.status}`,
-        errorBody,
-      );
-      if (response.status === 404) {
-        throw new Error(
-          `Endpoint not found (${response.status}): POST ${TARGET_MATCHED_ENDPOINT}. Check backend route and dev proxy.`,
-        );
-      } else {
-        throw new Error(`HTTP ${response.status} - ${errorBody || response.statusText}`);
-      }
-    }
-    console.log("POST successful:", jsonPayload);
-    return true;
-  } catch (error) {
-    console.error("Error posting final matched targets:", error);
-    throw error;
-  }
-};
 
 // New helper to fetch saved runs
-const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
-  try {
-    const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT);
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.log("No saved runs found on server (404).");
-        return [];
-      }
-      throw new Error(`HTTP ${response.status} fetching saved runs`);
-    }
-    const text = await response.text();
-    if (!text) {
-      console.log("Received empty response body from saved runs endpoint.");
-      return [];
-    }
-    const data = JSON.parse(text);
+// const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
+//   try {
+//     const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT);
+//     if (!response.ok) {
+//       if (response.status === 404) {
+//         console.log("No saved runs found on server (404).");
+//         return [];
+//       }
+//       throw new Error(`HTTP ${response.status} fetching saved runs`);
+//     }
+//     const text = await response.text();
+//     if (!text) {
+//       console.log("Received empty response body from saved runs endpoint.");
+//       return [];
+//     }
+//     const data = JSON.parse(text);
 
-    if (!Array.isArray(data)) {
-      if (typeof data === "object" && Object.keys(data).length === 0) {
-        console.warn(
-          "Saved runs endpoint returned an empty object, expected array. Treating as no runs.",
-        );
-        return [];
-      }
-      throw new Error("Invalid data format for saved runs (expected array)");
-    }
-    return data.map((item) => IdentifiedTarget.fromJSON(item));
-  } catch (error) {
-    console.error("Error fetching saved runs:", error);
-    return [];
-  }
-};
+//     if (!Array.isArray(data)) {
+//       if (typeof data === "object" && Object.keys(data).length === 0) {
+//         console.warn(
+//           "Saved runs endpoint returned an empty object, expected array. Treating as no runs.",
+//         );
+//         return [];
+//       }
+//       throw new Error("Invalid data format for saved runs (expected array)");
+//     }
+//     return data.map((item) => IdentifiedTarget.fromJSON(item));
+//   } catch (error) {
+//     console.error("Error fetching saved runs:", error);
+//     return [];
+//   }
+// };
 
-// New helper to push runs to be saved
-const pushSavedRunsToServer = async (runsToSave: IdentifiedTarget[]): Promise<boolean> => {
-  console.log(`Pushing ${runsToSave.length} runs to ${SAVE_LOAD_REPORT_ENDPOINT}`);
-  const jsonPayload = runsToSave.map((run) => IdentifiedTarget.toJSON(run));
-  try {
-    const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(jsonPayload),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      throw new Error(
-        `HTTP ${response.status} pushing saved runs - ${errorBody || response.statusText}`,
-      );
-    }
-    return true;
-  } catch (error) {
-    console.error("Error pushing saved runs:", error);
-    throw error;
-  }
-};
 
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
@@ -165,7 +93,7 @@ function GetNextColor() {
 }
 // --- Component ---
 const Reports: React.FC = () => {
-  const [flightMode, setFlightMode] = useState("???");
+  //const [flightMode, setFlightMode] = useState("???");
   // probably should have been a useReducer, if anyone wants to refactor
   const [clusters, setClusters] = useState([] as Cluster[]);
   const [selectedCluster, setSelectedCluster] = useState(null as Cluster | null);
