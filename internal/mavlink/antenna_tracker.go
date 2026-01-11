@@ -13,7 +13,7 @@ import (
 // verifyAntennaTrackerConnection will attempt to make a connection with the antenna tracker.
 // This function will hang until a connection is established.
 func (c *Client) verifyAntennaTrackerConnection() {
-	_, err := net.Dial("udp", fmt.Sprintf("%s:%s", c.antennaTrackerIP, c.antennaTrackerPort))
+	_, err := net.Dial("udp", net.JoinHostPort(c.antennaTrackerIP, c.antennaTrackerPort))
 	if err != nil {
 		c.connectedToAntennaTracker = false
 		Log.Errorf("Error with connecting to antenna tracker. Reason: %s", err.Error())
@@ -30,7 +30,7 @@ func (c *Client) verifyAntennaTrackerConnection() {
 // "34.566,-74.567,200"
 func (c *Client) forwardToAntennaTracker(evt *gomavlib.EventFrame, _ *gomavlib.Node) {
 	if msg, ok := evt.Frame.GetMessage().(*common.MessageGlobalPositionInt); ok {
-		conn, err := net.Dial("udp", fmt.Sprintf("%s:%s", c.antennaTrackerIP, c.antennaTrackerPort))
+		conn, err := net.Dial("udp", net.JoinHostPort(c.antennaTrackerIP, c.antennaTrackerPort))
 		if err != nil {
 			c.connectedToAntennaTracker = false
 			Log.Errorf("Error with connecting to antenna tracker. Reason: %s", err.Error())

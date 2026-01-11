@@ -97,8 +97,8 @@ services:
     environment:
       - VEHICLE=ArduPlane
       - MODEL=quadplane
-      - LAT=38.31542593549111
-      - LON=-76.55062632801757
+      - LAT=36.21444
+      - LON=-96.00639
       - ALT=8
       - DIR=180
       - SPEEDUP=2
