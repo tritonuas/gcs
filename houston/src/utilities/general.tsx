@@ -4,7 +4,31 @@ export const INFLUX_PORT = "8086";
 export const INFLUX_URI = "/orgs/83cf98a33ce1da25/data-explorer?bucket=mavlink";
 
 import React from "react";
+import { GPSCoord } from "../protos/obc.pb";
 
+/**
+ * Converts  GPS coord to string
+ * @param g The gps cord to format
+ * @returns A string with the gps cords data for displaying
+ */
+export function GPSCoordToString(g : GPSCoord) {
+  return `Lat: ${g.Latitude}, Long: ${g.Longitude}, Alt: ${g.Altitude}`
+}
+
+/**
+ * creates a random gps cord in a box with a min of lat - latChange and max of lat + latChange
+ * @param lat lat center of distribution
+ * @param long long center of distrobution
+ * @param latChange 1/2 of the lat side of the square 
+ * @param longChange 1/2 of the long side of the square 
+ * @returns a random point in a square centered on lat, long with sides of 2 * latChange, 2 * LongChange
+ */
+export function createRandomGPSCoord(lat: number, long : number, latChange : number, longChange: number ) : GPSCoord{
+  return GPSCoord.create({
+    Latitude: lat + Math.random() * latChange * 2 - latChange,
+    Longitude: long + Math.random() * longChange * 2 - latChange,
+  })
+}
 /**
  * Takes a URL (e.g. https://192.168.1.4:5000) and extracts out the base,
  * meaning everything before the port. (E.g. https://192.168.1.4)

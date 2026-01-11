@@ -1,173 +1,84 @@
-/* src/pages/Report.css */
-
-/* --- General Layout --- */
-.reports-container {
-  padding: 16px; /* MUI theme.spacing(2) */
-  background-color: #f0f0f0;
-  min-height: 100vh;
-}
-
-.reports-error-alert {
-  margin-bottom: 16px; /* MUI theme.spacing(2) */
-}
-
-/* --- Image Queue --- */
-.reports-image-queue-container {
+.reports-main {
+  height: 100%;
   display: flex;
-  gap: 8px; /* MUI theme.spacing(1) */
+  flex-direction: row;
   align-items: center;
+  justify-content: space-evenly;
+  gap: 20px;
+  padding: 20px;
+
 }
 
-.reports-queued-image-wrapper {
-  text-align: center;
-}
-
-.reports-queued-image {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border: 1px solid grey;
-  border-radius: 4px;
-  display: block; /* Ensure img is block for wrapper text-align */
-  margin: 0 auto; /* Center if needed within wrapper */
-}
-
-.reports-image-placeholder {
-  width: 80px;
-  height: 80px;
-  background-color: #e0e0e0; /* MUI grey[300] */
+.reports-col {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  border: 1px solid grey;
+  justify-content: space-evenly;
+  width: 50%;
+  height: 100%;
+  gap: 20px;
 }
 
-.reports-more-images-text {
-  margin-left: 8px; /* MUI theme.spacing(1) */
-}
-
-.reports-polling-indicator {
-  margin-left: 16px; /* MUI theme.spacing(2) */
-}
-
-/* --- Target Status Table --- */
-.reports-target-status-table-container {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.reports-status-icon-placeholder {
-  width: 24px; /* Match CheckCircleIcon size */
-  height: 24px;
-  display: inline-block; /* Align better in table cell */
-  vertical-align: middle;
-}
-
-/* --- Current Image Display --- */
-.reports-current-run-id {
-  margin-left: 8px; /* MUI theme.spacing(1) */
-}
-
-.reports-current-image-container {
-  position: relative;
-  min-height: 200px;
+.reports-card {
+  background-color: var(--light-bg);
+  box-shadow: 0px 0px 25px 0px rgba(0, 0, 0, 0.75);
+  flex: 1;
   width: 100%;
-  overflow: hidden;
-  border: 1px solid #ccc;
-  background: #e0e0e0; /* MUI grey[300] */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 25px;
+  height: 100%;
+  padding: 5px;
 }
 
-.reports-current-image {
-  display: block;
+.reports-cluster-container {
+  display: flex;
+  flex-direction: column;
+  align-items: centers;
+  height: 100% ;
+
+  overflow-y: scroll; 
+}
+
+.reports-map {
+  min-height: 60%;
   width: 100%;
-  height: auto;
-  background: white; /* MUI background.paper */
+  resize: vertical;
 }
-
-/* --- Bounding Boxes & Labels (Dynamic styles kept inline) --- */
-.reports-bbox {
-  position: absolute;
-  box-sizing: border-box;
-  pointer-events: none;
-  border-width: 2px;
-  border-style: solid;
+.reports-cluster-bottom-section{
+  height: 100%;
 }
-/* Dynamic border-color is handled via inline style or conditional classes if preferred */
-/* Example using conditional classes (modify JSX accordingly): */
-/*
-.bbox-default { border-color: cyan; }
-.bbox-confirmed { border-color: lime; }
-.bbox-rejected { border-color: red; }
-*/
-
-.reports-bbox-label {
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.6);
-  padding: 0 2px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  pointer-events: none;
-  white-space: nowrap;
-}
-/* Dynamic color is handled via inline style or conditional classes */
-/* Example using conditional classes (modify JSX accordingly): */
-/*
-.label-default { color: cyan; }
-.label-confirmed { color: lime; }
-.label-rejected { color: red; }
-*/
-
-/* --- Confirm Targets Actions --- */
-.reports-confirm-actions-content {
-  /* Adjust calc based on actual surrounding elements/padding */
-  max-height: calc(100vh - 250px);
-  overflow-y: auto;
-}
-
-.reports-target-action-paper {
-  padding: 12px; /* MUI theme.spacing(1.5) */
-  margin-bottom: 12px; /* MUI theme.spacing(1.5) */
-  background-color: white; /* MUI background.paper */
-  opacity: 1;
-  transition:
-    background-color 0.3s ease,
-    opacity 0.3s ease; /* Optional */
-}
-
-.reports-target-action-paper.processed {
-  background-color: #e0e0e0; /* MUI grey[300] */
-  opacity: 0.7;
-}
-
-.reports-target-coordinates {
-  margin-left: 8px; /* MUI theme.spacing(1) */
-  /* color: var(--mui-palette-text-secondary); /* Or use MUI prop */
-  color: rgba(0, 0, 0, 0.6); /* Fallback if not using CSS vars */
-}
-
-.reports-assignee-select {
-  margin-bottom: 8px; /* MUI theme.spacing(1) */
-}
-
-.reports-action-buttons-container {
+.reports-cluster-data {
+  height: 40%;
   display: flex;
-  justify-content: space-between;
-  gap: 8px; /* MUI theme.spacing(1) */
+  width: 100%;
 }
 
-.reports-action-button {
-  flex-grow: 1;
+.reports-cluster-table{
+  max-height: 100%;
+  border-radius: 25px;
+  border: 1px black solid;
+  padding: 5px;
+  background-color: var(--med-bg);
+}
+.reports-cluster-table-row{
+  cursor: pointer;
 }
 
-.reports-next-image-button {
-  margin-top: 16px; /* MUI theme.spacing(2) */
+.reports-cluster-table-row:hover{
+  background: var(--light-bg);
+}
+.reports-table-wrapper{
+  overflow-y: scroll;
+  height: 100%;
 }
 
-.reports-status-text {
-  margin-top: 16px; /* MUI theme.spacing(2) */
-  text-align: center;
+.report-detection-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+
+}
+
+.report-detection-image {
+  height: 60%;
 }
