@@ -13,7 +13,6 @@ import { useMyModal } from "../components/UseMyModal";
 enum MapMode {
   FlightBound,
   SearchBound,
-  MappingBound,
   Waypoint,
   InitialPath,
   SearchPath,
@@ -45,13 +44,6 @@ const getModeConfig = (mapMode: MapMode) => {
     case MapMode.SearchBound:
       return {
         color: "blue",
-        headings: ["Latitude", "Longitude"],
-        type: ShapeType.Polygon,
-        editable: true,
-      } as MapModeConfig;
-    case MapMode.MappingBound:
-      return {
-        color: "orange",
         headings: ["Latitude", "Longitude"],
         type: ShapeType.Polygon,
         editable: true,
@@ -636,7 +628,6 @@ function Input() {
       AirdropAssignments: airdropAssignments,
       FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
       AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
-      MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
       Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
       DropLocation: mapDataToGpsCoords(MapMode.DropLocation),
     };
@@ -776,9 +767,8 @@ function Input() {
       setDefaultView([32.990781135309724, -117.12830536731832]);
       setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
       setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-      setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
       setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
-    } else if (selected == "Competition_Left") {
+    } else if (selected == "Competition_One") {
       setDefaultView([38.314666970000744, -76.54975138401012]);
       setMapData(
         new Map(
@@ -803,25 +793,15 @@ function Input() {
       setMapData(
         new Map(
           mapData.set(MapMode.SearchBound, [
-            [38.315683, -76.552586], //bl
-            [38.315386, -76.550875], //br
-            [38.315607, -76.5508], //tr
-            [38.315895, -76.552519], //tl
+            [36.216341, -96.010424], //bl
+            [36.21675, -96.00755], //br
+            [36.218054, -96.007835], //tr
+            [36.217645, -96.010709], //tl
           ]),
         ),
       );
-      setMapData(
-        new Map(
-          mapData.set(MapMode.MappingBound, [
-            [38.314816, -76.548947],
-            [38.31546, -76.552653],
-            [38.316639, -76.55233],
-            [38.316016, -76.5486],
-          ]),
-        ),
-      );
-      // Competition Left Waypoints - typical competition waypoints with altitude
-    } else if (selected == "Competition_Right") {
+      // Competition One Waypoints - typical competition waypoints with altitude
+    } else if (selected == "Competition_Two") {
       setDefaultView([38.314666970000744, -76.54975138401012]);
       setMapData(
         new Map(
@@ -846,24 +826,14 @@ function Input() {
       setMapData(
         new Map(
           mapData.set(MapMode.SearchBound, [
-            [38.314529, -76.545859], //bl
-            [38.314228, -76.544156], //br
-            [38.314441, -76.544081], //tr
-            [38.314731, -76.545792], //tl
+            [36.213469, -96.004286], //bl
+            [36.213469, -96.002635], //br
+            [36.215795, -96.002635], //tr
+            [36.215795, -96.004286], //tl
           ]),
         ),
       );
-      setMapData(
-        new Map(
-          mapData.set(MapMode.MappingBound, [
-            [38.314669, -76.547987],
-            [38.315873, -76.547611],
-            [38.315208, -76.54384],
-            [38.314008, -76.544237],
-          ]),
-        ),
-      );
-      // Competition Right Waypoints - typical competition waypoints with altitude
+      // Competition Two Waypoints - typical competition waypoints with altitude
       setMapData(
         new Map(
           mapData.set(MapMode.Waypoint, [
@@ -885,7 +855,6 @@ function Input() {
     } else {
       setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
       setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-      setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
       setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
     }
   }
@@ -915,19 +884,19 @@ function Input() {
             <input
               type="radio"
               name="default_location"
-              value="Competition_Left"
-              onClick={() => changingDeafultView("Competition_Left")}
+              value="Competition_One"
+              onClick={() => changingDeafultView("Competition_One")}
             />
-            Competition Left
+            Competition One
           </label>
           <label>
             <input
               type="radio"
               name="default_location"
-              value="Competition_Right"
-              onClick={() => changingDeafultView("Competition_Right")}
+              value="Competition_Two"
+              onClick={() => changingDeafultView("Competition_Two")}
             />
-            Competition Right
+            Competition Two
           </label>
         </fieldset>
       </MyModal>
