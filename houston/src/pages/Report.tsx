@@ -143,7 +143,7 @@ const Reports: React.FC = () => {
                 },
               }}
               center={[e.location.Latitude, e.location.Longitude]}
-              radius={e == selectedDetection ? 200 : 100}
+              radius={e == selectedDetection ? 200 : 50}
               pathOptions={{
                 color: e.rejected
                   ? "red"
@@ -153,7 +153,7 @@ const Reports: React.FC = () => {
           );
         })}
         <Marker position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}>
-          <Popup>Cluster for airdrop: {cluster.airdrop_type}</Popup>
+          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
         </Marker>
       </>
     );
@@ -191,7 +191,7 @@ const Reports: React.FC = () => {
                       setSelectedCluster(c);
                     }}
                   >
-                    {c.airdrop_type}
+                    {AirdropType[c.airdrop_type]}
                   </option>
                 );
               })}
@@ -296,7 +296,7 @@ const Reports: React.FC = () => {
 
               const addition: Cluster = {
                 calculated_center: center,
-                airdrop_type: AirdropType.Beacon,
+                airdrop_type: AirdropType.Water,
                 all_data_points: [],
                 selected_center: null,
                 color: [],
