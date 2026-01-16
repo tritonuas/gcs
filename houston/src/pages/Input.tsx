@@ -769,7 +769,7 @@ function Input() {
       setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
       setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
     } else if (selected == "Competition_One") {
-      setDefaultView([38.314666970000744, -76.54975138401012]);
+      setDefaultView([36.2157047555, -96.007976532]);
       setMapData(
         new Map(
           mapData.set(MapMode.FlightBound, [
@@ -799,7 +799,7 @@ function Input() {
       );
       // Competition One Waypoints - typical competition waypoints with altitude
     } else if (selected == "Competition_Two") {
-      setDefaultView([38.314666970000744, -76.54975138401012]);
+      setDefaultView([36.2157047555, -96.007976532]);
       setMapData(
         new Map(
           mapData.set(MapMode.FlightBound, [
