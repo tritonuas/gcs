@@ -109,10 +109,11 @@ func ExtractJSONListAsStrings(jsonStr string) ([]string, error) {
 
 		// Track braces only when not in a string
 		if !inString {
-			if char == '{' {
+			switch char {
+			case '{':
 				depth++
 				current.WriteRune(char)
-			} else if char == '}' {
+			case '}':
 				current.WriteRune(char)
 				depth--
 
@@ -124,10 +125,12 @@ func ExtractJSONListAsStrings(jsonStr string) ([]string, error) {
 					}
 					current.Reset()
 				}
-			} else if char == ',' && depth == 0 {
-				// Skip commas between top-level objects
-				continue
-			} else {
+			case ',':
+				if depth != 0 {
+					current.WriteRune(char)
+				}
+				// Skip commas between top-level objects (when depth == 0)
+			default:
 				current.WriteRune(char)
 			}
 		} else {

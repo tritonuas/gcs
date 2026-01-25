@@ -275,21 +275,21 @@ const Reports: React.FC = () => {
             }).then((j) => {
               console.log("Data obtained from obc:", j)
               //Later, this would make sense to us a protobuffer for, once the format is more set
-              let newval = []
+              const newval = []
               // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
-                for(let [key, value] of Object.entries(j)){
-                let datapoints : Detection[] = []
-                for(let d of (value as { detections: any[] })["detections"]){
-                  let detection: Detection = {
+                for(const [key, value] of Object.entries(j)){
+                const datapoints : Detection[] = []
+                for(const d of (value as { detections: {location: GPSCoord, Image: string}[] })["detections"]){
+                  const detection: Detection = {
                   location: GPSCoord.create((d["location"])),
                   type: +key as AirdropType,
-                  image: "data:image/jpeg;base64," + (d as any)["Image"],
+                  image: "data:image/jpeg;base64," + (d)["Image"],
                   rejected: false
                   }
                   datapoints.push(detection)
                 }
-                let addition: Cluster = {
-                  calculated_center: (value as any)["center"], //TODO
+                const addition: Cluster = {
+                  calculated_center: (value as {center: GPSCoord} )["center"], //TODO
                   airdrop_type: +key as AirdropType,
                   all_data_points: datapoints,
                   selected_center: null,
