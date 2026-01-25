@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState} from "react";
 
 import {
   AirdropType,
@@ -12,9 +12,12 @@ import { LatLng } from "leaflet";
 import { Circle, Marker, Popup,  } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
+
+
+const API_BASE_URL = "/api";
+const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
-// const API_BASE_URL = "/api";
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 // const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
 // const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
@@ -100,26 +103,6 @@ const Reports: React.FC = () => {
   const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
 
-  const isMounted = useRef(false);
-  //persistance
-  useEffect(() => {
-    const old = localStorage.getItem("saved-cluster");
-    if (old != null) {
-      setClusters(JSON.parse(old));
-    }
-  }, []);
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-      return;
-    }
-    console.log("Saving new cluster data", clusters);
-    try {
-      localStorage.setItem("saved-cluster", JSON.stringify(clusters));
-    } catch (e) {
-      window.alert("Issue with saving locally, latest changes not updated ");
-    }
-  }, [clusters]);
   /**
    * A cluster drawn on the app
    * @param cluster The cluster to draw
@@ -143,7 +126,7 @@ const Reports: React.FC = () => {
                 },
               }}
               center={[e.location.Latitude, e.location.Longitude]}
-              radius={e == selectedDetection ? 200 : 50}
+              radius={e == selectedDetection ? 10 : 5}
               pathOptions={{
                 color: e.rejected
                   ? "red"
@@ -191,7 +174,7 @@ const Reports: React.FC = () => {
                       setSelectedCluster(c);
                     }}
                   >
-                    {AirdropType[c.airdrop_type]}
+                    {AirdropType[c.airdrop_type] ?? c.airdrop_type}({c.airdrop_type})
                   </option>
                 );
               })}
@@ -286,6 +269,39 @@ const Reports: React.FC = () => {
         </div>
         <div className="reports-card">
           Temp dev stuff idk what goes here yets <br></br>
+          <button onClick={() => {
+            fetch(TARGETS_ALL_ENDPOINT).then((d) => {
+              return d.json();
+            }).then((j) => {
+              console.log("Data obtained from obc:", j)
+              //Later, this would make sense to us a protobuffer for, once the format is more set
+              let newval = []
+              // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+                for(let [key, value] of Object.entries(j)){
+                let datapoints : Detection[] = []
+                for(let d of (value as { detections: any[] })["detections"]){
+                  let detection: Detection = {
+                  location: GPSCoord.create((d["location"])),
+                  type: +key as AirdropType,
+                  image: "data:image/jpeg;base64," + (d as any)["Image"],
+                  rejected: false
+                  }
+                  datapoints.push(detection)
+                }
+                let addition: Cluster = {
+                  calculated_center: (value as any)["center"], //TODO
+                  airdrop_type: +key as AirdropType,
+                  all_data_points: datapoints,
+                  selected_center: null,
+                  color: GetNextColor()
+                }
+                newval.push(addition)
+              }
+              setClusters(newval);
+            })
+          }}>
+            Fetch data
+          </button>
           <button
             onClick={() => {
               const center = GPSCoord.create({
