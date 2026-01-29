@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/sirupsen/logrus"
+	"github.com/tritonuas/gcs/internal/clustering"
 	"github.com/tritonuas/gcs/internal/cvs"
 	"github.com/tritonuas/gcs/internal/influxdb"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
@@ -35,9 +37,9 @@ type Server struct {
 	UnclassifiedTargets []cvs.UnclassifiedODLC `json:"unclassified_targets"`
 	MissionTime         int64
 	ClassifiedTargets   []cvs.ClassifiedODLC
-
-	MissionConfig   *protos.Mission
-	reportFileMutex sync.Mutex
+	MissionConfig       *protos.Mission
+	reportFileMutex     sync.Mutex
+	clusterManager      *clustering.ClusterManager
 }
 
 // CORSMiddleware sets very permissive CORS headers. Since the GCS is typically
@@ -129,7 +131,6 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.POST("/matched", server.postMatchedTargets())
 
 			targets.POST("/locations", server.postAirdropTargets())
-
 			targets.POST("/validate", server.validateTargets())
 			targets.POST("/reject", server.rejectTargets())
 		}
@@ -149,7 +150,7 @@ func (server *Server) SetupRouter() *gin.Engine {
 }
 
 // New will initialize a server struct and populate fields with their initial state
-func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *obc.Client) *Server {
+func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *obc.Client, clusterManager *clustering.ClusterManager) *Server {
 	server := &Server{}
 
 	server.influxDBClient = influxdbClient
@@ -158,6 +159,7 @@ func New(influxdbClient *influxdb.Client, mavlinkClient *mav.Client, obcClient *
 
 	server.MissionConfig = nil
 
+	server.clusterManager = clusterManager
 	return server
 }
 
@@ -580,17 +582,29 @@ func (server *Server) getAllTargets() gin.HandlerFunc {
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
-			c.Data(http.StatusOK, "application/json", data)
+			jsonstr := string(data)
+			clusterError := server.clusterManager.AddDetection(jsonstr)
+			if clusterError != nil {
+				Log.Errorf("Error adding clusters %v", clusterError)
+			}
+			send_data, err := json.Marshal(server.clusterManager.ClusterData)
+			if err != nil {
+				Log.Fatalf("error marshelling JSON: %v", err)
+			}
+			c.Data(http.StatusOK, "application/json", send_data)
 		}
 	}
 }
 
 func (server *Server) getMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		data, err := server.obcClient.GetMatchedTargets()
+
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
+
 			c.Data(http.StatusOK, "application/json", data)
 		}
 	}

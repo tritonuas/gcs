@@ -1,28 +1,24 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 
-import {
-  AirdropType,
-  GPSCoord,
-} from "../protos/obc.pb";
+import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
-import { Circle, Marker, Popup,  } from "react-leaflet";
+import { Circle, Marker, Popup } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
+const API_BASE_URL = "/api";
+const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
-// const API_BASE_URL = "/api";
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 // const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
 // const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
 // const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
 //   (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
 // ) as AirdropType[];
-
-
 
 // New helper to fetch saved runs
 // const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
@@ -57,7 +53,6 @@ import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 //     return [];
 //   }
 // };
-
 
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
@@ -100,26 +95,6 @@ const Reports: React.FC = () => {
   const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
 
-  const isMounted = useRef(false);
-  //persistance
-  useEffect(() => {
-    const old = localStorage.getItem("saved-cluster");
-    if (old != null) {
-      setClusters(JSON.parse(old));
-    }
-  }, []);
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-      return;
-    }
-    console.log("Saving new cluster data", clusters);
-    try {
-      localStorage.setItem("saved-cluster", JSON.stringify(clusters));
-    } catch (e) {
-      window.alert("Issue with saving locally, latest changes not updated ");
-    }
-  }, [clusters]);
   /**
    * A cluster drawn on the app
    * @param cluster The cluster to draw
@@ -143,7 +118,7 @@ const Reports: React.FC = () => {
                 },
               }}
               center={[e.location.Latitude, e.location.Longitude]}
-              radius={e == selectedDetection ? 200 : 50}
+              radius={e == selectedDetection ? 10 : 5}
               pathOptions={{
                 color: e.rejected
                   ? "red"
@@ -157,6 +132,44 @@ const Reports: React.FC = () => {
         </Marker>
       </>
     );
+  }
+  /**
+   * Updates the detections state with new data fetched from the backend
+   */
+  function updateClusters() {
+    fetch(TARGETS_ALL_ENDPOINT)
+      .then((d) => {
+        return d.json();
+      })
+      .then((j) => {
+        console.log("Data obtained from go proxy:", j);
+        //Later, this would make sense to us a protobuffer for, once the format is more set
+        const newval = [];
+        // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+        for (const [key, value] of Object.entries(j)) {
+          const datapoints: Detection[] = [];
+          for (const d of (value as { detections: { location: GPSCoord; Image: string }[] })[
+            "detections"
+          ]) {
+            const detection: Detection = {
+              location: GPSCoord.create(d["location"]),
+              type: +key as AirdropType,
+              image: "data:image/jpeg;base64," + d["Image"],
+              rejected: false,
+            };
+            datapoints.push(detection);
+          }
+          const addition: Cluster = {
+            calculated_center: (value as { center: GPSCoord })["center"],
+            airdrop_type: +key as AirdropType,
+            all_data_points: datapoints,
+            selected_center: null,
+            color: GetNextColor(),
+          };
+          newval.push(addition);
+        }
+        setClusters(newval);
+      });
   }
 
   return (
@@ -191,7 +204,7 @@ const Reports: React.FC = () => {
                       setSelectedCluster(c);
                     }}
                   >
-                    {AirdropType[c.airdrop_type]}
+                    {AirdropType[c.airdrop_type] ?? c.airdrop_type}({c.airdrop_type})
                   </option>
                 );
               })}
@@ -286,11 +299,12 @@ const Reports: React.FC = () => {
         </div>
         <div className="reports-card">
           Temp dev stuff idk what goes here yets <br></br>
+          <button onClick={updateClusters}>Fetch data</button>
           <button
             onClick={() => {
               const center = GPSCoord.create({
-                Latitude: maploc[0] + Math.random() * 0.02 - 0.01,
-                Longitude: maploc[1] + Math.random() * 0.02 - 0.01,
+                Latitude: maploc[0] + Math.random() * 0.002 - 0.001,
+                Longitude: maploc[1] + Math.random() * 0.002 - 0.001,
                 Altitude: 0,
               });
 
@@ -313,16 +327,6 @@ const Reports: React.FC = () => {
             }}
           >
             Add random cluster
-          </button>
-          <button
-            onClick={() => {
-              if (!window.confirm("This will wipe all cluster data! Are you sure?")) {
-                return;
-              }
-              setClusters([]);
-            }}
-          >
-            Clear local cluster storage
           </button>
         </div>
       </div>
