@@ -131,7 +131,6 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.POST("/matched", server.postMatchedTargets())
 
 			targets.POST("/locations", server.postAirdropTargets())
-
 			targets.POST("/validate", server.validateTargets())
 			targets.POST("/reject", server.rejectTargets())
 		}
@@ -583,9 +582,7 @@ func (server *Server) getAllTargets() gin.HandlerFunc {
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
-
 			jsonstr := string(data)
-
 			clusterError := server.clusterManager.AddDetection(jsonstr)
 			if clusterError != nil {
 				Log.Errorf("Error adding clusters %v", clusterError)

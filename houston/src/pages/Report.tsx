@@ -134,6 +134,43 @@ const Reports: React.FC = () => {
     );
   }
 
+  function updateClusters(){
+              fetch(TARGETS_ALL_ENDPOINT)
+                .then((d) => {
+                  return d.json();
+                })
+                .then((j) => {
+                  console.log("Data obtained from go proxy:", j);
+                  //Later, this would make sense to us a protobuffer for, once the format is more set
+                  const newval = [];
+                  // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+                  for (const [key, value] of Object.entries(j)) {
+                    const datapoints: Detection[] = [];
+                    for (const d of (
+                      value as { detections: { location: GPSCoord; Image: string }[] }
+                    )["detections"]) {
+                      const detection: Detection = {
+                        location: GPSCoord.create(d["location"]),
+                        type: +key as AirdropType,
+                        image: "data:image/jpeg;base64," + d["Image"],
+                        rejected: false,
+                      };
+                      datapoints.push(detection);
+                    }
+                    const addition: Cluster = {
+                      calculated_center: (value as { center: GPSCoord })["center"], 
+                      airdrop_type: +key as AirdropType,
+                      all_data_points: datapoints,
+                      selected_center: null,
+                      color: GetNextColor(),
+                    };
+                    newval.push(addition);
+                  }
+                  setClusters(newval);
+                });
+            }
+
+
   return (
     <main className="reports-main">
       <div className="reports-col">
@@ -262,49 +299,15 @@ const Reports: React.FC = () => {
         <div className="reports-card">
           Temp dev stuff idk what goes here yets <br></br>
           <button
-            onClick={() => {
-              fetch(TARGETS_ALL_ENDPOINT)
-                .then((d) => {
-                  return d.json();
-                })
-                .then((j) => {
-                  console.log("Data obtained from obc:", j);
-                  //Later, this would make sense to us a protobuffer for, once the format is more set
-                  const newval = [];
-                  // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
-                  for (const [key, value] of Object.entries(j)) {
-                    const datapoints: Detection[] = [];
-                    for (const d of (
-                      value as { detections: { location: GPSCoord; Image: string }[] }
-                    )["detections"]) {
-                      const detection: Detection = {
-                        location: GPSCoord.create(d["location"]),
-                        type: +key as AirdropType,
-                        image: "data:image/jpeg;base64," + d["Image"],
-                        rejected: false,
-                      };
-                      datapoints.push(detection);
-                    }
-                    const addition: Cluster = {
-                      calculated_center: (value as { center: GPSCoord })["center"], //TODO
-                      airdrop_type: +key as AirdropType,
-                      all_data_points: datapoints,
-                      selected_center: null,
-                      color: GetNextColor(),
-                    };
-                    newval.push(addition);
-                  }
-                  setClusters(newval);
-                });
-            }}
+          onClick={updateClusters}
           >
             Fetch data
           </button>
           <button
             onClick={() => {
               const center = GPSCoord.create({
-                Latitude: maploc[0] + Math.random() * 0.02 - 0.01,
-                Longitude: maploc[1] + Math.random() * 0.02 - 0.01,
+                Latitude: maploc[0] + Math.random() * 0.002 - 0.001,
+                Longitude: maploc[1] + Math.random() * 0.002 - 0.001,
                 Altitude: 0,
               });
 
@@ -327,16 +330,6 @@ const Reports: React.FC = () => {
             }}
           >
             Add random cluster
-          </button>
-          <button
-            onClick={() => {
-              if (!window.confirm("This will wipe all cluster data! Are you sure?")) {
-                return;
-              }
-              setClusters([]);
-            }}
-          >
-            Clear local cluster storage
           </button>
         </div>
       </div>

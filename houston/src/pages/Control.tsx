@@ -11,7 +11,7 @@ import {
   FEET_TO_METERS,
   METERS_PER_SECOND_TO_KNOTS,
   roundDecimal,
-} from "../utilities/general.tsx";
+} from "../utilities/general.ts";
 import { SettingsConfig } from "../utilities/settings.ts";
 import UpdateMapCenter from "../components/UpdateMapCenter.tsx";
 
