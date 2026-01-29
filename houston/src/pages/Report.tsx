@@ -133,7 +133,9 @@ const Reports: React.FC = () => {
       </>
     );
   }
-
+  /**
+   * Updates the detections state with new data fetched from the backend
+   */
   function updateClusters(){
               fetch(TARGETS_ALL_ENDPOINT)
                 .then((d) => {
