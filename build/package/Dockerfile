@@ -1,3 +1,12 @@
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app
+COPY houston/package*.json ./houston/
+WORKDIR /app/houston
+RUN npm ci
+COPY houston/ .
+RUN npm run build
+
 FROM golang:1.20
 
 # Move to working directory /build
@@ -24,7 +33,7 @@ RUN --mount=target=. \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
 
-COPY ./houston/dist/ /build/houston/
+COPY --from=frontend-builder /app/houston/dist/ /build/houston/
 
 RUN mkdir /CSV
 # go build mounts code read-only without copying to container,
