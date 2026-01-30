@@ -15,8 +15,8 @@ COPY protos/ ./protos/
 COPY houston/ ./houston/
 
 # Generate frontend protos (run from root to match paths)
-RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ --proto_path=./protos ./protos/houston.proto
-RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ --proto_path=./protos ./protos/obc.proto
+RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/houston.proto
+RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/obc.proto
 
 WORKDIR /app/houston
 
