@@ -5,6 +5,7 @@ on:
     # only run rebuild docker image for changes to master
     branches:
       - master
+  pull_request:
 
 jobs:
   # Build and Push hub
