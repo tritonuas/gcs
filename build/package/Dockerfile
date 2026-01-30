@@ -29,17 +29,18 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 # RUN go mod download
 
-# Copy protos and generate them
-COPY protos/ ./protos/
-RUN mkdir -p internal/protos
+# Copy source code
+COPY . .
+
+# Generate Protos (depends on source being present, particularly protos/)
+# We copy everything so existing internal/protos (if any) are there, but we regenerate.
+# Since internal/protos is in .gitignore, it likely won't be copied from host if clean.
 RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
 RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/obc.proto
 
 # Build gcs
-# COPY . .
-# RUN go build
-RUN --mount=target=. \
-    --mount=type=cache,target=/go/pkg/mod \
+# Use cache mounts for deps but NOT for source (target=.) because it overlays the generated protos
+RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
 
