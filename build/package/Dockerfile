@@ -15,6 +15,10 @@ WORKDIR /build
 # disable some optimizations that don't work everywhere
 # ENV CGO_ENABLED=0
 
+# Install protobuf stuf
+RUN apt-get update && apt-get install -y protobuf-compiler
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+
 # copy over go.mod and go.sum
 COPY go.* ./
 
@@ -24,6 +28,12 @@ COPY go.* ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 # RUN go mod download
+
+# Copy protos and generate them
+COPY protos/ ./protos/
+RUN mkdir -p internal/protos
+RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
+RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/obc.proto
 
 # Build gcs
 # COPY . .
