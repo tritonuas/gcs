@@ -1,10 +1,25 @@
 FROM node:18-alpine AS frontend-builder
 
+
+# Install protobuf compiler
+RUN apk add --no-cache protobuf-dev
+
 WORKDIR /app
 COPY houston/package*.json ./houston/
 WORKDIR /app/houston
 RUN npm ci
-COPY houston/ .
+
+# Copy protos and generate them (needed for build)
+WORKDIR /app
+COPY protos/ ./protos/
+COPY houston/ ./houston/
+
+# Generate frontend protos (run from root to match paths)
+RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ --proto_path=./protos ./protos/houston.proto
+RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ --proto_path=./protos ./protos/obc.proto
+
+WORKDIR /app/houston
+
 RUN npm run build
 
 FROM golang:1.20
