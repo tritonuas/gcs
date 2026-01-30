@@ -9,12 +9,10 @@ COPY houston/package*.json ./houston/
 WORKDIR /app/houston
 RUN npm ci
 
-# Copy protos and generate them (needed for build)
 WORKDIR /app
 COPY protos/ ./protos/
 COPY houston/ ./houston/
 
-# Generate frontend protos (run from root to match paths)
 RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/houston.proto
 RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/obc.proto
 
@@ -47,14 +45,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source code
 COPY . .
 
-# Generate Protos (depends on source being present, particularly protos/)
-# We copy everything so existing internal/protos (if any) are there, but we regenerate.
-# Since internal/protos is in .gitignore, it likely won't be copied from host if clean.
 RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
 RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/obc.proto
 
 # Build gcs
-# Use cache mounts for deps but NOT for source (target=.) because it overlays the generated protos
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
