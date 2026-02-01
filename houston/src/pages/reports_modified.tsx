@@ -1,40 +1,17 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-import React, { useState } from "react";
-=======
-import React, { useState, useEffect, useRef, cloneElement, SetStateAction, useId } from "react";
->>>>>>> e6ccbd5 (add change centers)
-=======
-import React, { useState, useEffect, useRef } from "react";
->>>>>>> 1065861 (test)
+import React, { useState, useEffect, useRef, cloneElement } from "react";
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { LatLng } from "leaflet";
+import { LatLng, marker } from "leaflet";
 import { Circle, Marker, Popup } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
-
-const API_BASE_URL = "/api";
-const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
-=======
-import { latLng, LatLng, marker } from "leaflet";
-import { Circle, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 import L from "leaflet";
-import { Mouse } from "@mui/icons-material";
->>>>>>> e6ccbd5 (add change centers)
-=======
-import { LatLng } from "leaflet";
-import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
->>>>>>> 1065861 (test)
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
+// const API_BASE_URL = "/api";
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 // const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
 // const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
@@ -75,27 +52,16 @@ import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 //     return [];
 //   }
 // };
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-=======
-=======
-/*
->>>>>>> 1065861 (test)
-enum MapMode {
-  FlightBound,
-  SearchBound,
-  MappingBound,
-  Waypoint,
-  InitialPath,
-  SearchPath,
-  DropLocation,
-}
-<<<<<<< HEAD
->>>>>>> e6ccbd5 (add change centers)
-=======
-  */
->>>>>>> 1065861 (test)
+//is currently dragging a marker
+const [offWorld, setOffWorld] = useState(false);
+//is currently selecting markers
+const [kidnapMode, setKidnapMode] = useState(false);
+//map var
+const mapVar = useRef(null);
+//marker to track
+const currentMarker = useRef(null);
+//marker who we we want to replace
+const markerReplacing = useRef(null);
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
   // GPS cord of the detection
@@ -136,8 +102,6 @@ const Reports: React.FC = () => {
   const [selectedCluster, setSelectedCluster] = useState(null as Cluster | null);
   const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
-<<<<<<< HEAD
-=======
   const isMounted = useRef(false);
   //persistance
   useEffect(() => {
@@ -159,122 +123,54 @@ const Reports: React.FC = () => {
     }
   }, [clusters]);
 
-  //is currently dragging a marker
-  const [offWorld, setOffWorld] = useState(false);
-  //is currently selecting markers
-  const [kidnapMode, setKidnapMode] = useState(false);
-  //marker to track
-  const currentMarker = useRef(null);
-  //position of mouse
-  const [position, setPosition] = useState(new LatLng(0, 0, 0));
+  const MouseFollower = () => {
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    useEffect(() => {
+      const handleMouseMove = (event) => {
+        setPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+        if (kidnapMode) {
+          console.log("markerTrack");
+          console.log(event.target.children);
+          if (currentMarker.current && offWorld) {
+            const point = L.point(position);
+            currentMarker.current.position = event.target.fromPointToLatLng(point);
+          }
+        }
+      };
+      window.addEventListener("mousemove", handleMouseMove);
 
-  //enter handler
-  useEffect(() => {
-    /**
-     * resets to default mode, drops current marker
-     */
-    function unplaceMarker() {
-      if (kidnapMode) {
-        setKidnapMode(false);
-        setOffWorld(false);
-      }
-    }
-
-    const handleEnter = (event) => {
-      if (kidnapMode && currentMarker.current != null && offWorld && event.key == "Enter") {
-        unplaceMarker();
-      }
-    };
-    window.addEventListener("keydown", handleEnter);
-
-    // Clean up the event listener when the component unmounts
-    return () => {
-      window.removeEventListener("keydown", handleEnter);
-    };
-  }, [kidnapMode, currentMarker, offWorld]); // Empty dependency array ensures this runs once on mount
-
-  /**
-   * triggers when 'change centers' button is clicked, sets select mode to on
-   */
+      // Clean up the event listener when the component unmounts
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+      };
+    }, []); // Empty dependency array ensures this runs once on mount
+  };
   function setManualVisor() {
     setKidnapMode(!kidnapMode);
   }
-  /**
-   * changes cluster center to the specified coordinate
-   * @param latlng the current mouse position to set the center to
-   */
-  function placeMarker(latlng: LatLng) {
-    if (offWorld && kidnapMode && currentMarker.current != null) {
-      setOffWorld(false);
-      console.log(currentMarker.current);
-      const updateClusters = clusters.map((e) => {
-        const center = e.selected_center ?? e.calculated_center;
-        if (
-          currentMarker.current._latlng.equals(
-            new LatLng(center.Latitude, center.Longitude, center.Altitude),
-          )
-        ) {
-          const replacement: Cluster = {
-            calculated_center: center,
-            airdrop_type: e.airdrop_type,
-            all_data_points: e.all_data_points,
-            selected_center: GPSCoord.create({
-              Latitude: latlng.latlng.lat,
-              Longitude: latlng.latlng.lng,
-              Altitude: 0,
-            }),
-            color: e.color,
-          };
-          console.log("artillery");
-          return replacement;
-        } else {
-          return e;
-        }
-      });
-      setClusters(updateClusters);
+  function manualAssignButton() {
+    return <button onClick={() => setManualVisor()}>change cluster centers</button>;
+  }
+
+  function placeMarker({ event }) {
+    if (offWorld && kidnapMode && currentMarker != null) {
+      const point = L.point(currentMarker.position[0], currentMarker.position[1]);
+      event.target.containerPointToLatLng(point);
     }
   }
-  /**
-   * triggers when marker is clicked in select mode, picks up
-   * marker, sets that marker to be replaced
-   * @param event marker click event
-   */
-  function pickMarker(event) {
+
+  function selfLove(event) {
     if (kidnapMode) {
-      setOffWorld(true);
-      currentMarker.current = event.target;
+      markerReplacing.current = event.target.ref;
+      if (currentMarker.current && markerReplacing.current) {
+        currentMarker.current = cloneElement(markerReplacing.current);
+        setOffWorld(true);
+      }
     }
   }
-  /**
-   * if a marker is selected, renders a marker at mouse's position
-   * @returns a dummy marker at the mouse's position if a marker is being
-   * replaced
-   */
-  const renderCurrentMarker = () => {
-    if (currentMarker.current != null && offWorld && kidnapMode) {
-      return <Marker position={position}></Marker>;
-    }
-  };
-  /**
-   * handles map events like clicking, which changes the center; and mousemove,
-   * which renders the dummy marker
-   * @returns nothing
-   */
-  const MapOnClickHandler = () => {
-    useMapEvents({
-      click: (e) => {
-        const wrapper = {
-          latlng: e.latlng,
-        };
-        placeMarker(wrapper);
-      },
-      mousemove(e) {
-        setPosition(e.latlng);
-      },
-    });
-    return <>{null}</>;
-  };
->>>>>>> e6ccbd5 (add change centers)
 
   /**
    * A cluster drawn on the app
@@ -299,7 +195,7 @@ const Reports: React.FC = () => {
                 },
               }}
               center={[e.location.Latitude, e.location.Longitude]}
-              radius={e == selectedDetection ? 10 : 5}
+              radius={e == selectedDetection ? 200 : 50}
               pathOptions={{
                 color: e.rejected
                   ? "red"
@@ -311,7 +207,7 @@ const Reports: React.FC = () => {
         <Marker
           eventHandlers={{
             click: (e) => {
-              pickMarker(e);
+              selfLove(e);
             },
           }}
           position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}
@@ -321,64 +217,20 @@ const Reports: React.FC = () => {
       </>
     );
   }
-  /**
-   * Updates the detections state with new data fetched from the backend
-   */
-  function updateClusters() {
-    fetch(TARGETS_ALL_ENDPOINT)
-      .then((d) => {
-        return d.json();
-      })
-      .then((j) => {
-        console.log("Data obtained from go proxy:", j);
-        //Later, this would make sense to us a protobuffer for, once the format is more set
-        const newval = [];
-        // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
-        for (const [key, value] of Object.entries(j)) {
-          const datapoints: Detection[] = [];
-          for (const d of (value as { detections: { location: GPSCoord; Image: string }[] })[
-            "detections"
-          ]) {
-            const detection: Detection = {
-              location: GPSCoord.create(d["location"]),
-              type: +key as AirdropType,
-              image: "data:image/jpeg;base64," + d["Image"],
-              rejected: false,
-            };
-            datapoints.push(detection);
-          }
-          const addition: Cluster = {
-            calculated_center: (value as { center: GPSCoord })["center"],
-            airdrop_type: +key as AirdropType,
-            all_data_points: datapoints,
-            selected_center: null,
-            color: GetNextColor(),
-          };
-          newval.push(addition);
-        }
-        setClusters(newval);
-      });
-  }
 
   return (
     <main className="reports-main">
       <div className="reports-col">
         <div className="reports-card">
-          <TuasMap className={"reports-map"} lat={51} lng={10}>
+          <TuasMap ref={mapVar} className={"reports-map"} lat={51} lng={10}>
             <UpdateMapCenter position={maploc} />
-            <MapOnClickHandler />
             {clusters.map((e) => {
               if (selectedCluster == null || selectedCluster == e) {
                 return MapCluster(e);
               }
             })}
-            {renderCurrentMarker()}
           </TuasMap>
           <div className="reports-cluster-data">
-            <button onClick={() => setManualVisor()}>select a marker to move</button>
-            <button>
-              {offWorld && kidnapMode && currentMarker.current != null && <p>hello</p>}
-            </button>
             <select>
               <option
                 onClick={() => {
@@ -398,7 +250,7 @@ const Reports: React.FC = () => {
                       setSelectedCluster(c);
                     }}
                   >
-                    {AirdropType[c.airdrop_type] ?? c.airdrop_type}({c.airdrop_type})
+                    {AirdropType[c.airdrop_type]}
                   </option>
                 );
               })}
@@ -493,12 +345,11 @@ const Reports: React.FC = () => {
         </div>
         <div className="reports-card">
           Temp dev stuff idk what goes here yets <br></br>
-          <button onClick={updateClusters}>Fetch data</button>
           <button
             onClick={() => {
               const center = GPSCoord.create({
-                Latitude: maploc[0] + Math.random() * 0.002 - 0.001,
-                Longitude: maploc[1] + Math.random() * 0.002 - 0.001,
+                Latitude: maploc[0] + Math.random() * 0.02 - 0.01,
+                Longitude: maploc[1] + Math.random() * 0.02 - 0.01,
                 Altitude: 0,
               });
 
@@ -521,6 +372,16 @@ const Reports: React.FC = () => {
             }}
           >
             Add random cluster
+          </button>
+          <button
+            onClick={() => {
+              if (!window.confirm("This will wipe all cluster data! Are you sure?")) {
+                return;
+              }
+              setClusters([]);
+            }}
+          >
+            Clear local cluster storage
           </button>
         </div>
       </div>
