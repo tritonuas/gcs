@@ -176,7 +176,7 @@ function FormTable({
 
 /**
  * Component which renders all of the form input relating to the map.
- * Delagates the actual displaying of table data to <FormTable />
+ * Delegates the actual displaying of table data to <FormTable />
  * Handles the buttons that switch the current map mode.
  * @param props Props
  * @param props.mapMode Current mode of the map

@@ -1,16 +1,28 @@
+<<<<<<< HEAD
 import React, { useState } from "react";
+=======
+import React, { useState, useEffect, useRef, cloneElement, SetStateAction, useId } from "react";
+>>>>>>> e6ccbd5 (add change centers)
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
+<<<<<<< HEAD
 import { LatLng } from "leaflet";
 import { Circle, Marker, Popup } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
+=======
+import { latLng, LatLng, marker } from "leaflet";
+import { Circle, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
+import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
+import L from "leaflet";
+import { Mouse } from "@mui/icons-material";
+>>>>>>> e6ccbd5 (add change centers)
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -53,7 +65,19 @@ const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 //     return [];
 //   }
 // };
+<<<<<<< HEAD
 
+=======
+enum MapMode {
+  FlightBound,
+  SearchBound,
+  MappingBound,
+  Waypoint,
+  InitialPath,
+  SearchPath,
+  DropLocation,
+}
+>>>>>>> e6ccbd5 (add change centers)
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
   // GPS cord of the detection
@@ -94,6 +118,124 @@ const Reports: React.FC = () => {
   const [selectedCluster, setSelectedCluster] = useState(null as Cluster | null);
   const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
+<<<<<<< HEAD
+=======
+  const isMounted = useRef(false);
+  //persistance
+  useEffect(() => {
+    const old = localStorage.getItem("saved-cluster");
+    if (old != null) {
+      setClusters(JSON.parse(old));
+    }
+  }, []);
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    console.log("Saving new cluster data", clusters);
+    try {
+      localStorage.setItem("saved-cluster", JSON.stringify(clusters));
+    } catch (e) {
+      window.alert("Issue with saving locally, latest changes not updated ");
+    }
+  }, [clusters]);
+
+  //is currently dragging a marker
+  const [offWorld, setOffWorld] = useState(false);
+  //is currently selecting markers
+  const [kidnapMode, setKidnapMode] = useState(false);
+  //marker to track
+  const currentMarker = useRef(null);
+  //position of mouse
+  const [position, setPosition] = useState(new LatLng(0, 0, 0));
+
+  //enter handler
+  useEffect(() => {
+    const handleEnter = (event) => {
+      if (kidnapMode && currentMarker.current != null && offWorld && event.key == "Enter") {
+        unplaceMarker();
+      }
+    };
+    window.addEventListener("keydown", handleEnter);
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener("keydown", handleEnter);
+    };
+  }, [kidnapMode, currentMarker, offWorld]); // Empty dependency array ensures this runs once on mount
+
+  function setManualVisor() {
+    setKidnapMode(!kidnapMode);
+  }
+  function manualAssignButton() {
+    return <button onClick={() => setManualVisor()}>change cluster centers</button>;
+  }
+
+  function placeMarker(latlng: LatLng) {
+    if (offWorld && kidnapMode && currentMarker.current != null) {
+      setOffWorld(false);
+      console.log(currentMarker.current);
+      const updateClusters = clusters.map((e, i) => {
+        const center = e.selected_center ?? e.calculated_center;
+        if (
+          currentMarker.current._latlng.equals(
+            new LatLng(center.Latitude, center.Longitude, center.Altitude),
+          )
+        ) {
+          const replacement: Cluster = {
+            calculated_center: center,
+            airdrop_type: e.airdrop_type,
+            all_data_points: e.all_data_points,
+            selected_center: GPSCoord.create({
+              Latitude: latlng.latlng.lat,
+              Longitude: latlng.latlng.lng,
+              Altitude: 0,
+            }),
+            color: e.color,
+          };
+          console.log("artillery");
+          return replacement;
+        } else {
+          return e;
+        }
+      });
+      setClusters(updateClusters);
+    }
+  }
+  function unplaceMarker() {
+    if (kidnapMode) {
+      setKidnapMode(false);
+      setOffWorld(false);
+    }
+  }
+  function pickMarker(event) {
+    if (kidnapMode) {
+      setOffWorld(true);
+      currentMarker.current = event.target;
+    }
+  }
+  const renderCurrentMarker = () => {
+    if (currentMarker.current != null && offWorld && kidnapMode) {
+      return <Marker position={position}></Marker>;
+    }
+  };
+
+  const MapOnClickHandler = () => {
+    const map = useMapEvents({
+      click: (e) => {
+        const wrapper = {
+          latlng: e.latlng,
+        };
+        placeMarker(wrapper);
+      },
+      mousemove(e) {
+        setPosition(e.latlng);
+      },
+    });
+    return <>{null}</>;
+  };
+>>>>>>> e6ccbd5 (add change centers)
 
   /**
    * A cluster drawn on the app
@@ -127,7 +269,14 @@ const Reports: React.FC = () => {
             />
           );
         })}
-        <Marker position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}>
+        <Marker
+          eventHandlers={{
+            click: (e) => {
+              pickMarker(e);
+            },
+          }}
+          position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}
+        >
           <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
         </Marker>
       </>
@@ -178,13 +327,19 @@ const Reports: React.FC = () => {
         <div className="reports-card">
           <TuasMap className={"reports-map"} lat={51} lng={10}>
             <UpdateMapCenter position={maploc} />
+            <MapOnClickHandler />
             {clusters.map((e) => {
               if (selectedCluster == null || selectedCluster == e) {
                 return MapCluster(e);
               }
             })}
+            {renderCurrentMarker()}
           </TuasMap>
           <div className="reports-cluster-data">
+            <button onClick={() => setManualVisor()}>select a marker to move</button>
+            <button>
+              {offWorld && kidnapMode && currentMarker.current != null && <p>hello</p>}
+            </button>
             <select>
               <option
                 onClick={() => {
