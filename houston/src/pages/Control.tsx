@@ -176,13 +176,11 @@ function updateCoordinate(
  * A helper functions that extracts out the get request and updates of flight bounds.
  * @param setFlightBound React state setter for Flight Bound variable.
  * @param setSearchBound React state setter for Search Bound variable.
- * @param setMappingBound react state setter for mapping bound variable.
  * @param setWayPoint React state setter for Way Point variable.
  */
 function pullFlightBounds(
   setFlightBound: React.Dispatch<React.SetStateAction<LatLng[]>>,
   setSearchBound: React.Dispatch<React.SetStateAction<LatLng[]>>,
-  setMappingBound: React.Dispatch<React.SetStateAction<LatLng[]>>, //new
   setWayPoint: React.Dispatch<React.SetStateAction<LatLng[]>>,
 ) {
   fetch("/api/mission", {
@@ -204,11 +202,6 @@ function pullFlightBounds(
       if (Object.prototype.hasOwnProperty.call(data, "AirdropBoundary")) {
         data["AirdropBoundary"].map((coordinates: { Latitude: number; Longitude: number }) => {
           updateCoordinate(setSearchBound, [coordinates["Latitude"], coordinates["Longitude"]]);
-        });
-      }
-      if (Object.prototype.hasOwnProperty.call(data, "MappingBoundary")) {
-        data["MappingBoundary"].map((coordinates: { Latitude: number; Longitude: number }) => {
-          updateCoordinate(setMappingBound, [coordinates["Latitude"], coordinates["Longitude"]]);
         });
       } //new
       if (Object.prototype.hasOwnProperty.call(data, "Waypoints")) {
@@ -307,7 +300,6 @@ function Control({
   const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
   const [flightBound, setFlightBound] = useState<LatLng[]>([]);
   const [searchBound, setSearchBound] = useState<LatLng[]>([]);
-  const [mappingBound, setNewhBound] = useState<LatLng[]>([]);
   const [wayPoint, setWayPoint] = useState<LatLng[]>([]);
   const markerIcon = L.icon({
     iconUrl: icon,
@@ -412,7 +404,7 @@ function Control({
   });
 
   useEffect(() => {
-    pullFlightBounds(setFlightBound, setSearchBound, setNewhBound, setWayPoint);
+    pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);
   }, []);
 
   return (
@@ -485,7 +477,6 @@ function Control({
             <Polyline color="lime" positions={planeCoordinates} />
             <Polygon color="red" positions={flightBound} />
             <Polygon color="blue" positions={searchBound} />
-            <Polygon color="blue" positions={mappingBound} />
             {wayPoint.map((latlng, index) => {
               return (
                 <Marker
