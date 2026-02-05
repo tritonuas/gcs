@@ -236,6 +236,9 @@ const Reports: React.FC = () => {
       id: selectedDetection?.id || -1,
     };
   }
+  /**
+   * Should onl be called after updateOldSelected. Updates the selected... states to match the new data.
+   */
   function consumeOldSelected() {
     for (let i = 0; i < clusters.length; i++) {
       if (clusters[i].airdrop_type == oldSelectedCluster.current) {
