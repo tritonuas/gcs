@@ -160,9 +160,9 @@ const Reports: React.FC = () => {
   }, [clusters]);
 
   //is currently dragging a marker
-  const [offWorld, setOffWorld] = useState(false);
+  const [dragging, setDragging] = useState(false);
   //is currently selecting markers
-  const [kidnapMode, setKidnapMode] = useState(false);
+  const [selectMode, setselectMode] = useState(false);
   //marker to track
   const currentMarker = useRef(null);
   //position of mouse
@@ -174,14 +174,14 @@ const Reports: React.FC = () => {
      * resets to default mode, drops current marker
      */
     function unplaceMarker() {
-      if (kidnapMode) {
-        setKidnapMode(false);
-        setOffWorld(false);
+      if (selectMode) {
+        setselectMode(false);
+        setDragging(false);
       }
     }
 
     const handleEnter = (event) => {
-      if (kidnapMode && currentMarker.current != null && offWorld && event.key == "Enter") {
+      if (selectMode && currentMarker.current != null && dragging && event.key == "Enter") {
         unplaceMarker();
       }
     };
@@ -191,21 +191,21 @@ const Reports: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleEnter);
     };
-  }, [kidnapMode, currentMarker, offWorld]); // Empty dependency array ensures this runs once on mount
+  }, [selectMode, currentMarker, dragging]); // Empty dependency array ensures this runs once on mount
 
   /**
    * triggers when 'change centers' button is clicked, sets select mode to on
    */
   function setManualVisor() {
-    setKidnapMode(!kidnapMode);
+    setselectMode(!selectMode);
   }
   /**
    * changes cluster center to the specified coordinate
    * @param latlng the current mouse position to set the center to
    */
   function placeMarker(latlng: LatLng) {
-    if (offWorld && kidnapMode && currentMarker.current != null) {
-      setOffWorld(false);
+    if (dragging && selectMode && currentMarker.current != null) {
+      setDragging(false);
       console.log(currentMarker.current);
       const updateClusters = clusters.map((e) => {
         const center = e.selected_center ?? e.calculated_center;
@@ -240,8 +240,8 @@ const Reports: React.FC = () => {
    * @param event marker click event
    */
   function pickMarker(event) {
-    if (kidnapMode) {
-      setOffWorld(true);
+    if (selectMode) {
+      setDragging(true);
       currentMarker.current = event.target;
     }
   }
@@ -251,7 +251,7 @@ const Reports: React.FC = () => {
    * replaced
    */
   const renderCurrentMarker = () => {
-    if (currentMarker.current != null && offWorld && kidnapMode) {
+    if (currentMarker.current != null && dragging && selectMode) {
       return <Marker position={position}></Marker>;
     }
   };
@@ -376,9 +376,7 @@ const Reports: React.FC = () => {
           </TuasMap>
           <div className="reports-cluster-data">
             <button onClick={() => setManualVisor()}>select a marker to move</button>
-            <button>
-              {offWorld && kidnapMode && currentMarker.current != null && <p>hello</p>}
-            </button>
+            <button>{selectMode && <p>hello</p>}</button>
             <select>
               <option
                 onClick={() => {
