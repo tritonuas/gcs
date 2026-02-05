@@ -26,34 +26,48 @@ type ClusterManager struct {
 
 func findCenter(data *ClusterData) error {
 
-	if len((*data).Detections) == 0 {
-		return errors.New("Cluster data is empty. There are no centers to find")
+	if len(data.Detections) == 0 {
+		return errors.New("cluster data is empty. There are no centers to find")
 	}
 
-	latitudesData := append([]Detection{}, (*data).Detections...)
-	longitudesData := append([]Detection{}, (*data).Detections...)
+	latitudesData := append([]Detection{}, data.Detections...)
+	longitudesData := append([]Detection{}, data.Detections...)
 
 	sort.Slice(latitudesData, func(i, j int) bool {
-		return latitudesData[i].Location.Latitude > latitudesData[j].Location.Latitude
+		return latitudesData[i].Location.Latitude < latitudesData[j].Location.Latitude
 	})
 
 	sort.Slice(longitudesData, func(i, j int) bool {
-		return longitudesData[i].Location.Latitude > longitudesData[j].Location.Latitude
+		return longitudesData[i].Location.Longitude < longitudesData[j].Location.Longitude
 	})
 
-	midPoint := len(data.Detections) / 2
+	if data.ClusterCenter == nil {
+		// prevent nil pointer dereference.
+		return errors.New("the memory location for inputting cluster centers is nil pointer")
+	}
 
-	(*(*data).ClusterCenter).Longitude = longitudesData[midPoint].Location.Longitude
-	(*(*data).ClusterCenter).Latitude = latitudesData[midPoint].Location.Latitude
+	// Case where the number of datapoints are even
+	// so we average the two closest to the middle.
+	if len(data.Detections)%2 == 0 {
+		mp1 := len(data.Detections) / 2
+		mp2 := len(data.Detections)/2 - 1
+		data.ClusterCenter.Latitude = (latitudesData[mp1].Location.Latitude + latitudesData[mp2].Location.Latitude) / 2.0
+		data.ClusterCenter.Longitude = (longitudesData[mp1].Location.Longitude + longitudesData[mp2].Location.Longitude) / 2.0
+		return nil
+	}
+
+	midPoint := len(data.Detections) / 2
+	data.ClusterCenter.Longitude = longitudesData[midPoint].Location.Longitude
+	data.ClusterCenter.Latitude = latitudesData[midPoint].Location.Latitude
 
 	return nil
 }
 
 func (clusters *ClusterManager) findAllCenters() []error {
 
-	errors := make([]error, len((*clusters).ClusterData))
+	errors := make([]error, len(clusters.ClusterData))
 
-	for i, detectionType := range (*clusters).ClusterData {
+	for i, detectionType := range clusters.ClusterData {
 		errors[i] = findCenter(detectionType)
 	}
 
