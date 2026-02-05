@@ -134,6 +134,43 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.POST("/validate", server.validateTargets())
 			targets.POST("/reject", server.rejectTargets())
 		}
+		clusters := api.Group("/clusters")
+		{
+			clusters.GET("/fetch", server.fetchClusters())
+			clusters.GET("/toggle", server.toggleDetection())
+		}
+	}
+}
+
+// Marks an run as rejected on the Go proxy
+func (server *Server) toggleDetection() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, exists := c.GetQuery("id")
+		Log.Infof("toggle id %s", id)
+		if exists {
+			numbered_id, parse_error := strconv.Atoi(id)
+			if parse_error == nil {
+				server.clusterManager.ToggleDetection(numbered_id)
+			} else {
+
+				Log.Errorf("error marshealing JSON: %v", parse_error)
+				c.String(http.StatusBadRequest, "Invaild json")
+			}
+		} else {
+			c.String(404, "No Cluster found")
+		}
+	}
+}
+
+// Fetchs the cluster without pinging the obc for new detection
+func (server *Server) fetchClusters() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		send_data, err := json.Marshal(server.clusterManager.ClusterData)
+		if err != nil {
+			Log.Errorf("error marshalling JSON: %v", err)
+			c.String(http.StatusBadRequest, "error marshalling JSON, %v", err)
+		}
+		c.Data(http.StatusOK, "application/json", send_data)
 	}
 }
 

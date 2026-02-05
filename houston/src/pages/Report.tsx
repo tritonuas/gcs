@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
@@ -11,6 +11,8 @@ import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
+const FETCH_CLUSTERS_ENDPOINT = `${API_BASE_URL}/clusters/fetch`;
+const TOGGLE_ENDPOINT = `${API_BASE_URL}/clusters/toggle`;
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -64,6 +66,8 @@ interface Detection {
   image: string;
   //If this detection has been rejected
   rejected: boolean;
+  //unique id for this detection
+  id: number;
 }
 /*interface representing one cluster calculated by the airdrop */
 interface Cluster {
@@ -148,14 +152,59 @@ const Reports: React.FC = () => {
         // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
         for (const [key, value] of Object.entries(j)) {
           const datapoints: Detection[] = [];
-          for (const d of (value as { detections: { location: GPSCoord; Image: string }[] })[
-            "detections"
-          ]) {
+          for (const d of (
+            value as {
+              detections: { location: GPSCoord; image: string; rejected: boolean; id: number }[];
+            }
+          )["detections"]) {
             const detection: Detection = {
               location: GPSCoord.create(d["location"]),
               type: +key as AirdropType,
-              image: "data:image/jpeg;base64," + d["Image"],
-              rejected: false,
+              image: "data:image/jpeg;base64," + d["image"],
+              rejected: d["rejected"],
+              id: d["id"],
+            };
+            datapoints.push(detection);
+          }
+          const addition: Cluster = {
+            calculated_center: (value as { center: GPSCoord })["center"],
+            airdrop_type: +key as AirdropType,
+            all_data_points: datapoints,
+            selected_center: null,
+            color: GetNextColor(),
+          };
+          newval.push(addition);
+        }
+        setClusters(newval);
+      });
+  }
+  /**
+   * Updates the local state the match the proxy without pinging the obc.
+   * If you want to get the runs from the obc, see updateClusters()
+   */
+  function syncWithoutFetchingOBC() {
+    fetch(FETCH_CLUSTERS_ENDPOINT)
+      .then((d) => {
+        return d.json();
+      })
+      .then((j) => {
+        console.log("Data obtained from go proxy:", j);
+        //Later, this would make sense to us a protobuffer for, once the format is more set
+        const newval = [];
+        // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+        for (const [key, value] of Object.entries(j)) {
+          const datapoints: Detection[] = [];
+          for (const d of (
+            value as {
+              detections: { location: GPSCoord; image: string; rejected: boolean; id: number }[];
+            }
+          )["detections"]) {
+            const detection: Detection = {
+              location: GPSCoord.create(d["location"]),
+              type: +key as AirdropType,
+              image: "data:image/jpeg;base64," + d["image"],
+              rejected: d["rejected"],
+              id: d["id"],
             };
             datapoints.push(detection);
           }
@@ -172,6 +221,62 @@ const Reports: React.FC = () => {
       });
   }
 
+  //These are used to update the selected cluster/detection states when new data is fetched, as the references will become invaild
+  const oldSelectedCluster = useRef(-1);
+  const oldSelectedDetection = useRef({ cluster: -1, id: -1 });
+
+  /**
+   * updates the value of the old... Refs so that you can call consumeOldSelected to reset the selected values to what they where before new data was fetched.
+   * Otherwise, the new values will have different references, and the data will not display properly.
+   */
+  function updateOldSelected() {
+    oldSelectedCluster.current = selectedCluster?.airdrop_type || -1;
+    oldSelectedDetection.current = {
+      cluster: selectedDetection?.type || -1,
+      id: selectedDetection?.id || -1,
+    };
+  }
+  function consumeOldSelected() {
+    for (let i = 0; i < clusters.length; i++) {
+      if (clusters[i].airdrop_type == oldSelectedCluster.current) {
+        setSelectedCluster(clusters[i]);
+        oldSelectedCluster.current = -1;
+      }
+      if (clusters[i].airdrop_type == oldSelectedDetection.current.cluster) {
+        for (let j = 0; j < clusters[i].all_data_points.length; j++) {
+          if (clusters[i].all_data_points[j].id == oldSelectedDetection.current.id) {
+            setSelectedDetection(clusters[i].all_data_points[j]);
+            oldSelectedDetection.current = { id: -1, cluster: -1 };
+          }
+        }
+      }
+    }
+    if (oldSelectedCluster.current != -1 || oldSelectedDetection.current.id != -1) {
+      //TODO better error handling, display error to user
+      console.warn("Tried to save a selected cluster or detection that does not exists");
+      oldSelectedCluster.current = -1;
+      oldSelectedDetection.current = { id: -1, cluster: -1 };
+    }
+  }
+
+  useEffect(() => {
+    consumeOldSelected();
+  }, [clusters]);
+  /**
+   * Toggles a detection's rejection status, and syncs it to the go proxy
+   * This method also syncs the state of the local targets state to the proxys
+   * @param id The detection to toggle
+   */
+  function toggleRejectionStatus(id: number) {
+    updateOldSelected();
+    fetch(`${TOGGLE_ENDPOINT}?id=${id}`)
+      .catch(() => {
+        window.alert("failed to toggle");
+      })
+      .then(() => {
+        syncWithoutFetchingOBC();
+      });
+  }
   return (
     <main className="reports-main">
       <div className="reports-col">
@@ -229,6 +334,7 @@ const Reports: React.FC = () => {
                       <thead>
                         <th>Index</th>
                         <th>Location</th>
+                        <th>Global Id</th>
                         <th>Included?</th>
                       </thead>
                       <tbody className="reports-cluster-table-body">
@@ -244,6 +350,7 @@ const Reports: React.FC = () => {
                             >
                               <td>{i}</td>
                               <td>{GPSCoordToString(p.location)}</td>
+                              <td>{p.id}</td>
                               <td>
                                 {p.rejected ? (
                                   <span style={{ color: "red" }}>False</span>
@@ -273,15 +380,7 @@ const Reports: React.FC = () => {
                 <div>
                   <button
                     onClick={() => {
-                      //ugly way to update this, but I'm not sure a better way to handle it without needing a bunch of back references from detection to cluster
-                      for (const c of clusters) {
-                        for (const detection of c.all_data_points) {
-                          if (detection == selectedDetection) {
-                            detection.rejected = !detection.rejected;
-                          }
-                        }
-                      }
-                      setClusters([...clusters]);
+                      toggleRejectionStatus(selectedDetection.id);
                     }}
                   >
                     {selectedDetection.rejected ? (
@@ -317,10 +416,11 @@ const Reports: React.FC = () => {
               };
               for (let i = 0; i < 20; i++) {
                 addition.all_data_points.push({
-                  location: createRandomGPSCoord(center.Latitude, center.Longitude, 0.01, 0.01),
+                  location: createRandomGPSCoord(center.Latitude, center.Longitude, 0.001, 0.001),
                   type: AirdropType.Undefined,
                   image: "",
                   rejected: false,
+                  id: -1, // testing purposes only, negative ids should never exists
                 });
               }
               setClusters([...clusters, addition]);

@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/tritonuas/gcs/internal/protos"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type Detection struct {
-	Image    string
+	Image    string           `json:"image"`
 	Location *protos.GPSCoord `json:"location"`
-	Disabled bool
+	Rejected bool             `json:"rejected"`
+	Id       int              `json:"id"`
 }
 type ClusterData struct {
 	TargetType    protos.AirdropType `json:"target_type"`
@@ -22,6 +24,33 @@ type ClusterData struct {
 }
 type ClusterManager struct {
 	ClusterData map[protos.AirdropType]*ClusterData
+	LastID      int
+	mu          sync.RWMutex
+}
+
+func (clusters *ClusterManager) ToggleDetection(id int) {
+	clusters.mu.Lock()
+	defer clusters.mu.Unlock()
+	out := clusters.FindDetection(id)
+	out.Rejected = !out.Rejected
+}
+func (clusters *ClusterManager) FindDetection(id int) *Detection {
+	for i := range clusters.ClusterData {
+		for j := range clusters.ClusterData[i].Detections {
+			if clusters.ClusterData[i].Detections[j].Id == id {
+				return &clusters.ClusterData[i].Detections[j]
+			}
+		}
+	}
+	return &Detection{}
+}
+func (clusters *ClusterManager) GetAllDetections() []Detection {
+	all_detections := make([]Detection, 0, clusters.LastID)
+	for _, el := range clusters.ClusterData {
+		all_detections = append(all_detections, el.Detections...)
+
+	}
+	return all_detections
 }
 
 func findCenter(data *ClusterData) error {
@@ -74,6 +103,7 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 		}
 		identifiedTargets = append(identifiedTargets, &result)
 	}
+	clusters.mu.Lock()
 	for j := range identifiedTargets {
 		detections := identifiedTargets[j]
 		if detections == nil {
@@ -86,23 +116,26 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 				cluster.Detections = append(cluster.Detections, Detection{
 					Image:    detections.GetPicture(),
 					Location: detections.GetCoordinates()[i],
-					Disabled: false,
+					Rejected: false,
+					Id:       clusters.LastID,
 				})
-
+				clusters.LastID++
 			} else {
 				clusters.ClusterData[airdrop_type] = &ClusterData{
 					Detections: []Detection{{
 						Image:    detections.GetPicture(),
 						Location: detections.GetCoordinates()[i],
-						Disabled: false,
+						Rejected: false,
+						Id:       clusters.LastID,
 					}},
 					TargetType:    airdrop_type,
 					ClusterCenter: detections.GetCoordinates()[i],
 				}
+				clusters.LastID++
 			}
-
 		}
 	}
+	defer clusters.mu.Unlock()
 	return nil
 }
 
