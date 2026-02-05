@@ -263,7 +263,7 @@ const Reports: React.FC = () => {
   }
 
   useEffect(() => {
-    consumeOldSelected(); 
+    consumeOldSelected();
   }, [clusters, consumeOldSelected]);
   /**
    * Toggles a detection's rejection status, and syncs it to the go proxy
