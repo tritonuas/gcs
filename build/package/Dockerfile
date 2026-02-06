@@ -1,3 +1,25 @@
+FROM node:18-alpine AS frontend-builder
+
+
+# Install protobuf compiler
+RUN apk add --no-cache protobuf-dev
+
+WORKDIR /app
+COPY houston/package*.json ./houston/
+WORKDIR /app/houston
+RUN npm ci
+
+WORKDIR /app
+COPY protos/ ./protos/
+COPY houston/ ./houston/
+
+RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/houston.proto
+RUN protoc --plugin=./houston/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=fileSuffix=.pb --ts_proto_out=./houston/src/ ./protos/obc.proto
+
+WORKDIR /app/houston
+
+RUN npm run build
+
 FROM golang:1.20
 
 # Move to working directory /build
@@ -5,6 +27,10 @@ WORKDIR /build
 
 # disable some optimizations that don't work everywhere
 # ENV CGO_ENABLED=0
+
+# Install protobuf stuf
+RUN apt-get update && apt-get install -y protobuf-compiler
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 
 # copy over go.mod and go.sum
 COPY go.* ./
@@ -16,15 +42,18 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 # RUN go mod download
 
+# Copy source code
+COPY . .
+
+RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/houston.proto
+RUN protoc -I=./protos/ --go_out=./internal/protos/ --go_opt=paths=source_relative ./protos/obc.proto
+
 # Build gcs
-# COPY . .
-# RUN go build
-RUN --mount=target=. \
-    --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go build -o /output/gcs .
 
-COPY ./houston/dist/ /build/houston/
+COPY --from=frontend-builder /app/houston/dist/ /build/houston/
 
 RUN mkdir /CSV
 # go build mounts code read-only without copying to container,
