@@ -1,9 +1,7 @@
 package clustering
 
 import (
-	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 
@@ -51,42 +49,6 @@ func (clusters *ClusterManager) GetAllDetections() []Detection {
 
 	}
 	return all_detections
-}
-
-func findCenter(data *ClusterData) error {
-
-	if len((*data).Detections) == 0 {
-		return errors.New("Cluster data is empty. There are no centers to find")
-	}
-
-	latitudesData := append([]Detection{}, (*data).Detections...)
-	longitudesData := append([]Detection{}, (*data).Detections...)
-
-	sort.Slice(latitudesData, func(i, j int) bool {
-		return latitudesData[i].Location.Latitude > latitudesData[j].Location.Latitude
-	})
-
-	sort.Slice(longitudesData, func(i, j int) bool {
-		return longitudesData[i].Location.Latitude > longitudesData[j].Location.Latitude
-	})
-
-	midPoint := len(data.Detections) / 2
-
-	(*(*data).ClusterCenter).Longitude = longitudesData[midPoint].Location.Longitude
-	(*(*data).ClusterCenter).Latitude = latitudesData[midPoint].Location.Latitude
-
-	return nil
-}
-
-func (clusters *ClusterManager) findAllCenters() []error {
-
-	errors := make([]error, len((*clusters).ClusterData))
-
-	for i, detectionType := range (*clusters).ClusterData {
-		errors[i] = findCenter(detectionType)
-	}
-
-	return errors
 }
 
 func (clusters *ClusterManager) AddDetection(data string) error {
