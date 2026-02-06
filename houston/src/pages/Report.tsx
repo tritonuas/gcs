@@ -236,35 +236,35 @@ const Reports: React.FC = () => {
       id: selectedDetection?.id || -1,
     };
   }
-  /**
-   * Should onl be called after updateOldSelected. Updates the selected... states to match the new data.
-   */
-  function consumeOldSelected() {
-    for (let i = 0; i < clusters.length; i++) {
-      if (clusters[i].airdrop_type == oldSelectedCluster.current) {
-        setSelectedCluster(clusters[i]);
-        oldSelectedCluster.current = -1;
-      }
-      if (clusters[i].airdrop_type == oldSelectedDetection.current.cluster) {
-        for (let j = 0; j < clusters[i].all_data_points.length; j++) {
-          if (clusters[i].all_data_points[j].id == oldSelectedDetection.current.id) {
-            setSelectedDetection(clusters[i].all_data_points[j]);
-            oldSelectedDetection.current = { id: -1, cluster: -1 };
+
+  useEffect(() => {
+    /**
+     * Should onl be called after updateOldSelected. Updates the selected... states to match the new data.
+     */
+    function consumeOldSelected() {
+      for (let i = 0; i < clusters.length; i++) {
+        if (clusters[i].airdrop_type == oldSelectedCluster.current) {
+          setSelectedCluster(clusters[i]);
+          oldSelectedCluster.current = -1;
+        }
+        if (clusters[i].airdrop_type == oldSelectedDetection.current.cluster) {
+          for (let j = 0; j < clusters[i].all_data_points.length; j++) {
+            if (clusters[i].all_data_points[j].id == oldSelectedDetection.current.id) {
+              setSelectedDetection(clusters[i].all_data_points[j]);
+              oldSelectedDetection.current = { id: -1, cluster: -1 };
+            }
           }
         }
       }
+      if (oldSelectedCluster.current != -1 || oldSelectedDetection.current.id != -1) {
+        //TODO better error handling, display error to user
+        console.warn("Tried to save a selected cluster or detection that does not exists");
+        oldSelectedCluster.current = -1;
+        oldSelectedDetection.current = { id: -1, cluster: -1 };
+      }
     }
-    if (oldSelectedCluster.current != -1 || oldSelectedDetection.current.id != -1) {
-      //TODO better error handling, display error to user
-      console.warn("Tried to save a selected cluster or detection that does not exists");
-      oldSelectedCluster.current = -1;
-      oldSelectedDetection.current = { id: -1, cluster: -1 };
-    }
-  }
-
-  useEffect(() => {
     consumeOldSelected();
-  }, [clusters, consumeOldSelected]);
+  }, [clusters]);
   /**
    * Toggles a detection's rejection status, and syncs it to the go proxy
    * This method also syncs the state of the local targets state to the proxys
