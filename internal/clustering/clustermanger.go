@@ -63,16 +63,6 @@ func findCenter(data *ClusterData) error {
 	return nil
 }
 
-func (clusters *ClusterManager) findAllCenters() []error {
-
-	errors := make([]error, len(clusters.ClusterData))
-
-	for i, detectionType := range clusters.ClusterData {
-		errors[i] = findCenter(detectionType)
-	}
-
-	return errors
-}
 
 func (clusters *ClusterManager) AddDetection(data string) error {
 	out, jsonerr := ExtractJSONListAsStrings(data)
