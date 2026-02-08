@@ -13,7 +13,6 @@ import { useMyModal } from "../components/UseMyModal";
 enum MapMode {
   FlightBound,
   SearchBound,
-  MappingBound,
   Waypoint,
   InitialPath,
   SearchPath,
@@ -45,13 +44,6 @@ const getModeConfig = (mapMode: MapMode) => {
     case MapMode.SearchBound:
       return {
         color: "blue",
-        headings: ["Latitude", "Longitude"],
-        type: ShapeType.Polygon,
-        editable: true,
-      } as MapModeConfig;
-    case MapMode.MappingBound:
-      return {
-        color: "orange",
         headings: ["Latitude", "Longitude"],
         type: ShapeType.Polygon,
         editable: true,
@@ -636,7 +628,6 @@ function Input() {
       AirdropAssignments: airdropAssignments,
       FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
       AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
-      MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
       Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
       DropLocation: mapDataToGpsCoords(MapMode.DropLocation),
     };
@@ -776,116 +767,69 @@ function Input() {
       setDefaultView([32.990781135309724, -117.12830536731832]);
       setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
       setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-      setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
       setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
-    } else if (selected == "Competition_Left") {
-      setDefaultView([38.314666970000744, -76.54975138401012]);
+    } else if (selected == "Competition_One") {
+      setDefaultView([36.2157047555, -96.007976532]);
       setMapData(
         new Map(
           mapData.set(MapMode.FlightBound, [
-            [38.31729702009844, -76.55617670782419],
-            [38.31594832826572, -76.55657341657302],
-            [38.31546739500083, -76.55376201277696],
-            [38.31470980862425, -76.54936361414539],
-            [38.31424154692598, -76.54662761646904],
-            [38.31369801280048, -76.54342380058223],
-            [38.31331079191371, -76.54109648475954],
-            [38.31529941346197, -76.54052104837133],
-            [38.31587643291039, -76.54361305817427],
-            [38.31861642463319, -76.54538594175376],
-            [38.31862683616554, -76.55206138505936],
-            [38.31703471119464, -76.55244787859773],
-            [38.31674255749409, -76.55294546866578],
-            [38.31729702009844, -76.55617670782419],
+            [36.2193143935478, -96.00171089172362],
+            [36.2203876816226, -96.0041356086731],
+            [36.2208031440207, -96.006817817688],
+            [36.2205954130975, -96.0094571113586],
+            [36.2198164172223, -96.01181745529171],
+            [36.2181891563676, -96.0142421722412],
+            [36.2149951257415, -96.0109269618988],
+            [36.2128397305797, -96.0107660293579],
+            [36.2128051052733, -96.00916743278502],
+            [36.2106063669373, -96.00924253463749],
+            [36.2106583063506, -96.00173234939579],
           ]),
         ),
       );
       setMapData(
         new Map(
           mapData.set(MapMode.SearchBound, [
-            [38.315683, -76.552586], //bl
-            [38.315386, -76.550875], //br
-            [38.315607, -76.5508], //tr
-            [38.315895, -76.552519], //tl
+            [36.216341, -96.010424], //bl
+            [36.21675, -96.00755], //br
+            [36.218054, -96.007835], //tr
+            [36.217645, -96.010709], //tl
           ]),
         ),
       );
-      setMapData(
-        new Map(
-          mapData.set(MapMode.MappingBound, [
-            [38.314816, -76.548947],
-            [38.31546, -76.552653],
-            [38.316639, -76.55233],
-            [38.316016, -76.5486],
-          ]),
-        ),
-      );
-      // Competition Left Waypoints - typical competition waypoints with altitude
-    } else if (selected == "Competition_Right") {
-      setDefaultView([38.314666970000744, -76.54975138401012]);
+      // Competition One Waypoints - typical competition waypoints with altitude
+    } else if (selected == "Competition_Two") {
+      setDefaultView([36.2157047555, -96.007976532]);
       setMapData(
         new Map(
           mapData.set(MapMode.FlightBound, [
-            [38.31729702009844, -76.55617670782419],
-            [38.31594832826572, -76.55657341657302],
-            [38.31546739500083, -76.55376201277696],
-            [38.31470980862425, -76.54936361414539],
-            [38.31424154692598, -76.54662761646904],
-            [38.31369801280048, -76.54342380058223],
-            [38.31331079191371, -76.54109648475954],
-            [38.31529941346197, -76.54052104837133],
-            [38.31587643291039, -76.54361305817427],
-            [38.31861642463319, -76.54538594175376],
-            [38.31862683616554, -76.55206138505936],
-            [38.31703471119464, -76.55244787859773],
-            [38.31674255749409, -76.55294546866578],
-            [38.31729702009844, -76.55617670782419],
+            [36.2193143935478, -96.00171089172362],
+            [36.2203876816226, -96.0041356086731],
+            [36.2208031440207, -96.006817817688],
+            [36.2205954130975, -96.0094571113586],
+            [36.2198164172223, -96.01181745529171],
+            [36.2181891563676, -96.0142421722412],
+            [36.2149951257415, -96.0109269618988],
+            [36.2128397305797, -96.0107660293579],
+            [36.2128051052733, -96.00916743278502],
+            [36.2106063669373, -96.00924253463749],
+            [36.2106583063506, -96.00173234939579],
           ]),
         ),
       );
       setMapData(
         new Map(
           mapData.set(MapMode.SearchBound, [
-            [38.314529, -76.545859], //bl
-            [38.314228, -76.544156], //br
-            [38.314441, -76.544081], //tr
-            [38.314731, -76.545792], //tl
-          ]),
-        ),
-      );
-      setMapData(
-        new Map(
-          mapData.set(MapMode.MappingBound, [
-            [38.314669, -76.547987],
-            [38.315873, -76.547611],
-            [38.315208, -76.54384],
-            [38.314008, -76.544237],
-          ]),
-        ),
-      );
-      // Competition Right Waypoints - typical competition waypoints with altitude
-      setMapData(
-        new Map(
-          mapData.set(MapMode.Waypoint, [
-            [38.3159728, -76.5481119, 68.58], // Runway 2 Waypoint 1 (225ft -> 68.58m)
-            [38.3177991, -76.5475429, 68.58], // Runway 2 Waypoint 2 (225ft -> 68.58m)
-            [38.3175435, -76.5457284, 68.58], // Runway 2 Waypoint 3 (225ft -> 68.58m)
-            [38.3163228, -76.5448165, 68.58], // Runway 2 Waypoint 4 (225ft -> 68.58m)
-            [38.3172741, -76.5509426, 68.58], // Runway 2 Waypoint 5 (225ft -> 68.58m)
-            [38.3162977, -76.5492742, 68.58], // Runway 2 Waypoint 6 (225ft -> 68.58m)
-            [38.3150939, -76.54163, 68.58], // Runway 2 Waypoint 7 (225ft -> 68.58m)
-            [38.3139321, -76.5435289, 68.58], // Runway 2 Waypoint 8 (225ft -> 68.58m)
-            [38.3157505, -76.5540862, 68.58], // Runway 2 Waypoint 9 (225ft -> 68.58m)
-            [38.3180653, -76.5498269, 68.58], // Runway 2 Waypoint 10 (225ft -> 68.58m)
-            [38.3178044, -76.5477133, 68.58], // Runway 2 Waypoint 11 (225ft -> 68.58m)
-            [38.3159996, -76.5482839, 68.58], // Runway 2 Waypoint 12 (225ft -> 68.58m)
+            [36.213469, -96.004286], //bl
+            [36.213469, -96.002635], //br
+            [36.215795, -96.002635], //tr
+            [36.215795, -96.004286], //tl
           ]),
         ),
       );
     } else {
       setMapData(new Map(mapData.set(MapMode.FlightBound, [])));
       setMapData(new Map(mapData.set(MapMode.SearchBound, [])));
-      setMapData(new Map(mapData.set(MapMode.MappingBound, [])));
       setMapData(new Map(mapData.set(MapMode.Waypoint, [])));
     }
   }
@@ -915,19 +859,19 @@ function Input() {
             <input
               type="radio"
               name="default_location"
-              value="Competition_Left"
-              onClick={() => changingDeafultView("Competition_Left")}
+              value="Competition_One"
+              onClick={() => changingDeafultView("Competition_One")}
             />
-            Competition Left
+            Competition One
           </label>
           <label>
             <input
               type="radio"
               name="default_location"
-              value="Competition_Right"
-              onClick={() => changingDeafultView("Competition_Right")}
+              value="Competition_Two"
+              onClick={() => changingDeafultView("Competition_Two")}
             />
-            Competition Right
+            Competition Two
           </label>
         </fieldset>
       </MyModal>
