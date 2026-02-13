@@ -19,13 +19,13 @@ type ClusterData struct {
 	TargetType    protos.AirdropType `json:"target_type"`
 	Detections    []Detection        `json:"detections"`
 	ClusterCenter *protos.GPSCoord   `json:"center"`
+	IsManuallySelected bool  `json:"center_selected"`/
 }
 type ClusterManager struct {
 	ClusterData map[protos.AirdropType]*ClusterData
 }
 
 func findCenter(data *ClusterData) error {
-
 	if len((*data).Detections) == 0 {
 		return errors.New("Cluster data is empty. There are no centers to find")
 	}

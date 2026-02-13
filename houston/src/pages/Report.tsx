@@ -1,38 +1,19 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-import React, { useState } from "react";
-=======
-import React, { useState, useEffect, useRef, cloneElement, SetStateAction, useId } from "react";
->>>>>>> e6ccbd5 (add change centers)
-=======
 import React, { useState, useEffect, useRef } from "react";
->>>>>>> 1065861 (test)
 
-import { AirdropType, GPSCoord } from "../protos/obc.pb";
+import { AirdropType, AirdropTarget, GPSCoord } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { LatLng } from "leaflet";
-import { Circle, Marker, Popup } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
-=======
-import { latLng, LatLng, marker } from "leaflet";
-import { Circle, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
-import L from "leaflet";
-import { Mouse } from "@mui/icons-material";
->>>>>>> e6ccbd5 (add change centers)
-=======
 import { LatLng } from "leaflet";
 import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
->>>>>>> 1065861 (test)
+//import L from "leaflet";
+//import { Mouse } from "@mui/icons-material";
+
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -75,11 +56,7 @@ import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 //     return [];
 //   }
 // };
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
-=======
 /*
 >>>>>>> 1065861 (test)
 enum MapMode {
@@ -95,7 +72,6 @@ enum MapMode {
 >>>>>>> e6ccbd5 (add change centers)
 =======
   */
->>>>>>> 1065861 (test)
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
   // GPS cord of the detection
@@ -136,8 +112,6 @@ const Reports: React.FC = () => {
   const [selectedCluster, setSelectedCluster] = useState(null as Cluster | null);
   const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
-<<<<<<< HEAD
-=======
   const isMounted = useRef(false);
   //persistance
   useEffect(() => {
@@ -274,8 +248,72 @@ const Reports: React.FC = () => {
     });
     return <>{null}</>;
   };
->>>>>>> e6ccbd5 (add change centers)
 
+  /**
+   *
+   * @param msg Message to display in the modal as an error
+   */
+  function displayError(msg: string) {
+    setModalType("error");
+    setModalMsg(msg);
+    setMsgModalVisible(true);
+  }
+
+  /**
+   *
+   * @param msg Message to display in the modal as normal text
+   */
+  function displayMsg(msg: string) {
+    setModalType("default");
+    setModalMsg(msg);
+    setMsgModalVisible(true);
+  }
+
+  /**
+   * sends all cluster data to the go proxy
+   * @returns nothing
+   */
+  function sendUpdatedCenters() {
+    const updatedCenters = clusters.map((e) => {
+      wrapAirdropTarget(e);
+    });
+    fetch("/targets/matched", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedCenters),
+    })
+      .then((response) => {
+        if (response.status == 200) {
+          return response.text();
+        } else {
+          throw response.text();
+        }
+      })
+      .then((succ_msg) => {
+        displayMsg(succ_msg);
+      })
+      .catch((err_msg) => {
+        console.error(err_msg);
+        displayError(
+          "An error occured while uploading the mission. See the console for more info.",
+        );
+      });
+  }
+  /**
+   * sends an individual center to the go proxy, handles routing
+   * @returns nothing
+   */
+  function wrapAirdropTarget(cluster: Cluster) {
+    const center = cluster.selected_center ?? cluster.calculated_center;
+    const isManuallySet = cluster.selected_center != null;
+    const wrapped: AirdropTarget = {
+      Index: cluster.airdrop_type,
+      Coordinate: center,
+    };
+    return wrapped;
+  }
   /**
    * A cluster drawn on the app
    * @param cluster The cluster to draw
@@ -377,6 +415,7 @@ const Reports: React.FC = () => {
           <div className="reports-cluster-data">
             <button onClick={() => setManualVisor()}>select a marker to move</button>
             <button>{selectMode && <p>hello</p>}</button>
+            <button onClick={() => sendUpdatedCenters()}>Send Updated Centers</button>
             <select>
               <option
                 onClick={() => {
