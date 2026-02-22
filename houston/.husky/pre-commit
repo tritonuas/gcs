@@ -2,7 +2,7 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # Format staged files
-npx --no-install lint-staged || exit 1
+npx -yes --no-install lint-staged || exit 1
 
 # Frontend tests and lint
 cd houston; npm test; npm run lint

@@ -19,6 +19,7 @@ type ClusterData struct {
 	TargetType    protos.AirdropType `json:"target_type"`
 	Detections    []Detection        `json:"detections"`
 	ClusterCenter *protos.GPSCoord   `json:"center"`
+	IsManuallySelected bool  `json:"center_selected"`/
 }
 type ClusterManager struct {
 	ClusterData map[protos.AirdropType]*ClusterData

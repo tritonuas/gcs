@@ -1,16 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-import { AirdropType, GPSCoord } from "../protos/obc.pb";
+import { AirdropType, AirdropTarget, GPSCoord } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
-import { LatLng } from "leaflet";
-import { Circle, Marker, Popup } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
+import { LatLng, LeafletMouseEvent } from "leaflet";
+import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
+import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
+//import L from "leaflet";
+//import { Mouse } from "@mui/icons-material";
+
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -54,6 +57,17 @@ const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 //   }
 // };
 
+/*
+enum MapMode {
+  FlightBound,
+  SearchBound,
+  MappingBound,
+  Waypoint,
+  InitialPath,
+  SearchPath,
+  DropLocation,
+}
+  */
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
   // GPS cord of the detection
@@ -94,7 +108,182 @@ const Reports: React.FC = () => {
   const [selectedCluster, setSelectedCluster] = useState(null as Cluster | null);
   const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
+  const isMounted = useRef(false);
+  //persistance
+  useEffect(() => {
+    const old = localStorage.getItem("saved-cluster");
+    if (old != null) {
+      setClusters(JSON.parse(old));
+    }
+  }, []);
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    console.log("Saving new cluster data", clusters);
+    try {
+      localStorage.setItem("saved-cluster", JSON.stringify(clusters));
+    } catch (e) {
+      window.alert("Issue with saving locally, latest changes not updated ");
+    }
+  }, [clusters]);
 
+  //is currently dragging a marker
+  const [dragging, setDragging] = useState(false);
+  //is currently selecting markers
+  const [selectMode, setselectMode] = useState(false);
+  //marker to track
+  const currentMarker = useRef<L.LatLng | null>(null);
+  //position of mouse
+  const [position, setPosition] = useState(new LatLng(0, 0, 0));
+  //enter handler
+  useEffect(() => {
+    /**
+     * resets to default mode, drops current marker
+     */
+    function unplaceMarker() {
+      if (selectMode) {
+        setselectMode(false);
+        setDragging(false);
+      }
+    }
+
+    const handleEnter = (event: { key: string }) => {
+      if (selectMode && currentMarker.current != null && dragging && event.key == "Enter") {
+        unplaceMarker();
+      }
+    };
+    window.addEventListener("keydown", handleEnter);
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener("keydown", handleEnter);
+    };
+  }, [selectMode, currentMarker, dragging]); // Empty dependency array ensures this runs once on mount
+
+  /**
+   * triggers when 'change centers' button is clicked, sets select mode to on
+   */
+  function setManualVisor() {
+    setselectMode(!selectMode);
+  }
+  /**
+   * changes cluster center to the specified coordinate
+   * @param latlng the current mouse position to set the center to
+   */
+  function placeMarker(latlng: LatLng) {
+    console.log(currentMarker.current);
+    if (dragging && selectMode && currentMarker.current != null) {
+      setDragging(false);
+      const updateClusters = clusters.map((e) => {
+        const center = e.selected_center ?? e.calculated_center;
+        if (
+          currentMarker.current != null &&
+          currentMarker.current.equals(
+            new LatLng(center.Latitude, center.Longitude, center.Altitude),
+          )
+        ) {
+          console.log(latlng.lat);
+          const replacement: Cluster = {
+            calculated_center: center,
+            airdrop_type: e.airdrop_type,
+            all_data_points: e.all_data_points,
+            selected_center: GPSCoord.create({
+              Latitude: latlng.lat,
+              Longitude: latlng.lng,
+              Altitude: 0,
+            }),
+            color: e.color,
+          };
+          console.log("artillery");
+          return replacement;
+        } else {
+          return e;
+        }
+      });
+      setClusters(updateClusters);
+    }
+  }
+  /**
+   * triggers when marker is clicked in select mode, picks up
+   * marker, sets that marker to be replaced
+   * @param event marker click event
+   */
+  function pickMarker(event: LeafletMouseEvent) {
+    if (selectMode) {
+      setDragging(true);
+      currentMarker.current = event.target._latlng;
+    }
+  }
+  /**
+   * if a marker is selected, renders a marker at mouse's position
+   * @returns a dummy marker at the mouse's position if a marker is being
+   * replaced
+   */
+  const renderCurrentMarker = () => {
+    if (currentMarker.current != null && dragging && selectMode) {
+      return <Marker position={position}></Marker>;
+    }
+  };
+  /**
+   * handles map events like clicking, which changes the center; and mousemove,
+   * which renders the dummy marker
+   * @returns nothing
+   */
+  const MapOnClickHandler = () => {
+    useMapEvents({
+      click: (e) => {
+        placeMarker(e.latlng);
+      },
+      mousemove(e) {
+        setPosition(e.latlng);
+      },
+    });
+    return <>{null}</>;
+  };
+
+  /**
+   * sends all cluster data to the go proxy
+   */
+  function sendUpdatedCenters() {
+    const updatedCenters = clusters.map((e) => {
+      wrapAirdropTarget(e);
+    });
+    fetch("/targets/matched", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedCenters),
+    })
+      .then((response) => {
+        if (response.status == 200) {
+          return response.text();
+        } else {
+          throw response.text();
+        }
+      })
+      .then((succ_msg) => {
+        console.log(succ_msg);
+      })
+      .catch((err_msg) => {
+        console.error(err_msg);
+      });
+  }
+  /**
+   * wraps a cluster in AirdropTarget to send to OBC
+   * @param cluster cluster to wrap in AirdropTarget
+   * @returns nothing
+   */
+  function wrapAirdropTarget(cluster: Cluster) {
+    const center = cluster.selected_center ?? cluster.calculated_center;
+    const wrapped: AirdropTarget = {
+      Index: cluster.airdrop_type,
+      Coordinate: center,
+    };
+    return wrapped;
+  }
   /**
    * A cluster drawn on the app
    * @param cluster The cluster to draw
@@ -127,7 +316,14 @@ const Reports: React.FC = () => {
             />
           );
         })}
-        <Marker position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}>
+        <Marker
+          eventHandlers={{
+            click: (e) => {
+              pickMarker(e);
+            },
+          }}
+          position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}
+        >
           <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
         </Marker>
       </>
@@ -178,13 +374,18 @@ const Reports: React.FC = () => {
         <div className="reports-card">
           <TuasMap className={"reports-map"} lat={51} lng={10}>
             <UpdateMapCenter position={maploc} />
+            <MapOnClickHandler />
             {clusters.map((e) => {
               if (selectedCluster == null || selectedCluster == e) {
                 return MapCluster(e);
               }
             })}
+            {renderCurrentMarker()}
           </TuasMap>
           <div className="reports-cluster-data">
+            <button onClick={() => setManualVisor()}>select a marker to move</button>
+            <button>{selectMode && <p>hello</p>}</button>
+            <button onClick={() => sendUpdatedCenters()}>Send Updated Centers</button>
             <select>
               <option
                 onClick={() => {
