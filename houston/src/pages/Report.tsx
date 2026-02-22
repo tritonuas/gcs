@@ -8,7 +8,7 @@ import TuasMap from "../components/TuasMap";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
-import { LatLng } from "leaflet";
+import { LatLng, LeafletMouseEvent } from "leaflet";
 import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
 import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 //import L from "leaflet";
@@ -58,7 +58,6 @@ import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
 // };
 
 /*
->>>>>>> 1065861 (test)
 enum MapMode {
   FlightBound,
   SearchBound,
@@ -68,9 +67,6 @@ enum MapMode {
   SearchPath,
   DropLocation,
 }
-<<<<<<< HEAD
->>>>>>> e6ccbd5 (add change centers)
-=======
   */
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
@@ -138,10 +134,9 @@ const Reports: React.FC = () => {
   //is currently selecting markers
   const [selectMode, setselectMode] = useState(false);
   //marker to track
-  const currentMarker = useRef(null);
+  const currentMarker = useRef<L.LatLng | null>(null);
   //position of mouse
   const [position, setPosition] = useState(new LatLng(0, 0, 0));
-
   //enter handler
   useEffect(() => {
     /**
@@ -154,7 +149,7 @@ const Reports: React.FC = () => {
       }
     }
 
-    const handleEnter = (event) => {
+    const handleEnter = (event: { key: string }) => {
       if (selectMode && currentMarker.current != null && dragging && event.key == "Enter") {
         unplaceMarker();
       }
@@ -178,23 +173,25 @@ const Reports: React.FC = () => {
    * @param latlng the current mouse position to set the center to
    */
   function placeMarker(latlng: LatLng) {
+    console.log(currentMarker.current);
     if (dragging && selectMode && currentMarker.current != null) {
       setDragging(false);
-      console.log(currentMarker.current);
       const updateClusters = clusters.map((e) => {
         const center = e.selected_center ?? e.calculated_center;
         if (
-          currentMarker.current._latlng.equals(
+          currentMarker.current != null &&
+          currentMarker.current.equals(
             new LatLng(center.Latitude, center.Longitude, center.Altitude),
           )
         ) {
+          console.log(latlng.lat);
           const replacement: Cluster = {
             calculated_center: center,
             airdrop_type: e.airdrop_type,
             all_data_points: e.all_data_points,
             selected_center: GPSCoord.create({
-              Latitude: latlng.latlng.lat,
-              Longitude: latlng.latlng.lng,
+              Latitude: latlng.lat,
+              Longitude: latlng.lng,
               Altitude: 0,
             }),
             color: e.color,
@@ -213,10 +210,10 @@ const Reports: React.FC = () => {
    * marker, sets that marker to be replaced
    * @param event marker click event
    */
-  function pickMarker(event) {
+  function pickMarker(event: LeafletMouseEvent) {
     if (selectMode) {
       setDragging(true);
-      currentMarker.current = event.target;
+      currentMarker.current = event.target._latlng;
     }
   }
   /**
@@ -237,10 +234,7 @@ const Reports: React.FC = () => {
   const MapOnClickHandler = () => {
     useMapEvents({
       click: (e) => {
-        const wrapper = {
-          latlng: e.latlng,
-        };
-        placeMarker(wrapper);
+        placeMarker(e.latlng);
       },
       mousemove(e) {
         setPosition(e.latlng);
@@ -250,28 +244,7 @@ const Reports: React.FC = () => {
   };
 
   /**
-   *
-   * @param msg Message to display in the modal as an error
-   */
-  function displayError(msg: string) {
-    setModalType("error");
-    setModalMsg(msg);
-    setMsgModalVisible(true);
-  }
-
-  /**
-   *
-   * @param msg Message to display in the modal as normal text
-   */
-  function displayMsg(msg: string) {
-    setModalType("default");
-    setModalMsg(msg);
-    setMsgModalVisible(true);
-  }
-
-  /**
    * sends all cluster data to the go proxy
-   * @returns nothing
    */
   function sendUpdatedCenters() {
     const updatedCenters = clusters.map((e) => {
@@ -292,22 +265,19 @@ const Reports: React.FC = () => {
         }
       })
       .then((succ_msg) => {
-        displayMsg(succ_msg);
+        console.log(succ_msg);
       })
       .catch((err_msg) => {
         console.error(err_msg);
-        displayError(
-          "An error occured while uploading the mission. See the console for more info.",
-        );
       });
   }
   /**
-   * sends an individual center to the go proxy, handles routing
+   * wraps a cluster in AirdropTarget to send to OBC
+   * @param cluster cluster to wrap in AirdropTarget
    * @returns nothing
    */
   function wrapAirdropTarget(cluster: Cluster) {
     const center = cluster.selected_center ?? cluster.calculated_center;
-    const isManuallySet = cluster.selected_center != null;
     const wrapped: AirdropTarget = {
       Index: cluster.airdrop_type,
       Coordinate: center,
