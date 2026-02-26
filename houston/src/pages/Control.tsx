@@ -22,7 +22,9 @@ import { useMyModal } from "../components/UseMyModal.tsx";
 import TakeoffSelector from "../components/TakeoffSelector.tsx";
 import RTLSelector from "../components/RTLSelector.tsx";
 
-type Unit = "knots" | "m/s" | "feet" | "meters" | "V" | "V/c" | "°F" | "°C" | "";
+//<Garbage that I wrote>
+type Unit = "knots" | "m/s" | "feet" | "meters" | "V" | "V/c" | "°F" | "°C" | "" | "laps"; //added "laps"
+//</Garbage that I wrote>
 export type Threshold = [number, number, number, number];
 
 export class Parameter {
@@ -253,6 +255,15 @@ function Control({
     FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
   ];
 
+  // <Garbage that I wrote>
+  const numLapsThreshold: Threshold = [
+    0, //replace with actual min
+    5, //replace with actual max
+    0, //no conversion, or maybe this is supposed to show the total laps?
+    5, //^
+  ]
+  // </Garbage that I wrote>
+
   const motorBatteryThreshold: Threshold = [
     settings.minVoltsPerCell,
     settings.maxVoltsPerCell,
@@ -286,6 +297,11 @@ function Control({
   const [altitudeAGL, setAltitudeAGL] = useState<Parameter>(
     new Parameter("Altitude AGL", [0, 0], ["feet", "meters"], altitudeAGLThreshold, 0),
   );
+  // <Garbage that I wrote>
+  const [numLaps, setNumLaps] = useState<Parameter>(
+    new Parameter("Num Laps", [0,0], ["laps","laps"], numLapsThreshold, 0),
+  );
+  // </Garbage that I wrote>
   const [motorBattery, setMotorBattery] = useState<Parameter>(
     new Parameter("Motor Battery", [0, 0], ["V/c", "V"], motorBatteryThreshold, 0),
   );
@@ -415,6 +431,7 @@ function Control({
           {groundspeed.render(() => handleClick(setGroundspeed))}
           {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
           {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
+          {numLaps.render(() => handleClick(setNumLaps))}
         </div>
         {superSecret ? (
           <SuperSecret></SuperSecret>

@@ -34,7 +34,7 @@ export function makeDefaultConfig(): SettingsConfig {
     groundAltitude_feet: 0,
     minVoltsPerCell: 3.6,
     maxVoltsPerCell: 4.2,
-    minESCTemperature_c: 70, // todo use real values from embedded
+    minESCTemperature_c: 0, // todo use real values from embedded
     maxESCTemperature_c: 80,
   } as SettingsConfig;
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(config));
