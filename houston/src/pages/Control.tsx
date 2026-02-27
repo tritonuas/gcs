@@ -320,55 +320,89 @@ function Control({
 
   const [tickState, setTickState] = useState<string>("Loading...");
 
-  // --- NEW useEffect specifically for fetching tick state ---
+  // useEffect for fetching tick state
   useEffect(() => {
-    const fetchTickState = () => {
-      fetch("/api/tickstate")
-        .then((response) => {
-          if (!response.ok) {
+    let isCancelled = false;
+    let tickTimeoutId: number | null = null;
+    let tickRequestInFlight = false;
+
+    const pollTickState = async () => {
+      if (tickRequestInFlight || isCancelled) {
+        return;
+      }
+
+      tickRequestInFlight = true;
+      try {
+        const response = await fetch("/api/tickstate");
+        if (!response.ok) {
+          if (!isCancelled) {
             setTickState(`Error: ${response.status}`);
-            throw new Error(`Tickstate fetch failed: ${response.status}`);
           }
-          return response.text();
-        })
-        .then((data) => {
+          throw new Error(`Tickstate fetch failed: ${response.status}`);
+        }
+
+        const data = await response.text();
+        if (!isCancelled) {
           setTickState(data);
-        })
-        .catch((error) => {
-          console.error("Error fetching tick state:", error);
+        }
+      } catch (error) {
+        console.error("Error fetching tick state:", error);
+        if (!isCancelled) {
           setTickState("Error");
-        });
+        }
+      } finally {
+        tickRequestInFlight = false;
+        if (!isCancelled) {
+          tickTimeoutId = window.setTimeout(() => {
+            void pollTickState();
+          }, 3000);
+        }
+      }
     };
 
-    fetchTickState(); // Fetch immediately on component mount
-    const tickInterval = setInterval(fetchTickState, 1000); // Then fetch every second
+    void pollTickState();
 
     return () => {
-      clearInterval(tickInterval); // Cleanup interval on component unmount
+      isCancelled = true;
+      if (tickTimeoutId !== null) {
+        window.clearTimeout(tickTimeoutId);
+      }
     };
-  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(
-      () =>
-        pullTelemetry(
-          settings,
-          setPlaneLatLng,
-          setAirspeed,
-          setGroundspeed,
-          setAltitudeMSL,
-          setAltitudeAGL,
-          setMotorBattery,
-          setPixhawkBattery,
-          setESCtemperature,
-          setSuperSecret,
-          setFlightMode,
-        ),
-      1000,
-    );
+    let isCancelled = false;
+    let telemetryTimeoutId: number | null = null;
+
+    const pollTelemetry = async () => {
+      await pullTelemetry(
+        settings,
+        setPlaneLatLng,
+        setAirspeed,
+        setGroundspeed,
+        setAltitudeMSL,
+        setAltitudeAGL,
+        setMotorBattery,
+        setPixhawkBattery,
+        setESCtemperature,
+        setSuperSecret,
+        setFlightMode,
+      );
+
+      if (!isCancelled) {
+        telemetryTimeoutId = window.setTimeout(() => {
+          void pollTelemetry();
+        }, 1000);
+      }
+    };
+
+    void pollTelemetry();
 
     return () => {
-      clearInterval(interval);
+      isCancelled = true;
+      if (telemetryTimeoutId !== null) {
+        window.clearTimeout(telemetryTimeoutId);
+      }
     };
   }, [settings]);
 

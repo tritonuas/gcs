@@ -46,59 +46,94 @@ function App() {
   const [coordinate, setCoordinate] = useState<LatLng[]>([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetch("/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt")
+    let isCancelled = false;
+    let planeTimeoutId: number | null = null;
+    let statusTimeoutId: number | null = null;
+
+    const pollPlaneTelemetry = async () => {
+      await fetch("/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt")
         .then((resp) => resp.json())
         .then((json) => {
           const lat = parseFloat(json["lat"]) / 10e6;
           const lng = parseFloat(json["lon"]) / 10e6;
-          setPlaneLatLng([lat, lng]);
+          if (!isCancelled) {
+            setPlaneLatLng([lat, lng]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching plane telemetry:", error);
         });
-    }, 500);
 
-    const interval_long = setInterval(() => {
-      // I hate this but don't feel motivated to refactor it, sorry ~Tyler 4/13/24
-      fetch("/api/connections")
-        .then((resp) => resp.json())
-        .then((json) => {
-          setStatuses((old) =>
-            old.map((status: ConnectionStatus) => {
-              switch (status.name) {
-                case "Antenna Tracker":
-                  return {
-                    isActive: json["antenna_tracker"],
-                    type: status.type,
-                    name: status.name,
-                  } as ConnectionStatus;
-                case "Onboard Computer":
-                  return {
-                    isActive: json["plane_obc"],
-                    type: status.type,
-                    name: status.name,
-                  } as ConnectionStatus;
-                case "Radio Mavlink":
-                  return {
-                    isActive: json["radio_mavlink"],
-                    type: status.type,
-                    name: status.name,
-                  } as ConnectionStatus;
-                default:
-                  return {} as ConnectionStatus;
-              }
-            }),
-          );
-        });
-      fetch("/api/obc_connection")
-        .then((resp) => resp.json())
-        .then((json) => {
-          // these keys are defined in the /connections route of the backend
-          localStorage.setItem("obc_conn_status", JSON.stringify(json));
-        });
-    }, 2000);
+      if (!isCancelled) {
+        planeTimeoutId = window.setTimeout(() => {
+          void pollPlaneTelemetry();
+        }, 500);
+      }
+    };
+
+    const pollConnectionStatus = async () => {
+      await Promise.allSettled([
+        fetch("/api/connections")
+          .then((resp) => resp.json())
+          .then((json) => {
+            if (isCancelled) {
+              return;
+            }
+            setStatuses((old) =>
+              old.map((status: ConnectionStatus) => {
+                switch (status.name) {
+                  case "Antenna Tracker":
+                    return {
+                      isActive: json["antenna_tracker"],
+                      type: status.type,
+                      name: status.name,
+                    } as ConnectionStatus;
+                  case "Onboard Computer":
+                    return {
+                      isActive: json["plane_obc"],
+                      type: status.type,
+                      name: status.name,
+                    } as ConnectionStatus;
+                  case "Radio Mavlink":
+                    return {
+                      isActive: json["radio_mavlink"],
+                      type: status.type,
+                      name: status.name,
+                    } as ConnectionStatus;
+                  default:
+                    return {} as ConnectionStatus;
+                }
+              }),
+            );
+          }),
+        fetch("/api/obc_connection")
+          .then((resp) => resp.json())
+          .then((json) => {
+            if (!isCancelled) {
+              // these keys are defined in the /connections route of the backend
+              localStorage.setItem("obc_conn_status", JSON.stringify(json));
+            }
+          }),
+      ]);
+
+      if (!isCancelled) {
+        statusTimeoutId = window.setTimeout(() => {
+          void pollConnectionStatus();
+        }, 2000);
+      }
+    };
+
+    void pollPlaneTelemetry();
+    void pollConnectionStatus();
 
     return () => {
-      clearInterval(interval);
-      clearInterval(interval_long);
+      isCancelled = true;
+      if (planeTimeoutId !== null) {
+        window.clearTimeout(planeTimeoutId);
+      }
+      if (statusTimeoutId !== null) {
+        window.clearTimeout(statusTimeoutId);
+      }
     };
   }, []);
 
