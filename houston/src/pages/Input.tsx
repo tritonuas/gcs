@@ -636,7 +636,6 @@ function Input() {
       AirdropAssignments: airdropAssignments,
       FlightBoundary: mapDataToGpsCoords(MapMode.FlightBound),
       AirdropBoundary: mapDataToGpsCoords(MapMode.SearchBound),
-      MappingBoundary: mapDataToGpsCoords(MapMode.MappingBound),
       Waypoints: mapDataToGpsCoords(MapMode.Waypoint),
       DropLocation: mapDataToGpsCoords(MapMode.DropLocation),
     };
