@@ -155,7 +155,7 @@ function App() {
             path="control"
             element={<Control settings={config} planeCoordinates={coordinate} />}
           />
-          <Route path="input" element={<Input />} />
+          <Route path="input" element={<Input planeLatLng={planeLatLng} />} />
           <Route path="report" element={<Report />} />
           <Route path="settings" element={<Settings settings={config} setSettings={setConfig} />} />
           <Route path="drop" element={<Drop />} />

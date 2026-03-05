@@ -1,14 +1,15 @@
 import { SetStateAction, useState, useEffect, ChangeEvent, useRef } from "react";
 
-import { useMapEvents, Polygon, Polyline } from "react-leaflet";
+import { useMapEvents, Polygon, Polyline, Marker } from "react-leaflet";
 
 import "./Input.css";
 import TuasMap from "../components/TuasMap";
-import { LatLng } from "leaflet";
+import L, { LatLng } from "leaflet";
 import { Airdrop, AirdropType, GPSCoord, Mission } from "../protos/obc.pb";
 import MyModal from "../components/MyModal";
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import { useMyModal } from "../components/UseMyModal";
+import duck from "../assets/duck.png";
 
 enum MapMode {
   FlightBound,
@@ -555,9 +556,11 @@ function MapIllustrator({ mapData }: { mapData: Map<MapMode, number[][]> }) {
  *    2. The Search Boundaries
  *    3. The Competition Waypoints
  * This is all of the input needed to start the mission.
+ * @param props props
+ * @param props.planeLatLng The position of the plane.
  * @returns Input page
  */
-function Input() {
+function Input({ planeLatLng }: { planeLatLng: [number, number] }) {
   // TODO: simplify all of these state variables into one mission state variable
   // so instead of number[][] its actually storing them as GPS Coords...
   const [mapMode, setMapMode] = useState<MapMode>(MapMode.FlightBound);
@@ -569,7 +572,12 @@ function Input() {
   const [msgModalVisible, setMsgModalVisible] = useState(false);
   const [defaultView, setDefaultView] = useState<[number, number]>([51, 10]);
   const { modalVisible, openModal, closeModal } = useMyModal();
-
+  const icon = localStorage.getItem("icon") || duck;
+  const markerIcon = L.icon({
+    iconUrl: icon,
+    iconSize: [65, 50],
+    iconAnchor: [32, 25],
+  });
   const {
     modalVisible: importModalVisible,
     openModal: openImportModal,
@@ -880,6 +888,9 @@ function Input() {
           <MapClickHandler mapMode={mapMode} mapData={mapData} setMapData={setMapData} />
           <MapIllustrator mapData={mapData} />
           <UpdateMapCenter position={defaultView} />
+          {planeLatLng[0] !== 0 && planeLatLng[1] !== 0 && (
+            <Marker position={planeLatLng} icon={markerIcon} />
+          )}
         </TuasMap>
         <div className="right-container">
           <MapInputForm
