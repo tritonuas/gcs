@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {  useState } from "react";
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
@@ -95,8 +95,19 @@ const Reports: React.FC = () => {
   //const [flightMode, setFlightMode] = useState("???");
   // probably should have been a useReducer, if anyone wants to refactor
   const [clusters, setClusters] = useState([] as Cluster[]);
-  const [selectedCluster, setSelectedCluster] = useState(null as Cluster | null);
-  const [selectedDetection, setSelectedDetection] = useState(null as Detection | null);
+  const [selectedCluster, setSelectedCluster] = useState(0);
+  const [selectedDetection, setSelectedDetection] = useState(0); 
+  function getSelectedCluster(){
+    console.log()
+    return clusters.find((e) => {
+      return e.airdrop_type == selectedCluster
+    })
+  }
+  function getSelectedDetection(){
+    return clusters
+      .find((c) => c.airdrop_type === selectedCluster)
+      ?.all_data_points.find((d) => d.id === selectedDetection);
+  }
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
 
   /**
@@ -118,11 +129,11 @@ const Reports: React.FC = () => {
               eventHandlers={{
                 click: () => {
                   setMapLoc([e.location.Latitude, e.location.Longitude]);
-                  setSelectedDetection(e);
+                  setSelectedDetection(e.id);
                 },
               }}
               center={[e.location.Latitude, e.location.Longitude]}
-              radius={e == selectedDetection ? 10 : 5}
+              radius={e.id == selectedDetection ? 10 : 5}
               pathOptions={{
                 color: e.rejected
                   ? "red"
@@ -182,7 +193,7 @@ const Reports: React.FC = () => {
    * Updates the local state the match the proxy without pinging the obc.
    * If you want to get the runs from the obc, see updateClusters()
    */
-  function syncWithoutFetchingOBC() {
+  async function syncWithoutFetchingOBC() {
     fetch(FETCH_CLUSTERS_ENDPOINT)
       .then((d) => {
         return d.json();
@@ -221,57 +232,14 @@ const Reports: React.FC = () => {
       });
   }
 
-  //These are used to update the selected cluster/detection states when new data is fetched, as the references will become invaild
-  const oldSelectedCluster = useRef(-1);
-  const oldSelectedDetection = useRef({ cluster: -1, id: -1 });
+  
 
-  /**
-   * updates the value of the old... Refs so that you can call consumeOldSelected to reset the selected values to what they where before new data was fetched.
-   * Otherwise, the new values will have different references, and the data will not display properly.
-   */
-  function updateOldSelected() {
-    oldSelectedCluster.current = selectedCluster?.airdrop_type || -1;
-    oldSelectedDetection.current = {
-      cluster: selectedDetection?.type || -1,
-      id: selectedDetection?.id || -1,
-    };
-  }
-
-  useEffect(() => {
-    /**
-     * Should onl be called after updateOldSelected. Updates the selected... states to match the new data.
-     */
-    function consumeOldSelected() {
-      for (let i = 0; i < clusters.length; i++) {
-        if (clusters[i].airdrop_type == oldSelectedCluster.current) {
-          setSelectedCluster(clusters[i]);
-          oldSelectedCluster.current = -1;
-        }
-        if (clusters[i].airdrop_type == oldSelectedDetection.current.cluster) {
-          for (let j = 0; j < clusters[i].all_data_points.length; j++) {
-            if (clusters[i].all_data_points[j].id == oldSelectedDetection.current.id) {
-              setSelectedDetection(clusters[i].all_data_points[j]);
-              oldSelectedDetection.current = { id: -1, cluster: -1 };
-            }
-          }
-        }
-      }
-      if (oldSelectedCluster.current != -1 || oldSelectedDetection.current.id != -1) {
-        //TODO better error handling, display error to user
-        console.warn("Tried to save a selected cluster or detection that does not exists");
-        oldSelectedCluster.current = -1;
-        oldSelectedDetection.current = { id: -1, cluster: -1 };
-      }
-    }
-    consumeOldSelected();
-  }, [clusters]);
   /**
    * Toggles a detection's rejection status, and syncs it to the go proxy
    * This method also syncs the state of the local targets state to the proxys
    * @param id The detection to toggle
    */
   function toggleRejectionStatus(id: number) {
-    updateOldSelected();
     fetch(`${TOGGLE_ENDPOINT}?id=${id}`)
       .catch(() => {
         window.alert("failed to toggle");
@@ -287,7 +255,7 @@ const Reports: React.FC = () => {
           <TuasMap className={"reports-map"} lat={51} lng={10}>
             <UpdateMapCenter position={maploc} />
             {clusters.map((e) => {
-              if (selectedCluster == null || selectedCluster == e) {
+              if (selectedCluster == null || selectedCluster == e.airdrop_type) {
                 return MapCluster(e);
               }
             })}
@@ -296,7 +264,7 @@ const Reports: React.FC = () => {
             <select>
               <option
                 onClick={() => {
-                  setSelectedCluster(null);
+                  setSelectedCluster(-1);
                 }}
               >
                 All clusters
@@ -309,7 +277,7 @@ const Reports: React.FC = () => {
                       backgroundColor: `rgb(${c.color[0]}, ${c.color[1]}, ${c.color[2]})`,
                     }}
                     onClick={() => {
-                      setSelectedCluster(c);
+                      setSelectedCluster(c.airdrop_type);
                     }}
                   >
                     {AirdropType[c.airdrop_type] ?? c.airdrop_type}({c.airdrop_type})
@@ -318,19 +286,24 @@ const Reports: React.FC = () => {
               })}
             </select>
             <div className="reports-cluster-bottom-section">
-              {selectedCluster && (
+              {  (
                 <div className="reports-cluster-container">
                   <div>
-                    Airdrop {selectedCluster?.airdrop_type}
+                    Airdrop {getSelectedCluster()?.airdrop_type}
                     <br></br>
                     Current Chosen Center:{" "}
-                    {selectedCluster &&
-                      GPSCoordToString(
-                        selectedCluster.selected_center ?? selectedCluster.calculated_center,
-                      )}
+                    {
+                      (() => {
+                        const cluster = getSelectedCluster();
+                        return cluster ? GPSCoordToString(cluster.selected_center ?? cluster.calculated_center) : "N/A";
+                      })()
+                    }
                     <br></br>
                     Calculated Center:{" "}
-                    {selectedCluster && GPSCoordToString(selectedCluster.calculated_center)}
+                    {(() => {
+                        const cluster = getSelectedCluster();
+                        return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
+                      })()}
                   </div>
                   <div className="reports-table-wrapper">
                     <table className="reports-cluster-table">
@@ -341,13 +314,13 @@ const Reports: React.FC = () => {
                         <th>Included?</th>
                       </thead>
                       <tbody className="reports-cluster-table-body">
-                        {selectedCluster.all_data_points.map((p, i) => {
+                        {getSelectedCluster()?.all_data_points.map((p, i) => {
                           return (
                             <tr
                               key={i}
                               className="reports-cluster-table-row"
                               onClick={() => {
-                                setSelectedDetection(p);
+                                setSelectedDetection(p.id);
                                 setMapLoc([p.location.Latitude, p.location.Longitude]);
                               }}
                             >
@@ -375,18 +348,18 @@ const Reports: React.FC = () => {
       </div>
       <div className="reports-col">
         <div className="reports-card report-detection-card">
-          {selectedDetection ? (
+          {getSelectedDetection() ? (
             <div className="report-detection-container">
-              <img src={selectedDetection.image} className="report-detection-image"></img>
+              <img src={getSelectedDetection()?.image} className="report-detection-image"></img>
               <div>
-                <p>Location: {GPSCoordToString(selectedDetection.location)}</p>
+                <p>Location: {GPSCoordToString(getSelectedDetection()?.location)}</p>
                 <div>
                   <button
                     onClick={() => {
-                      toggleRejectionStatus(selectedDetection.id);
+                      toggleRejectionStatus(selectedDetection);
                     }}
                   >
-                    {selectedDetection.rejected ? (
+                    {getSelectedDetection()?.rejected ? (
                       <span style={{ color: "green" }}>Re-accept point</span>
                     ) : (
                       <span style={{ color: "red" }}>Reject Point</span>
