@@ -97,12 +97,20 @@ const Reports: React.FC = () => {
   const [clusters, setClusters] = useState([] as Cluster[]);
   const [selectedCluster, setSelectedCluster] = useState(0);
   const [selectedDetection, setSelectedDetection] = useState(0); 
+  /**
+   * Gets the selected cluster, or undefined if none are selected
+   * @returns The currently seleced cluster, or undefined if non are selected
+   */
   function getSelectedCluster(){
     console.log()
     return clusters.find((e) => {
       return e.airdrop_type == selectedCluster
     })
   }
+  /**
+   * Gets the selected detection
+   * @returns the current selected detection, or undefined if non are selected
+   */
   function getSelectedDetection(){
     return clusters
       .find((c) => c.airdrop_type === selectedCluster)
