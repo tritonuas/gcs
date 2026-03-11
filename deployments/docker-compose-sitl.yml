@@ -1,0 +1,16 @@
+version: "3"
+services:
+  sitl:
+    image: radarku/ardupilot-sitl
+    # network_mode: "host" # Not supported on Mac
+    ports:
+      - 5760:5760
+    tty: true
+    environment:
+      - VEHICLE=ArduPlane
+      - MODEL=quadplane
+      - LAT=36.21444
+      - LON=-96.00639
+      - ALT=8
+      - DIR=180
+      - SPEEDUP=2
