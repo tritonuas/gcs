@@ -60,7 +60,7 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func (server *Server) initFrontend(router *gin.Engine) {
-	router.Use(static.Serve("/", static.LocalFile("houston", true)))
+	router.Use(static.Serve("/", static.LocalFile("houston/dist", true)))
 	router.NoRoute(func(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/index.html")
 	})
