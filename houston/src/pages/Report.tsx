@@ -1,4 +1,4 @@
-import React, {  useState } from "react";
+import React, { useState } from "react";
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
@@ -96,22 +96,22 @@ const Reports: React.FC = () => {
   // probably should have been a useReducer, if anyone wants to refactor
   const [clusters, setClusters] = useState([] as Cluster[]);
   const [selectedCluster, setSelectedCluster] = useState(0);
-  const [selectedDetection, setSelectedDetection] = useState(0); 
+  const [selectedDetection, setSelectedDetection] = useState(0);
   /**
    * Gets the selected cluster, or undefined if none are selected
    * @returns The currently seleced cluster, or undefined if non are selected
    */
-  function getSelectedCluster(){
-    console.log()
+  function getSelectedCluster() {
+    console.log();
     return clusters.find((e) => {
-      return e.airdrop_type == selectedCluster
-    })
+      return e.airdrop_type == selectedCluster;
+    });
   }
   /**
    * Gets the selected detection
    * @returns the current selected detection, or undefined if non are selected
    */
-  function getSelectedDetection(){
+  function getSelectedDetection() {
     return clusters
       .find((c) => c.airdrop_type === selectedCluster)
       ?.all_data_points.find((d) => d.id === selectedDetection);
@@ -240,8 +240,6 @@ const Reports: React.FC = () => {
       });
   }
 
-  
-
   /**
    * Toggles a detection's rejection status, and syncs it to the go proxy
    * This method also syncs the state of the local targets state to the proxys
@@ -294,24 +292,24 @@ const Reports: React.FC = () => {
               })}
             </select>
             <div className="reports-cluster-bottom-section">
-              {  (
+              {
                 <div className="reports-cluster-container">
                   <div>
                     Airdrop {getSelectedCluster()?.airdrop_type}
                     <br></br>
                     Current Chosen Center:{" "}
-                    {
-                      (() => {
-                        const cluster = getSelectedCluster();
-                        return cluster ? GPSCoordToString(cluster.selected_center ?? cluster.calculated_center) : "N/A";
-                      })()
-                    }
+                    {(() => {
+                      const cluster = getSelectedCluster();
+                      return cluster
+                        ? GPSCoordToString(cluster.selected_center ?? cluster.calculated_center)
+                        : "N/A";
+                    })()}
                     <br></br>
                     Calculated Center:{" "}
                     {(() => {
-                        const cluster = getSelectedCluster();
-                        return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
-                      })()}
+                      const cluster = getSelectedCluster();
+                      return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
+                    })()}
                   </div>
                   <div className="reports-table-wrapper">
                     <table className="reports-cluster-table">
@@ -349,7 +347,7 @@ const Reports: React.FC = () => {
                     </table>
                   </div>
                 </div>
-              )}
+              }
             </div>
           </div>
         </div>

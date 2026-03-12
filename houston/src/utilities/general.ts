@@ -12,8 +12,8 @@ import { GPSCoord } from "../protos/obc.pb";
  * @returns A string with the gps cords data for displaying
  */
 export function GPSCoordToString(g: GPSCoord | undefined) {
-  if(g == undefined){
-    return "Undefined"
+  if (g == undefined) {
+    return "Undefined";
   }
   return `Lat: ${g.Latitude}, Long: ${g.Longitude}, Alt: ${g.Altitude}`;
 }
