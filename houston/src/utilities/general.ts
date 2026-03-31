@@ -11,7 +11,10 @@ import { GPSCoord } from "../protos/obc.pb";
  * @param g The gps cord to format
  * @returns A string with the gps cords data for displaying
  */
-export function GPSCoordToString(g: GPSCoord) {
+export function GPSCoordToString(g: GPSCoord | undefined) {
+  if (g == undefined) {
+    return "Undefined";
+  }
   return `Lat: ${g.Latitude}, Long: ${g.Longitude}, Alt: ${g.Altitude}`;
 }
 
