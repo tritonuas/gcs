@@ -33,6 +33,9 @@ func (clusters *ClusterManager) ToggleDetection(id int) {
 	defer clusters.mu.Unlock()
 	out := clusters.FindDetection(id)
 	out.Rejected = !out.Rejected
+	for _, data := range clusters.ClusterData {
+		findCenter(data)
+	}
 }
 func (clusters *ClusterManager) FindDetection(id int) *Detection {
 	for i := range clusters.ClusterData {
@@ -58,9 +61,14 @@ func findCenter(data *ClusterData) error {
 		return errors.New("cluster data is empty. There are no centers to find")
 	}
 
-	latitudesData := append([]Detection{}, data.Detections...)
-	longitudesData := append([]Detection{}, data.Detections...)
-
+	var latitudesData []Detection
+	var longitudesData []Detection
+	for _, detection := range data.Detections {
+		if !detection.Rejected {
+			latitudesData = append(latitudesData, detection)
+			longitudesData = append(longitudesData, detection)
+		}
+	}
 	sort.Slice(latitudesData, func(i, j int) bool {
 		return latitudesData[i].Location.Latitude < latitudesData[j].Location.Latitude
 	})
@@ -106,6 +114,7 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 		identifiedTargets = append(identifiedTargets, &result)
 	}
 	clusters.mu.Lock()
+	defer clusters.mu.Unlock()
 	for j := range identifiedTargets {
 		detections := identifiedTargets[j]
 		if detections == nil {
@@ -131,13 +140,15 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 						Id:       clusters.LastID,
 					}},
 					TargetType:    airdrop_type,
-					ClusterCenter: detections.GetCoordinates()[i],
+					ClusterCenter: &protos.GPSCoord{},
 				}
 				clusters.LastID++
 			}
 		}
 	}
-	defer clusters.mu.Unlock()
+	for _, data := range clusters.ClusterData {
+		findCenter(data)
+	}
 	return nil
 }
 
