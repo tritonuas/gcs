@@ -437,7 +437,7 @@ function Control({
           {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
           {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
           <div style={flightModeColor} className="flight-telemetry" id="numLaps">
-            <h1 className="heading">NumLaps</h1>
+            <h1 className="heading">Current Lap</h1>
             <p className="data">{numLaps}</p>
           </div>
         </div>
