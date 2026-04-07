@@ -256,12 +256,12 @@ function Control({
   ];
 
   // <Garbage that I wrote>
-  const numLapsThreshold: Threshold = [
-    0, //replace with actual min
-    5, //replace with actual max
-    0, //no conversion, or maybe this is supposed to show the total laps?
-    5, //^
-  ]
+  //const numLapsThreshold: Threshold = [
+  //  settings.minNumLaps, //replace with actual min
+  //  settings.maxNumLaps, //replace with actual max
+  //  0, //no conversion, or maybe this is supposed to show the total laps?
+  //  5, //^
+  //]
   // </Garbage that I wrote>
 
   const motorBatteryThreshold: Threshold = [
@@ -298,9 +298,9 @@ function Control({
     new Parameter("Altitude AGL", [0, 0], ["feet", "meters"], altitudeAGLThreshold, 0),
   );
   // <Garbage that I wrote>
-  const [numLaps, setNumLaps] = useState<Parameter>(
-    new Parameter("Num Laps", [0,0], ["laps","laps"], numLapsThreshold, 0),
-  );
+  //const [numLaps, setNumLaps] = useState<Parameter>(
+  //  new Parameter("Num Laps", [0,0], ["laps","laps"], numLapsThreshold, 0),
+  //);
   // </Garbage that I wrote>
   const [motorBattery, setMotorBattery] = useState<Parameter>(
     new Parameter("Motor Battery", [0, 0], ["V/c", "V"], motorBatteryThreshold, 0),
@@ -329,7 +329,9 @@ function Control({
     openModal: openRTLModal,
     closeModal: closeRTLModal,
   } = useMyModal();
-
+  //<Garbage that I wrote>
+  const [numLaps, setNumLaps] = useState(67);
+  //</Garbage that I wrote>
   const [superSecret, setSuperSecret] = useState(false);
 
   const [flightMode, setFlightMode] = useState("???");
@@ -348,11 +350,14 @@ function Control({
           return response.text();
         })
         .then((data) => {
-          setTickState(data);
+          setTickState(data.split(",")[0]);
+          setNumLaps(Number(data.split(",")[1]))
+          //write garbage
         })
         .catch((error) => {
           console.error("Error fetching tick state:", error);
           setTickState("Error");
+          setNumLaps(67); //change
         });
     };
 
@@ -378,7 +383,7 @@ function Control({
           setPixhawkBattery,
           setESCtemperature,
           setSuperSecret,
-          setFlightMode,
+          setFlightMode
         ),
       1000,
     );
@@ -431,7 +436,10 @@ function Control({
           {groundspeed.render(() => handleClick(setGroundspeed))}
           {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
           {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
-          {numLaps.render(() => handleClick(setNumLaps))}
+          <div style={flightModeColor} className="flight-telemetry" id="numLaps">
+            <h1 className="heading">NumLaps</h1>
+            <p className="data">{numLaps}</p>
+          </div>
         </div>
         {superSecret ? (
           <SuperSecret></SuperSecret>

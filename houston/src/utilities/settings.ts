@@ -12,6 +12,11 @@ export interface SettingsConfig {
 
   groundAltitude_feet: number;
 
+  //<Garbage that I wrote>
+  minNumLaps: number;
+  maxNumLaps: number;
+  //</Garbage that I wrote>
+
   minVoltsPerCell: number;
   maxVoltsPerCell: number;
 
@@ -32,6 +37,8 @@ export function makeDefaultConfig(): SettingsConfig {
     minAltitudeAGL_feet: 75,
     maxAltitudeAGL_feet: 400,
     groundAltitude_feet: 0,
+    minNumLaps: 0, //Garbage that I wrote
+    maxNumLaps: 67, //Garbage that I wrote, replace with actual max or if different logic needed
     minVoltsPerCell: 3.6,
     maxVoltsPerCell: 4.2,
     minESCTemperature_c: 0, // todo use real values from embedded

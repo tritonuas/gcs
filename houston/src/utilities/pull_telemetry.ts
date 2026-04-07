@@ -34,7 +34,7 @@ export function pullTelemetry(
   setPixhawkBatteryVal: Dispatch<SetStateAction<Parameter>>,
   setESCtemperatureVal: Dispatch<SetStateAction<Parameter>>,
   setSuperSecret: Dispatch<SetStateAction<boolean>>,
-  setFlightMode: Dispatch<SetStateAction<string>>,
+  setFlightMode: Dispatch<SetStateAction<string>>
 ) {
   fetch("/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading")
     .then((resp) => resp.json())
@@ -135,4 +135,6 @@ export function pullTelemetry(
       setPixhawkBatteryVal((param) => param.getErrorValue());
       setMotorBatteryVal((param) => param.getErrorValue());
     });
+    //fetch("cock and ball torture 6767")
 }
+  
