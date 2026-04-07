@@ -33,7 +33,8 @@ function TuasMap({
           id="mapbox/satellite-v9"
         />
         {/* This is for if you are offline and want to use local tiles.*/}
-        <TileLayer key="offline" attribution="Offline Map" url="/tiles/{z}/{x}/{y}.png" />
+        <TileLayer key="offline" attribution="Offline Map" url="/tiles/{z}/{x}/{y}.png" maxNativeZoom={15}/>
+
 
         {children}
       </MapContainer>
