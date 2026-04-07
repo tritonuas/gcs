@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
@@ -7,7 +7,7 @@ import "./Report.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
 import { Circle, Marker, Popup } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
+import {  GPSCoordToString } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -82,14 +82,27 @@ interface Cluster {
   //the color to draw as, stored as rgb 3-tuple
   color: number[];
 }
-//TODO make better
 /**
  * Gets the next color for the cluster to use
+ * @param type The airdrop type
  * @returns A length 3 array with r, g, b colors
  */
-function GetNextColor() {
-  return [(Math.random() * 255) % 255, (Math.random() * 255) % 255, (Math.random() * 255) % 255];
+function GetNextColor(type : number) {
+  const colors: number[][] = [
+    [0, 255, 0],      // Green
+    [0, 0, 255],      // Blue
+    [255, 255, 0],    // Yellow
+    [255, 0, 255],    // Magenta
+    [0, 255, 255],    // Cyan
+    [255, 128, 0],    // Orange
+    [128, 0, 255],    // Purple
+    [0, 255, 128],    // Spring green
+    [128, 255, 0],    // Chartreuse
+    [0, 128, 255],    // Sky blue
+  ];
+  return colors[Math.min(colors.length, type )];
 }
+
 // --- Component ---
 const Reports: React.FC = () => {
   //const [flightMode, setFlightMode] = useState("???");
@@ -97,12 +110,34 @@ const Reports: React.FC = () => {
   const [clusters, setClusters] = useState([] as Cluster[]);
   const [selectedCluster, setSelectedCluster] = useState(0);
   const [selectedDetection, setSelectedDetection] = useState(0);
+
+  const [backgroundFetchingInterval, setBackgroundFetching] = useState(-1);
+  const interval = useRef(0);
+  const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch")
+
+  useEffect(() => {
+    clearInterval(interval.current)
+    if (backgroundFetchingInterval != -1) {
+      interval.current = window.setInterval(async () => {
+        setFetchingMessage("Fetching...");
+        try {
+          await updateClusters();
+        } catch (error) {
+          console.error("Caught error:", error);
+          setFetchingMessage(`Error: ${error}`)
+        }
+        setFetchingMessage("waiting to fetch")
+      }, backgroundFetchingInterval * 1000)
+    }
+    return () =>{
+      clearInterval(interval.current)
+    }
+  }, [backgroundFetchingInterval])
   /**
    * Gets the selected cluster, or undefined if none are selected
    * @returns The currently seleced cluster, or undefined if non are selected
    */
   function getSelectedCluster() {
-    console.log();
     return clusters.find((e) => {
       return e.airdrop_type == selectedCluster;
     });
@@ -125,7 +160,7 @@ const Reports: React.FC = () => {
    */
   function MapCluster(cluster: Cluster) {
     if (cluster.color.length <= 0) {
-      cluster.color = GetNextColor();
+      cluster.color = GetNextColor(cluster.airdrop_type );
     }
     const center = cluster.selected_center ?? cluster.calculated_center;
     return (
@@ -150,8 +185,8 @@ const Reports: React.FC = () => {
             />
           );
         })}
-        <Marker position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}>
-          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
+        <Marker position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}>
+          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type] ?? cluster.airdrop_type}</Popup>
         </Marker>
       </>
     );
@@ -159,43 +194,38 @@ const Reports: React.FC = () => {
   /**
    * Updates the detections state with new data fetched from the backend
    */
-  function updateClusters() {
-    fetch(TARGETS_ALL_ENDPOINT)
-      .then((d) => {
-        return d.json();
-      })
-      .then((j) => {
-        console.log("Data obtained from go proxy:", j);
-        //Later, this would make sense to us a protobuffer for, once the format is more set
-        const newval = [];
-        // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
-        for (const [key, value] of Object.entries(j)) {
-          const datapoints: Detection[] = [];
-          for (const d of (
-            value as {
-              detections: { location: GPSCoord; image: string; rejected: boolean; id: number }[];
-            }
-          )["detections"]) {
-            const detection: Detection = {
-              location: GPSCoord.create(d["location"]),
-              type: +key as AirdropType,
-              image: "data:image/jpeg;base64," + d["image"],
-              rejected: d["rejected"],
-              id: d["id"],
-            };
-            datapoints.push(detection);
-          }
-          const addition: Cluster = {
-            calculated_center: (value as { center: GPSCoord })["center"],
-            airdrop_type: +key as AirdropType,
-            all_data_points: datapoints,
-            selected_center: null,
-            color: GetNextColor(),
-          };
-          newval.push(addition);
+  async function updateClusters() {
+    const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json()
+    console.log("Data obtained from go proxy:", j);
+    //Later, this would make sense to us a protobuffer for, once the format is more set
+    const newval = [];
+    // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+    for (const [key, value] of Object.entries(j)) {
+      const datapoints: Detection[] = [];
+      for (const d of (
+        value as {
+          detections: { location: GPSCoord; image: string; rejected: boolean; id: number }[];
         }
-        setClusters(newval);
-      });
+      )["detections"]) {
+        const detection: Detection = {
+          location: GPSCoord.create(d["location"]),
+          type: +key as AirdropType,
+          image: "data:image/jpeg;base64," + d["image"],
+          rejected: d["rejected"],
+          id: d["id"],
+        };
+        datapoints.push(detection);
+      }
+      const addition: Cluster = {
+        calculated_center: (value as { center: GPSCoord })["center"],
+        airdrop_type: +key as AirdropType,
+        all_data_points: datapoints,
+        selected_center: null,
+        color: GetNextColor(+key),
+      };
+      newval.push(addition);
+    }
+    setClusters(newval);
   }
   /**
    * Updates the local state the match the proxy without pinging the obc.
@@ -232,7 +262,7 @@ const Reports: React.FC = () => {
             airdrop_type: +key as AirdropType,
             all_data_points: datapoints,
             selected_center: null,
-            color: GetNextColor(),
+            color: GetNextColor(+key),
           };
           newval.push(addition);
         }
@@ -378,38 +408,16 @@ const Reports: React.FC = () => {
             <h1>Select a detection on the map or from the table to view</h1>
           )}
         </div>
-        <div className="reports-card">
-          Temp dev stuff idk what goes here yets <br></br>
-          <button onClick={updateClusters}>Fetch data</button>
-          <button
-            onClick={() => {
-              const center = GPSCoord.create({
-                Latitude: maploc[0] + Math.random() * 0.002 - 0.001,
-                Longitude: maploc[1] + Math.random() * 0.002 - 0.001,
-                Altitude: 0,
-              });
+        <div className="reports-card reports-control-card">
+          Controls<br></br>
+          <label htmlFor="fetching-range">Interval (in seconds) for background fetch. Current: {backgroundFetchingInterval} seconds between.  (-1 to disable) <br></br> {fetchingMessage}</label>
+          <input name="fetching-range" type="range" className="fetching-interval-slider" min={-1} max={50} onChange={(e) => {
+            setBackgroundFetching(+e.target.value);
+          }}></input>
 
-              const addition: Cluster = {
-                calculated_center: center,
-                airdrop_type: AirdropType.Water,
-                all_data_points: [],
-                selected_center: null,
-                color: [],
-              };
-              for (let i = 0; i < 20; i++) {
-                addition.all_data_points.push({
-                  location: createRandomGPSCoord(center.Latitude, center.Longitude, 0.001, 0.001),
-                  type: AirdropType.Undefined,
-                  image: "",
-                  rejected: false,
-                  id: -1, // testing purposes only, negative ids should never exists
-                });
-              }
-              setClusters([...clusters, addition]);
-            }}
-          >
-            Add random cluster
-          </button>
+          <br />
+          <button onClick={updateClusters}>Fetch data</button>
+
         </div>
       </div>
     </main>

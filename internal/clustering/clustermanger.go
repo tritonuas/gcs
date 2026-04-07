@@ -28,14 +28,18 @@ type ClusterManager struct {
 	mu          sync.RWMutex
 }
 
-func (clusters *ClusterManager) ToggleDetection(id int) {
+func (clusters *ClusterManager) ToggleDetection(id int) error {
 	clusters.mu.Lock()
 	defer clusters.mu.Unlock()
 	out := clusters.FindDetection(id)
 	out.Rejected = !out.Rejected
 	for _, data := range clusters.ClusterData {
-		findCenter(data)
+		err := findCenter(data)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 func (clusters *ClusterManager) FindDetection(id int) *Detection {
 	for i := range clusters.ClusterData {
@@ -63,6 +67,7 @@ func findCenter(data *ClusterData) error {
 
 	var latitudesData []Detection
 	var longitudesData []Detection
+	// ignore rejected detections
 	for _, detection := range data.Detections {
 		if !detection.Rejected {
 			latitudesData = append(latitudesData, detection)
@@ -140,14 +145,15 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 						Id:       clusters.LastID,
 					}},
 					TargetType:    airdrop_type,
-					ClusterCenter: &protos.GPSCoord{},
+					ClusterCenter: detections.GetCoordinates()[i],
 				}
 				clusters.LastID++
 			}
 		}
 	}
 	for _, data := range clusters.ClusterData {
-		findCenter(data)
+		center_error := findCenter(data)
+		return center_error
 	}
 	return nil
 }

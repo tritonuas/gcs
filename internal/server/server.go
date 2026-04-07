@@ -149,8 +149,8 @@ func (server *Server) toggleDetection() gin.HandlerFunc {
 		Log.Infof("toggle id %s", id)
 		if exists {
 			numbered_id, parse_error := strconv.Atoi(id)
-			if parse_error == nil {
-				server.clusterManager.ToggleDetection(numbered_id)
+			if parse_error == nil && server.clusterManager.ToggleDetection(numbered_id) == nil {
+				c.String(http.StatusOK, "Detection toggled successfully")
 			} else {
 
 				Log.Errorf("error marshealing JSON: %v", parse_error)
