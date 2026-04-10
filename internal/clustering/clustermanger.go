@@ -1,8 +1,10 @@
 package clustering
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -12,7 +14,6 @@ import (
 )
 
 type Detection struct {
-	Image    string           `json:"image"`
 	Location *protos.GPSCoord `json:"location"`
 	Rejected bool             `json:"rejected"`
 	Id       int              `json:"id"`
@@ -26,6 +27,7 @@ type ClusterManager struct {
 	ClusterData map[protos.AirdropType]*ClusterData
 	LastID      int
 	mu          sync.RWMutex
+	Images      map[int][]byte
 }
 
 func (clusters *ClusterManager) ToggleDetection(id int) error {
@@ -127,10 +129,15 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 		}
 		for i, airdrop_type := range detections.TargetType {
 			cluster := clusters.ClusterData[airdrop_type]
-
+			imgbytes, b64error := base64.StdEncoding.DecodeString(detections.GetPicture())
+			if b64error != nil {
+				// maybe set image to some error display?
+				log.Println(b64error)
+			} else {
+				clusters.Images[clusters.LastID] = imgbytes
+			}
 			if cluster != nil {
 				cluster.Detections = append(cluster.Detections, Detection{
-					Image:    detections.GetPicture(),
 					Location: detections.GetCoordinates()[i],
 					Rejected: false,
 					Id:       clusters.LastID,
@@ -139,7 +146,6 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 			} else {
 				clusters.ClusterData[airdrop_type] = &ClusterData{
 					Detections: []Detection{{
-						Image:    detections.GetPicture(),
 						Location: detections.GetCoordinates()[i],
 						Rejected: false,
 						Id:       clusters.LastID,
@@ -156,6 +162,13 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 		return center_error
 	}
 	return nil
+}
+
+func (clusters *ClusterManager) GetDetectionImage(id int) ([]byte, bool) {
+	clusters.mu.RLock()
+	defer clusters.mu.RUnlock()
+	out, ok := clusters.Images[id]
+	return out, ok
 }
 
 // Util method which takes a json list as a string and returns a list of each object contaied. This only exists because of one niche use case here where we cant parse a list of protos but cannot parse them as normal json
@@ -233,5 +246,6 @@ func ExtractJSONListAsStrings(jsonStr string) ([]string, error) {
 func New() *ClusterManager {
 	return &ClusterManager{
 		ClusterData: make(map[protos.AirdropType]*ClusterData),
+		Images:      make(map[int][]byte),
 	}
 }

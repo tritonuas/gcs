@@ -62,8 +62,6 @@ interface Detection {
   location: GPSCoord;
   // Classifcation of the detection by the OBC - might be changed on client side
   type: AirdropType;
-  //Base 64 image TODO - does this include the base64: start
-  image: string;
   //If this detection has been rejected
   rejected: boolean;
   //unique id for this detection
@@ -210,7 +208,6 @@ const Reports: React.FC = () => {
         const detection: Detection = {
           location: GPSCoord.create(d["location"]),
           type: +key as AirdropType,
-          image: "data:image/jpeg;base64," + d["image"],
           rejected: d["rejected"],
           id: d["id"],
         };
@@ -251,7 +248,6 @@ const Reports: React.FC = () => {
             const detection: Detection = {
               location: GPSCoord.create(d["location"]),
               type: +key as AirdropType,
-              image: "data:image/jpeg;base64," + d["image"],
               rejected: d["rejected"],
               id: d["id"],
             };
@@ -386,7 +382,7 @@ const Reports: React.FC = () => {
         <div className="reports-card report-detection-card">
           {getSelectedDetection() ? (
             <div className="report-detection-container">
-              <img src={getSelectedDetection()?.image} className="report-detection-image"></img>
+              <img src={`${API_BASE_URL}/clusters/detection_images/${getSelectedDetection()?.id}`} className="report-detection-image"></img>
               <div>
                 <p>Location: {GPSCoordToString(getSelectedDetection()?.location)}</p>
                 <div>

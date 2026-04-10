@@ -129,7 +129,6 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.GET("/all", server.getAllTargets())
 			targets.GET("/matched", server.getMatchedTargets())
 			targets.POST("/matched", server.postMatchedTargets())
-
 			targets.POST("/locations", server.postAirdropTargets())
 			targets.POST("/validate", server.validateTargets())
 			targets.POST("/reject", server.rejectTargets())
@@ -138,7 +137,28 @@ func (server *Server) initBackend(router *gin.Engine) {
 		{
 			clusters.GET("/fetch", server.fetchClusters())
 			clusters.GET("/toggle", server.toggleDetection())
+			clusters.GET("/detection_images/:id", server.detectionImage())
+
 		}
+	}
+}
+
+func (server *Server) detectionImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, parse_error := strconv.Atoi(c.Param("id"))
+		if parse_error != nil {
+			c.String(http.StatusBadRequest, "Malformed id")
+			return
+		}
+		img, ok := server.clusterManager.GetDetectionImage(id)
+		if ok {
+			// Cache for 1 day. - this would allow us to increase peformance, but might cause issues while testing with invalid data getting cached
+			// c.Header("Cache-Control", "public, max-age=5184000")
+			c.Header("Content-Type", "image/jpg")
+			c.Data(http.StatusOK, "image/jpg", img)
+			return
+		}
+		c.String(http.StatusBadRequest, "Invalid id")
 	}
 }
 
