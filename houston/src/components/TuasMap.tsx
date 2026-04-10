@@ -23,7 +23,7 @@ function TuasMap({
 }) {
   return (
     <>
-      <MapContainer className={className} center={[lat, lng]} zoom={13} scrollWheelZoom={false}>
+      <MapContainer className={className} center={[lat, lng]} zoom={16} scrollWheelZoom={false}>
         <TileLayer
           attribution='Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
           url="https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}"
