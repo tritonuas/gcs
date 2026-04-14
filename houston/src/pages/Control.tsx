@@ -255,15 +255,6 @@ function Control({
     FEET_TO_METERS(settings.maxAltitudeAGL_feet) + FEET_TO_METERS(settings.groundAltitude_feet),
   ];
 
-  // <Garbage that I wrote>
-  //const numLapsThreshold: Threshold = [
-  //  settings.minNumLaps, //replace with actual min
-  //  settings.maxNumLaps, //replace with actual max
-  //  0, //no conversion, or maybe this is supposed to show the total laps?
-  //  5, //^
-  //]
-  // </Garbage that I wrote>
-
   const motorBatteryThreshold: Threshold = [
     settings.minVoltsPerCell,
     settings.maxVoltsPerCell,
@@ -297,11 +288,6 @@ function Control({
   const [altitudeAGL, setAltitudeAGL] = useState<Parameter>(
     new Parameter("Altitude AGL", [0, 0], ["feet", "meters"], altitudeAGLThreshold, 0),
   );
-  // <Garbage that I wrote>
-  //const [numLaps, setNumLaps] = useState<Parameter>(
-  //  new Parameter("Num Laps", [0,0], ["laps","laps"], numLapsThreshold, 0),
-  //);
-  // </Garbage that I wrote>
   const [motorBattery, setMotorBattery] = useState<Parameter>(
     new Parameter("Motor Battery", [0, 0], ["V/c", "V"], motorBatteryThreshold, 0),
   );
@@ -330,7 +316,7 @@ function Control({
     closeModal: closeRTLModal,
   } = useMyModal();
   //<Garbage that I wrote>
-  const [numLaps, setNumLaps] = useState(67);
+  const [numLaps, setNumLaps] = useState("-1");
   //</Garbage that I wrote>
   const [superSecret, setSuperSecret] = useState(false);
 
@@ -341,7 +327,7 @@ function Control({
   // --- NEW useEffect specifically for fetching tick state ---
   useEffect(() => {
     const fetchTickState = () => {
-      fetch("/api/tickstate")
+      fetch("/api/obcstate")
         .then((response) => {
           if (!response.ok) {
             setTickState(`Error: ${response.status}`);
@@ -351,13 +337,13 @@ function Control({
         })
         .then((data) => {
           setTickState(data.split(",")[0]);
-          setNumLaps(Number(data.split(",")[1]))
+          setNumLaps(data.split(",")[1])
           //write garbage
         })
         .catch((error) => {
           console.error("Error fetching tick state:", error);
           setTickState("Error");
-          setNumLaps(67); //change
+          setNumLaps("-67/420"); //change
         });
     };
 
