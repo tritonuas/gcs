@@ -7,7 +7,7 @@ import "./Report.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
 import { Circle, Marker, Popup } from "react-leaflet";
-import {  GPSCoordToString } from "../utilities/general";
+import { GPSCoordToString } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -85,21 +85,21 @@ interface Cluster {
  * @param type The airdrop type
  * @returns A length 3 array with r, g, b colors
  */
-function GetNextColor(type : number) {
+function GetNextColor(type: number) {
   //If we need more, we can add them here. This maps from cv type -> color
   const colors: number[][] = [
-    [0, 255, 0],      // Green
-    [0, 0, 255],      // Blue
-    [255, 255, 0],    // Yellow
-    [255, 0, 255],    // Magenta
-    [0, 255, 255],    // Cyan
-    [255, 128, 0],    // Orange
-    [128, 0, 255],    // Purple
-    [0, 255, 128],    // Spring green
-    [128, 255, 0],    // Chartreuse
-    [0, 128, 255],    // Sky blue
+    [0, 255, 0], // Green
+    [0, 0, 255], // Blue
+    [255, 255, 0], // Yellow
+    [255, 0, 255], // Magenta
+    [0, 255, 255], // Cyan
+    [255, 128, 0], // Orange
+    [128, 0, 255], // Purple
+    [0, 255, 128], // Spring green
+    [128, 255, 0], // Chartreuse
+    [0, 128, 255], // Sky blue
   ];
-  return colors[Math.min(colors.length - 1, type )];
+  return colors[Math.min(colors.length - 1, type)];
 }
 
 // --- Component ---
@@ -112,10 +112,10 @@ const Reports: React.FC = () => {
 
   const [backgroundFetchingInterval, setBackgroundFetching] = useState(-1);
   const interval = useRef(0);
-  const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch")
+  const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch");
 
   useEffect(() => {
-    clearInterval(interval.current)
+    clearInterval(interval.current);
     if (backgroundFetchingInterval != -1) {
       interval.current = window.setInterval(async () => {
         setFetchingMessage("Fetching...");
@@ -123,21 +123,21 @@ const Reports: React.FC = () => {
           await updateClusters();
         } catch (error) {
           console.error("Caught error:", error);
-          setFetchingMessage(`Error: ${error}`)
+          setFetchingMessage(`Error: ${error}`);
         }
-        setFetchingMessage("waiting to fetch")
-      }, backgroundFetchingInterval * 1000)
+        setFetchingMessage("waiting to fetch");
+      }, backgroundFetchingInterval * 1000);
     }
-    return () =>{
-      clearInterval(interval.current)
-    }
-  }, [backgroundFetchingInterval])
+    return () => {
+      clearInterval(interval.current);
+    };
+  }, [backgroundFetchingInterval]);
   /**
    * Gets the selected cluster, or undefined if none are selected
    * @returns The currently seleced cluster, or undefined if non are selected
    */
   function getSelectedCluster() {
-    if(selectedCluster == -1){
+    if (selectedCluster == -1) {
       return undefined;
     }
     return clusters.find((e) => {
@@ -148,12 +148,12 @@ const Reports: React.FC = () => {
    * Returns all of the detections, regardless of cluster
    * @returns a list of all of the detections
    */
-  function getAllDetections(){
-    const out = []
-    for(const c of clusters){
-      out.push(...c.all_data_points)
+  function getAllDetections() {
+    const out = [];
+    for (const c of clusters) {
+      out.push(...c.all_data_points);
     }
-    return out
+    return out;
   }
   /**
    * Gets the selected detection
@@ -173,7 +173,7 @@ const Reports: React.FC = () => {
    */
   function MapCluster(cluster: Cluster) {
     if (cluster.color.length <= 0) {
-      cluster.color = GetNextColor(cluster.airdrop_type );
+      cluster.color = GetNextColor(cluster.airdrop_type);
     }
     const center = cluster.selected_center ?? cluster.calculated_center;
     return (
@@ -198,8 +198,12 @@ const Reports: React.FC = () => {
             />
           );
         })}
-        <Marker position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}>
-          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type] ?? cluster.airdrop_type}</Popup>
+        <Marker
+          position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}
+        >
+          <Popup>
+            Cluster for airdrop: {AirdropType[cluster.airdrop_type] ?? cluster.airdrop_type}
+          </Popup>
         </Marker>
       </>
     );
@@ -208,7 +212,7 @@ const Reports: React.FC = () => {
    * Updates the detections state with new data fetched from the backend
    */
   async function updateClusters() {
-    const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json()
+    const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json();
     //Later, this would make sense to us a protobuffer for, once the format is more set
     const newval = [];
     // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
@@ -290,7 +294,7 @@ const Reports: React.FC = () => {
         window.alert("failed to toggle");
       })
       .then((e) => {
-        console.log(e)
+        console.log(e);
         syncWithoutFetchingOBC();
       });
   }
@@ -360,7 +364,10 @@ const Reports: React.FC = () => {
                         <th>Included?</th>
                       </thead>
                       <tbody className="reports-cluster-table-body">
-                        {(selectedCluster == -1 ? getAllDetections() : getSelectedCluster()?.all_data_points ?? []).map((p, i) => {
+                        {(selectedCluster == -1
+                          ? getAllDetections()
+                          : (getSelectedCluster()?.all_data_points ?? [])
+                        ).map((p, i) => {
                           return (
                             <tr
                               key={i}
@@ -397,7 +404,10 @@ const Reports: React.FC = () => {
         <div className="reports-card report-detection-card">
           {getSelectedDetection() ? (
             <div className="report-detection-container">
-              <img src={`${API_BASE_URL}/clusters/detection_images/${getSelectedDetection()?.id}`} className="report-detection-image"></img>
+              <img
+                src={`${API_BASE_URL}/clusters/detection_images/${getSelectedDetection()?.id}`}
+                className="report-detection-image"
+              ></img>
               <div>
                 <p>Location: {GPSCoordToString(getSelectedDetection()?.location)}</p>
                 <div>
@@ -421,14 +431,22 @@ const Reports: React.FC = () => {
         </div>
         <div className="reports-card reports-control-card">
           Controls<br></br>
-          <label htmlFor="fetching-range">Interval (in seconds) for background fetch. Current: {backgroundFetchingInterval} seconds between.  (-1 to disable) <br></br> {fetchingMessage}</label>
-          <input name="fetching-range" type="range" className="fetching-interval-slider" min={-1} max={50} onChange={(e) => {
-            setBackgroundFetching(+e.target.value);
-          }}></input>
-
+          <label htmlFor="fetching-range">
+            Interval (in seconds) for background fetch. Current: {backgroundFetchingInterval}{" "}
+            seconds between. (-1 to disable) <br></br> {fetchingMessage}
+          </label>
+          <input
+            name="fetching-range"
+            type="range"
+            className="fetching-interval-slider"
+            min={-1}
+            max={50}
+            onChange={(e) => {
+              setBackgroundFetching(+e.target.value);
+            }}
+          ></input>
           <br />
           <button onClick={updateClusters}>Fetch data</button>
-
         </div>
       </div>
     </main>

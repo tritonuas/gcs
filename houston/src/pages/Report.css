@@ -9,7 +9,7 @@
 }
 @media (max-width: 800px) {
   .reports-main {
-    flex-direction: column; 
+    flex-direction: column;
   }
 }
 .reports-col {
@@ -85,22 +85,25 @@
   height: 60%;
   max-height: 60vh;
 }
-.fetching-interval-slider{
+.fetching-interval-slider {
   width: 50%;
 }
 
-.reports-control-card{
+.reports-control-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   height: 30%;
   padding: 5px;
-
 }
 @keyframes loadingbar {
-  from{width: 0%; }
-  to{width: 100;}
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100;
+  }
 }
-.report-detection-card{
+.report-detection-card {
   max-height: 60%;
 }
