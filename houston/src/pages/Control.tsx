@@ -314,7 +314,7 @@ function Control({
     closeModal: closeRTLModal,
   } = useMyModal();
 
-  const [numLaps, setNumLaps] = useState(-1);
+  const [numLaps, setNumLaps] = useState("-1");
 
   const [superSecret, setSuperSecret] = useState(false);
 
@@ -325,7 +325,7 @@ function Control({
   // --- NEW useEffect specifically for fetching tick state ---
   useEffect(() => {
     const fetchTickState = () => {
-      fetch("/api/tickstate")
+      fetch("/api/obcstate")
         .then((response) => {
           if (!response.ok) {
             setTickState(`Error: ${response.status}`);
@@ -335,12 +335,12 @@ function Control({
         })
         .then((data) => {
           setTickState(data.split(",")[0]);
-          setNumLaps(Number(data.split(",")[1]))
+          setNumLaps(data.split(",")[1])
         })
         .catch((error) => {
           console.error("Error fetching tick state:", error);
           setTickState("Error");
-          setNumLaps(-1);
+          setNumLaps("-67/420"); 
         });
     };
 
