@@ -11,6 +11,7 @@ import (
 
 	"github.com/tritonuas/gcs/internal/protos"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type Detection struct {
@@ -33,16 +34,23 @@ type ClusterManager struct {
 func (clusters *ClusterManager) ToggleDetection(id int) error {
 	clusters.mu.Lock()
 	defer clusters.mu.Unlock()
-	out := clusters.FindDetection(id)
-	out.Rejected = !out.Rejected
-	for _, data := range clusters.ClusterData {
-		err := findCenter(data)
-		if err != nil {
-			return err
+	var detection_type protos.AirdropType
+	for i := range clusters.ClusterData {
+		for j := range clusters.ClusterData[i].Detections {
+			if clusters.ClusterData[i].Detections[j].Id == id {
+				detection_type = i
+				clusters.ClusterData[i].Detections[j].Rejected = !clusters.ClusterData[i].Detections[j].Rejected
+				break
+			}
 		}
+	}
+	err := findCenter(clusters.ClusterData[detection_type])
+	if err != nil {
+		return err
 	}
 	return nil
 }
+
 func (clusters *ClusterManager) FindDetection(id int) *Detection {
 	for i := range clusters.ClusterData {
 		for j := range clusters.ClusterData[i].Detections {
@@ -51,7 +59,7 @@ func (clusters *ClusterManager) FindDetection(id int) *Detection {
 			}
 		}
 	}
-	return &Detection{}
+	return nil
 }
 func (clusters *ClusterManager) GetAllDetections() []Detection {
 	all_detections := make([]Detection, 0, clusters.LastID)
@@ -66,43 +74,40 @@ func findCenter(data *ClusterData) error {
 	if len(data.Detections) == 0 {
 		return errors.New("cluster data is empty. There are no centers to find")
 	}
-
-	var latitudesData []Detection
-	var longitudesData []Detection
-	// ignore rejected detections
-	for _, detection := range data.Detections {
-		if !detection.Rejected {
-			latitudesData = append(latitudesData, detection)
-			longitudesData = append(longitudesData, detection)
+	if data.ClusterCenter == nil {
+		return errors.New("null cluster center")
+	}
+	var lats []float64
+	var lons []float64
+	for _, d := range data.Detections {
+		if !d.Rejected {
+			lats = append(lats, d.Location.Latitude)
+			lons = append(lons, d.Location.Longitude)
 		}
 	}
-	sort.Slice(latitudesData, func(i, j int) bool {
-		return latitudesData[i].Location.Latitude < latitudesData[j].Location.Latitude
+	sort.Slice(lats, func(i, j int) bool {
+		return lats[i] < lats[j]
 	})
 
-	sort.Slice(longitudesData, func(i, j int) bool {
-		return longitudesData[i].Location.Longitude < longitudesData[j].Location.Longitude
+	sort.Slice(lons, func(i, j int) bool {
+		return lons[i] < lons[j]
 	})
-
-	if data.ClusterCenter == nil {
-		// prevent nil pointer dereference.
-		return errors.New("the memory location for inputting cluster centers is nil pointer")
-	}
 
 	// Case where the number of datapoints are even
 	// so we average the two closest to the middle.
-	if len(data.Detections)%2 == 0 {
-		mp1 := len(data.Detections) / 2
-		mp2 := len(data.Detections)/2 - 1
-		data.ClusterCenter.Latitude = (latitudesData[mp1].Location.Latitude + latitudesData[mp2].Location.Latitude) / 2.0
-		data.ClusterCenter.Longitude = (longitudesData[mp1].Location.Longitude + longitudesData[mp2].Location.Longitude) / 2.0
+	if len(lats)%2 == 0 {
+		mp1 := len(lats) / 2
+		mp2 := len(lats)/2 - 1
+		data.ClusterCenter = &protos.GPSCoord{}
+		data.ClusterCenter.Latitude = (lats[mp1] + lats[mp2]) / 2.0
+		data.ClusterCenter.Longitude = (lons[mp1] + lons[mp2]) / 2.0
 		return nil
 	}
 
-	midPoint := len(data.Detections) / 2
-	data.ClusterCenter.Longitude = longitudesData[midPoint].Location.Longitude
-	data.ClusterCenter.Latitude = latitudesData[midPoint].Location.Latitude
-
+	midPoint := len(lats) / 2
+	data.ClusterCenter = &protos.GPSCoord{}
+	data.ClusterCenter.Longitude = lons[midPoint]
+	data.ClusterCenter.Latitude = lats[midPoint]
 	return nil
 }
 
@@ -144,6 +149,7 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 				})
 				clusters.LastID++
 			} else {
+				new_center := proto.Clone(detections.GetCoordinates()[i]).(*protos.GPSCoord)
 				clusters.ClusterData[airdrop_type] = &ClusterData{
 					Detections: []Detection{{
 						Location: detections.GetCoordinates()[i],
@@ -151,7 +157,7 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 						Id:       clusters.LastID,
 					}},
 					TargetType:    airdrop_type,
-					ClusterCenter: detections.GetCoordinates()[i],
+					ClusterCenter: new_center,
 				}
 				clusters.LastID++
 			}
@@ -246,6 +252,7 @@ func ExtractJSONListAsStrings(jsonStr string) ([]string, error) {
 func New() *ClusterManager {
 	return &ClusterManager{
 		ClusterData: make(map[protos.AirdropType]*ClusterData),
-		Images:      make(map[int][]byte),
+
+		Images: make(map[int][]byte),
 	}
 }

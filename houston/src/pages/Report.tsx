@@ -86,6 +86,7 @@ interface Cluster {
  * @returns A length 3 array with r, g, b colors
  */
 function GetNextColor(type : number) {
+  //If we need more, we can add them here. This maps from cv type -> color
   const colors: number[][] = [
     [0, 255, 0],      // Green
     [0, 0, 255],      // Blue
@@ -98,7 +99,7 @@ function GetNextColor(type : number) {
     [128, 255, 0],    // Chartreuse
     [0, 128, 255],    // Sky blue
   ];
-  return colors[Math.min(colors.length, type )];
+  return colors[Math.min(colors.length - 1, type )];
 }
 
 // --- Component ---
@@ -106,7 +107,7 @@ const Reports: React.FC = () => {
   //const [flightMode, setFlightMode] = useState("???");
   // probably should have been a useReducer, if anyone wants to refactor
   const [clusters, setClusters] = useState([] as Cluster[]);
-  const [selectedCluster, setSelectedCluster] = useState(0);
+  const [selectedCluster, setSelectedCluster] = useState(-1);
   const [selectedDetection, setSelectedDetection] = useState(0);
 
   const [backgroundFetchingInterval, setBackgroundFetching] = useState(-1);
@@ -136,9 +137,23 @@ const Reports: React.FC = () => {
    * @returns The currently seleced cluster, or undefined if non are selected
    */
   function getSelectedCluster() {
+    if(selectedCluster == -1){
+      return undefined;
+    }
     return clusters.find((e) => {
       return e.airdrop_type == selectedCluster;
     });
+  }
+  /**
+   * Returns all of the detections, regardless of cluster
+   * @returns a list of all of the detections
+   */
+  function getAllDetections(){
+    const out = []
+    for(const c of clusters){
+      out.push(...c.all_data_points)
+    }
+    return out
   }
   /**
    * Gets the selected detection
@@ -194,7 +209,6 @@ const Reports: React.FC = () => {
    */
   async function updateClusters() {
     const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json()
-    console.log("Data obtained from go proxy:", j);
     //Later, this would make sense to us a protobuffer for, once the format is more set
     const newval = [];
     // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
@@ -234,10 +248,9 @@ const Reports: React.FC = () => {
         return d.json();
       })
       .then((j) => {
-        console.log("Data obtained from go proxy:", j);
         //Later, this would make sense to us a protobuffer for, once the format is more set
         const newval = [];
-        // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+        // for now, override the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
         for (const [key, value] of Object.entries(j)) {
           const datapoints: Detection[] = [];
           for (const d of (
@@ -276,7 +289,8 @@ const Reports: React.FC = () => {
       .catch(() => {
         window.alert("failed to toggle");
       })
-      .then(() => {
+      .then((e) => {
+        console.log(e)
         syncWithoutFetchingOBC();
       });
   }
@@ -287,7 +301,7 @@ const Reports: React.FC = () => {
           <TuasMap className={"reports-map"} lat={51} lng={10}>
             <UpdateMapCenter position={maploc} />
             {clusters.map((e) => {
-              if (selectedCluster == null || selectedCluster == e.airdrop_type) {
+              if (selectedCluster == -1 || selectedCluster == e.airdrop_type) {
                 return MapCluster(e);
               }
             })}
@@ -346,12 +360,13 @@ const Reports: React.FC = () => {
                         <th>Included?</th>
                       </thead>
                       <tbody className="reports-cluster-table-body">
-                        {getSelectedCluster()?.all_data_points.map((p, i) => {
+                        {(selectedCluster == -1 ? getAllDetections() : getSelectedCluster()?.all_data_points ?? []).map((p, i) => {
                           return (
                             <tr
                               key={i}
                               className="reports-cluster-table-row"
                               onClick={() => {
+                                setSelectedCluster(p.type);
                                 setSelectedDetection(p.id);
                                 setMapLoc([p.location.Latitude, p.location.Longitude]);
                               }}
