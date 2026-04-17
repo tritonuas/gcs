@@ -135,6 +135,5 @@ export function pullTelemetry(
       setPixhawkBatteryVal((param) => param.getErrorValue());
       setMotorBatteryVal((param) => param.getErrorValue());
     });
-    //fetch("cock and ball torture 6767")
 }
   
