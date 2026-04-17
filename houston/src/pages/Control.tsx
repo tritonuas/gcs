@@ -345,8 +345,8 @@ function Control({
 
         const data = await response.text();
         if (!isCancelled) {
-          setTickState(data.split(',')[0]);
-          setNumLaps(data.split(',')[1]);
+          setTickState(data.split(",")[0]);
+          setNumLaps(data.split(",")[1]);
         }
       } catch (error) {
         console.error("Error fetching tick state:", error);

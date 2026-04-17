@@ -34,7 +34,7 @@ export async function pullTelemetry(
   setPixhawkBatteryVal: Dispatch<SetStateAction<Parameter>>,
   setESCtemperatureVal: Dispatch<SetStateAction<Parameter>>,
   setSuperSecret: Dispatch<SetStateAction<boolean>>,
-  setFlightMode: Dispatch<SetStateAction<string>>
+  setFlightMode: Dispatch<SetStateAction<string>>,
 ) {
   const speedRequest = fetch("/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading")
     .then((resp) => resp.json())
@@ -147,4 +147,3 @@ export async function pullTelemetry(
     voltageRequest,
   ]);
 }
-  
