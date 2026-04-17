@@ -200,7 +200,7 @@ const Reports: React.FC = () => {
   const [manualInputError, setManualInputError] = useState<string>("");
 
   // Refs
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef<boolean>(true);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const isFetchingTargetsRef = useRef<boolean>(false);
@@ -321,30 +321,34 @@ const Reports: React.FC = () => {
       return;
     }
 
-    const performInitialLiveFetch = async () => {
-      if (isMountedRef.current) setIsPollingUI(true);
-      await fetchAndProcessLatest(true);
-      if (isMountedRef.current) setIsPollingUI(false);
-    };
+    let isCancelled = false;
+    let localTimeoutId: number | null = null;
 
-    performInitialLiveFetch();
-
-    const localIntervalId = setInterval(async () => {
-      if (!isMountedRef.current) {
-        clearInterval(localIntervalId);
+    const pollLatestRuns = async (isInitialFetch: boolean) => {
+      if (!isMountedRef.current || isCancelled) {
         return;
       }
-      if (isMountedRef.current) setIsPollingUI(true);
-      await fetchAndProcessLatest(false);
-      if (isMountedRef.current) setIsPollingUI(false);
-    }, POLLING_INTERVAL_MS);
-    intervalIdRef.current = localIntervalId;
+
+      setIsPollingUI(true);
+      await fetchAndProcessLatest(isInitialFetch);
+
+      if (isMountedRef.current && !isCancelled) {
+        setIsPollingUI(false);
+        localTimeoutId = window.setTimeout(() => {
+          void pollLatestRuns(false);
+        }, POLLING_INTERVAL_MS);
+        pollingTimeoutRef.current = localTimeoutId;
+      }
+    };
+
+    void pollLatestRuns(true);
 
     return () => {
-      if (localIntervalId) {
-        clearInterval(localIntervalId);
+      isCancelled = true;
+      if (localTimeoutId !== null) {
+        window.clearTimeout(localTimeoutId);
       }
-      intervalIdRef.current = null;
+      pollingTimeoutRef.current = null;
     };
   }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]);
 
@@ -380,8 +384,8 @@ const Reports: React.FC = () => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current);
+      if (pollingTimeoutRef.current !== null) {
+        window.clearTimeout(pollingTimeoutRef.current);
       }
     };
   }, []);
