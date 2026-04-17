@@ -345,6 +345,9 @@ function Control({
         if (!isCancelled) {
           setTickState(data);
         }
+        if (data[0] == "<") {
+          setTickState("Loading...");
+        }
       } catch (error) {
         console.error("Error fetching tick state:", error);
         if (!isCancelled) {
