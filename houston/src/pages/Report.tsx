@@ -114,6 +114,7 @@ const Reports: React.FC = () => {
   const interval = useRef(0);
   const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch");
 
+  const selection = useRef(null as HTMLSelectElement | null);
   useEffect(() => {
     clearInterval(interval.current);
     if (backgroundFetchingInterval != -1) {
@@ -132,6 +133,13 @@ const Reports: React.FC = () => {
       clearInterval(interval.current);
     };
   }, [backgroundFetchingInterval]);
+
+  useEffect(() => {
+    if (selection.current == null) {
+      return;
+    }
+    selection.current.value = `${AirdropType[selectedCluster] ?? selectedCluster}(${selectedCluster})`;
+  }, [selectedCluster]);
   /**
    * Gets the selected cluster, or undefined if none are selected
    * @returns The currently seleced cluster, or undefined if non are selected
@@ -311,7 +319,7 @@ const Reports: React.FC = () => {
             })}
           </TuasMap>
           <div className="reports-cluster-data">
-            <select>
+            <select ref={selection}>
               <option
                 onClick={() => {
                   setSelectedCluster(-1);
@@ -320,6 +328,9 @@ const Reports: React.FC = () => {
                 All clusters
               </option>
               {clusters.map((c, i) => {
+                if (c.all_data_points.length == 0) {
+                  return;
+                }
                 return (
                   <option
                     key={i}
