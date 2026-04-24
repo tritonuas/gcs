@@ -220,7 +220,9 @@ const Reports: React.FC = () => {
    * Updates the detections state with new data fetched from the backend
    */
   async function updateClusters() {
+    console.log("Updating");
     const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json();
+    console.log(j);
     //Later, this would make sense to us a protobuffer for, once the format is more set
     const newval = [];
     // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
@@ -314,19 +316,19 @@ const Reports: React.FC = () => {
             <UpdateMapCenter position={maploc} />
             {clusters.map((e) => {
               if (selectedCluster == -1 || selectedCluster == e.airdrop_type) {
+                console.log("mapping", e);
                 return MapCluster(e);
               }
             })}
           </TuasMap>
           <div className="reports-cluster-data">
-            <select ref={selection}>
-              <option
-                onClick={() => {
-                  setSelectedCluster(-1);
-                }}
-              >
-                All clusters
-              </option>
+            <select
+              ref={selection}
+              onChange={(e) => {
+                setSelectedCluster(+e.target.value);
+              }}
+            >
+              <option value={-1}>All clusters</option>
               {clusters.map((c, i) => {
                 if (c.all_data_points.length == 0) {
                   return;
@@ -334,11 +336,9 @@ const Reports: React.FC = () => {
                 return (
                   <option
                     key={i}
+                    value={c.airdrop_type}
                     style={{
                       backgroundColor: `rgb(${c.color[0]}, ${c.color[1]}, ${c.color[2]})`,
-                    }}
-                    onClick={() => {
-                      setSelectedCluster(c.airdrop_type);
                     }}
                   >
                     {AirdropType[c.airdrop_type] ?? c.airdrop_type}({c.airdrop_type})
