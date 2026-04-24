@@ -220,9 +220,7 @@ const Reports: React.FC = () => {
    * Updates the detections state with new data fetched from the backend
    */
   async function updateClusters() {
-    console.log("Updating");
     const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json();
-    console.log(j);
     //Later, this would make sense to us a protobuffer for, once the format is more set
     const newval = [];
     // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
@@ -303,8 +301,7 @@ const Reports: React.FC = () => {
       .catch(() => {
         window.alert("failed to toggle");
       })
-      .then((e) => {
-        console.log(e);
+      .then(() => {
         syncWithoutFetchingOBC();
       });
   }
@@ -316,7 +313,6 @@ const Reports: React.FC = () => {
             <UpdateMapCenter position={maploc} />
             {clusters.map((e) => {
               if (selectedCluster == -1 || selectedCluster == e.airdrop_type) {
-                console.log("mapping", e);
                 return MapCluster(e);
               }
             })}
