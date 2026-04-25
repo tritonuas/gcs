@@ -345,7 +345,8 @@ function Control({
         if (!isCancelled) {
           setTickState(data);
         }
-        if (data[0] == "<") {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
           setTickState("Loading...");
         }
       } catch (error) {
