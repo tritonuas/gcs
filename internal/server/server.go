@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -138,11 +139,24 @@ func (server *Server) initBackend(router *gin.Engine) {
 			clusters.GET("/fetch", server.fetchClusters())
 			clusters.GET("/toggle", server.toggleDetection())
 			clusters.GET("/detection_images/:id", server.detectionImage())
-
+			clusters.POST("/confirm_launch", server.confirmClusters())
 		}
 	}
 }
 
+func (server *Server) confirmClusters() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data := server.clusterManager.GetLaunchCoordinates()
+		Log.Infoln("Launching Airdrops")
+		var buf bytes.Buffer
+		err := json.NewEncoder(&buf).Encode(data)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Failed to encod data to json")
+		}
+		respBody, status := server.obcClient.PostTargetMatchOverride(buf.Bytes())
+		c.String(status, "text/plain", respBody)
+	}
+}
 func (server *Server) detectionImage() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, parse_error := strconv.Atoi(c.Param("id"))
@@ -666,6 +680,9 @@ func (server *Server) getMatchedTargets() gin.HandlerFunc {
 	}
 }
 
+/*
+Not currently used on the frontend, but left in case its needed to be called manually should clustering fail
+*/
 func (server *Server) postMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -678,7 +695,6 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 		str := string(jsonData)
 		fmt.Println("JSON IS")
 		fmt.Println(str)
-
 		body, code := server.obcClient.PostTargetMatchOverride(jsonData)
 		if code != http.StatusOK {
 			c.Data(code, "text/plain", body)

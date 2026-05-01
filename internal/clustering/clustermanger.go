@@ -69,6 +69,19 @@ func (clusters *ClusterManager) GetAllDetections() []Detection {
 	}
 	return all_detections
 }
+func (clusters *ClusterManager) GetLaunchCoordinates() []*protos.AirdropTarget {
+	clusters.mu.RLock()
+	defer clusters.mu.RUnlock()
+	all_targets := make([]*protos.AirdropTarget, 0, len(clusters.ClusterData))
+	for _, el := range clusters.ClusterData {
+		target := &protos.AirdropTarget{
+			Index:      el.TargetType,
+			Coordinate: el.ClusterCenter,
+		}
+		all_targets = append(all_targets, target)
+	}
+	return all_targets
+}
 func findCenter(data *ClusterData) error {
 
 	if len(data.Detections) == 0 {

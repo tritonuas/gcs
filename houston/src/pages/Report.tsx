@@ -13,6 +13,8 @@ const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 const FETCH_CLUSTERS_ENDPOINT = `${API_BASE_URL}/clusters/fetch`;
 const TOGGLE_ENDPOINT = `${API_BASE_URL}/clusters/toggle`;
+const DETECTION_IMAGE_ENDPOINT = `${API_BASE_URL}/clusters/detection_images`
+const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -138,8 +140,28 @@ const Reports: React.FC = () => {
     if (selection.current == null) {
       return;
     }
-    selection.current.value = `${AirdropType[selectedCluster] ?? selectedCluster}(${selectedCluster})`;
+    selection.current.value = "" + selectedCluster;
   }, [selectedCluster]);
+  /**
+   * Launches the airdrops with the currently selected center
+   */
+  function launchAirDrops(){
+    if(!window.confirm("Are you sure you want to confirm airdrops?")){
+      return;
+    }
+    fetch(CONFIRM_ENDPOINT, {
+      method: "POST"
+    }
+
+    ).catch((e) => {
+      console.log("Error confirming,", e)
+    }).then(
+      (e) => {
+        console.log(e) 
+
+      }
+    )
+  }
   /**
    * Gets the selected cluster, or undefined if none are selected
    * @returns The currently seleced cluster, or undefined if non are selected
@@ -163,6 +185,14 @@ const Reports: React.FC = () => {
     }
     return out;
   }
+  /**
+   * Returns a formated string of the airdrop type, or the number if it is out of range
+   * @param airdrop_type The type to format
+   */
+  function getAirdropString(airdrop_type: AirdropType) {
+    return `${AirdropType[airdrop_type] ?? airdrop_type}(${airdrop_type})`
+  }
+
   /**
    * Gets the selected detection
    * @returns the current selected detection, or undefined if non are selected
@@ -193,6 +223,7 @@ const Reports: React.FC = () => {
               eventHandlers={{
                 click: () => {
                   setMapLoc([e.location.Latitude, e.location.Longitude]);
+                  setSelectedCluster(e.type);
                   setSelectedDetection(e.id);
                 },
               }}
@@ -329,6 +360,7 @@ const Reports: React.FC = () => {
                 if (c.all_data_points.length == 0) {
                   return;
                 }
+                
                 return (
                   <option
                     key={i}
@@ -337,7 +369,7 @@ const Reports: React.FC = () => {
                       backgroundColor: `rgb(${c.color[0]}, ${c.color[1]}, ${c.color[2]})`,
                     }}
                   >
-                    {AirdropType[c.airdrop_type] ?? c.airdrop_type}({c.airdrop_type})
+                    {getAirdropString(c.airdrop_type)}
                   </option>
                 );
               })}
@@ -412,7 +444,7 @@ const Reports: React.FC = () => {
           {getSelectedDetection() ? (
             <div className="report-detection-container">
               <img
-                src={`${API_BASE_URL}/clusters/detection_images/${getSelectedDetection()?.id}`}
+                src={`${DETECTION_IMAGE_ENDPOINT}/${getSelectedDetection()?.id}`}
                 className="report-detection-image"
               ></img>
               <div>
@@ -454,6 +486,7 @@ const Reports: React.FC = () => {
           ></input>
           <br />
           <button onClick={updateClusters}>Fetch data</button>
+          <button onClick={launchAirDrops}>Confirm Launch</button>
         </div>
       </div>
     </main>
