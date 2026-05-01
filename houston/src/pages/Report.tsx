@@ -13,8 +13,8 @@ const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 const FETCH_CLUSTERS_ENDPOINT = `${API_BASE_URL}/clusters/fetch`;
 const TOGGLE_ENDPOINT = `${API_BASE_URL}/clusters/toggle`;
-const DETECTION_IMAGE_ENDPOINT = `${API_BASE_URL}/clusters/detection_images`
-const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`
+const DETECTION_IMAGE_ENDPOINT = `${API_BASE_URL}/clusters/detection_images`;
+const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`;
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -145,22 +145,19 @@ const Reports: React.FC = () => {
   /**
    * Launches the airdrops with the currently selected center
    */
-  function launchAirDrops(){
-    if(!window.confirm("Are you sure you want to confirm airdrops?")){
+  function launchAirDrops() {
+    if (!window.confirm("Are you sure you want to confirm airdrops?")) {
       return;
     }
     fetch(CONFIRM_ENDPOINT, {
-      method: "POST"
-    }
-
-    ).catch((e) => {
-      console.log("Error confirming,", e)
-    }).then(
-      (e) => {
-        console.log(e) 
-
-      }
-    )
+      method: "POST",
+    })
+      .catch((e) => {
+        console.log("Error confirming,", e);
+      })
+      .then((e) => {
+        console.log(e);
+      });
   }
   /**
    * Gets the selected cluster, or undefined if none are selected
@@ -188,9 +185,10 @@ const Reports: React.FC = () => {
   /**
    * Returns a formated string of the airdrop type, or the number if it is out of range
    * @param airdrop_type The type to format
+   * @returns The formatted string
    */
   function getAirdropString(airdrop_type: AirdropType) {
-    return `${AirdropType[airdrop_type] ?? airdrop_type}(${airdrop_type})`
+    return `${AirdropType[airdrop_type] ?? airdrop_type}(${airdrop_type})`;
   }
 
   /**
@@ -360,7 +358,7 @@ const Reports: React.FC = () => {
                 if (c.all_data_points.length == 0) {
                   return;
                 }
-                
+
                 return (
                   <option
                     key={i}
