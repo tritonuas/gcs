@@ -314,6 +314,8 @@ function Control({
     closeModal: closeRTLModal,
   } = useMyModal();
 
+  const [numLaps, setNumLaps] = useState("-1");
+
   const [superSecret, setSuperSecret] = useState(false);
 
   const [flightMode, setFlightMode] = useState("???");
@@ -333,7 +335,7 @@ function Control({
 
       tickRequestInFlight = true;
       try {
-        const response = await fetch("/api/tickstate");
+        const response = await fetch("/api/obcstate");
         if (!response.ok) {
           if (!isCancelled) {
             setTickState(`Error: ${response.status}`);
@@ -343,12 +345,14 @@ function Control({
 
         const data = await response.text();
         if (!isCancelled) {
-          setTickState(data);
+          setTickState(data.split(",")[0]);
+          setNumLaps(data.split(",")[1]);
         }
       } catch (error) {
         console.error("Error fetching tick state:", error);
         if (!isCancelled) {
           setTickState("Error");
+          setNumLaps("-67/420");
         }
       } finally {
         tickRequestInFlight = false;
@@ -449,6 +453,10 @@ function Control({
           {groundspeed.render(() => handleClick(setGroundspeed))}
           {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
           {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
+          <div style={flightModeColor} className="flight-telemetry" id="numLaps">
+            <h1 className="heading">Current Lap</h1>
+            <p className="data">{numLaps}</p>
+          </div>
         </div>
         {superSecret ? (
           <SuperSecret></SuperSecret>
