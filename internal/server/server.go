@@ -72,7 +72,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
-		api.GET("/tickstate", server.getTickState())
+		api.GET("/obcstate", server.getOBCState())
 		api.GET("/obc_connection", server.testOBCConnection())
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
@@ -187,9 +187,9 @@ func (server *Server) testOBCConnection() gin.HandlerFunc {
 	}
 }
 
-func (server *Server) getTickState() gin.HandlerFunc {
+func (server *Server) getOBCState() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		data, err := server.obcClient.GetTickState()
+		data, err := server.obcClient.GetOBCState()
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
