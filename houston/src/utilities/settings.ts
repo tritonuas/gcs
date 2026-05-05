@@ -12,11 +12,6 @@ export interface SettingsConfig {
 
   groundAltitude_feet: number;
 
-  //<Garbage that I wrote>
-  minNumLaps: number;
-  maxNumLaps: number;
-  //</Garbage that I wrote>
-
   minVoltsPerCell: number;
   maxVoltsPerCell: number;
 
