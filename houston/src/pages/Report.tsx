@@ -1,16 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-import { AirdropType, AirdropTarget, GPSCoord } from "../protos/obc.pb";
+import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
-import { Circle, Marker, Popup } from "react-leaflet";
-import { createRandomGPSCoord, GPSCoordToString } from "../utilities/general";
+import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
+import { GPSCoordToString, LatLngToGPSCoord } from "../utilities/general";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
+const FETCH_CLUSTERS_ENDPOINT = `${API_BASE_URL}/clusters/fetch`;
+const TOGGLE_ENDPOINT = `${API_BASE_URL}/clusters/toggle`;
+const DETECTION_IMAGE_ENDPOINT = `${API_BASE_URL}/clusters/detection_images`;
+const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`;
+const CLEAR_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/clear_manual`;
+const SET_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/set_manual`;
 // --- Constants ---
 // const POLLING_INTERVAL_MS = 10000;
 // const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -84,8 +90,10 @@ interface Cluster {
   airdrop_type: AirdropType;
   //The data attached to this cluster, both accpted and rejected
   all_data_points: Detection[];
-  //The manually selected point, if any, for the true cluster center
+  //The manually selected point, if any, for the human chosen cluster center
   selected_center: GPSCoord | null;
+  //Whether the intended center is the selected center or not. 
+  is_manually_selected: boolean;
   //the color to draw as, stored as rgb 3-tuple
   color: number[];
 }
@@ -207,34 +215,14 @@ const Reports: React.FC = () => {
       .find((c) => c.airdrop_type === selectedCluster)
       ?.all_data_points.find((d) => d.id === selectedDetection);
   }
+  //Center of the map
   const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
-  const isMounted = useRef(false);
-  //persistance
-  useEffect(() => {
-    const old = localStorage.getItem("saved-cluster");
-    if (old != null) {
-      setClusters(JSON.parse(old));
-    }
-  }, []);
-  useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-      return;
-    }
-    console.log("Saving new cluster data", clusters);
-    try {
-      localStorage.setItem("saved-cluster", JSON.stringify(clusters));
-    } catch (e) {
-      window.alert("Issue with saving locally, latest changes not updated ");
-    }
-  }, [clusters]);
-
   //is currently dragging a marker
   const [dragging, setDragging] = useState(false);
   //is currently selecting markers
   const [selectMode, setselectMode] = useState(false);
   //marker to track
-  const currentMarker = useRef<L.LatLng | null>(null);
+  const currentMarker = useRef<AirdropType | null>(null);
   //position of mouse
   const [position, setPosition] = useState(new LatLng(0, 0, 0));
   //enter handler
@@ -269,40 +257,26 @@ const Reports: React.FC = () => {
     setselectMode(!selectMode);
   }
   /**
-   * changes cluster center to the specified coordinate
+   * Changes cluster's selected_center to the specified coordinate, changes the specfied cluster to be manually selected, and resyncs data with the go proxy
    * @param latlng the current mouse position to set the center to
    */
   function placeMarker(latlng: LatLng) {
-    console.log(currentMarker.current);
     if (dragging && selectMode && currentMarker.current != null) {
       setDragging(false);
-      const updateClusters = clusters.map((e) => {
-        const center = e.selected_center ?? e.calculated_center;
-        if (
-          currentMarker.current != null &&
-          currentMarker.current.equals(
-            new LatLng(center.Latitude, center.Longitude, center.Altitude),
-          )
-        ) {
-          console.log(latlng.lat);
-          const replacement: Cluster = {
-            calculated_center: center,
-            airdrop_type: e.airdrop_type,
-            all_data_points: e.all_data_points,
-            selected_center: GPSCoord.create({
-              Latitude: latlng.lat,
-              Longitude: latlng.lng,
-              Altitude: 0,
-            }),
-            color: e.color,
-          };
-          console.log("artillery");
-          return replacement;
-        } else {
-          return e;
-        }
-      });
-      setClusters(updateClusters);
+      fetch(SET_MANUAL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: currentMarker.current,
+          center: LatLngToGPSCoord(latlng)
+        })
+      }).then(() => {
+        currentMarker.current = null;
+        setselectMode(false)
+        syncWithoutFetchingOBC()
+      })
     }
   }
   /**
@@ -310,10 +284,10 @@ const Reports: React.FC = () => {
    * marker, sets that marker to be replaced
    * @param event marker click event
    */
-  function pickMarker(event: LeafletMouseEvent) {
+  function pickMarker(type: AirdropType) {
     if (selectMode) {
       setDragging(true);
-      currentMarker.current = event.target._latlng;
+      currentMarker.current = type;
     }
   }
   /**
@@ -323,7 +297,7 @@ const Reports: React.FC = () => {
    */
   const renderCurrentMarker = () => {
     if (currentMarker.current != null && dragging && selectMode) {
-      return <Marker position={position}></Marker>;
+      return <Marker position={position} ></Marker>;
     }
   };
   /**
@@ -343,59 +317,32 @@ const Reports: React.FC = () => {
     return <>{null}</>;
   };
 
-  /**
-   * sends all cluster data to the go proxy
-   */
-  function sendUpdatedCenters() {
-    const updatedCenters = clusters.map((e) => {
-      wrapAirdropTarget(e);
-    });
-    fetch("/targets/matched", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updatedCenters),
-    })
-      .then((response) => {
-        if (response.status == 200) {
-          return response.text();
-        } else {
-          throw response.text();
-        }
-      })
-      .then((succ_msg) => {
-        console.log(succ_msg);
-      })
-      .catch((err_msg) => {
-        console.error(err_msg);
-      });
-  }
-  /**
-   * wraps a cluster in AirdropTarget to send to OBC
-   * @param cluster cluster to wrap in AirdropTarget
-   * @returns nothing
-   */
-  function wrapAirdropTarget(cluster: Cluster) {
-    const center = cluster.selected_center ?? cluster.calculated_center;
-    const wrapped: AirdropTarget = {
-      Index: cluster.airdrop_type,
-      Coordinate: center,
-    };
-    return wrapped;
-  }
+
   /**
    * A cluster drawn on the app
    * @param cluster The cluster to draw
    * @returns the react componenent that renders
    */
   function MapCluster(cluster: Cluster) {
+    function CenterMarker() {
+      return <Marker
+        eventHandlers={{
+          click: () => {
+            pickMarker(cluster.airdrop_type);
+          },
+        }}
+        position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}
+      >
+        <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
+      </Marker>
+    }
     if (cluster.color.length <= 0) {
       cluster.color = GetNextColor(cluster.airdrop_type);
     }
-    const center = cluster.selected_center ?? cluster.calculated_center;
+    const center = (cluster.is_manually_selected ? cluster.selected_center : cluster.calculated_center) ?? cluster.calculated_center;
     return (
       <>
+        {CenterMarker()}
         {cluster.all_data_points.map((e, i) => {
           return (
             <Circle
@@ -417,16 +364,8 @@ const Reports: React.FC = () => {
             />
           );
         })}
-        <Marker
-          eventHandlers={{
-            click: (e) => {
-              pickMarker(e);
-            },
-          }}
-          position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}
-        >
-          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
-        </Marker>
+
+
       </>
     );
   }
@@ -457,7 +396,8 @@ const Reports: React.FC = () => {
         calculated_center: (value as { center: GPSCoord })["center"],
         airdrop_type: +key as AirdropType,
         all_data_points: datapoints,
-        selected_center: null,
+        selected_center: (value as { manual_center: GPSCoord })["manual_center"],
+        is_manually_selected: (value as { is_manually_selected: boolean })["is_manually_selected"],
         color: GetNextColor(+key),
       };
       newval.push(addition);
@@ -496,7 +436,8 @@ const Reports: React.FC = () => {
             calculated_center: (value as { center: GPSCoord })["center"],
             airdrop_type: +key as AirdropType,
             all_data_points: datapoints,
-            selected_center: null,
+            selected_center: (value as { manual_center: GPSCoord })["manual_center"],
+            is_manually_selected: (value as { is_manually_selected: boolean })["is_manually_selected"],
             color: GetNextColor(+key),
           };
           newval.push(addition);
@@ -535,16 +476,6 @@ const Reports: React.FC = () => {
           </TuasMap>
           <div className="reports-cluster-data">
             <button onClick={() => setManualVisor()}>select a marker to move</button>
-            <button>{selectMode && <p>hello</p>}</button>
-            <button onClick={() => sendUpdatedCenters()}>Send Updated Centers</button>
-            <select>
-              <option
-                onClick={() => {
-                  setSelectedCluster(null);
-                }}
-              >
-                All clusters
-              </option>
             <select
               ref={selection}
               onChange={(e) => {
@@ -553,10 +484,6 @@ const Reports: React.FC = () => {
             >
               <option value={-1}>All clusters</option>
               {clusters.map((c, i) => {
-                if (c.all_data_points.length == 0) {
-                  return;
-                }
-
                 return (
                   <option
                     key={i}
@@ -580,7 +507,7 @@ const Reports: React.FC = () => {
                     {(() => {
                       const cluster = getSelectedCluster();
                       return cluster
-                        ? GPSCoordToString(cluster.selected_center ?? cluster.calculated_center)
+                        ? GPSCoordToString((cluster.is_manually_selected ? cluster.selected_center : cluster.calculated_center))
                         : "N/A";
                     })()}
                     <br></br>
@@ -589,6 +516,20 @@ const Reports: React.FC = () => {
                       const cluster = getSelectedCluster();
                       return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
                     })()}
+                    <br></br>Using Manual Center?: {getSelectedCluster()?.is_manually_selected}
+                    {getSelectedCluster()?.is_manually_selected && <button onClick={() => {
+                      fetch(CLEAR_MANUAL_ENDPOINT, {
+                        method: "POST",
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          id: selectedCluster
+                        })
+                      }).then((e) => {
+                        console.log(e) //TODO remove/handle error
+                      })
+                    }}>Clear Manual Selection</button>}
                   </div>
                   <div className="reports-table-wrapper">
                     <table className="reports-cluster-table">
@@ -681,7 +622,6 @@ const Reports: React.FC = () => {
             }}
           ></input>
           <br />
-          <button onClick={updateClusters}>Fetch data</button>
           <button onClick={launchAirDrops}>Confirm Launch</button>
         </div>
       </div>

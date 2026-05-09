@@ -5,13 +5,23 @@ export const INFLUX_URI = "/orgs/83cf98a33ce1da25/data-explorer?bucket=mavlink";
 
 import React from "react";
 import { GPSCoord } from "../protos/obc.pb";
+import { LatLng } from "leaflet";
 
+
+
+export function LatLngToGPSCoord(latlng : LatLng) {
+  return GPSCoord.create({
+    Latitude: latlng.lat,
+    Longitude: latlng.lng,
+    Altitude: latlng.alt
+  })
+}
 /**
  * Converts  GPS coord to string
  * @param g The gps cord to format
  * @returns A string with the gps cords data for displaying
  */
-export function GPSCoordToString(g: GPSCoord | undefined) {
+export function GPSCoordToString(g: GPSCoord | undefined | null) {
   if (g == undefined) {
     return "Undefined";
   }

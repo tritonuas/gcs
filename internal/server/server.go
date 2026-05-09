@@ -139,8 +139,48 @@ func (server *Server) initBackend(router *gin.Engine) {
 			clusters.GET("/fetch", server.fetchClusters())
 			clusters.GET("/toggle", server.toggleDetection())
 			clusters.GET("/detection_images/:id", server.detectionImage())
+			clusters.POST("/set_manual", server.setClusterToManual())
+			clusters.POST("/clear_manual", server.setClusterOffManual())
 			clusters.POST("/confirm_launch", server.confirmClusters())
 		}
+	}
+}
+
+func (server *Server) setClusterToManual() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var body struct {
+			Id     uint            `json:"id"`
+			Center protos.GPSCoord `json:"center"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+			return
+		}
+		Log.Infof("Got object of type %v", &body)
+		e := server.clusterManager.SetManualCenter(protos.AirdropType(body.Id), &body.Center)
+		if e != nil {
+			c.JSON(400, gin.H{"error": "Invalid ID"})
+			return
+		}
+		c.String(200, "ok")
+	}
+}
+
+func (server *Server) setClusterOffManual() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		// Could define a type for this but it'd only have 1 entry
+		var body struct {
+			id protos.AirdropType
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+		}
+		e := server.clusterManager.RemoveManualCenter(body.id)
+		if e != nil {
+			c.JSON(400, gin.H{"error": "Invalid ID"})
+		}
+		c.String(200, "ok")
 	}
 }
 
