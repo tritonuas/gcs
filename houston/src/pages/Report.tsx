@@ -331,7 +331,7 @@ const Reports: React.FC = () => {
             pickMarker(cluster.airdrop_type);
           },
         }}
-        position={new LatLng(center.Latitude, center.Longitude, center.Altitude)}
+        position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}
       >
         <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
       </Marker>
