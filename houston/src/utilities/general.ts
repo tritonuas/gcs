@@ -7,14 +7,17 @@ import React from "react";
 import { GPSCoord } from "../protos/obc.pb";
 import { LatLng } from "leaflet";
 
-
-
-export function LatLngToGPSCoord(latlng : LatLng) {
+/**
+ * Creates a protos gps coord object from a react-leaflet latlng object
+ * @param latlng The object to create from
+ * @returns a new gps coord object with the same location
+ */
+export function LatLngToGPSCoord(latlng: LatLng) {
   return GPSCoord.create({
     Latitude: latlng.lat,
     Longitude: latlng.lng,
-    Altitude: latlng.alt
-  })
+    Altitude: latlng.alt,
+  });
 }
 /**
  * Converts  GPS coord to string

@@ -22,7 +22,7 @@ type Detection struct {
 type ClusterData struct {
 	TargetType protos.AirdropType `json:"target_type"`
 	Detections []Detection        `json:"detections"`
-	//The true center, as calculated without
+	// The true center, as calculated without
 	ComputedCenter     *protos.GPSCoord `json:"center"`
 	IsManuallySelected bool             `json:"is_manually_selected"`
 	ManualCenter       *protos.GPSCoord `json:"manual_center"`
@@ -77,7 +77,7 @@ func (clusters *ClusterManager) SetManualCenter(id protos.AirdropType, center *p
 	defer clusters.mu.Unlock()
 	cluster, ok := clusters.ClusterData[id]
 	if !ok {
-		return errors.New("Cluster with provided id not found")
+		return errors.New("cluster with provided id not found")
 	}
 	if cluster.ManualCenter == nil {
 		cluster.ManualCenter = &protos.GPSCoord{}
@@ -93,7 +93,7 @@ func (clusters *ClusterManager) RemoveManualCenter(id protos.AirdropType) error 
 	defer clusters.mu.Unlock()
 	cluster, ok := clusters.ClusterData[id]
 	if !ok {
-		return errors.New("Cluster with provided id not found")
+		return errors.New("cluster with provided id not found")
 	}
 	cluster.IsManuallySelected = false
 	return nil
@@ -189,7 +189,7 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 		for i, airdrop_type := range detections.TargetType {
 			if First {
 				First = false
-				//create a detection for every single airdrop needed
+				// create a center for every single airdrop needed
 				for _, needed_type := range NeededAirdrops {
 					if needed_type == airdrop_type {
 						continue
@@ -326,7 +326,7 @@ func New() *ClusterManager {
 		out.ClusterData[t] = &ClusterData{
 			Detections:         []Detection{},
 			TargetType:         t,
-			ComputedCenter:     &protos.GPSCoord{}, //TODO - put defaults here
+			ComputedCenter:     &protos.GPSCoord{}, // TODO - put defaults here
 			IsManuallySelected: false,
 		}
 	}

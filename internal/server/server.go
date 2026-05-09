@@ -149,7 +149,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 func (server *Server) setClusterToManual() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var body struct {
-			Id     uint            `json:"id"`
+			Id     int32           `json:"id"`
 			Center protos.GPSCoord `json:"center"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {

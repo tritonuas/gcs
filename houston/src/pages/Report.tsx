@@ -92,7 +92,7 @@ interface Cluster {
   all_data_points: Detection[];
   //The manually selected point, if any, for the human chosen cluster center
   selected_center: GPSCoord | null;
-  //Whether the intended center is the selected center or not. 
+  //Whether the intended center is the selected center or not.
   is_manually_selected: boolean;
   //the color to draw as, stored as rgb 3-tuple
   color: number[];
@@ -266,23 +266,23 @@ const Reports: React.FC = () => {
       fetch(SET_MANUAL_ENDPOINT, {
         method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           id: currentMarker.current,
-          center: LatLngToGPSCoord(latlng)
-        })
+          center: LatLngToGPSCoord(latlng),
+        }),
       }).then(() => {
         currentMarker.current = null;
-        setselectMode(false)
-        syncWithoutFetchingOBC()
-      })
+        setselectMode(false);
+        syncWithoutFetchingOBC();
+      });
     }
   }
   /**
    * triggers when marker is clicked in select mode, picks up
    * marker, sets that marker to be replaced
-   * @param event marker click event
+   * @param type Which airdrop type's center to select
    */
   function pickMarker(type: AirdropType) {
     if (selectMode) {
@@ -297,7 +297,7 @@ const Reports: React.FC = () => {
    */
   const renderCurrentMarker = () => {
     if (currentMarker.current != null && dragging && selectMode) {
-      return <Marker position={position} ></Marker>;
+      return <Marker position={position}></Marker>;
     }
   };
   /**
@@ -317,29 +317,36 @@ const Reports: React.FC = () => {
     return <>{null}</>;
   };
 
-
   /**
    * A cluster drawn on the app
    * @param cluster The cluster to draw
    * @returns the react componenent that renders
    */
   function MapCluster(cluster: Cluster) {
+    /**
+     * Marks the center of a cluster
+     * @returns A jsx fragment with a marker element
+     */
     function CenterMarker() {
-      return <Marker
-        eventHandlers={{
-          click: () => {
-            pickMarker(cluster.airdrop_type);
-          },
-        }}
-        position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}
-      >
-        <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
-      </Marker>
+      return (
+        <Marker
+          eventHandlers={{
+            click: () => {
+              pickMarker(cluster.airdrop_type);
+            },
+          }}
+          position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}
+        >
+          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
+        </Marker>
+      );
     }
     if (cluster.color.length <= 0) {
       cluster.color = GetNextColor(cluster.airdrop_type);
     }
-    const center = (cluster.is_manually_selected ? cluster.selected_center : cluster.calculated_center) ?? cluster.calculated_center;
+    const center =
+      (cluster.is_manually_selected ? cluster.selected_center : cluster.calculated_center) ??
+      cluster.calculated_center;
     return (
       <>
         {CenterMarker()}
@@ -364,8 +371,6 @@ const Reports: React.FC = () => {
             />
           );
         })}
-
-
       </>
     );
   }
@@ -437,7 +442,9 @@ const Reports: React.FC = () => {
             airdrop_type: +key as AirdropType,
             all_data_points: datapoints,
             selected_center: (value as { manual_center: GPSCoord })["manual_center"],
-            is_manually_selected: (value as { is_manually_selected: boolean })["is_manually_selected"],
+            is_manually_selected: (value as { is_manually_selected: boolean })[
+              "is_manually_selected"
+            ],
             color: GetNextColor(+key),
           };
           newval.push(addition);
@@ -507,7 +514,11 @@ const Reports: React.FC = () => {
                     {(() => {
                       const cluster = getSelectedCluster();
                       return cluster
-                        ? GPSCoordToString((cluster.is_manually_selected ? cluster.selected_center : cluster.calculated_center))
+                        ? GPSCoordToString(
+                            cluster.is_manually_selected
+                              ? cluster.selected_center
+                              : cluster.calculated_center,
+                          )
                         : "N/A";
                     })()}
                     <br></br>
@@ -517,19 +528,25 @@ const Reports: React.FC = () => {
                       return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
                     })()}
                     <br></br>Using Manual Center?: {getSelectedCluster()?.is_manually_selected}
-                    {getSelectedCluster()?.is_manually_selected && <button onClick={() => {
-                      fetch(CLEAR_MANUAL_ENDPOINT, {
-                        method: "POST",
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          id: selectedCluster
-                        })
-                      }).then((e) => {
-                        console.log(e) //TODO remove/handle error
-                      })
-                    }}>Clear Manual Selection</button>}
+                    {getSelectedCluster()?.is_manually_selected && (
+                      <button
+                        onClick={() => {
+                          fetch(CLEAR_MANUAL_ENDPOINT, {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              id: selectedCluster,
+                            }),
+                          }).then((e) => {
+                            console.log(e); //TODO remove/handle error
+                          });
+                        }}
+                      >
+                        Clear Manual Selection
+                      </button>
+                    )}
                   </div>
                   <div className="reports-table-wrapper">
                     <table className="reports-cluster-table">
