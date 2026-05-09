@@ -32,6 +32,7 @@ function TuasMap({
           zoomOffset={-1}
           id="mapbox/satellite-v9"
         />
+
         {/* This is for if you are offline and want to use local tiles.
                 <TileLayer
                     key="offline"
