@@ -23,7 +23,7 @@ import { SettingsConfig } from "./settings";
  * @param setSuperSecret state setter
  * @param setFlightMode state setter
  */
-export function pullTelemetry(
+export async function pullTelemetry(
   settings: SettingsConfig,
   setPlaneLatLng: Dispatch<SetStateAction<[number, number]>>,
   setAirspeedVal: Dispatch<SetStateAction<Parameter>>,
@@ -36,7 +36,7 @@ export function pullTelemetry(
   setSuperSecret: Dispatch<SetStateAction<boolean>>,
   setFlightMode: Dispatch<SetStateAction<string>>,
 ) {
-  fetch("/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading")
+  const speedRequest = fetch("/api/plane/telemetry?id=74&field=groundspeed,airspeed,heading")
     .then((resp) => resp.json())
     .then((json) => {
       const airspeed = json["airspeed"];
@@ -50,7 +50,8 @@ export function pullTelemetry(
       setGroundspeedVal((param) => param.getErrorValue());
       setSuperSecret(true);
     });
-  fetch("/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt")
+
+  const positionRequest = fetch("/api/plane/telemetry?id=33&field=lat,lon,alt,relative_alt")
     .then((resp) => resp.json())
     .then((json) => {
       const altitude = METERS_TO_FEET(MM_TO_METERS(json["alt"]));
@@ -66,7 +67,8 @@ export function pullTelemetry(
       setAltitudeAGLVal((param) => param.getErrorValue());
       // todo figure out good error value for latlng so the map doesn't flicker to africa
     });
-  fetch("/api/plane/telemetry?id=251&field=value")
+
+  const escRequest = fetch("/api/plane/telemetry?id=251&field=value")
     .then((resp) => resp.json())
     .then((json) => {
       const esc_temp = json["value"];
@@ -75,7 +77,8 @@ export function pullTelemetry(
     .catch((_) => {
       setESCtemperatureVal((param) => param.getErrorValue());
     });
-  fetch("/api/plane/telemetry?id=0")
+
+  const flightModeRequest = fetch("/api/plane/telemetry?id=0")
     .then((resp) => resp.json())
     .then((json) => {
       // some respectable individual can come in later on and refactor this into
@@ -116,7 +119,7 @@ export function pullTelemetry(
         }
       }
     });
-  fetch("/api/plane/voltage")
+  const voltageRequest = fetch("/api/plane/voltage")
     .then((resp) => resp.json())
     .then((json) => {
       const pixhawkV = json["0"] / 1000; //kV -> V
@@ -135,4 +138,12 @@ export function pullTelemetry(
       setPixhawkBatteryVal((param) => param.getErrorValue());
       setMotorBatteryVal((param) => param.getErrorValue());
     });
+
+  await Promise.allSettled([
+    speedRequest,
+    positionRequest,
+    escRequest,
+    flightModeRequest,
+    voltageRequest,
+  ]);
 }
