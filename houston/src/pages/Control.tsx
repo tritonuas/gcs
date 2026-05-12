@@ -348,6 +348,10 @@ function Control({
           setTickState(data.split(",")[0]);
           setNumLaps(data.split(",")[1]);
         }
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          setTickState("Loading...");
+        }
       } catch (error) {
         console.error("Error fetching tick state:", error);
         if (!isCancelled) {
