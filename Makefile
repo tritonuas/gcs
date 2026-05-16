@@ -174,3 +174,16 @@ check: build-protos fmt-check lint test
 # kimi was here
 kimi:
 	git add -A ':!deployments/docker-compose-mac.yml'
+
+# Flox equivalents
+# --------------------------------------------------------------------
+.PHONY: run-flox stop-flox develop-flox
+
+run-flox:
+	./scripts/run-flox.sh
+
+stop-flox:
+	./scripts/stop-flox.sh
+
+develop-flox:
+	./scripts/develop-flox.sh
