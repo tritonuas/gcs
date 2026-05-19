@@ -157,6 +157,9 @@ const Reports: React.FC = () => {
     }
     selection.current.value = "" + selectedCluster;
   }, [selectedCluster]);
+  useEffect(() => {
+    syncWithoutFetchingOBC();
+  }, []);
   /**
    * Launches the airdrops with the currently selected center
    */

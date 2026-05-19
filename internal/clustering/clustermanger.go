@@ -161,9 +161,9 @@ func findCenter(data *ClusterData) error {
 	return nil
 }
 
-// in othe future there better ways to do this, for now we just take the first detection and put all of the needed airdrops into it
-var First = true
-var NeededAirdrops = [...]protos.AirdropType{protos.AirdropType_Beacon, protos.AirdropType_Water}
+// in the future there are better ways to do this, for now we just take the first detection and put all of the needed airdrops into it
+var first = true
+var neededAirdrops = [...]protos.AirdropType{protos.AirdropType_Beacon, protos.AirdropType_Water}
 
 func (clusters *ClusterManager) AddDetection(data string) error {
 	out, jsonerr := ExtractJSONListAsStrings(data)
@@ -187,10 +187,10 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 			continue
 		}
 		for i, airdrop_type := range detections.TargetType {
-			if First {
-				First = false
+			if first {
+				first = false
 				// create a center for every single airdrop needed
-				for _, needed_type := range NeededAirdrops {
+				for _, needed_type := range neededAirdrops {
 					if needed_type == airdrop_type {
 						continue
 					}
@@ -230,7 +230,9 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 	}
 	for _, data := range clusters.ClusterData {
 		center_error := findCenter(data)
-		return center_error
+		if center_error != nil {
+			return center_error
+		}
 	}
 	return nil
 }
@@ -322,11 +324,11 @@ func New() *ClusterManager {
 
 		Images: make(map[int][]byte),
 	}
-	for _, t := range NeededAirdrops {
+	for _, t := range neededAirdrops {
 		out.ClusterData[t] = &ClusterData{
 			Detections:         []Detection{},
 			TargetType:         t,
-			ComputedCenter:     &protos.GPSCoord{}, // TODO - put defaults here
+			ComputedCenter:     &protos.GPSCoord{}, // TODO - put defaults here when we find a better solution (maybe center of search area?)
 			IsManuallySelected: false,
 		}
 	}

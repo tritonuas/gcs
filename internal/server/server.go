@@ -171,14 +171,16 @@ func (server *Server) setClusterOffManual() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Could define a type for this but it'd only have 1 entry
 		var body struct {
-			id protos.AirdropType
+			Id protos.AirdropType `json:"id"`
 		}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+			return
 		}
-		e := server.clusterManager.RemoveManualCenter(body.id)
+		e := server.clusterManager.RemoveManualCenter(body.Id)
 		if e != nil {
 			c.JSON(400, gin.H{"error": "Invalid ID"})
+			return
 		}
 		c.String(200, "ok")
 	}
@@ -191,7 +193,8 @@ func (server *Server) confirmClusters() gin.HandlerFunc {
 		var buf bytes.Buffer
 		err := json.NewEncoder(&buf).Encode(data)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Failed to encod data to json")
+			c.String(http.StatusBadRequest, "Failed to encode data to json")
+			return
 		}
 		respBody, status := server.obcClient.PostTargetMatchOverride(buf.Bytes())
 		c.String(status, "text/plain", respBody)
