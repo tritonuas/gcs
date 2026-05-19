@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -138,11 +139,67 @@ func (server *Server) initBackend(router *gin.Engine) {
 			clusters.GET("/fetch", server.fetchClusters())
 			clusters.GET("/toggle", server.toggleDetection())
 			clusters.GET("/detection_images/:id", server.detectionImage())
-
+			clusters.POST("/set_manual", server.setClusterToManual())
+			clusters.POST("/clear_manual", server.setClusterOffManual())
+			clusters.POST("/confirm_launch", server.confirmClusters())
 		}
 	}
 }
 
+func (server *Server) setClusterToManual() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var body struct {
+			Id     int32           `json:"id"`
+			Center protos.GPSCoord `json:"center"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+			return
+		}
+		Log.Infof("Got object of type %v", &body)
+		e := server.clusterManager.SetManualCenter(protos.AirdropType(body.Id), &body.Center)
+		if e != nil {
+			c.JSON(400, gin.H{"error": "Invalid ID"})
+			return
+		}
+		c.String(200, "ok")
+	}
+}
+
+func (server *Server) setClusterOffManual() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		// Could define a type for this but it'd only have 1 entry
+		var body struct {
+			Id protos.AirdropType `json:"id"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+			return
+		}
+		e := server.clusterManager.RemoveManualCenter(body.Id)
+		if e != nil {
+			c.JSON(400, gin.H{"error": "Invalid ID"})
+			return
+		}
+		c.String(200, "ok")
+	}
+}
+
+func (server *Server) confirmClusters() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data := server.clusterManager.GetLaunchCoordinates()
+		Log.Infoln("Launching Airdrops")
+		var buf bytes.Buffer
+		err := json.NewEncoder(&buf).Encode(data)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Failed to encode data to json")
+			return
+		}
+		respBody, status := server.obcClient.PostTargetMatchOverride(buf.Bytes())
+		c.String(status, "text/plain", respBody)
+	}
+}
 func (server *Server) detectionImage() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, parse_error := strconv.Atoi(c.Param("id"))
@@ -666,6 +723,9 @@ func (server *Server) getMatchedTargets() gin.HandlerFunc {
 	}
 }
 
+/*
+Not currently used on the frontend, but left in case its needed to be called manually should clustering fail
+*/
 func (server *Server) postMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -678,7 +738,6 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 		str := string(jsonData)
 		fmt.Println("JSON IS")
 		fmt.Println(str)
-
 		body, code := server.obcClient.PostTargetMatchOverride(jsonData)
 		if code != http.StatusOK {
 			c.Data(code, "text/plain", body)

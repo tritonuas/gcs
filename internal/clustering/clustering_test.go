@@ -16,7 +16,7 @@ func TestClusteringEmpty(t *testing.T) {
 	detections := make([]Detection, 0)
 	detectionPoint := protos.GPSCoord{}
 
-	data := ClusterData{Detections: detections, ClusterCenter: &detectionPoint}
+	data := ClusterData{Detections: detections, ComputedCenter: &detectionPoint}
 	err := findCenter(&data)
 	if err == nil {
 		t.Errorf("An error was supposed to occur as no data was sent. \n")
@@ -84,7 +84,7 @@ func TestClusteringEven(t *testing.T) {
 		detections[i].Location = &p
 	}
 
-	data := ClusterData{Detections: detections, ClusterCenter: &detectionPoint}
+	data := ClusterData{Detections: detections, ComputedCenter: &detectionPoint}
 
 	err := findCenter(&data)
 
@@ -93,14 +93,14 @@ func TestClusteringEven(t *testing.T) {
 		t.Errorf("An error occurred in finding the center. \n")
 	}
 
-	if math.Abs(data.ClusterCenter.Latitude-trueMedianLat) > eps {
+	if math.Abs(data.ComputedCenter.Latitude-trueMedianLat) > eps {
 		t.Errorf("Incorrect latitude found. Got %v but expected %v \n",
-			data.ClusterCenter.Latitude, trueMedianLat)
+			data.ComputedCenter.Latitude, trueMedianLat)
 	}
 
-	if math.Abs(data.ClusterCenter.Longitude-trueMedianLong) > eps {
+	if math.Abs(data.ComputedCenter.Longitude-trueMedianLong) > eps {
 		t.Errorf("Incorrect longitude found. Got %v but expected %v \n",
-			data.ClusterCenter.Longitude, trueMedianLong)
+			data.ComputedCenter.Longitude, trueMedianLong)
 	}
 }
 
@@ -140,7 +140,7 @@ func TestClusteringOdd(t *testing.T) {
 		detections[i].Location = &p
 	}
 
-	data := ClusterData{Detections: detections, ClusterCenter: &detectionPoint}
+	data := ClusterData{Detections: detections, ComputedCenter: &detectionPoint}
 
 	err := findCenter(&data)
 
@@ -149,13 +149,13 @@ func TestClusteringOdd(t *testing.T) {
 		t.Errorf("An error occurred in finding the center. \n")
 	}
 
-	if !reflect.DeepEqual(data.ClusterCenter.Latitude, trueMedianLat) {
+	if !reflect.DeepEqual(data.ComputedCenter.Latitude, trueMedianLat) {
 		t.Errorf("Incorrect latitude found. Got %v but expected %v \n",
-			data.ClusterCenter.Latitude, trueMedianLat)
+			data.ComputedCenter.Latitude, trueMedianLat)
 	}
 
-	if !reflect.DeepEqual(data.ClusterCenter.Longitude, trueMedianLong) {
+	if !reflect.DeepEqual(data.ComputedCenter.Longitude, trueMedianLong) {
 		t.Errorf("Incorrect longitude found. Got %v but expected %v \n",
-			data.ClusterCenter.Longitude, trueMedianLong)
+			data.ComputedCenter.Longitude, trueMedianLong)
 	}
 }
