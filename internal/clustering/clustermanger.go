@@ -20,9 +20,12 @@ type Detection struct {
 	Id       int              `json:"id"`
 }
 type ClusterData struct {
-	TargetType    protos.AirdropType `json:"target_type"`
-	Detections    []Detection        `json:"detections"`
-	ClusterCenter *protos.GPSCoord   `json:"center"`
+	TargetType protos.AirdropType `json:"target_type"`
+	Detections []Detection        `json:"detections"`
+	// The true center, as calculated without
+	ComputedCenter     *protos.GPSCoord `json:"center"`
+	IsManuallySelected bool             `json:"is_manually_selected"`
+	ManualCenter       *protos.GPSCoord `json:"manual_center"`
 }
 type ClusterManager struct {
 	ClusterData map[protos.AirdropType]*ClusterData
@@ -69,12 +72,59 @@ func (clusters *ClusterManager) GetAllDetections() []Detection {
 	}
 	return all_detections
 }
+func (clusters *ClusterManager) SetManualCenter(id protos.AirdropType, center *protos.GPSCoord) error {
+	clusters.mu.Lock()
+	defer clusters.mu.Unlock()
+	cluster, ok := clusters.ClusterData[id]
+	if !ok {
+		return errors.New("cluster with provided id not found")
+	}
+	if cluster.ManualCenter == nil {
+		cluster.ManualCenter = &protos.GPSCoord{}
+	}
+	cluster.ManualCenter.Altitude = center.Altitude
+	cluster.ManualCenter.Latitude = center.Latitude
+	cluster.ManualCenter.Longitude = center.Longitude
+	cluster.IsManuallySelected = true
+	return nil
+}
+func (clusters *ClusterManager) RemoveManualCenter(id protos.AirdropType) error {
+	clusters.mu.Lock()
+	defer clusters.mu.Unlock()
+	cluster, ok := clusters.ClusterData[id]
+	if !ok {
+		return errors.New("cluster with provided id not found")
+	}
+	cluster.IsManuallySelected = false
+	return nil
+}
+func (clusters *ClusterManager) GetLaunchCoordinates() []*protos.AirdropTarget {
+	clusters.mu.RLock()
+	defer clusters.mu.RUnlock()
+	all_targets := make([]*protos.AirdropTarget, 0, len(clusters.ClusterData))
+	for _, el := range clusters.ClusterData {
+		if el.IsManuallySelected {
+			target := &protos.AirdropTarget{
+				Index:      el.TargetType,
+				Coordinate: el.ManualCenter,
+			}
+			all_targets = append(all_targets, target)
+		} else {
+			target := &protos.AirdropTarget{
+				Index:      el.TargetType,
+				Coordinate: el.ComputedCenter,
+			}
+			all_targets = append(all_targets, target)
+		}
+	}
+	return all_targets
+}
 func findCenter(data *ClusterData) error {
 
 	if len(data.Detections) == 0 {
 		return errors.New("cluster data is empty. There are no centers to find")
 	}
-	if data.ClusterCenter == nil {
+	if data.ComputedCenter == nil {
 		return errors.New("null cluster center")
 	}
 	var lats []float64
@@ -98,18 +148,22 @@ func findCenter(data *ClusterData) error {
 	if len(lats)%2 == 0 {
 		mp1 := len(lats) / 2
 		mp2 := len(lats)/2 - 1
-		data.ClusterCenter = &protos.GPSCoord{}
-		data.ClusterCenter.Latitude = (lats[mp1] + lats[mp2]) / 2.0
-		data.ClusterCenter.Longitude = (lons[mp1] + lons[mp2]) / 2.0
+		data.ComputedCenter = &protos.GPSCoord{}
+		data.ComputedCenter.Latitude = (lats[mp1] + lats[mp2]) / 2.0
+		data.ComputedCenter.Longitude = (lons[mp1] + lons[mp2]) / 2.0
 		return nil
 	}
 
 	midPoint := len(lats) / 2
-	data.ClusterCenter = &protos.GPSCoord{}
-	data.ClusterCenter.Longitude = lons[midPoint]
-	data.ClusterCenter.Latitude = lats[midPoint]
+	data.ComputedCenter = &protos.GPSCoord{}
+	data.ComputedCenter.Longitude = lons[midPoint]
+	data.ComputedCenter.Latitude = lats[midPoint]
 	return nil
 }
+
+// in the future there are better ways to do this, for now we just take the first detection and put all of the needed airdrops into it
+var first = true
+var neededAirdrops = [...]protos.AirdropType{protos.AirdropType_Beacon, protos.AirdropType_Water}
 
 func (clusters *ClusterManager) AddDetection(data string) error {
 	out, jsonerr := ExtractJSONListAsStrings(data)
@@ -133,6 +187,17 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 			continue
 		}
 		for i, airdrop_type := range detections.TargetType {
+			if first {
+				first = false
+				// create a center for every single airdrop needed
+				for _, needed_type := range neededAirdrops {
+					if needed_type == airdrop_type {
+						continue
+					}
+					cluster := clusters.ClusterData[needed_type]
+					cluster.ComputedCenter = proto.Clone(detections.GetCoordinates()[i]).(*protos.GPSCoord)
+				}
+			}
 			cluster := clusters.ClusterData[airdrop_type]
 			imgbytes, b64error := base64.StdEncoding.DecodeString(detections.GetPicture())
 			if b64error != nil {
@@ -156,8 +221,8 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 						Rejected: false,
 						Id:       clusters.LastID,
 					}},
-					TargetType:    airdrop_type,
-					ClusterCenter: new_center,
+					TargetType:     airdrop_type,
+					ComputedCenter: new_center,
 				}
 				clusters.LastID++
 			}
@@ -165,7 +230,9 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 	}
 	for _, data := range clusters.ClusterData {
 		center_error := findCenter(data)
-		return center_error
+		if center_error != nil {
+			return center_error
+		}
 	}
 	return nil
 }
@@ -249,10 +316,21 @@ func ExtractJSONListAsStrings(jsonStr string) ([]string, error) {
 
 	return result, nil
 }
+
 func New() *ClusterManager {
-	return &ClusterManager{
+
+	out := &ClusterManager{
 		ClusterData: make(map[protos.AirdropType]*ClusterData),
 
 		Images: make(map[int][]byte),
 	}
+	for _, t := range neededAirdrops {
+		out.ClusterData[t] = &ClusterData{
+			Detections:         []Detection{},
+			TargetType:         t,
+			ComputedCenter:     &protos.GPSCoord{}, // TODO - put defaults here when we find a better solution (maybe center of search area?)
+			IsManuallySelected: false,
+		}
+	}
+	return out
 }
