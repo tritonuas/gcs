@@ -17,60 +17,7 @@ const DETECTION_IMAGE_ENDPOINT = `${API_BASE_URL}/clusters/detection_images`;
 const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`;
 const CLEAR_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/clear_manual`;
 const SET_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/set_manual`;
-// --- Constants ---
-// const POLLING_INTERVAL_MS = 10000;
-// const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
-// const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
-// const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
-// const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
-//   (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
-// ) as AirdropType[];
 
-// New helper to fetch saved runs
-// const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
-//   try {
-//     const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT);
-//     if (!response.ok) {
-//       if (response.status === 404) {
-//         console.log("No saved runs found on server (404).");
-//         return [];
-//       }
-//       throw new Error(`HTTP ${response.status} fetching saved runs`);
-//     }
-//     const text = await response.text();
-//     if (!text) {
-//       console.log("Received empty response body from saved runs endpoint.");
-//       return [];
-//     }
-//     const data = JSON.parse(text);
-
-//     if (!Array.isArray(data)) {
-//       if (typeof data === "object" && Object.keys(data).length === 0) {
-//         console.warn(
-//           "Saved runs endpoint returned an empty object, expected array. Treating as no runs.",
-//         );
-//         return [];
-//       }
-//       throw new Error("Invalid data format for saved runs (expected array)");
-//     }
-//     return data.map((item) => IdentifiedTarget.fromJSON(item));
-//   } catch (error) {
-//     console.error("Error fetching saved runs:", error);
-//     return [];
-//   }
-// };
-
-/*
-enum MapMode {
-  FlightBound,
-  SearchBound,
-  MappingBound,
-  Waypoint,
-  InitialPath,
-  SearchPath,
-  DropLocation,
-}
-  */
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
   // GPS cord of the detection
