@@ -8,6 +8,7 @@ import TuasMap from "../components/TuasMap";
 import { LatLng } from "leaflet";
 import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
 import { GPSCoordToString, LatLngToGPSCoord } from "../utilities/general";
+import FlightBounds from "../components/FlightBounds";
 
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
@@ -422,6 +423,7 @@ const Reports: React.FC = () => {
       <div className="reports-col">
         <div className="reports-card">
           <TuasMap className={"reports-map"} lat={51} lng={10}>
+            <FlightBounds FlightBounds SearchBounds></FlightBounds>
             <UpdateMapCenter position={maploc} />
             <MapOnClickHandler />
             {clusters.map((e) => {
