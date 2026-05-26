@@ -181,12 +181,15 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 	}
 	clusters.mu.Lock()
 	defer clusters.mu.Unlock()
+	// use a bool to functionally create a a hashset
+	modified := make(map[protos.AirdropType]bool)
 	for j := range identifiedTargets {
 		detections := identifiedTargets[j]
 		if detections == nil {
 			continue
 		}
 		for i, airdrop_type := range detections.TargetType {
+			modified[airdrop_type] = true
 			if first {
 				first = false
 				// create a center for every single airdrop needed
@@ -228,8 +231,8 @@ func (clusters *ClusterManager) AddDetection(data string) error {
 			}
 		}
 	}
-	for _, data := range clusters.ClusterData {
-		center_error := findCenter(data)
+	for airdrop_t := range modified {
+		center_error := findCenter(clusters.ClusterData[airdrop_t])
 		if center_error != nil {
 			return center_error
 		}
