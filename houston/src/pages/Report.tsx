@@ -5,11 +5,11 @@ import { AirdropType, GPSCoord } from "../protos/obc.pb";
 import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
 import TuasMap from "../components/TuasMap";
-import { LatLng } from "leaflet";
+import { LatLng, Icon } from "leaflet";
 import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
 import { GPSCoordToString, LatLngToGPSCoord } from "../utilities/general";
 import FlightBounds from "../components/FlightBounds";
-
+import Crosshair from "../assets/crosshair.svg";
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
 const FETCH_CLUSTERS_ENDPOINT = `${API_BASE_URL}/clusters/fetch`;
@@ -66,7 +66,11 @@ function GetNextColor(type: number) {
   ];
   return colors[Math.min(colors.length - 1, type)];
 }
-
+const crosshair = new Icon({
+  iconUrl: Crosshair,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16], // use center of icon to point
+});
 // --- Component ---
 const Reports: React.FC = () => {
   //const [flightMode, setFlightMode] = useState("???");
@@ -248,7 +252,7 @@ const Reports: React.FC = () => {
    */
   const renderCurrentMarker = () => {
     if (currentMarker.current != null && dragging && selectMode) {
-      return <Marker position={position}></Marker>;
+      return <Marker position={position} icon={crosshair}></Marker>;
     }
   };
   /**
@@ -286,6 +290,7 @@ const Reports: React.FC = () => {
               pickMarker(cluster.airdrop_type);
             },
           }}
+          icon={crosshair}
           position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}
         >
           <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
