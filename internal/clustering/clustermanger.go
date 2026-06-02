@@ -2,6 +2,7 @@ package clustering
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -34,18 +35,28 @@ type ClusterManager struct {
 	Images      map[int][]byte
 }
 
+func (clusters *ClusterManager) MarshalJson() ([]byte, error) {
+	clusters.mu.RLock()
+	defer clusters.mu.RUnlock()
+	return json.Marshal(clusters.ClusterData)
+}
 func (clusters *ClusterManager) ToggleDetection(id int) error {
 	clusters.mu.Lock()
 	defer clusters.mu.Unlock()
 	var detection_type protos.AirdropType
+	found := false
 	for i := range clusters.ClusterData {
 		for j := range clusters.ClusterData[i].Detections {
 			if clusters.ClusterData[i].Detections[j].Id == id {
 				detection_type = i
+				found = true
 				clusters.ClusterData[i].Detections[j].Rejected = !clusters.ClusterData[i].Detections[j].Rejected
 				break
 			}
 		}
+	}
+	if !found {
+		return errors.New("tried to toggle a nonexistent detection")
 	}
 	err := findCenter(clusters.ClusterData[detection_type])
 	if err != nil {
@@ -135,6 +146,9 @@ func findCenter(data *ClusterData) error {
 			lons = append(lons, d.Location.Longitude)
 		}
 	}
+	if len(lats) == 0 {
+		return errors.New("computed center of a entirely rejected cluster")
+	}
 	sort.Slice(lats, func(i, j int) bool {
 		return lats[i] < lats[j]
 	})
@@ -142,7 +156,6 @@ func findCenter(data *ClusterData) error {
 	sort.Slice(lons, func(i, j int) bool {
 		return lons[i] < lons[j]
 	})
-
 	// Case where the number of datapoints are even
 	// so we average the two closest to the middle.
 	if len(lats)%2 == 0 {
