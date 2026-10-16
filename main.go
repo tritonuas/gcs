@@ -11,6 +11,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/tritonuas/gcs/internal/clustering"
 	"github.com/tritonuas/gcs/internal/influxdb"
 	mav "github.com/tritonuas/gcs/internal/mavlink"
 
@@ -98,9 +99,10 @@ func main() {
 
 	obcClient := obc.NewClient(*ENVS["OBC_ADDR"], 999)
 
+	clusterManger := clustering.New()
 	go mavlinkClient.Listen()
 
 	// Set up GIN HTTP Server
-	server := server.New(influxClient, mavlinkClient, obcClient)
+	server := server.New(influxClient, mavlinkClient, obcClient, clusterManger)
 	server.Start()
 }

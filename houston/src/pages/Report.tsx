@@ -1,1282 +1,605 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Chip,
-  Typography,
-  Select,
-  MenuItem,
-  Button,
-  CircularProgress,
-  Alert,
-  SelectChangeEvent,
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Paper,
-  FormControl,
-  InputLabel,
-  FormHelperText,
-  Divider,
-  Snackbar,
-  TextField,
-  Stack,
-} from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
 
-import {
-  IdentifiedTarget,
-  AirdropType,
-  airdropTypeToJSON,
-  airdropTypeFromJSON,
-  GPSCoord,
-  BboxProto,
-  AirdropTarget,
-  Mission,
-} from "../protos/obc.pb";
+import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
+import UpdateMapCenter from "../components/UpdateMapCenter";
 import "./Report.css";
-
-// --- Constants ---
-const POLLING_INTERVAL_MS = 10000;
+import TuasMap from "../components/TuasMap";
+import { LatLng, Icon } from "leaflet";
+import { Circle, Marker, Popup, useMapEvents } from "react-leaflet";
+import { GPSCoordToString, LatLngToGPSCoord } from "../utilities/general";
+import FlightBounds from "../components/FlightBounds";
+import Crosshair from "../assets/crosshair.svg";
 const API_BASE_URL = "/api";
 const TARGETS_ALL_ENDPOINT = `${API_BASE_URL}/targets/all`;
-const TARGET_MATCHED_ENDPOINT = `${API_BASE_URL}/targets/matched`;
-const SAVE_LOAD_REPORT_ENDPOINT = `${API_BASE_URL}/report`;
-const REQUIRED_AIRDROP_INDICES = Object.values(AirdropType).filter(
-  (v) => typeof v === "number" && v !== AirdropType.UNRECOGNIZED && v !== AirdropType.Undefined,
-) as AirdropType[];
+const FETCH_CLUSTERS_ENDPOINT = `${API_BASE_URL}/clusters/fetch`;
+const TOGGLE_ENDPOINT = `${API_BASE_URL}/clusters/toggle`;
+const DETECTION_IMAGE_ENDPOINT = `${API_BASE_URL}/clusters/detection_images`;
+const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`;
+const CLEAR_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/clear_manual`;
+const SET_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/set_manual`;
 
-// --- Helper Functions ---
-const fetchTargets = async (): Promise<IdentifiedTarget[]> => {
-  try {
-    const response = await fetch(TARGETS_ALL_ENDPOINT);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error("Invalid data format from /targets/all");
-    return data.map((item) => IdentifiedTarget.fromJSON(item));
-  } catch (error) {
-    console.error("Error fetching targets from /targets/all:", error);
-    throw error;
-  }
-};
-
-const postMatchedTargets = async (payload: AirdropTarget[]): Promise<boolean> => {
-  console.log(`POSTING FINAL MATCHES to ${TARGET_MATCHED_ENDPOINT}:`, payload);
-  const jsonPayload = payload.map((target) => AirdropTarget.toJSON(target));
-  try {
-    const response = await fetch(TARGET_MATCHED_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(jsonPayload),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      console.error(
-        `POST to ${TARGET_MATCHED_ENDPOINT} failed with status ${response.status}`,
-        errorBody,
-      );
-      if (response.status === 404) {
-        throw new Error(
-          `Endpoint not found (${response.status}): POST ${TARGET_MATCHED_ENDPOINT}. Check backend route and dev proxy.`,
-        );
-      } else {
-        throw new Error(`HTTP ${response.status} - ${errorBody || response.statusText}`);
-      }
-    }
-    console.log("POST successful:", jsonPayload);
-    return true;
-  } catch (error) {
-    console.error("Error posting final matched targets:", error);
-    throw error;
-  }
-};
-
-// New helper to fetch saved runs
-const fetchSavedRunsFromServer = async (): Promise<IdentifiedTarget[]> => {
-  try {
-    const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT);
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.log("No saved runs found on server (404).");
-        return [];
-      }
-      throw new Error(`HTTP ${response.status} fetching saved runs`);
-    }
-    const text = await response.text();
-    if (!text) {
-      console.log("Received empty response body from saved runs endpoint.");
-      return [];
-    }
-    const data = JSON.parse(text);
-
-    if (!Array.isArray(data)) {
-      if (typeof data === "object" && Object.keys(data).length === 0) {
-        console.warn(
-          "Saved runs endpoint returned an empty object, expected array. Treating as no runs.",
-        );
-        return [];
-      }
-      throw new Error("Invalid data format for saved runs (expected array)");
-    }
-    return data.map((item) => IdentifiedTarget.fromJSON(item));
-  } catch (error) {
-    console.error("Error fetching saved runs:", error);
-    return [];
-  }
-};
-
-// New helper to push runs to be saved
-const pushSavedRunsToServer = async (runsToSave: IdentifiedTarget[]): Promise<boolean> => {
-  console.log(`Pushing ${runsToSave.length} runs to ${SAVE_LOAD_REPORT_ENDPOINT}`);
-  const jsonPayload = runsToSave.map((run) => IdentifiedTarget.toJSON(run));
-  try {
-    const response = await fetch(SAVE_LOAD_REPORT_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(jsonPayload),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      throw new Error(
-        `HTTP ${response.status} pushing saved runs - ${errorBody || response.statusText}`,
-      );
-    }
-    return true;
-  } catch (error) {
-    console.error("Error pushing saved runs:", error);
-    throw error;
-  }
-};
-
-/** Interface representing a single detection within an Image Run */
-interface DetectionInfo {
-  runId: number;
-  detectionIndex: number;
-  compositeKey: string;
-  coordinate: GPSCoord;
-  bbox: BboxProto;
+//represents the data stored for a detection of a target on the OBC
+interface Detection {
+  // GPS cord of the detection
+  location: GPSCoord;
+  // Classifcation of the detection by the OBC - might be changed on client side
+  type: AirdropType;
+  //If this detection has been rejected
+  rejected: boolean;
+  //unique id for this detection
+  id: number;
 }
-
-/* Interface for storing the user's match *for the current image* */
-interface CurrentDetectionMatch {
-  airdropType: AirdropType;
-  detectionInfo: DetectionInfo;
+/*interface representing one cluster calculated by the airdrop */
+interface Cluster {
+  //The location found by the obc
+  calculated_center: GPSCoord;
+  //the type detected
+  airdrop_type: AirdropType;
+  //The data attached to this cluster, both accpted and rejected
+  all_data_points: Detection[];
+  //The manually selected point, if any, for the human chosen cluster center
+  selected_center: GPSCoord | null;
+  //Whether the intended center is the selected center or not.
+  is_manually_selected: boolean;
+  //the color to draw as, stored as rgb 3-tuple
+  color: number[];
 }
-
+/**
+ * Gets the next color for the cluster to use
+ * @param type The airdrop type
+ * @returns A length 3 array with r, g, b colors
+ */
+function GetNextColor(type: number) {
+  //If we need more, we can add them here. This maps from cv type -> color
+  const colors: number[][] = [
+    [0, 255, 0], // Green
+    [0, 0, 255], // Blue
+    [255, 255, 0], // Yellow
+    [255, 0, 255], // Magenta
+    [0, 255, 255], // Cyan
+    [255, 128, 0], // Orange
+    [128, 0, 255], // Purple
+    [0, 255, 128], // Spring green
+    [128, 255, 0], // Chartreuse
+    [0, 128, 255], // Sky blue
+  ];
+  return colors[Math.min(colors.length - 1, type)];
+}
+const crosshair = new Icon({
+  iconUrl: Crosshair,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16], // use center of icon to point
+});
 // --- Component ---
 const Reports: React.FC = () => {
-  console.log("Report component loaded");
-  const [imageRuns, setImageRuns] = useState<IdentifiedTarget[]>([]);
-  const [currentRunIndex, setCurrentRunIndex] = useState<number>(0);
-  const [seenRunIds, setSeenRunIds] = useState<Set<number>>(new Set());
-  const [currentDetectionMatches, setCurrentDetectionMatches] = useState<{
-    [key: string]: CurrentDetectionMatch | undefined;
-  }>({});
-  const [submittedTargets, setSubmittedTargets] = useState<{
-    [key in AirdropType]?: AirdropTarget;
-  }>({});
-  const [isCurrentRunProcessed, setIsCurrentRunProcessed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isPollingUI, setIsPollingUI] = useState<boolean>(false);
-  const [isConfirming, setIsConfirming] = useState<boolean>(false);
-  const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
+  //const [flightMode, setFlightMode] = useState("???");
+  // probably should have been a useReducer, if anyone wants to refactor
+  const [clusters, setClusters] = useState([] as Cluster[]);
+  const [selectedCluster, setSelectedCluster] = useState(-1);
+  const [selectedDetection, setSelectedDetection] = useState(0);
 
-  // State for persistence flow
-  const [hasLoadedInitialSavedRuns, setHasLoadedInitialSavedRuns] = useState(false);
-  const [isSavingRuns, setIsSavingRuns] = useState(false);
+  const [backgroundFetchingInterval, setBackgroundFetching] = useState(-1);
+  const interval = useRef(0);
+  const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch");
 
-  // --- State for manual coordinate entry ---
-  const [manualAirdropTypeJson, setManualAirdropTypeJson] = useState<string>("");
-
-  const [manualLatitude, setManualLatitude] = useState<string>("");
-  const [manualLongitude, setManualLongitude] = useState<string>("");
-  const [manualInputError, setManualInputError] = useState<string>("");
-
-  // Refs
-  const pollingTimeoutRef = useRef<number | null>(null);
-  const isMountedRef = useRef<boolean>(true);
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-  const isFetchingTargetsRef = useRef<boolean>(false);
-
-  // --- Data Processing & Fetching ---
-
-  const processFetchedRuns = useCallback(
-    (fetchedRuns: IdentifiedTarget[]): boolean => {
-      let newValidRunsAddedToState = false;
-      const currentRunIdsInState = new Set(imageRuns.map((r) => r.runId));
-
-      const newValidRuns = fetchedRuns.filter((run) => {
-        if (seenRunIds.has(run.runId) || currentRunIdsInState.has(run.runId)) {
-          return false;
-        }
-        const numCoords = run.coordinates?.length ?? 0;
-        const numBBoxes = run.bboxes?.length ?? 0;
-        const hasDetections = numCoords > 0 && numBBoxes > 0 && Math.min(numCoords, numBBoxes) > 0;
-
-        if (!hasDetections && !seenRunIds.has(run.runId) && isMountedRef.current) {
-          setSeenRunIds((prev) => new Set(prev).add(run.runId));
-        }
-        return hasDetections;
-      });
-
-      if (newValidRuns.length > 0) {
-        newValidRunsAddedToState = true;
-        if (isMountedRef.current) {
-          setImageRuns((prevRuns) => {
-            const updatedRuns = [...prevRuns, ...newValidRuns];
-            updatedRuns.sort((a, b) => a.runId - b.runId);
-            if (prevRuns.length === 0 && updatedRuns.length > 0 && currentRunIndex === 0) {
-              setTimeout(() => {
-                if (isMountedRef.current && currentRunIndex === 0) setCurrentRunIndex(0);
-              }, 0);
-            }
-            return updatedRuns;
-          });
-          setSeenRunIds((prevIds) => {
-            const u = new Set(prevIds);
-            newValidRuns.forEach((r) => u.add(r.runId));
-            return u;
-          });
-        }
-      }
-      return newValidRunsAddedToState;
-    },
-    [seenRunIds, imageRuns, currentRunIndex],
-  );
-
-  const fetchAndProcessLatest = useCallback(
-    async (isInitialFetch = false) => {
-      if (!isInitialFetch) {
-        if (isFetchingTargetsRef.current) {
-          return;
-        }
-        isFetchingTargetsRef.current = true;
-      }
-
-      try {
-        const fetched = await fetchTargets();
-        if (isMountedRef.current) {
-          processFetchedRuns(fetched);
-        }
-        if (isMountedRef.current) setError(null);
-      } catch (
-        err: any // eslint-disable-line
-      ) {
-        if (isMountedRef.current) {
-          console.error(`Fetch failed (isInitial: ${isInitialFetch}): ${err.message}`);
-          if (isInitialFetch) {
-            setError(`Initial fetch failed: ${err.message}`);
-            setSnackbarMessage(`Error fetching new runs: ${err.message}`);
-            setSnackbarOpen(true);
-          }
-        }
-      } finally {
-        if (!isInitialFetch) {
-          isFetchingTargetsRef.current = false;
-        }
-      }
-    },
-    [processFetchedRuns],
-  );
-
+  const selection = useRef(null as HTMLSelectElement | null);
   useEffect(() => {
-    isMountedRef.current = true;
-    const loadSaved = async () => {
-      try {
-        const savedRuns = await fetchSavedRunsFromServer();
-        if (isMountedRef.current && savedRuns.length > 0) {
-          processFetchedRuns(savedRuns);
-          setSnackbarMessage(`Loaded ${savedRuns.length} saved run(s).`);
-          setSnackbarOpen(true);
-        } else if (isMountedRef.current) {
-          console.log("No saved run data found or component unmounted.");
-        }
-      } catch (
-        loadError: any // eslint-disable-line
-      ) {
-        console.error("Error loading saved runs during init:", loadError);
-        if (isMountedRef.current) {
-          setError(`Failed to load saved run data: ${loadError.message}`);
-          setSnackbarMessage(`Error loading saved runs: ${loadError.message}`);
-          setSnackbarOpen(true);
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setHasLoadedInitialSavedRuns(true);
-        }
-      }
-    };
-    loadSaved();
-  }, [processFetchedRuns]);
-
-  useEffect(() => {
-    if (!hasLoadedInitialSavedRuns || !isMountedRef.current) {
-      return;
-    }
-
-    let isCancelled = false;
-    let localTimeoutId: number | null = null;
-
-    const pollLatestRuns = async (isInitialFetch: boolean) => {
-      if (!isMountedRef.current || isCancelled) {
-        return;
-      }
-
-      setIsPollingUI(true);
-      await fetchAndProcessLatest(isInitialFetch);
-
-      if (isMountedRef.current && !isCancelled) {
-        setIsPollingUI(false);
-        localTimeoutId = window.setTimeout(() => {
-          void pollLatestRuns(false);
-        }, POLLING_INTERVAL_MS);
-        pollingTimeoutRef.current = localTimeoutId;
-      }
-    };
-
-    void pollLatestRuns(true);
-
-    return () => {
-      isCancelled = true;
-      if (localTimeoutId !== null) {
-        window.clearTimeout(localTimeoutId);
-      }
-      pollingTimeoutRef.current = null;
-    };
-  }, [hasLoadedInitialSavedRuns, fetchAndProcessLatest]);
-
-  useEffect(() => {
-    if (
-      hasLoadedInitialSavedRuns &&
-      imageRuns.length > 0 &&
-      !isSavingRuns &&
-      isMountedRef.current
-    ) {
-      const saveRuns = async () => {
-        setIsSavingRuns(true);
+    clearInterval(interval.current);
+    if (backgroundFetchingInterval != -1) {
+      interval.current = window.setInterval(async () => {
+        setFetchingMessage("Fetching...");
         try {
-          await pushSavedRunsToServer(imageRuns);
-          console.log("Successfully pushed updated imageRuns to server.");
-        } catch (
-          pushError: any // eslint-disable-line
-        ) {
-          console.error("Error auto-saving runs:", pushError);
-          if (isMountedRef.current) {
-            setSnackbarMessage(`Error auto-saving run data: ${pushError.message}`);
-            setSnackbarOpen(true);
-          }
-        } finally {
-          if (isMountedRef.current) setIsSavingRuns(false);
+          await updateClusters();
+        } catch (error) {
+          console.error("Caught error:", error);
+          setFetchingMessage(`Error: ${error}`);
         }
-      };
-      saveRuns();
+        setFetchingMessage("waiting to fetch");
+      }, backgroundFetchingInterval * 1000);
     }
-  }, [imageRuns, hasLoadedInitialSavedRuns, isSavingRuns]);
+    return () => {
+      clearInterval(interval.current);
+    };
+  }, [backgroundFetchingInterval]);
 
   useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (pollingTimeoutRef.current !== null) {
-        window.clearTimeout(pollingTimeoutRef.current);
-      }
-    };
+    if (selection.current == null) {
+      return;
+    }
+    selection.current.value = "" + selectedCluster;
+  }, [selectedCluster]);
+  useEffect(() => {
+    syncWithoutFetchingOBC();
   }, []);
-
-  // TODO : probably should be a button
-  const handleAutofillDropLocations = () => {
-    fetch("/api/mission")
-      .then((res) => res.json())
-      .then((mission: Mission & { DropLocation?: GPSCoord[] }) => {
-        console.log("Autofilling drop locations from mission");
-        const dropLocations = mission.DropLocation;
-
-        if (dropLocations && Array.isArray(dropLocations)) {
-          const newTargets: { [key in AirdropType]?: AirdropTarget } = {};
-          let filledCount = 0;
-
-          for (let i = 0; i < REQUIRED_AIRDROP_INDICES.length; i++) {
-            const coord = dropLocations[i];
-            if (coord) {
-              newTargets[REQUIRED_AIRDROP_INDICES[i]] = AirdropTarget.create({
-                Index: REQUIRED_AIRDROP_INDICES[i],
-                Coordinate: coord,
-              });
-              filledCount++;
-            }
-          }
-          setSubmittedTargets((prev) => ({ ...newTargets, ...prev }));
-          setSnackbarMessage(`Autofilled ${filledCount} targets with coordinates from mission`);
-          setSnackbarOpen(true);
-        } else {
-          setSnackbarMessage("No drop locations found in mission data");
-          setSnackbarOpen(true);
-        }
+  /**
+   * Launches the airdrops with the currently selected center
+   */
+  function launchAirDrops() {
+    if (!window.confirm("Are you sure you want to confirm airdrops?")) {
+      return;
+    }
+    fetch(CONFIRM_ENDPOINT, {
+      method: "POST",
+    })
+      .catch((e) => {
+        console.log("Error confirming,", e);
       })
-      .catch((error) => {
-        console.error("Error fetching mission for autofill:", error);
-        setSnackbarMessage("Error fetching mission data for autofill");
-        setSnackbarOpen(true);
+      .then((e) => {
+        console.log(e);
       });
-  };
-
-  const currentRun = useMemo(
-    () =>
-      imageRuns.length > 0 && currentRunIndex >= 0 && currentRunIndex < imageRuns.length
-        ? imageRuns[currentRunIndex]
-        : null,
-    [imageRuns, currentRunIndex],
-  );
-  const currentDetections = useMemo((): DetectionInfo[] => {
-    if (!currentRun) return [];
-    const detections: DetectionInfo[] = [];
-    const coords = currentRun.coordinates ?? [];
-    const bboxes = currentRun.bboxes ?? [];
-    const numDetections = Math.min(coords.length, bboxes.length);
-    if (coords.length !== bboxes.length && numDetections > 0)
-      console.warn(
-        `Run ${currentRun.runId}: Coord/Bbox mismatch. Coords: ${coords.length}, BBoxes: ${bboxes.length}`,
-      );
-    for (let i = 0; i < numDetections; i++) {
-      if (coords[i] && bboxes[i])
-        detections.push({
-          runId: currentRun.runId,
-          detectionIndex: i,
-          compositeKey: `${currentRun.runId}-${i}`,
-          coordinate: coords[i],
-          bbox: bboxes[i],
-        });
+  }
+  /**
+   * Gets the selected cluster, or undefined if none are selected
+   * @returns The currently seleced cluster, or undefined if non are selected
+   */
+  function getSelectedCluster() {
+    if (selectedCluster == -1) {
+      return undefined;
     }
-    return detections;
-  }, [currentRun]);
-
-  const canConfirmCurrentImage = useMemo(() => {
-    return Object.values(currentDetectionMatches).some(
-      (match) =>
-        match && match.airdropType !== undefined && match.airdropType !== AirdropType.UNRECOGNIZED,
-    );
-  }, [currentDetectionMatches]);
-
-  const canSubmitFinalMatches = useMemo(() => {
-    return REQUIRED_AIRDROP_INDICES.every((index) => {
-      const t = submittedTargets[index];
-      return t !== undefined && t.Coordinate !== undefined;
+    return clusters.find((e) => {
+      return e.airdrop_type == selectedCluster;
     });
-  }, [submittedTargets]);
-
-  const handleSetManualTarget = () => {
-    setManualInputError("");
-    if (!manualAirdropTypeJson) {
-      setManualInputError("Please select a target assignee.");
-      return;
+  }
+  /**
+   * Returns all of the detections, regardless of cluster
+   * @returns a list of all of the detections
+   */
+  function getAllDetections() {
+    const out = [];
+    for (const c of clusters) {
+      out.push(...c.all_data_points);
     }
+    return out;
+  }
+  /**
+   * Returns a formated string of the airdrop type, or the number if it is out of range
+   * @param airdrop_type The type to format
+   * @returns The formatted string
+   */
+  function getAirdropString(airdrop_type: AirdropType) {
+    return `${AirdropType[airdrop_type] ?? airdrop_type}(${airdrop_type})`;
+  }
 
-    const lat = parseFloat(manualLatitude);
-    const lon = parseFloat(manualLongitude);
-
-    if (isNaN(lat) || isNaN(lon)) {
-      setManualInputError("Latitude and Longitude must be valid numbers.");
-      return;
-    }
-
-    const indexEnum = airdropTypeFromJSON(manualAirdropTypeJson);
-
-    if (indexEnum === AirdropType.UNRECOGNIZED) {
-      setManualInputError("Invalid assignee selected.");
-      return;
-    }
-
-    const newCoord = GPSCoord.create({
-      Latitude: lat,
-      Longitude: lon,
-      Altitude: 0,
-    });
-
-    const newTarget = AirdropTarget.create({
-      Index: indexEnum,
-      Coordinate: newCoord,
-    });
-
-    setSubmittedTargets((prev) => ({
-      ...prev,
-      [indexEnum]: newTarget,
-    }));
-
-    setSnackbarMessage(`Manually set ${manualAirdropTypeJson} coordinate.`);
-    setSnackbarOpen(true);
-    setManualAirdropTypeJson("");
-    setManualLatitude("");
-    setManualLongitude("");
-  };
-
-  const handleMatchUpdate = (
-    compositeKey: string,
-    field: "airdropType",
-    event: SelectChangeEvent<string | number>,
-    detectionInfo: DetectionInfo,
-  ) => {
-    const selectedJsonValue = event.target.value;
-    let selectedEnumValue: AirdropType | undefined | "" = "";
-
-    if (selectedJsonValue === "") selectedEnumValue = "";
-    else {
-      try {
-        selectedEnumValue = airdropTypeFromJSON(selectedJsonValue);
-        if (selectedEnumValue === AirdropType.UNRECOGNIZED) {
-          console.warn("Invalid enum value selected:", selectedJsonValue);
-          return;
-        }
-      } catch (e) {
-        console.error("Enum conversion error for value:", selectedJsonValue, e);
-        return;
+  /**
+   * Gets the selected detection
+   * @returns the current selected detection, or undefined if non are selected
+   */
+  function getSelectedDetection() {
+    return clusters
+      .find((c) => c.airdrop_type === selectedCluster)
+      ?.all_data_points.find((d) => d.id === selectedDetection);
+  }
+  //Center of the map
+  const [maploc, setMapLoc] = useState([51, 10] as [number, number]);
+  //is currently dragging a marker
+  const [dragging, setDragging] = useState(false);
+  //is currently selecting markers
+  const [selectMode, setselectMode] = useState(false);
+  //marker to track
+  const currentMarker = useRef<AirdropType | null>(null);
+  //position of mouse
+  const [position, setPosition] = useState(new LatLng(0, 0, 0));
+  //enter handler
+  useEffect(() => {
+    /**
+     * resets to default mode, drops current marker
+     */
+    function unplaceMarker() {
+      if (selectMode) {
+        setselectMode(false);
+        setDragging(false);
       }
     }
 
-    setCurrentDetectionMatches((prev) => {
-      const updatedMatches = { ...prev };
-      let newMatch: CurrentDetectionMatch | undefined = undefined;
-
-      if (field === "airdropType") {
-        if (selectedEnumValue === "") {
-          delete updatedMatches[compositeKey];
-        } else if (typeof selectedEnumValue === "number" && selectedEnumValue in AirdropType) {
-          const newAirdropType = selectedEnumValue as AirdropType;
-          newMatch = {
-            airdropType: newAirdropType,
-            detectionInfo: detectionInfo,
-          };
-        }
+    const handleEnter = (event: { key: string }) => {
+      if (selectMode && currentMarker.current != null && dragging && event.key == "Enter") {
+        unplaceMarker();
       }
-
-      if (newMatch) updatedMatches[compositeKey] = newMatch;
-      else if (field === "airdropType" && selectedEnumValue === "") {
-        /* handled by delete */
-      } else if (!newMatch) {
-        return prev;
-      }
-      return updatedMatches;
-    });
-    if (isCurrentRunProcessed) setIsCurrentRunProcessed(false);
-  };
-
-  const handleConfirmLocalMatches = () => {
-    if (!currentRun || !canConfirmCurrentImage || isConfirming) return;
-    setIsConfirming(true);
-    setError(null);
-    let confirmedCount = 0;
-    let overwriteCount = 0;
-    const updatesToSubmittedTargets: {
-      [key in AirdropType]?: AirdropTarget;
-    } = {};
-
-    Object.values(currentDetectionMatches).forEach((match) => {
-      if (
-        match &&
-        match.airdropType !== undefined &&
-        match.airdropType !== AirdropType.UNRECOGNIZED &&
-        match.detectionInfo
-      ) {
-        if (submittedTargets[match.airdropType]) {
-          overwriteCount++;
-        }
-        const confirmedTarget = AirdropTarget.create({
-          Index: match.airdropType,
-          Coordinate: match.detectionInfo.coordinate,
-        });
-        updatesToSubmittedTargets[match.airdropType] = confirmedTarget;
-        confirmedCount++;
-      }
-    });
-
-    setSubmittedTargets((prev) => ({
-      ...prev,
-      ...updatesToSubmittedTargets,
-    }));
-    let message = `Confirmed ${confirmedCount} match(es) from Run ${currentRun.runId}.`;
-    if (overwriteCount > 0) message += ` (${overwriteCount} overwritten).`;
-    setSnackbarMessage(message);
-    setSnackbarOpen(true);
-    setIsCurrentRunProcessed(true);
-    setIsConfirming(false);
-  };
-
-  const handleFinalSubmit = async () => {
-    if (!canSubmitFinalMatches || isFinalSubmitting) return;
-    setIsFinalSubmitting(true);
-    setError(null);
-
-    const finalPayload = Object.values(submittedTargets).filter(
-      (target): target is AirdropTarget => target !== undefined && target.Coordinate !== undefined,
-    );
-
-    if (finalPayload.length !== REQUIRED_AIRDROP_INDICES.length) {
-      console.error(
-        "Final submit: Payload incomplete or contains Undefined objects.",
-        finalPayload,
-      );
-      setError(
-        "Internal error: Incomplete final target list. Ensure all targets have confirmed coordinates.",
-      );
-      setIsFinalSubmitting(false);
-      return;
-    }
-
-    try {
-      const success = await postMatchedTargets(finalPayload);
-      if (success && isMountedRef.current) {
-        setSnackbarMessage("All required targets successfully submitted!");
-        setSnackbarOpen(true);
-      }
-    } catch (
-      postError: any // eslint-disable-line @typescript-eslint/no-explicit-any
-    ) {
-      console.error("Final submission failed:", postError);
-      if (isMountedRef.current) {
-        setError(`Final submission failed: ${postError.message || "Unknown error"}`);
-      }
-    } finally {
-      if (isMountedRef.current) setIsFinalSubmitting(false);
-    }
-  };
-
-  const handleNextImage = () => {
-    if (!isMountedRef.current || isConfirming || isFinalSubmitting) return;
-    if (currentRunIndex < imageRuns.length - 1) {
-      const nextIndex = currentRunIndex + 1;
-      setCurrentRunIndex(nextIndex);
-      setCurrentDetectionMatches({});
-      setIsCurrentRunProcessed(false);
-      setError(null);
-    } else {
-      if (imageRuns.length > 0) {
-        setSnackbarMessage(isPollingUI ? "Waiting for more images..." : "End of loaded images.");
-        setSnackbarOpen(true);
-      }
-    }
-  };
-  const handleSnackbarClose = () => setSnackbarOpen(false);
-
-  const formatCoordinates = (coord: GPSCoord | undefined): string => {
-    if (!coord) return "N/A";
-    const lat = typeof coord.Latitude === "number" ? coord.Latitude.toFixed(5) : "N/A";
-    const lon = typeof coord.Longitude === "number" ? coord.Longitude.toFixed(5) : "N/A";
-    return `(${lat}, ${lon})`;
-  };
-  const renderTargetLabel = (index: number): string =>
-    `Detection ${String.fromCharCode(65 + index)}`;
-
-  const calculateDetectionStyles = (
-    detection: DetectionInfo,
-    index: number,
-  ): {
-    bboxStyle: React.CSSProperties;
-    labelStyle: React.CSSProperties;
-    labelText: string;
-    isValid: boolean;
-  } => {
-    const defaultStyles = {
-      bboxStyle: {},
-      labelStyle: {},
-      labelText: renderTargetLabel(index),
-      isValid: false,
     };
-    const match = currentDetectionMatches[detection.compositeKey];
-    const isAssigned =
-      match?.airdropType !== undefined && match.airdropType !== AirdropType.UNRECOGNIZED;
-    const color = isAssigned ? "lime" : "cyan";
+    window.addEventListener("keydown", handleEnter);
 
-    const container = imageContainerRef.current;
-    const imgElement = container?.querySelector(
-      "img.reports-current-image",
-    ) as HTMLImageElement | null;
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener("keydown", handleEnter);
+    };
+  }, [selectMode, currentMarker, dragging]); // Empty dependency array ensures this runs once on mount
 
-    if (
-      !container ||
-      !imgElement ||
-      !imgElement.complete ||
-      imgElement.naturalWidth === 0 ||
-      imgElement.naturalHeight === 0
-    ) {
-      return defaultStyles;
+  /**
+   * triggers when 'change centers' button is clicked, sets select mode to on
+   */
+  function setManualVisor() {
+    setselectMode(!selectMode);
+  }
+  /**
+   * Changes cluster's selected_center to the specified coordinate, changes the specfied cluster to be manually selected, and resyncs data with the go proxy
+   * @param latlng the current mouse position to set the center to
+   */
+  function placeMarker(latlng: LatLng) {
+    if (dragging && selectMode && currentMarker.current != null) {
+      setDragging(false);
+      fetch(SET_MANUAL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: currentMarker.current,
+          center: LatLngToGPSCoord(latlng),
+        }),
+      }).then(() => {
+        currentMarker.current = null;
+        setselectMode(false);
+        syncWithoutFetchingOBC();
+      });
     }
-
-    const containerWidth = container.offsetWidth;
-    const containerHeight = container.offsetHeight;
-    const naturalWidth = imgElement.naturalWidth;
-    const naturalHeight = imgElement.naturalHeight;
-    const naturalRatio = naturalWidth / naturalHeight;
-    const containerRatio = containerWidth / containerHeight;
-
-    let scale: number;
-    let displayedWidth: number;
-    let displayedHeight: number;
-    let offsetX: number;
-    let offsetY: number;
-
-    if (naturalRatio > containerRatio) {
-      displayedWidth = containerWidth;
-      displayedHeight = displayedWidth / naturalRatio;
-      scale = displayedWidth / naturalWidth;
-      offsetX = 0;
-      offsetY = (containerHeight - displayedHeight) / 2;
-    } else {
-      displayedHeight = containerHeight;
-      displayedWidth = displayedHeight * naturalRatio;
-      scale = displayedHeight / naturalHeight;
-      offsetX = (containerWidth - displayedWidth) / 2;
-      offsetY = 0;
+  }
+  /**
+   * triggers when marker is clicked in select mode, picks up
+   * marker, sets that marker to be replaced
+   * @param type Which airdrop type's center to select
+   */
+  function pickMarker(type: AirdropType) {
+    if (selectMode) {
+      setDragging(true);
+      currentMarker.current = type;
     }
+  }
+  /**
+   * if a marker is selected, renders a marker at mouse's position
+   * @returns a dummy marker at the mouse's position if a marker is being
+   * replaced
+   */
+  const renderCurrentMarker = () => {
+    if (currentMarker.current != null && dragging && selectMode) {
+      return <Marker position={position} icon={crosshair}></Marker>;
+    }
+  };
+  /**
+   * handles map events like clicking, which changes the center; and mousemove,
+   * which renders the dummy marker
+   * @returns nothing
+   */
+  const MapOnClickHandler = () => {
+    useMapEvents({
+      click: (e) => {
+        placeMarker(e.latlng);
+      },
+      mousemove(e) {
+        setPosition(e.latlng);
+      },
+    });
+    return <>{null}</>;
+  };
 
-    const { x1, y1, x2, y2 } = detection.bbox ?? {};
-    if (x1 == null || y1 == null || x2 == null || y2 == null) return defaultStyles;
-
-    const scaledX1 = offsetX + x1 * scale;
-    const scaledY1 = offsetY + y1 * scale;
-    const scaledWidth = Math.max(0, (x2 - x1) * scale);
-    const scaledHeight = Math.max(0, (y2 - y1) * scale);
-
-    const isValid = scaledWidth > 1 && scaledHeight > 1;
-    if (!isValid)
-      return {
-        ...defaultStyles,
-        labelText: `${renderTargetLabel(index)} (scaled small)`,
+  /**
+   * A cluster drawn on the app
+   * @param cluster The cluster to draw
+   * @returns the react componenent that renders
+   */
+  function MapCluster(cluster: Cluster) {
+    /**
+     * Marks the center of a cluster
+     * @returns A jsx fragment with a marker element
+     */
+    function CenterMarker() {
+      return (
+        <Marker
+          eventHandlers={{
+            click: () => {
+              pickMarker(cluster.airdrop_type);
+            },
+          }}
+          icon={crosshair}
+          position={new LatLng(center.Latitude ?? 0, center.Longitude ?? 0, center.Altitude ?? 0)}
+        >
+          <Popup>Cluster for airdrop: {AirdropType[cluster.airdrop_type]}</Popup>
+        </Marker>
+      );
+    }
+    if (cluster.color.length <= 0) {
+      cluster.color = GetNextColor(cluster.airdrop_type);
+    }
+    const center =
+      (cluster.is_manually_selected ? cluster.selected_center : cluster.calculated_center) ??
+      cluster.calculated_center;
+    return (
+      <>
+        {CenterMarker()}
+        {cluster.all_data_points.map((e, i) => {
+          return (
+            <Circle
+              key={i}
+              eventHandlers={{
+                click: () => {
+                  setMapLoc([e.location.Latitude, e.location.Longitude]);
+                  setSelectedCluster(e.type);
+                  setSelectedDetection(e.id);
+                },
+              }}
+              center={[e.location.Latitude, e.location.Longitude]}
+              radius={e.id == selectedDetection ? 10 : 5}
+              pathOptions={{
+                color: e.rejected
+                  ? "red"
+                  : `rgb(${cluster.color[0]}, ${cluster.color[1]}, ${cluster.color[2]})`,
+              }}
+            />
+          );
+        })}
+      </>
+    );
+  }
+  /**
+   * Updates the detections state with new data fetched from the backend
+   */
+  async function updateClusters() {
+    const j = await (await fetch(TARGETS_ALL_ENDPOINT)).json();
+    //Later, this would make sense to us a protobuffer for, once the format is more set
+    const newval = [];
+    // for now, overrid e the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+    for (const [key, value] of Object.entries(j)) {
+      const datapoints: Detection[] = [];
+      for (const d of (
+        value as {
+          detections: { location: GPSCoord; image: string; rejected: boolean; id: number }[];
+        }
+      )["detections"]) {
+        const detection: Detection = {
+          location: GPSCoord.create(d["location"]),
+          type: +key as AirdropType,
+          rejected: d["rejected"],
+          id: d["id"],
+        };
+        datapoints.push(detection);
+      }
+      const addition: Cluster = {
+        calculated_center: (value as { center: GPSCoord })["center"],
+        airdrop_type: +key as AirdropType,
+        all_data_points: datapoints,
+        selected_center: (value as { manual_center: GPSCoord })["manual_center"],
+        is_manually_selected: (value as { is_manually_selected: boolean })["is_manually_selected"],
+        color: GetNextColor(+key),
       };
+      newval.push(addition);
+    }
+    setClusters(newval);
+  }
+  /**
+   * Updates the local state the match the proxy without pinging the obc.
+   * If you want to get the runs from the obc, see updateClusters()
+   */
+  async function syncWithoutFetchingOBC() {
+    fetch(FETCH_CLUSTERS_ENDPOINT)
+      .then((d) => {
+        return d.json();
+      })
+      .then((j) => {
+        //Later, this would make sense to us a protobuffer for, once the format is more set
+        const newval = [];
+        // for now, override the entire thing. Maybe latter someone can change this to only send new ones, but bandwidth isn't an issue since this should only ever happen across local points
+        for (const [key, value] of Object.entries(j)) {
+          const datapoints: Detection[] = [];
+          for (const d of (
+            value as {
+              detections: { location: GPSCoord; image: string; rejected: boolean; id: number }[];
+            }
+          )["detections"]) {
+            const detection: Detection = {
+              location: GPSCoord.create(d["location"]),
+              type: +key as AirdropType,
+              rejected: d["rejected"],
+              id: d["id"],
+            };
+            datapoints.push(detection);
+          }
+          const addition: Cluster = {
+            calculated_center: (value as { center: GPSCoord })["center"],
+            airdrop_type: +key as AirdropType,
+            all_data_points: datapoints,
+            selected_center: (value as { manual_center: GPSCoord })["manual_center"],
+            is_manually_selected: (value as { is_manually_selected: boolean })[
+              "is_manually_selected"
+            ],
+            color: GetNextColor(+key),
+          };
+          newval.push(addition);
+        }
+        setClusters(newval);
+      });
+  }
 
-    const bboxStyle: React.CSSProperties = {
-      position: "absolute",
-      left: `${scaledX1}px`,
-      top: `${scaledY1}px`,
-      width: `${scaledWidth}px`,
-      height: `${scaledHeight}px`,
-      border: `2px solid ${color}`,
-      pointerEvents: "none",
-      boxSizing: "border-box",
-    };
-    const labelStyle: React.CSSProperties = {
-      position: "absolute",
-      left: `${scaledX1}px`,
-      top: `${scaledY1 - 20}px`,
-      color: color,
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      padding: "2px 5px",
-      fontSize: "0.8rem",
-      fontWeight: "bold",
-      whiteSpace: "nowrap",
-      pointerEvents: "none",
-      borderRadius: "3px",
-      zIndex: 10,
-    };
-    return {
-      bboxStyle,
-      labelStyle,
-      labelText: renderTargetLabel(index),
-      isValid: true,
-    };
-  };
-
+  /**
+   * Toggles a detection's rejection status, and syncs it to the go proxy
+   * This method also syncs the state of the local targets state to the proxys
+   * @param id The detection to toggle
+   */
+  function toggleRejectionStatus(id: number) {
+    fetch(`${TOGGLE_ENDPOINT}?id=${id}`)
+      .catch(() => {
+        window.alert("failed to toggle");
+      })
+      .then(() => {
+        syncWithoutFetchingOBC();
+      });
+  }
   return (
-    <Box className="reports-container" sx={{ p: 2 }}>
-      {error && !isConfirming && !isFinalSubmitting && (
-        <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={isSavingRuns || isPollingUI ? 2000 : 6000}
-        onClose={handleSnackbarClose}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      />
-      <Grid container spacing={2}>
-        {/* --- Left Column --- */}
-        <Grid item xs={12} md={8}>
-          <Stack spacing={2}>
-            {/* --- Image Queue Card --- */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Image Queue ({imageRuns.length} runs processed)
-                  {isSavingRuns && (
-                    <Chip
-                      label="Saving..."
-                      size="small"
-                      sx={{
-                        ml: 1,
-                        fontStyle: "italic",
-                      }}
-                    />
-                  )}
-                  {isPollingUI && (
-                    <Chip label="Polling..." color="secondary" size="small" sx={{ ml: 1 }} />
-                  )}
-                </Typography>
-                {imageRuns.length > 0 ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 1,
-                      maxHeight: "150px",
-                      overflowY: "auto",
-                      p: 1,
-                      border: "1px dashed grey",
-                      borderRadius: 1,
+    <main className="reports-main">
+      <div className="reports-col">
+        <div className="reports-card">
+          <TuasMap className={"reports-map"} lat={51} lng={10}>
+            <FlightBounds FlightBounds SearchBounds></FlightBounds>
+            <UpdateMapCenter position={maploc} />
+            <MapOnClickHandler />
+            {clusters.map((e) => {
+              if (selectedCluster == -1 || selectedCluster == e.airdrop_type) {
+                return MapCluster(e);
+              }
+            })}
+            {renderCurrentMarker()}
+          </TuasMap>
+          <div className="reports-cluster-data">
+            <button onClick={() => setManualVisor()}>select a marker to move</button>
+            <select
+              ref={selection}
+              onChange={(e) => {
+                setSelectedCluster(+e.target.value);
+              }}
+            >
+              <option value={-1}>All clusters</option>
+              {clusters.map((c, i) => {
+                return (
+                  <option
+                    key={i}
+                    value={c.airdrop_type}
+                    style={{
+                      backgroundColor: `rgb(${c.color[0]}, ${c.color[1]}, ${c.color[2]})`,
                     }}
                   >
-                    {imageRuns.map((run, index) => (
-                      <Chip
-                        key={run.runId}
-                        label={`Run ${run.runId}`}
-                        color={index === currentRunIndex ? "primary" : "default"}
-                        variant={index === currentRunIndex ? "filled" : "outlined"}
+                    {getAirdropString(c.airdrop_type)}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="reports-cluster-bottom-section">
+              {
+                <div className="reports-cluster-container">
+                  <div>
+                    Airdrop {getSelectedCluster()?.airdrop_type}
+                    <br></br>
+                    Current Chosen Center:{" "}
+                    {(() => {
+                      const cluster = getSelectedCluster();
+                      return cluster
+                        ? GPSCoordToString(
+                            cluster.is_manually_selected
+                              ? cluster.selected_center
+                              : cluster.calculated_center,
+                          )
+                        : "N/A";
+                    })()}
+                    <br></br>
+                    Calculated Center:{" "}
+                    {(() => {
+                      const cluster = getSelectedCluster();
+                      return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
+                    })()}
+                    <br></br>Using Manual Center?: {getSelectedCluster()?.is_manually_selected}
+                    {getSelectedCluster()?.is_manually_selected && (
+                      <button
                         onClick={() => {
-                          if (index !== currentRunIndex && !isConfirming && !isFinalSubmitting) {
-                            setCurrentRunIndex(index);
-                            setCurrentDetectionMatches({});
-                            setIsCurrentRunProcessed(false);
-                            setError(null);
-                          }
+                          fetch(CLEAR_MANUAL_ENDPOINT, {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              id: selectedCluster,
+                            }),
+                          }).then((e) => {
+                            console.log(e); //TODO remove/handle error
+                          });
                         }}
-                        sx={{ cursor: "pointer" }}
-                      />
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography
-                    color="textSecondary"
-                    sx={{
-                      textAlign: "center",
-                      pt: 2,
-                      pb: 1,
-                    }}
-                  >
-                    {!hasLoadedInitialSavedRuns
-                      ? "Initializing..."
-                      : isPollingUI
-                        ? "Polling for images..."
-                        : "No image runs loaded."}
-                  </Typography>
-                )}
-                {(!hasLoadedInitialSavedRuns || (isPollingUI && imageRuns.length === 0)) &&
-                  !error && (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        mt: 1,
-                      }}
-                    >
-                      <CircularProgress size={24} />
-                    </Box>
-                  )}
-              </CardContent>
-            </Card>
-
-            {/* --- Current Image Card --- */}
-            <Card>
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{
-                    mb: 1,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  Current Image: Run {currentRun?.runId ?? "N/A"}
-                  {isCurrentRunProcessed && !isConfirming && (
-                    <Chip label="Confirmed" color="info" size="small" sx={{ ml: 1.5 }} />
-                  )}
-                </Typography>
-                <Box
-                  ref={imageContainerRef}
-                  className="reports-current-image-container"
-                  sx={{
-                    position: "relative",
-                    mb: 2,
-                    minHeight: "300px",
-                    background: "#e0e0e0",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    overflow: "hidden",
-                  }}
-                >
-                  {currentRun ? (
-                    <>
-                      <img
-                        id="current-target-image"
-                        src={`data:image/png;base64,${currentRun.Picture}`}
-                        alt={`Run ${currentRun.runId}`}
-                        className="reports-current-image"
-                        style={{
-                          display: "block",
-                          maxWidth: "100%",
-                          maxHeight: "70vh",
-                          height: "auto",
-                          objectFit: "contain",
-                        }}
-                        onLoad={() => {
-                          setCurrentDetectionMatches((prev) => ({ ...prev }));
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.alt = `Error loading image for Run ${currentRun.runId}`;
-                        }}
-                      />
-                      {currentDetections.map((detection, index) => {
-                        const { bboxStyle, labelStyle, labelText, isValid } =
-                          calculateDetectionStyles(detection, index);
-                        if (!isValid) {
-                          return null;
-                        }
-                        return (
-                          <React.Fragment key={detection.compositeKey}>
-                            <Box style={bboxStyle} />
-                            <Typography component="span" style={labelStyle}>
-                              {labelText}
-                            </Typography>
-                          </React.Fragment>
-                        );
-                      })}
-                    </>
-                  ) : (
-                    <Typography color="textSecondary" sx={{ textAlign: "center", p: 3 }}>
-                      {imageRuns.length > 0
-                        ? "Loading image..."
-                        : "No images available to display."}
-                    </Typography>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-
-        {/* --- Right Column --- */}
-        <Grid item xs={12} md={4}>
-          <Stack spacing={2}>
-            {/* --- Mission Status & Manual Entry Card --- */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Mission Target Status (Confirmed)
-                </Typography>
-                <TableContainer component={Paper}>
-                  <Table stickyHeader size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Assignee</TableCell>
-                        <TableCell>Coords</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {REQUIRED_AIRDROP_INDICES.map((index) => {
-                        const d = submittedTargets[index];
-                        return (
-                          <TableRow
-                            key={index}
-                            hover
-                            sx={{
-                              background: d && d.Coordinate !== undefined ? "#e8f5e9" : "inherit",
-                            }}
-                          >
-                            <TableCell>{airdropTypeToJSON(index)}</TableCell>
-                            <TableCell>
-                              {d?.Coordinate ? formatCoordinates(d.Coordinate) : "-"}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle1" gutterBottom>
-                  Manual Target Entry
-                </Typography>
-                <FormControl fullWidth size="small" sx={{ mb: 1.5 }} error={!!manualInputError}>
-                  <InputLabel id="manual-airdrop-select-label">Target Assignee</InputLabel>
-                  <Select
-                    labelId="manual-airdrop-select-label"
-                    value={manualAirdropTypeJson}
-                    label="Target Assignee"
-                    onChange={(e) => setManualAirdropTypeJson(e.target.value as string)}
-                  >
-                    <MenuItem value="">
-                      <em>Select Assignee...</em>
-                    </MenuItem>
-                    {REQUIRED_AIRDROP_INDICES.map((idxEnum) => {
-                      const jsonVal = airdropTypeToJSON(idxEnum);
-                      return (
-                        <MenuItem key={jsonVal} value={jsonVal}>
-                          {jsonVal}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-
-                <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
-                  <TextField
-                    label="Latitude"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={manualLatitude}
-                    onChange={(e) => setManualLatitude(e.target.value)}
-                    type="number"
-                    inputProps={{ step: "any" }}
-                  />
-                  <TextField
-                    label="Longitude"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={manualLongitude}
-                    onChange={(e) => setManualLongitude(e.target.value)}
-                    type="number"
-                    inputProps={{ step: "any" }}
-                  />
-                </Box>
-                {manualInputError && (
-                  <FormHelperText error sx={{ mb: 1.5, mt: -1 }}>
-                    {manualInputError}
-                  </FormHelperText>
-                )}
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleSetManualTarget}
-                  disabled={!manualAirdropTypeJson || !manualLatitude || !manualLongitude}
-                  fullWidth
-                >
-                  Set Manual Target (Override)
-                </Button>
-
-                <Typography variant="subtitle1" gutterBottom>
-                  Mission Data
-                </Typography>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={handleAutofillDropLocations}
-                  fullWidth
-                  sx={{ mb: 1.5 }}
-                >
-                  Autofill Targets from Mission
-                </Button>
-                <Typography
-                  variant="caption"
-                  display="block"
-                  color="textSecondary"
-                  sx={{ mb: 2, textAlign: "center" }}
-                >
-                  Loads drop location coordinates and object types from the submitted mission
-                </Typography>
-
-                <Divider sx={{ my: 2 }} />
-                <Button
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  onClick={handleFinalSubmit}
-                  disabled={!canSubmitFinalMatches || isFinalSubmitting || isConfirming}
-                  startIcon={
-                    isFinalSubmitting ? <CircularProgress size={20} color="inherit" /> : null
-                  }
-                >
-                  {isFinalSubmitting ? "Submitting..." : "Send Final Matches"}
-                </Button>
-                {error && isFinalSubmitting && (
-                  <Alert severity="error" sx={{ mt: 1 }} onClose={() => setError(null)}>
-                    {error}
-                  </Alert>
-                )}
-                {!canSubmitFinalMatches && (
-                  <Typography
-                    variant="caption"
-                    display="block"
-                    color="textSecondary"
-                    sx={{ mt: 1, textAlign: "center" }}
-                  >
-                    (Requires all targets have confirmed coordinates)
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* --- Match Detections Card --- */}
-            <Card>
-              <CardContent className="reports-confirm-actions-content">
-                <Typography variant="h6" gutterBottom>
-                  Match Detections
-                </Typography>
-                {currentRun && currentDetections.length > 0 ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                    }}
-                  >
-                    {currentDetections.map((detection, index) => {
-                      const currentMatch = currentDetectionMatches[detection.compositeKey];
-                      const assignedAirdropJsonValue =
-                        currentMatch?.airdropType !== undefined &&
-                        currentMatch.airdropType !== AirdropType.UNRECOGNIZED
-                          ? airdropTypeToJSON(currentMatch.airdropType)
-                          : "";
-                      const isDisabled = isConfirming || isFinalSubmitting || isCurrentRunProcessed;
-
-                      return (
-                        <Paper
-                          key={detection.compositeKey}
-                          elevation={2}
-                          sx={{
-                            p: 1.5,
-                            opacity: isDisabled ? 0.6 : 1,
-                            transition: "opacity 0.3s ease",
-                            pointerEvents: isDisabled ? "none" : "auto",
-                          }}
-                        >
-                          <Typography
-                            variant="subtitle1"
-                            gutterBottom
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            {renderTargetLabel(index)}
-                            <Typography component="span" variant="body2" color="text.secondary">
-                              {formatCoordinates(detection.coordinate)}
-                            </Typography>
-                          </Typography>
-                          <FormControl fullWidth size="small" sx={{ mb: 1 }} disabled={isDisabled}>
-                            <InputLabel id={`a-${detection.compositeKey}`}>
-                              Target Assignee
-                            </InputLabel>
-                            <Select
-                              labelId={`a-${detection.compositeKey}`}
-                              label="Target Assignee"
-                              value={assignedAirdropJsonValue}
-                              onChange={(e) =>
-                                handleMatchUpdate(
-                                  detection.compositeKey,
-                                  "airdropType",
-                                  e,
-                                  detection,
-                                )
-                              }
-                              displayEmpty
-                              renderValue={(v) => v || <em>Assign ID...</em>}
-                            >
-                              <MenuItem value="">
-                                <em>Clear Assignment</em>
-                              </MenuItem>
-                              {REQUIRED_AIRDROP_INDICES.map((idxEnum) => {
-                                const v = airdropTypeToJSON(idxEnum);
-                                const s = submittedTargets[idxEnum];
-                                const isAlreadyConfirmed = s && s.Coordinate !== undefined;
-                                return (
-                                  <MenuItem
-                                    key={v}
-                                    value={v}
-                                    sx={{
-                                      color: isAlreadyConfirmed ? "text.secondary" : "inherit",
-                                    }}
-                                  >
-                                    {v} {isAlreadyConfirmed ? "(Confirmed)" : ""}
-                                  </MenuItem>
-                                );
-                              })}
-                            </Select>
-                            {assignedAirdropJsonValue &&
-                              submittedTargets[airdropTypeFromJSON(assignedAirdropJsonValue)] &&
-                              !isDisabled && (
-                                <FormHelperText
-                                  sx={{
-                                    color: "orange.main",
-                                  }}
-                                >
-                                  Will overwrite previously confirmed selection for this assignee.
-                                </FormHelperText>
-                              )}
-                          </FormControl>
-                        </Paper>
-                      );
-                    })}
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={handleConfirmLocalMatches}
-                      disabled={
-                        !canConfirmCurrentImage ||
-                        isConfirming ||
-                        isFinalSubmitting ||
-                        isCurrentRunProcessed
-                      }
-                      fullWidth
-                      sx={{ mt: 1 }}
-                      startIcon={
-                        isConfirming ? <CircularProgress size={20} color="inherit" /> : null
-                      }
-                    >
-                      {isCurrentRunProcessed
-                        ? "Matches Confirmed"
-                        : isConfirming
-                          ? "Confirming..."
-                          : "Confirm Image Matches"}
-                    </Button>
-                    {error && isConfirming && (
-                      <Alert severity="error" sx={{ mt: 1 }} onClose={() => setError(null)}>
-                        {error}
-                      </Alert>
+                      >
+                        Clear Manual Selection
+                      </button>
                     )}
-                    <Button
-                      variant="outlined"
-                      onClick={handleNextImage}
-                      disabled={
-                        isConfirming ||
-                        isFinalSubmitting ||
-                        (currentRunIndex >= imageRuns.length - 1 && !isPollingUI)
-                      }
-                      fullWidth
-                      sx={{ mt: 1 }}
-                    >
-                      {currentRunIndex >= imageRuns.length - 1
-                        ? isPollingUI
-                          ? "Waiting for New Images..."
-                          : "End of Queue"
-                        : "Next Image"}
-                    </Button>
-                  </Box>
-                ) : (
-                  <Typography color="textSecondary" sx={{ textAlign: "center", p: 3 }}>
-                    {currentRun
-                      ? "No detections in this image."
-                      : imageRuns.length > 0
-                        ? "Select a run from the queue."
-                        : "No image runs available."}
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-      </Grid>
-    </Box>
+                  </div>
+                  <div className="reports-table-wrapper">
+                    <table className="reports-cluster-table">
+                      <thead>
+                        <th>Index</th>
+                        <th>Location</th>
+                        <th>Global Id</th>
+                        <th>Included?</th>
+                      </thead>
+                      <tbody className="reports-cluster-table-body">
+                        {(selectedCluster == -1
+                          ? getAllDetections()
+                          : (getSelectedCluster()?.all_data_points ?? [])
+                        ).map((p, i) => {
+                          return (
+                            <tr
+                              key={i}
+                              className="reports-cluster-table-row"
+                              onClick={() => {
+                                setSelectedCluster(p.type);
+                                setSelectedDetection(p.id);
+                                setMapLoc([p.location.Latitude, p.location.Longitude]);
+                              }}
+                            >
+                              <td>{i}</td>
+                              <td>{GPSCoordToString(p.location)}</td>
+                              <td>{p.id}</td>
+                              <td>
+                                {p.rejected ? (
+                                  <span style={{ color: "red" }}>False</span>
+                                ) : (
+                                  <span style={{ color: "green" }}>True</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="reports-col">
+        <div className="reports-card report-detection-card">
+          {getSelectedDetection() ? (
+            <div className="report-detection-container">
+              <img
+                src={`${DETECTION_IMAGE_ENDPOINT}/${getSelectedDetection()?.id}`}
+                className="report-detection-image"
+              ></img>
+              <div>
+                <p>Location: {GPSCoordToString(getSelectedDetection()?.location)}</p>
+                <div>
+                  <button
+                    onClick={() => {
+                      toggleRejectionStatus(selectedDetection);
+                    }}
+                  >
+                    {getSelectedDetection()?.rejected ? (
+                      <span style={{ color: "green" }}>Re-accept point</span>
+                    ) : (
+                      <span style={{ color: "red" }}>Reject Point</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <h1>Select a detection on the map or from the table to view</h1>
+          )}
+        </div>
+        <div className="reports-card reports-control-card">
+          Controls<br></br>
+          <label htmlFor="fetching-range">
+            Interval (in seconds) for background fetch. Current: {backgroundFetchingInterval}{" "}
+            seconds between. (-1 to disable) <br></br> {fetchingMessage}
+          </label>
+          <input
+            name="fetching-range"
+            type="range"
+            className="fetching-interval-slider"
+            min={-1}
+            max={50}
+            onChange={(e) => {
+              setBackgroundFetching(+e.target.value);
+            }}
+          ></input>
+          <br />
+          <button onClick={launchAirDrops}>Confirm Launch</button>
+        </div>
+      </div>
+    </main>
   );
 };
 
