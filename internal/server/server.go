@@ -241,7 +241,7 @@ func (server *Server) toggleDetection() gin.HandlerFunc {
 // Fetchs the cluster without pinging the obc for new detection
 func (server *Server) fetchClusters() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		send_data, err := json.Marshal(server.clusterManager.ClusterData)
+		send_data, err := server.clusterManager.MarshalJson()
 		if err != nil {
 			Log.Errorf("error marshalling JSON: %v", err)
 			c.String(http.StatusBadRequest, "error marshalling JSON, %v", err)
@@ -691,16 +691,20 @@ func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
 
 func (server *Server) getAllTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		start := time.Now()
 		data, err := server.obcClient.GetIdentifiedTargets()
+		Log.Infof("Time to fetch from OBC: %s", time.Since(start))
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
 			jsonstr := string(data)
+			start = time.Now()
 			clusterError := server.clusterManager.AddDetection(jsonstr)
+			Log.Infof("Time to add detection %s", time.Since(start))
 			if clusterError != nil {
 				Log.Errorf("Error adding clusters %v", clusterError)
 			}
-			send_data, err := json.Marshal(server.clusterManager.ClusterData)
+			send_data, err := server.clusterManager.MarshalJson()
 			if err != nil {
 				Log.Fatalf("error marshelling JSON: %v", err)
 			}

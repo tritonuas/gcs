@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { AirdropType, GPSCoord } from "../protos/obc.pb";
 
@@ -82,26 +82,30 @@ const Reports: React.FC = () => {
   const [backgroundFetchingInterval, setBackgroundFetching] = useState(-1);
   const interval = useRef(0);
   const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch");
-
+  const fetchInterval = useCallback(async () => {
+    clearInterval(interval.current);
+    setFetchingMessage("Fetching...");
+    try {
+      await updateClusters();
+    } catch (error) {
+      console.error("Caught error:", error);
+      setFetchingMessage(`Error: ${error}`);
+      interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
+      return;
+    }
+    interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
+  }, [backgroundFetchingInterval]);
   const selection = useRef(null as HTMLSelectElement | null);
   useEffect(() => {
-    clearInterval(interval.current);
+    clearTimeout(interval.current);
+    setFetchingMessage("waiting to fetch");
     if (backgroundFetchingInterval != -1) {
-      interval.current = window.setInterval(async () => {
-        setFetchingMessage("Fetching...");
-        try {
-          await updateClusters();
-        } catch (error) {
-          console.error("Caught error:", error);
-          setFetchingMessage(`Error: ${error}`);
-        }
-        setFetchingMessage("waiting to fetch");
-      }, backgroundFetchingInterval * 1000);
+      interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
     }
     return () => {
-      clearInterval(interval.current);
+      clearTimeout(interval.current);
     };
-  }, [backgroundFetchingInterval]);
+  }, [backgroundFetchingInterval, fetchInterval]);
 
   useEffect(() => {
     if (selection.current == null) {
@@ -496,8 +500,8 @@ const Reports: React.FC = () => {
                             body: JSON.stringify({
                               id: selectedCluster,
                             }),
-                          }).then((e) => {
-                            console.log(e); //TODO remove/handle error
+                          }).then(() => {
+                            syncWithoutFetchingOBC();
                           });
                         }}
                       >
