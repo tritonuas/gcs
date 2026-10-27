@@ -19,6 +19,9 @@ const CONFIRM_ENDPOINT = `${API_BASE_URL}/clusters/confirm_launch`;
 const CLEAR_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/clear_manual`;
 const SET_MANUAL_ENDPOINT = `${API_BASE_URL}/clusters/set_manual`;
 
+type DetectionSortField = "type" | "rejected" | "id";
+type SortDirection = "ascending" | "descending";
+
 //represents the data stored for a detection of a target on the OBC
 interface Detection {
   // GPS cord of the detection
@@ -45,6 +48,8 @@ interface Cluster {
   //the color to draw as, stored as rgb 3-tuple
   color: number[];
 }
+
+
 /**
  * Gets the next color for the cluster to use
  * @param type The airdrop type
@@ -78,10 +83,54 @@ const Reports: React.FC = () => {
   const [clusters, setClusters] = useState([] as Cluster[]);
   const [selectedCluster, setSelectedCluster] = useState(-1);
   const [selectedDetection, setSelectedDetection] = useState(0);
+  const [columnSplit, setColumnSplit] = useState(0.5);
+  const [leftPanelSplit, setLeftPanelSplit] = useState(0.6);
+  const [rightPanelSplit, setRightPanelSplit] = useState(0.5);
+  const [sort, setSort] = useState<{
+    field: DetectionSortField;
+    direction: SortDirection;
+  }>({ field: "id", direction: "ascending" });
+  const reportsRef = useRef<HTMLElement | null>(null);
+  const leftColumnRef = useRef<HTMLDivElement | null>(null);
+  const rightColumnRef = useRef<HTMLDivElement | null>(null);
+
+
+  /**
+   * Captures the pointer so a divider continues tracking outside its handle.
+   * @param event The pointer event from the divider
+   */
+  function beginResize(event: React.PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  /**
+   * Updates a panel split from pointer movement, keeping both panels usable.
+   * @param event The pointer movement event from the divider
+   * @param container The resized container
+   * @param setSplit The state updater for the panel split
+   * @param axis The pointer axis used to calculate the split
+   */
+  function resizeSplit(
+    event: React.PointerEvent<HTMLDivElement>,
+    container: HTMLElement | null,
+    setSplit: React.Dispatch<React.SetStateAction<number>>,
+    axis: "x" | "y",
+  ) {
+    if (event.buttons !== 1 || !container) {
+      return;
+    }
+    const bounds = container.getBoundingClientRect();
+    const position = axis === "x" ? event.clientX - bounds.left : event.clientY - bounds.top;
+    const size = axis === "x" ? bounds.width : bounds.height;
+    const split = Math.min(0.8, Math.max(0.2, position / size));
+    setSplit(split);
+  }
 
   const [backgroundFetchingInterval, setBackgroundFetching] = useState(-1);
   const interval = useRef(0);
   const [fetchingMessage, setFetchingMessage] = useState("waiting to fetch");
+
   const fetchInterval = useCallback(async () => {
     clearInterval(interval.current);
     setFetchingMessage("Fetching...");
@@ -93,6 +142,7 @@ const Reports: React.FC = () => {
       interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
       return;
     }
+    setFetchingMessage("Waiting to fetch")
     interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
   }, [backgroundFetchingInterval]);
   const selection = useRef(null as HTMLSelectElement | null);
@@ -102,9 +152,6 @@ const Reports: React.FC = () => {
     if (backgroundFetchingInterval != -1) {
       interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
     }
-    return () => {
-      clearTimeout(interval.current);
-    };
   }, [backgroundFetchingInterval, fetchInterval]);
 
   useEffect(() => {
@@ -115,6 +162,9 @@ const Reports: React.FC = () => {
   }, [selectedCluster]);
   useEffect(() => {
     syncWithoutFetchingOBC();
+    return () => {
+      clearTimeout(interval.current);
+    };
   }, []);
   /**
    * Launches the airdrops with the currently selected center
@@ -155,6 +205,33 @@ const Reports: React.FC = () => {
       out.push(...c.all_data_points);
     }
     return out;
+  }
+  /**
+   * Returns detections sorted by the selected table field.
+   * @returns A sorted copy of the detections
+   */
+  function getSortedDetections() {
+    const direction = sort.direction === "ascending" ? 1 : -1;
+    return getAllDetections().sort((a, b) => {
+      const comparison =
+        sort.field === "rejected"
+          ? Number(a.rejected) - Number(b.rejected)
+          : a[sort.field] - b[sort.field];
+      return direction * comparison;
+    });
+  }
+  /**
+   * Sorts a table column, toggling direction when it is already active.
+   * @param field The detection field to sort by
+   */
+  function toggleSort(field: DetectionSortField) {
+    setSort((current) => ({
+      field,
+      direction:
+        current.field === field && current.direction === "ascending"
+          ? "descending"
+          : "ascending",
+    }));
   }
   /**
    * Returns a formated string of the airdrop type, or the number if it is out of range
@@ -327,6 +404,10 @@ const Reports: React.FC = () => {
                 color: e.rejected
                   ? "red"
                   : `rgb(${cluster.color[0]}, ${cluster.color[1]}, ${cluster.color[2]})`,
+                opacity:
+                  selectedCluster == -1 || selectedCluster === cluster.airdrop_type ? 1 : 0.25,
+                fillOpacity:
+                  selectedCluster == -1 || selectedCluster === cluster.airdrop_type ? 0.5 : 0.1,
               }}
             />
           );
@@ -428,133 +509,205 @@ const Reports: React.FC = () => {
       });
   }
   return (
-    <main className="reports-main">
-      <div className="reports-col">
-        <div className="reports-card">
+    <main
+      className="reports-main"
+      ref={reportsRef}
+      style={{ gridTemplateColumns: `${columnSplit}fr 8px ${1 - columnSplit}fr` }}
+    >
+      <div
+        className="reports-col"
+        ref={leftColumnRef}
+        style={{ gridTemplateRows: `${leftPanelSplit}fr 8px ${1 - leftPanelSplit}fr` }}
+      >
+        <div className="reports-card reports-map-card">
           <TuasMap className={"reports-map"} lat={51} lng={10}>
             <FlightBounds FlightBounds SearchBounds></FlightBounds>
             <UpdateMapCenter position={maploc} />
             <MapOnClickHandler />
-            {clusters.map((e) => {
-              if (selectedCluster == -1 || selectedCluster == e.airdrop_type) {
-                return MapCluster(e);
-              }
-            })}
+            {clusters.map((e) => MapCluster(e))}
             {renderCurrentMarker()}
           </TuasMap>
-          <div className="reports-cluster-data">
-            <button onClick={() => setManualVisor()}>select a marker to move</button>
-            <select
-              ref={selection}
-              onChange={(e) => {
-                setSelectedCluster(+e.target.value);
-              }}
-            >
-              <option value={-1}>All clusters</option>
-              {clusters.map((c, i) => {
-                return (
-                  <option
-                    key={i}
-                    value={c.airdrop_type}
-                    style={{
-                      backgroundColor: `rgb(${c.color[0]}, ${c.color[1]}, ${c.color[2]})`,
+        </div>
+        <div
+          className="reports-resizer reports-row-resizer"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize map and detections panels"
+          tabIndex={0}
+          onPointerDown={beginResize}
+          onPointerMove={(event) =>
+            resizeSplit(event, leftColumnRef.current, setLeftPanelSplit, "y")
+          }
+
+        />
+        <div className="reports-card reports-cluster-data">
+          <div className="reports-cluster-bottom-section">
+            Selected Cluster:
+            {
+              <div className="reports-cluster-container">
+                <div>
+                  <select className="reports-button"
+                    ref={selection}
+                    onChange={(e) => {
+                      setSelectedCluster(+e.target.value);
                     }}
                   >
-                    {getAirdropString(c.airdrop_type)}
-                  </option>
-                );
-              })}
-            </select>
-            <div className="reports-cluster-bottom-section">
-              {
-                <div className="reports-cluster-container">
-                  <div>
-                    Airdrop {getSelectedCluster()?.airdrop_type}
-                    <br></br>
-                    Current Chosen Center:{" "}
-                    {(() => {
-                      const cluster = getSelectedCluster();
-                      return cluster
-                        ? GPSCoordToString(
-                            cluster.is_manually_selected
-                              ? cluster.selected_center
-                              : cluster.calculated_center,
-                          )
-                        : "N/A";
-                    })()}
-                    <br></br>
-                    Calculated Center:{" "}
-                    {(() => {
-                      const cluster = getSelectedCluster();
-                      return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
-                    })()}
-                    <br></br>Using Manual Center?: {getSelectedCluster()?.is_manually_selected}
-                    {getSelectedCluster()?.is_manually_selected && (
-                      <button
-                        onClick={() => {
-                          fetch(CLEAR_MANUAL_ENDPOINT, {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                              id: selectedCluster,
-                            }),
-                          }).then(() => {
-                            syncWithoutFetchingOBC();
-                          });
-                        }}
-                      >
-                        Clear Manual Selection
-                      </button>
-                    )}
-                  </div>
-                  <div className="reports-table-wrapper">
-                    <table className="reports-cluster-table">
-                      <thead>
-                        <th>Index</th>
+                    <option value={-1} >All clusters</option>
+                    {clusters.map((c, i) => {
+                      return (
+                        <option
+                          key={i}
+                          value={c.airdrop_type}
+                          style={{
+                            backgroundColor: `rgb(${c.color[0]}, ${c.color[1]}, ${c.color[2]})`,
+                          }}
+                        >
+                          {getAirdropString(c.airdrop_type)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <br></br>
+                  Airdrop {getSelectedCluster()?.airdrop_type}
+                  <br></br>
+                  Current Chosen Center:{" "}
+                  {(() => {
+                    const cluster = getSelectedCluster();
+                    return cluster
+                      ? GPSCoordToString(
+                        cluster.is_manually_selected
+                          ? cluster.selected_center
+                          : cluster.calculated_center,
+                      )
+                      : "N/A";
+                  })()}
+                  <br></br>
+                  Calculated Center:{" "}
+                  {(() => {
+                    const cluster = getSelectedCluster();
+                    return cluster ? GPSCoordToString(cluster.calculated_center) : "N/A";
+                  })()}
+                  <br></br>Using Manual Center?: {getSelectedCluster()?.is_manually_selected}
+                  {getSelectedCluster()?.is_manually_selected && (
+                    <button
+                      onClick={() => {
+                        fetch(CLEAR_MANUAL_ENDPOINT, {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            id: selectedCluster,
+                          }),
+                        }).then(() => {
+                          syncWithoutFetchingOBC();
+                        });
+                      }}
+                    >
+                      Clear Manual Selection
+                    </button>
+                  )}
+                </div>
+                <div className="reports-table-wrapper">
+                  <table className="reports-cluster-table">
+                    <thead>
+                      <tr>
                         <th>Location</th>
-                        <th>Global Id</th>
-                        <th>Included?</th>
-                      </thead>
-                      <tbody className="reports-cluster-table-body">
-                        {(selectedCluster == -1
-                          ? getAllDetections()
-                          : (getSelectedCluster()?.all_data_points ?? [])
-                        ).map((p, i) => {
-                          return (
-                            <tr
-                              key={i}
-                              className="reports-cluster-table-row"
-                              onClick={() => {
-                                setSelectedCluster(p.type);
-                                setSelectedDetection(p.id);
-                                setMapLoc([p.location.Latitude, p.location.Longitude]);
+                        <th aria-sort={sort.field === "type" ? sort.direction : "none"}>
+                          <button
+                            className="reports-sort-button"
+                            type="button"
+                            onClick={() => toggleSort("type")}
+                          >
+                            Airdrop Type
+                            {sort.field === "type" &&
+                              (sort.direction === "ascending" ? " ↑" : " ↓")}
+                          </button>
+                        </th>
+                        <th aria-sort={sort.field === "rejected" ? sort.direction : "none"}>
+                          <button
+                            className="reports-sort-button"
+                            type="button"
+                            onClick={() => toggleSort("rejected")}
+                          >
+                            Included?
+                            {sort.field === "rejected" &&
+                              (sort.direction === "ascending" ? " ↑" : " ↓")}
+                          </button>
+                        </th>
+                        <th aria-sort={sort.field === "id" ? sort.direction : "none"}>
+                          <button
+                            className="reports-sort-button"
+                            type="button"
+                            onClick={() => toggleSort("id")}
+                          >
+                            Global Id
+                            {sort.field === "id" &&
+                              (sort.direction === "ascending" ? " ↑" : " ↓")}
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="reports-cluster-table-body">
+                      {getSortedDetections().map((p, i) => {
+                        const clusterColor =
+                          clusters.find((cluster) => cluster.airdrop_type === p.type)?.color ??
+                          GetNextColor(p.type);
+                        return (
+                          <tr
+                            key={i}
+                            className="reports-cluster-table-row"
+                            onClick={() => {
+                              setSelectedCluster(p.type);
+                              setSelectedDetection(p.id);
+                              setMapLoc([p.location.Latitude, p.location.Longitude]);
+                            }}
+                          >
+                            <td>{GPSCoordToString(p.location)}</td>
+
+                            <td
+                              style={{
+                                color: `rgb(${clusterColor[0]}, ${clusterColor[1]}, ${clusterColor[2]})`,
                               }}
                             >
-                              <td>{i}</td>
-                              <td>{GPSCoordToString(p.location)}</td>
-                              <td>{p.id}</td>
-                              <td>
-                                {p.rejected ? (
-                                  <span style={{ color: "red" }}>False</span>
-                                ) : (
-                                  <span style={{ color: "green" }}>True</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              {getAirdropString(p.type)}
+                            </td>
+                            <td>
+                              {p.rejected ? (
+                                <span style={{ color: "red" }}>False</span>
+                              ) : (
+                                <span style={{ color: "green" }}>True</span>
+                              )}
+                            </td>
+                            <td>{p.id}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              }
-            </div>
+              </div>
+            }
           </div>
         </div>
       </div>
-      <div className="reports-col">
+      <div
+        className="reports-resizer reports-column-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize report columns"
+        tabIndex={0}
+        onPointerDown={beginResize}
+        onPointerMove={(event) =>
+          resizeSplit(event, reportsRef.current, setColumnSplit, "x")
+        }
+
+      />
+      <div
+        className="reports-col"
+        ref={rightColumnRef}
+        style={{ gridTemplateRows: `${rightPanelSplit}fr 8px ${1 - rightPanelSplit}fr` }}
+      >
         <div className="reports-card report-detection-card">
           {getSelectedDetection() ? (
             <div className="report-detection-container">
@@ -583,24 +736,37 @@ const Reports: React.FC = () => {
             <h1>Select a detection on the map or from the table to view</h1>
           )}
         </div>
+        <div
+          className="reports-resizer reports-row-resizer"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize detection and controls panels"
+          tabIndex={0}
+          onPointerDown={beginResize}
+          onPointerMove={(event) =>
+            resizeSplit(event, rightColumnRef.current, setRightPanelSplit, "y")
+          }
+
+        />
         <div className="reports-card reports-control-card">
           Controls<br></br>
-          <label htmlFor="fetching-range">
-            Interval (in seconds) for background fetch. Current: {backgroundFetchingInterval}{" "}
-            seconds between. (-1 to disable) <br></br> {fetchingMessage}
+
+          <label>
+            <input
+              type="checkbox"
+              checked={backgroundFetchingInterval !== -1}
+              onChange={(e) => {
+                setBackgroundFetching(e.target.checked ? 5 : -1);
+              }}
+            />{" "}
+            Auto-refresh every 5 seconds
           </label>
-          <input
-            name="fetching-range"
-            type="range"
-            className="fetching-interval-slider"
-            min={-1}
-            max={50}
-            onChange={(e) => {
-              setBackgroundFetching(+e.target.value);
-            }}
-          ></input>
+          <div>{fetchingMessage}</div>
           <br />
-          <button onClick={launchAirDrops}>Confirm Launch</button>
+          <div className="reports-button-container">
+            <button onClick={() => setManualVisor()} className="reports-button">Move marker</button>
+            <button className="reports-button" onClick={launchAirDrops}>Confirm Launch</button>
+          </div>
         </div>
       </div>
     </main>
