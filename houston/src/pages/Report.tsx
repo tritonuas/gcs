@@ -49,7 +49,6 @@ interface Cluster {
   color: number[];
 }
 
-
 /**
  * Gets the next color for the cluster to use
  * @param type The airdrop type
@@ -93,7 +92,6 @@ const Reports: React.FC = () => {
   const reportsRef = useRef<HTMLElement | null>(null);
   const leftColumnRef = useRef<HTMLDivElement | null>(null);
   const rightColumnRef = useRef<HTMLDivElement | null>(null);
-
 
   /**
    * Captures the pointer so a divider continues tracking outside its handle.
@@ -142,7 +140,7 @@ const Reports: React.FC = () => {
       interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
       return;
     }
-    setFetchingMessage("Waiting to fetch")
+    setFetchingMessage("Waiting to fetch");
     interval.current = window.setTimeout(fetchInterval, backgroundFetchingInterval * 1000);
   }, [backgroundFetchingInterval]);
   const selection = useRef(null as HTMLSelectElement | null);
@@ -228,9 +226,7 @@ const Reports: React.FC = () => {
     setSort((current) => ({
       field,
       direction:
-        current.field === field && current.direction === "ascending"
-          ? "descending"
-          : "ascending",
+        current.field === field && current.direction === "ascending" ? "descending" : "ascending",
     }));
   }
   /**
@@ -538,7 +534,6 @@ const Reports: React.FC = () => {
           onPointerMove={(event) =>
             resizeSplit(event, leftColumnRef.current, setLeftPanelSplit, "y")
           }
-
         />
         <div className="reports-card reports-cluster-data">
           <div className="reports-cluster-bottom-section">
@@ -546,13 +541,14 @@ const Reports: React.FC = () => {
             {
               <div className="reports-cluster-container">
                 <div>
-                  <select className="reports-button"
+                  <select
+                    className="reports-button"
                     ref={selection}
                     onChange={(e) => {
                       setSelectedCluster(+e.target.value);
                     }}
                   >
-                    <option value={-1} >All clusters</option>
+                    <option value={-1}>All clusters</option>
                     {clusters.map((c, i) => {
                       return (
                         <option
@@ -575,10 +571,10 @@ const Reports: React.FC = () => {
                     const cluster = getSelectedCluster();
                     return cluster
                       ? GPSCoordToString(
-                        cluster.is_manually_selected
-                          ? cluster.selected_center
-                          : cluster.calculated_center,
-                      )
+                          cluster.is_manually_selected
+                            ? cluster.selected_center
+                            : cluster.calculated_center,
+                        )
                       : "N/A";
                   })()}
                   <br></br>
@@ -642,8 +638,7 @@ const Reports: React.FC = () => {
                             onClick={() => toggleSort("id")}
                           >
                             Global Id
-                            {sort.field === "id" &&
-                              (sort.direction === "ascending" ? " ↑" : " ↓")}
+                            {sort.field === "id" && (sort.direction === "ascending" ? " ↑" : " ↓")}
                           </button>
                         </th>
                       </tr>
@@ -698,10 +693,7 @@ const Reports: React.FC = () => {
         aria-label="Resize report columns"
         tabIndex={0}
         onPointerDown={beginResize}
-        onPointerMove={(event) =>
-          resizeSplit(event, reportsRef.current, setColumnSplit, "x")
-        }
-
+        onPointerMove={(event) => resizeSplit(event, reportsRef.current, setColumnSplit, "x")}
       />
       <div
         className="reports-col"
@@ -746,11 +738,9 @@ const Reports: React.FC = () => {
           onPointerMove={(event) =>
             resizeSplit(event, rightColumnRef.current, setRightPanelSplit, "y")
           }
-
         />
         <div className="reports-card reports-control-card">
           Controls<br></br>
-
           <label>
             <input
               type="checkbox"
@@ -764,8 +754,12 @@ const Reports: React.FC = () => {
           <div>{fetchingMessage}</div>
           <br />
           <div className="reports-button-container">
-            <button onClick={() => setManualVisor()} className="reports-button">Move marker</button>
-            <button className="reports-button" onClick={launchAirDrops}>Confirm Launch</button>
+            <button onClick={() => setManualVisor()} className="reports-button">
+              Move marker
+            </button>
+            <button className="reports-button" onClick={launchAirDrops}>
+              Confirm Launch
+            </button>
           </div>
         </div>
       </div>

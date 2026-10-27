@@ -691,16 +691,12 @@ func (server *Server) getInfluxDBtoCSV() gin.HandlerFunc {
 
 func (server *Server) getAllTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		start := time.Now()
 		data, err := server.obcClient.GetIdentifiedTargets()
-		Log.Infof("Time to fetch from OBC: %s", time.Since(start))
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
 			jsonstr := string(data)
-			start = time.Now()
 			clusterError := server.clusterManager.AddDetection(jsonstr)
-			Log.Infof("Time to add detection %s", time.Since(start))
 			if clusterError != nil {
 				Log.Errorf("Error adding clusters %v", clusterError)
 			}
