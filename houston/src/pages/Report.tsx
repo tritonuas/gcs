@@ -84,7 +84,7 @@ const Reports: React.FC = () => {
   const [selectedDetection, setSelectedDetection] = useState(0);
   const [columnSplit, setColumnSplit] = useState(0.5);
   const [leftPanelSplit, setLeftPanelSplit] = useState(0.6);
-  const [rightPanelSplit, setRightPanelSplit] = useState(0.5);
+  const [rightPanelSplit, setRightPanelSplit] = useState(0.7);
   const [sort, setSort] = useState<{
     field: DetectionSortField;
     direction: SortDirection;
@@ -205,18 +205,22 @@ const Reports: React.FC = () => {
     return out;
   }
   /**
-   * Returns detections sorted by the selected table field.
+   * Returns detections sorted by the selected table field and filtered by the current cluster
    * @returns A sorted copy of the detections
    */
   function getSortedDetections() {
     const direction = sort.direction === "ascending" ? 1 : -1;
-    return getAllDetections().sort((a, b) => {
-      const comparison =
-        sort.field === "rejected"
-          ? Number(a.rejected) - Number(b.rejected)
-          : a[sort.field] - b[sort.field];
-      return direction * comparison;
-    });
+    return getAllDetections()
+      .filter((a) => {
+        return a.type == selectedCluster || selectedCluster == -1;
+      })
+      .sort((a, b) => {
+        const comparison =
+          sort.field === "rejected"
+            ? Number(a.rejected) - Number(b.rejected)
+            : a[sort.field] - b[sort.field];
+        return direction * comparison;
+      });
   }
   /**
    * Sorts a table column, toggling direction when it is already active.
@@ -645,9 +649,6 @@ const Reports: React.FC = () => {
                     </thead>
                     <tbody className="reports-cluster-table-body">
                       {getSortedDetections().map((p, i) => {
-                        const clusterColor =
-                          clusters.find((cluster) => cluster.airdrop_type === p.type)?.color ??
-                          GetNextColor(p.type);
                         return (
                           <tr
                             key={i}
@@ -660,18 +661,12 @@ const Reports: React.FC = () => {
                           >
                             <td>{GPSCoordToString(p.location)}</td>
 
-                            <td
-                              style={{
-                                color: `rgb(${clusterColor[0]}, ${clusterColor[1]}, ${clusterColor[2]})`,
-                              }}
-                            >
-                              {getAirdropString(p.type)}
-                            </td>
+                            <td>{getAirdropString(p.type)}</td>
                             <td>
                               {p.rejected ? (
-                                <span style={{ color: "red" }}>False</span>
+                                <span className="reports-false">False</span>
                               ) : (
-                                <span style={{ color: "green" }}>True</span>
+                                <span className="reports-true">True</span>
                               )}
                             </td>
                             <td>{p.id}</td>

@@ -28,7 +28,7 @@ export function GPSCoordToString(g: GPSCoord | undefined | null) {
   if (g == undefined) {
     return "Undefined";
   }
-  return `Lat: ${g.Latitude}, Long: ${g.Longitude}, Alt: ${g.Altitude}`;
+  return `Lat: ${g.Latitude}, Long: ${g.Longitude}`;
 }
 
 /**

@@ -174,3 +174,9 @@
   flex-direction: row;
   padding: 10px;
 }
+.reports-false {
+  color: rgb(255, 19, 19);
+}
+.reports-true {
+  color: rgb(19, 255, 19);
+}
