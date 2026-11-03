@@ -16,11 +16,12 @@ import { SettingsConfig } from "../utilities/settings.ts";
 import UpdateMapCenter from "../components/UpdateMapCenter.tsx";
 
 import CustomControl from "react-leaflet-custom-control";
-import { Marker, Polygon, Polyline } from "react-leaflet";
+import { Marker, Polyline } from "react-leaflet";
 import L, { LatLng } from "leaflet";
 import { useMyModal } from "../components/UseMyModal.tsx";
 import TakeoffSelector from "../components/TakeoffSelector.tsx";
 import RTLSelector from "../components/RTLSelector.tsx";
+import FlightBounds from "../components/FlightBounds.tsx";
 
 type Unit = "knots" | "m/s" | "feet" | "meters" | "V" | "V/c" | "°F" | "°C" | "";
 export type Threshold = [number, number, number, number];
@@ -161,61 +162,6 @@ export class Parameter {
 }
 
 /**
- * A helper function to help with pushing an elemet to the end of an array of LatLng values.
- * @param setCoordinates React state setter for coordinates array.
- * @param planeLatLng A pair of LatLng coordiantes.
- */
-function updateCoordinate(
-  setCoordinates: React.Dispatch<React.SetStateAction<LatLng[]>>,
-  planeLatLng: [number, number],
-) {
-  setCoordinates((coordinates) => [...coordinates, new LatLng(planeLatLng[0], planeLatLng[1])]);
-}
-
-/**
- * A helper functions that extracts out the get request and updates of flight bounds.
- * @param setFlightBound React state setter for Flight Bound variable.
- * @param setSearchBound React state setter for Search Bound variable.
- * @param setWayPoint React state setter for Way Point variable.
- */
-function pullFlightBounds(
-  setFlightBound: React.Dispatch<React.SetStateAction<LatLng[]>>,
-  setSearchBound: React.Dispatch<React.SetStateAction<LatLng[]>>,
-  setWayPoint: React.Dispatch<React.SetStateAction<LatLng[]>>,
-) {
-  fetch("/api/mission", {
-    method: "GET",
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Connecting");
-      } else {
-        return response.json();
-      }
-    })
-    .then((data) => {
-      if (Object.prototype.hasOwnProperty.call(data, "FlightBoundary")) {
-        data["FlightBoundary"].map((coordinates: { Latitude: number; Longitude: number }) => {
-          updateCoordinate(setFlightBound, [coordinates["Latitude"], coordinates["Longitude"]]);
-        });
-      }
-      if (Object.prototype.hasOwnProperty.call(data, "AirdropBoundary")) {
-        data["AirdropBoundary"].map((coordinates: { Latitude: number; Longitude: number }) => {
-          updateCoordinate(setSearchBound, [coordinates["Latitude"], coordinates["Longitude"]]);
-        });
-      } //new
-      if (Object.prototype.hasOwnProperty.call(data, "Waypoints")) {
-        data["Waypoints"].map((coordinates: { Latitude: number; Longitude: number }) => {
-          updateCoordinate(setWayPoint, [coordinates["Latitude"], coordinates["Longitude"]]);
-        });
-      }
-    })
-    .catch((error) => {
-      console.error("Fetch error:", error);
-    });
-}
-
-/**
  * control page
  * @param props props
  * @param props.settings Settings to determine thresholds and battery info
@@ -298,9 +244,7 @@ function Control({
 
   const [planeLatLng, setPlaneLatLng] = useState<[number, number]>([0, 0]);
   const [icon, setIcon] = useState(localStorage.getItem("icon") || duck);
-  const [flightBound, setFlightBound] = useState<LatLng[]>([]);
-  const [searchBound, setSearchBound] = useState<LatLng[]>([]);
-  const [wayPoint, setWayPoint] = useState<LatLng[]>([]);
+
   const markerIcon = L.icon({
     iconUrl: icon,
     iconSize: [65, 50],
@@ -314,61 +258,103 @@ function Control({
     closeModal: closeRTLModal,
   } = useMyModal();
 
+  const [numLaps, setNumLaps] = useState("-1");
+
   const [superSecret, setSuperSecret] = useState(false);
 
   const [flightMode, setFlightMode] = useState("???");
 
   const [tickState, setTickState] = useState<string>("Loading...");
 
-  // --- NEW useEffect specifically for fetching tick state ---
+  // useEffect for fetching tick state
   useEffect(() => {
-    const fetchTickState = () => {
-      fetch("/api/tickstate")
-        .then((response) => {
-          if (!response.ok) {
+    let isCancelled = false;
+    let tickTimeoutId: number | null = null;
+    let tickRequestInFlight = false;
+
+    const pollTickState = async () => {
+      if (tickRequestInFlight || isCancelled) {
+        return;
+      }
+
+      tickRequestInFlight = true;
+      try {
+        const response = await fetch("/api/obcstate");
+        if (!response.ok) {
+          if (!isCancelled) {
             setTickState(`Error: ${response.status}`);
-            throw new Error(`Tickstate fetch failed: ${response.status}`);
           }
-          return response.text();
-        })
-        .then((data) => {
-          setTickState(data);
-        })
-        .catch((error) => {
-          console.error("Error fetching tick state:", error);
+          throw new Error(`Tickstate fetch failed: ${response.status}`);
+        }
+
+        const data = await response.text();
+        if (!isCancelled) {
+          setTickState(data.split(",")[0]);
+          setNumLaps(data.split(",")[1]);
+        }
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          setTickState("Loading...");
+        }
+      } catch (error) {
+        console.error("Error fetching tick state:", error);
+        if (!isCancelled) {
           setTickState("Error");
-        });
+          setNumLaps("-67/420");
+        }
+      } finally {
+        tickRequestInFlight = false;
+        if (!isCancelled) {
+          tickTimeoutId = window.setTimeout(() => {
+            void pollTickState();
+          }, 3000);
+        }
+      }
     };
 
-    fetchTickState(); // Fetch immediately on component mount
-    const tickInterval = setInterval(fetchTickState, 1000); // Then fetch every second
+    void pollTickState();
 
     return () => {
-      clearInterval(tickInterval); // Cleanup interval on component unmount
+      isCancelled = true;
+      if (tickTimeoutId !== null) {
+        window.clearTimeout(tickTimeoutId);
+      }
     };
-  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(
-      () =>
-        pullTelemetry(
-          settings,
-          setPlaneLatLng,
-          setAirspeed,
-          setGroundspeed,
-          setAltitudeMSL,
-          setAltitudeAGL,
-          setMotorBattery,
-          setPixhawkBattery,
-          setESCtemperature,
-          setSuperSecret,
-          setFlightMode,
-        ),
-      1000,
-    );
+    let isCancelled = false;
+    let telemetryTimeoutId: number | null = null;
+
+    const pollTelemetry = async () => {
+      await pullTelemetry(
+        settings,
+        setPlaneLatLng,
+        setAirspeed,
+        setGroundspeed,
+        setAltitudeMSL,
+        setAltitudeAGL,
+        setMotorBattery,
+        setPixhawkBattery,
+        setESCtemperature,
+        setSuperSecret,
+        setFlightMode,
+      );
+
+      if (!isCancelled) {
+        telemetryTimeoutId = window.setTimeout(() => {
+          void pollTelemetry();
+        }, 1000);
+      }
+    };
+
+    void pollTelemetry();
 
     return () => {
-      clearInterval(interval);
+      isCancelled = true;
+      if (telemetryTimeoutId !== null) {
+        window.clearTimeout(telemetryTimeoutId);
+      }
     };
   }, [settings]);
 
@@ -403,10 +389,6 @@ function Control({
     };
   });
 
-  useEffect(() => {
-    pullFlightBounds(setFlightBound, setSearchBound, setWayPoint);
-  }, []);
-
   return (
     <>
       <main className="controls-page">
@@ -415,6 +397,10 @@ function Control({
           {groundspeed.render(() => handleClick(setGroundspeed))}
           {altitudeMSL.render(() => handleClick(setAltitudeMSL))}
           {altitudeAGL.render(() => handleClick(setAltitudeAGL))}
+          <div style={flightModeColor} className="flight-telemetry" id="numLaps">
+            <h1 className="heading">Current Lap</h1>
+            <p className="data">{numLaps}</p>
+          </div>
         </div>
         {superSecret ? (
           <SuperSecret></SuperSecret>
@@ -474,28 +460,8 @@ function Control({
             </CustomControl>
             {centerMap ? <UpdateMapCenter position={planeLatLng} /> : null}
             <Marker position={planeLatLng} icon={markerIcon} />
+            <FlightBounds Waypoints FlightBounds SearchBounds></FlightBounds>
             <Polyline color="lime" positions={planeCoordinates} />
-            <Polygon color="red" positions={flightBound} />
-            <Polygon color="blue" positions={searchBound} />
-            {wayPoint.map((latlng, index) => {
-              return (
-                <Marker
-                  key={index}
-                  position={latlng}
-                  icon={
-                    new L.DivIcon({
-                      className: "custom-div-icon",
-                      html:
-                        "<div style='background-color:yellow;' class='marker-pin' data-content='" +
-                        (index + 1) +
-                        "'></div>",
-                      iconSize: [30, 42],
-                      iconAnchor: [15, 42],
-                    })
-                  }
-                />
-              );
-            })}
           </TuasMap>
         )}
         <div className="flight-telemetry-container">

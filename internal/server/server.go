@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -74,7 +75,7 @@ func (server *Server) initBackend(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/connections", server.testConnections())
-		api.GET("/tickstate", server.getTickState())
+		api.GET("/obcstate", server.getOBCState())
 		api.GET("/obc_connection", server.testOBCConnection())
 		api.GET("/influx", server.getInfluxDBtoCSV())
 		api.GET("/mission", server.getMission())
@@ -129,11 +130,123 @@ func (server *Server) initBackend(router *gin.Engine) {
 			targets.GET("/all", server.getAllTargets())
 			targets.GET("/matched", server.getMatchedTargets())
 			targets.POST("/matched", server.postMatchedTargets())
-
 			targets.POST("/locations", server.postAirdropTargets())
 			targets.POST("/validate", server.validateTargets())
 			targets.POST("/reject", server.rejectTargets())
 		}
+		clusters := api.Group("/clusters")
+		{
+			clusters.GET("/fetch", server.fetchClusters())
+			clusters.GET("/toggle", server.toggleDetection())
+			clusters.GET("/detection_images/:id", server.detectionImage())
+			clusters.POST("/set_manual", server.setClusterToManual())
+			clusters.POST("/clear_manual", server.setClusterOffManual())
+			clusters.POST("/confirm_launch", server.confirmClusters())
+		}
+	}
+}
+
+func (server *Server) setClusterToManual() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var body struct {
+			Id     int32           `json:"id"`
+			Center protos.GPSCoord `json:"center"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+			return
+		}
+		Log.Infof("Got object of type %v", &body)
+		e := server.clusterManager.SetManualCenter(protos.AirdropType(body.Id), &body.Center)
+		if e != nil {
+			c.JSON(400, gin.H{"error": "Invalid ID"})
+			return
+		}
+		c.String(200, "ok")
+	}
+}
+
+func (server *Server) setClusterOffManual() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		// Could define a type for this but it'd only have 1 entry
+		var body struct {
+			Id protos.AirdropType `json:"id"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON format"})
+			return
+		}
+		e := server.clusterManager.RemoveManualCenter(body.Id)
+		if e != nil {
+			c.JSON(400, gin.H{"error": "Invalid ID"})
+			return
+		}
+		c.String(200, "ok")
+	}
+}
+
+func (server *Server) confirmClusters() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data := server.clusterManager.GetLaunchCoordinates()
+		Log.Infoln("Launching Airdrops")
+		var buf bytes.Buffer
+		err := json.NewEncoder(&buf).Encode(data)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Failed to encode data to json")
+			return
+		}
+		respBody, status := server.obcClient.PostTargetMatchOverride(buf.Bytes())
+		c.String(status, "text/plain", respBody)
+	}
+}
+func (server *Server) detectionImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, parse_error := strconv.Atoi(c.Param("id"))
+		if parse_error != nil {
+			c.String(http.StatusBadRequest, "Malformed id")
+			return
+		}
+		img, ok := server.clusterManager.GetDetectionImage(id)
+		if ok {
+			// Cache for 1 day. - this would allow us to increase peformance, but might cause issues while testing with invalid data getting cached
+			// c.Header("Cache-Control", "public, max-age=5184000")
+			c.Header("Content-Type", "image/jpg")
+			c.Data(http.StatusOK, "image/jpg", img)
+			return
+		}
+		c.String(http.StatusBadRequest, "Invalid id")
+	}
+}
+
+// Marks an run as rejected on the Go proxy
+func (server *Server) toggleDetection() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, exists := c.GetQuery("id")
+		Log.Infof("toggle id %s", id)
+		if exists {
+			numbered_id, parse_error := strconv.Atoi(id)
+			if parse_error == nil && server.clusterManager.ToggleDetection(numbered_id) == nil {
+				c.String(http.StatusOK, "Detection toggled successfully")
+			} else {
+				Log.Errorf("error marshealing JSON: %v", parse_error)
+				c.String(http.StatusBadRequest, "Invaild json")
+			}
+		} else {
+			c.String(404, "No Cluster found")
+		}
+	}
+}
+
+// Fetchs the cluster without pinging the obc for new detection
+func (server *Server) fetchClusters() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		send_data, err := json.Marshal(server.clusterManager.ClusterData)
+		if err != nil {
+			Log.Errorf("error marshalling JSON: %v", err)
+			c.String(http.StatusBadRequest, "error marshalling JSON, %v", err)
+		}
+		c.Data(http.StatusOK, "application/json", send_data)
 	}
 }
 
@@ -189,9 +302,9 @@ func (server *Server) testOBCConnection() gin.HandlerFunc {
 	}
 }
 
-func (server *Server) getTickState() gin.HandlerFunc {
+func (server *Server) getOBCState() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		data, err := server.obcClient.GetTickState()
+		data, err := server.obcClient.GetOBCState()
 		if err != http.StatusOK {
 			c.Data(err, "text/plain", data)
 		} else {
@@ -610,6 +723,9 @@ func (server *Server) getMatchedTargets() gin.HandlerFunc {
 	}
 }
 
+/*
+Not currently used on the frontend, but left in case its needed to be called manually should clustering fail
+*/
 func (server *Server) postMatchedTargets() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -622,7 +738,6 @@ func (server *Server) postMatchedTargets() gin.HandlerFunc {
 		str := string(jsonData)
 		fmt.Println("JSON IS")
 		fmt.Println(str)
-
 		body, code := server.obcClient.PostTargetMatchOverride(jsonData)
 		if code != http.StatusOK {
 			c.Data(code, "text/plain", body)

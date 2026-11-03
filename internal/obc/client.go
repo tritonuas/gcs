@@ -89,9 +89,9 @@ func (client *Client) GetConnectionInfo() ([]byte, int) {
 	return body, httpErr.Status
 }
 
-// GetTickState requests the current tick state from the OBC
-func (client *Client) GetTickState() ([]byte, int) {
-	body, httpErr := client.httpClient.Get("/tickstate")
+// getOBCState requests the current tick state from the OBC
+func (client *Client) GetOBCState() ([]byte, int) {
+	body, httpErr := client.httpClient.Get("/obcstate")
 	return body, httpErr.Status
 }
 
