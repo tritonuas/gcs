@@ -241,7 +241,7 @@ func (server *Server) toggleDetection() gin.HandlerFunc {
 // Fetchs the cluster without pinging the obc for new detection
 func (server *Server) fetchClusters() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		send_data, err := json.Marshal(server.clusterManager.ClusterData)
+		send_data, err := server.clusterManager.MarshalJson()
 		if err != nil {
 			Log.Errorf("error marshalling JSON: %v", err)
 			c.String(http.StatusBadRequest, "error marshalling JSON, %v", err)
@@ -700,7 +700,7 @@ func (server *Server) getAllTargets() gin.HandlerFunc {
 			if clusterError != nil {
 				Log.Errorf("Error adding clusters %v", clusterError)
 			}
-			send_data, err := json.Marshal(server.clusterManager.ClusterData)
+			send_data, err := server.clusterManager.MarshalJson()
 			if err != nil {
 				Log.Fatalf("error marshelling JSON: %v", err)
 			}
