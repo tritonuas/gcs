@@ -10,7 +10,7 @@ services:
       - OUT1=--out=tcpin:0.0.0.0:14552
       # gcs
       - OUT2=--out=tcpin:0.0.0.0:14551
-      # qgroundcontrol  
+      # qgroundcontrol
       - OUT3=--out=tcpin:0.0.0.0:14553
       - OUT4=
       - OUT5=
@@ -140,5 +140,5 @@ volumes:
   influxdb_data:
 networks:
   TUAS:
-    name: TUAS #Force name to stop compose from adding a prefix 
+    name: TUAS #Force name to stop compose from adding a prefix
     driver: bridge
