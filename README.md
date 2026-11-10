@@ -104,14 +104,20 @@ Run full hub workflow with multiple components (Includes [Influxdb](https://www.
 ```sh
 make run-compose
 ```
-
+or, if on Windows or Mac
+```sh
+make run-compose-windows
+```
 ### Stop Compose
 
 ```sh
 # Stop docker-compose workflow
 make stop-compose
 ```
-
+or, if on Windows or Mac
+```sh
+make stop-compose-windows
+```
 ### Shortcuts
 
 ```sh
