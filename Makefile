@@ -76,7 +76,7 @@ houston/node_modules/.bin/protoc-gen-ts_proto:
 
 # Run
 # --------------------------------------------------------------------
-.PHONY: run run-docker run-compose stop-compose run-broach-compose develop clean-saved
+.PHONY: run run-docker run-compose stop-compose run-broach-compose develop clean-saved run-compose-windows stop-compose-windows
 run: build
 	./gcs
 
@@ -95,11 +95,6 @@ run-compose: clean-saved
 stop-compose:
 	docker compose -f deployments/docker-compose.yml down
 
-run-compose-mac: clean-saved
-	docker compose -f deployments/docker-compose-mac.yml up -d
-
-stop-compose-mac:
-	docker compose -f deployments/docker-compose-mac.yml down
 
 run-broach-compose:
 	docker compose -f deployments/broach-docker-compose.yml up -d
@@ -109,6 +104,11 @@ stop-broach-compose:
 
 develop:
 	make stop-compose && make build-docker && make run-compose
+run-compose-windows:
+	docker compose -f deployments/docker-compose-windows.yml up -d
+
+stop-compose-windows:
+	docker compose -f deployments/docker-compose-windows.yml down	
 
 # Testing
 # --------------------------------------------------------------------

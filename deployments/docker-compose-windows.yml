@@ -1,19 +1,38 @@
-# TODO: setup env variables https://docs.docker.com/compose/environment-variables/
 version: "3"
 services:
+  mavproxy:
+    image: tritonuas/mavproxy
+    platform: linux/amd64
+    environment:
+      - MASTER=--master=tcp:sitl:5760
+      - MASTER1=
+      - OUT0=
+      # obc
+      - OUT1=--out=tcpin:0.0.0.0:14552
+      # gcs
+      - OUT2=--out=tcpin:0.0.0.0:14551
+      # qgroundcontrol
+      - OUT3=--out=tcpin:0.0.0.0:14553
+      - OUT4=
+      - OUT5=
+      - OUT6=
+      - OUT7=
+    restart: always
+    networks:
+      - TUAS
   gcs:
     image: tritonuas/gcs
-    # network_mode: "host"
+    platform: linux/amd64
     ports:
       - 5000:5000
     environment:
       - DEBUG_MODE=true
-      - OBC_ADDR=192.168.1.51:5010
+      - OBC_ADDR=obcpp:5010
       - ANTENNA_TRACKER_IP=192.168.1.36
       - ANTENNA_TRACKER_PORT=4000
-      - MAV_DEVICE=tcp:sitl:5760
-      - MAV_OUTPUT4=udp:localhost:14550
-      - MAV_OUTPUT5=tcp:localhost:14551
+      - MAV_DEVICE=tcp:mavproxy:14551
+      # - MAV_OUTPUT4=udp:localhost:14558
+      # - MAV_OUTPUT5=tcp:localhost:14559
       - INFLUXDB_BUCKET=mavlink
       - INFLUXDB_ORG=TritonUAS
       - INFLUXDB_TOKEN=influxdbToken
@@ -24,19 +43,29 @@ services:
       - ../flight-logs:/CSV
     extra_hosts:
       - host.docker.internal:host-gateway
+    networks:
+      - TUAS
 
   influxdb:
     image: influxdb:2.0-alpine
-    # network_mode: "host"
     ports:
       - 8086:8086
     volumes:
       - influxdb_data:/var/lib/influxdb
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://localhost:8086"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - TUAS
   grafana:
     image: grafana/grafana:7.5.5
-    # network_mode: "host"
-    ports:
-      - 3000:3000
+    networks:
+      - TUAS
+    # ports:
+    #   - 3000:3000
     depends_on:
       - gcs
     environment:
@@ -56,9 +85,11 @@ services:
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
   influxdb_cli:
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
     image: influxdb:2.0-alpine
-    # network_mode: "host"
+    networks:
+      - TUAS
     entrypoint: >
       influx setup 
       --bucket mavlink 
@@ -70,16 +101,34 @@ services:
       --force
     restart: on-failure:20
   sitl:
-    image: tritonuas/plane.rascal
-    # network_mode: "host"
-    ports:
-      - 5760:5760
+    networks:
+      - TUAS
+    image: radarku/ardupilot-sitl
+    platform: linux/amd64
+    tty: true
+    # ports:
+    #   - 5760:5760
     environment:
-      - "SITL_HOME=38.31542593549111,-76.55062632801757,8,0"
-      - SITL_SPEEDUP=1
-    volumes:
-      - sitl:/app/logs
+      - VEHICLE=ArduPlane
+      - MODEL=quadplane
+      - LAT=36.21444
+      - LON=-96.00639
+      - ALT=8
+      - DIR=180
+      - SPEEDUP=2
+  # sitl:
+  #   image: tritonuas/plane.rascal
+  #   network_mode: "host"
+  #   # ports:
+  #   #   - 5760:5760
+  #   environment:
+  #     - "SITL_HOME=38.31542593549111,-76.55062632801757,8,0"
+  #     - SITL_SPEEDUP=1
+  #   volumes:
+  #     - sitl:/app/logs
   dozzle:
+    networks:
+      - TUAS
     container_name: dozzle
     image: amir20/dozzle:latest
     volumes:
@@ -89,5 +138,9 @@ services:
 volumes:
   grafana_data:
   missions:
-  sitl:
+  # sitl:
   influxdb_data:
+networks:
+  TUAS:
+    name: TUAS #Force name to stop compose from adding a prefix
+    driver: bridge
