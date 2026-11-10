@@ -2,6 +2,7 @@ version: "3"
 services:
   mavproxy:
     image: tritonuas/mavproxy
+    platform: linux/amd64
     environment:
       - MASTER=--master=tcp:sitl:5760
       - MASTER1=
@@ -21,6 +22,7 @@ services:
       - TUAS
   gcs:
     image: tritonuas/gcs
+    platform: linux/amd64
     ports:
       - 5000:5000
     environment:
@@ -102,7 +104,7 @@ services:
     networks:
       - TUAS
     image: radarku/ardupilot-sitl
-    # platform: linux/amd64
+    platform: linux/amd64
     tty: true
     # ports:
     #   - 5760:5760
